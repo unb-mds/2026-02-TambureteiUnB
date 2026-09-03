@@ -45,7 +45,7 @@ Projeto desenvolvido colaborativamente para a disciplina de **Métodos de Desenv
 | ------------------------------------ | -------------------------------------------------------------------------------------- |
 | Bruno Cauê Souza Lopes Oliveira      | [@bcaueLPS](https://github.com/bcaueLPS)                                               |
 | Gabriel Di Angellis Basilio Ferreira | [@diangellis](https://github.com/diangellis)                                           |
-| Luis Guilherme de Almeida Costa      | [@Luis-Guilherme-de-Almeida-Costa](https://github.com/Luis-Guilherme-de-Almeida-Costa) |
+| Luis Guilherme de Almeida Costa      | [@Luis-Guilherme-de-Almeida-Costa](https://github.com/LuisGuilherme67) |
 | Lucas Miranda Souza                  | [@lucasssmira](https://github.com/lucasssmira)                                         |
 | Luiza Carneiro Carvalho              | [@LuizaCarvalho691](https://github.com/LuizaCarvalho691)                               |
 | Maria Vitória Queiroz Lima           | [@mariav-07](https://github.com/mariav-07)                                             |
