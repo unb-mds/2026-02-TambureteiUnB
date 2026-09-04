@@ -53,3 +53,20 @@ Projeto desenvolvido colaborativamente para a disciplina de **Métodos de Desenv
 
 
 ---
+
+## 📚 Documentação com MkDocs
+
+A documentação detalhada do projeto está disponível na pasta `docs/`.
+
+### Visualizar localmente:
+```bash
+mkdocs serve
+```
+Acesse: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+
+### Gerar build estático da documentação:
+```bash
+mkdocs build
+```
+
+---
