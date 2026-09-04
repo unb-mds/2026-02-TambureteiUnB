@@ -26,7 +26,7 @@ Esta skill instrui agentes de IA a seguirem rigorosamente os padrões técnicos,
 
 3. **Privacy by Design e LGPD:**
    * Nunca coletar, armazenar ou expor dados acadêmicos sensíveis dos estudantes (matrícula, CPF, IRA).
-   * O cadastro de usuários contém estritamente `nome`, `email` e `password_hash` (criptografado com Argon2 ou Bcrypt).
+   * O cadastro de usuários contém estritamente `nome`, `email` e `password_hash` (hash com bcrypt).
    * Comentários e relatos são exibidos publicamente de forma anônima ou sob pseudônimo (*alias*).
    * Votos de situação acadêmica alimentam exclusivamente os contadores estatísticos da disciplina, sem identificação pública do votante.
 

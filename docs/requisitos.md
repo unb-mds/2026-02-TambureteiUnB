@@ -51,7 +51,7 @@ Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, de
   * O sistema **não** armazena identificadores institucionais diretos (matrícula, CPF, IRA).
   * Votos de aprovação e comentários são anonimizados na exibição pública.
   * Microdados históricos do DPO/INEP de turmas com menos de 5 alunos são consolidados no acumulado geral para evitar identificação indireta.
-* **[RNF03] Segurança e Criptografia:** Senhas devem ser armazenadas utilizando hash forte (Argon2id ou Bcrypt). Comunicação via HTTPS e consultas protegidas contra SQL Injection pelo SQLAlchemy ORM.
+* **[RNF03] Segurança e Criptografia:** Senhas devem ser armazenadas utilizando hash forte com bcrypt. Comunicação via HTTPS e consultas protegidas contra SQL Injection pelo SQLAlchemy ORM.
 * **[RNF04] Arquitetura em Camadas:** O backend FastAPI deve respeitar a separação estrita de responsabilidades: `api/` (routers/schemas), `domain/` (lógica pura), `services/` (casos de uso), `repositories/` (SQLAlchemy) e `models/` (entidades).
 * **[RNF05] Versionamento Database-as-Code:** Toda e qualquer evolução do esquema do banco de dados deve ser executada através de migrações versionadas do **Alembic**.
 * **[RNF06] Reprodutibilidade em Containers:** Toda a aplicação deve ser executável via `docker compose up` sem comandos manuais no sistema operacional do desenvolvedor.

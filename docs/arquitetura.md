@@ -52,7 +52,7 @@ O esquema relacional é composto pelas seguintes tabelas canônicas:
   * `id` (`UUID`, PK): Identificador único do usuário.
   * `nome` (`VARCHAR(100)`): Nome do usuário.
   * `email` (`VARCHAR(150)`, UNIQUE): E-mail de login.
-  * `password_hash` (`VARCHAR(255)`): Senha criptografada (Argon2 / Bcrypt).
+  * `password_hash` (`VARCHAR(255)`): Hash de senha com bcrypt.
   * `role` (`VARCHAR(20)`): Papel no sistema (`STUDENT`, `MODERATOR`, `ADMIN`).
   * `is_active` (`BOOLEAN`): Indicador de conta ativa.
   * `created_at` (`TIMESTAMPTZ`): Data de cadastro.

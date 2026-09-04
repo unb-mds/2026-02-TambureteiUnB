@@ -58,6 +58,11 @@ Projeto desenvolvido colaborativamente para a disciplina de **Métodos de Desenv
 
 A documentação detalhada do projeto está disponível na pasta `docs/`.
 
+### Instalar dependências da documentação:
+```bash
+python -m pip install mkdocs pymdown-extensions
+```
+
 ### Visualizar localmente:
 Instale o MkDocs (ex.: `pip install mkdocs`) e então execute:
 

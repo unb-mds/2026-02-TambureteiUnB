@@ -1,6 +1,6 @@
 # 📊 Tamburetei UnB
 
-Bem-vindo à documentação oficial do **Tamburetei UnB**, uma plataforma aberta, colaborativa e analítica voltada à comunidade acadêmica da **Universidade de Brasília (UnB)**, hospedada sob a organização **OpenDevUnB**.
+Bem-vindo à documentação oficial do **Tamburetei UnB**, uma plataforma aberta, colaborativa e analítica voltada à comunidade acadêmica da **Universidade de Brasília (UnB)**, hospedada sob a organização **unb-mds**.
 
 O projeto é desenvolvido no âmbito da disciplina **Métodos de Desenvolvimento de Software (MDS 2026/2 — FCTE/UnB)** pelo **Grupo G9**, inspirado no ecossistema pioneiro do OpenDevUFCG.
 

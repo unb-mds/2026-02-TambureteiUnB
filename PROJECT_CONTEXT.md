@@ -153,8 +153,8 @@ em menos de 300 ms.
 - [RNF02] Privacidade e LGPD (Privacy by Design): Não coletar matrícula, CPF ou
   dados acadêmicos nominais. As interações de comentários e votos devem ser
   exibidas publicamente de forma desvinculada da identidade real do aluno.
-- [RNF03] Segurança Criptográfica: Senhas armazenadas com hash forte (Argon2 ou
-  Bcrypt). Proteção contra injeção de SQL via SQLAlchemy ORM.
+- [RNF03] Segurança Criptográfica: Senhas armazenadas com hash forte com bcrypt.
+  Proteção contra injeção de SQL via SQLAlchemy ORM.
 - [RNF04] Arquitetura em Camadas: Backend FastAPI com estrita separação entre
   rotas (api/), regras de negócio (services/domain/), persistência
   (repositories/) e entidades (models/).
