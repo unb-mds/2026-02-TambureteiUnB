@@ -52,6 +52,47 @@ Projeto desenvolvido colaborativamente para a disciplina de **Métodos de Desenv
 | Thamires Ellen Souza Araujo          | [@thamiresellensa](https://github.com/thamiresellensa)                                 |
 
 
+## 🚀 Como Executar o Projeto com Docker
+
+### 1. Configurar variáveis de ambiente
+```bash
+cp .env.example .env
+```
+
+### 2. Iniciar os serviços
+```bash
+docker compose up -d --build
+```
+
+Serviços acessíveis:
+* **API FastAPI (Swagger UI):** [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Adminer (Painel DB):** [http://localhost:8080](http://localhost:8080)
+* **PostgreSQL:** `localhost:5432`
+
+---
+
+## 🗄️ Migrações de Banco de Dados com Alembic
+
+```bash
+# Aplicar migrações pendentes
+docker compose exec backend alembic upgrade head
+
+# Gerar nova migração após alterar modelos
+docker compose exec backend alembic revision --autogenerate -m "descricao_da_mudanca"
+```
+
+---
+
+## 🧪 Como Rodar os Testes
+
+```bash
+# Executar todos os testes
+docker compose exec backend pytest -v
+
+# Executar testes unitários do domínio com cobertura
+docker compose exec backend pytest tests/unit -v --cov=app/domain
+```
+
 ---
 
 ## 📚 Documentação com MkDocs
