@@ -92,4 +92,4 @@ Acesse no seu navegador: **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
 ```bash
 mkdocs build
 ```
-> 💡 A pasta `site/` gerada pelo comando de build já deve constar no `.gitignore` para não poluir o repositório.
+> 💡 A pasta `site/` gerada pelo comando de build deve constar no `.gitignore` para não poluir o repositório (se ainda não constar, adicione `site/`).
