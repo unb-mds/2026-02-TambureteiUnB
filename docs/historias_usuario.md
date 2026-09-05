@@ -307,6 +307,7 @@ Eu, como visitante não autenticado, desejo me cadastrar na plataforma com e-mai
 - Visualizar dados do usuário criado (sem a senha) na resposta da API
 - Garantir que nenhuma senha em texto puro seja persistida no banco de dados ao salvar o usuário
 #### User Story 1.1.2: Login com geração de token JWT
+Depende de: US 1.1.2
 Eu, como usuário cadastrado, desejo autenticar com e-mail e senha, a fim de receber um token JWT que me identifique nas próximas requisições.
  
 **Nessa issue deve ser feito:**
