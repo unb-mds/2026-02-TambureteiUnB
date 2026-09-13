@@ -4,6 +4,9 @@ from app.models.disciplina import Disciplina
 from app.models.usuario import Usuario
 from app.models.metrica import MetricaAcademica
 from app.models.situacao import SituacaoDisciplina
+from app.models.conteudo import Conteudo
+from app.models.comentario import Comentario
+from app.models.voto import VotoUtil
 
 __all__ = [
     "Base",
@@ -12,5 +15,8 @@ __all__ = [
     "Disciplina",
     "Usuario",
     "MetricaAcademica",
-    "SituacaoDisciplina"
+    "SituacaoDisciplina",
+    "Conteudo",
+    "Comentario",
+    "VotoUtil"
 ]
