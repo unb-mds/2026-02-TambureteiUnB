@@ -4,3 +4,4 @@
 *.env
 !.env.example
 site/
+__pycache__/
