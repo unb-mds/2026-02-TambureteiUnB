@@ -24,7 +24,7 @@ O projeto é inspirado no **Tamburetei**, desenvolvido pela OpenDevUFCG, que uti
 
 🔗 **Referência:** [Tamburetei — OpenDevUFCG](https://github.com/OpenDevUFCG/Tamburetei)
 
-
+**Figma do nosso projeto**: https://www.figma.com/board/coZ3FgGpd5amxJxaanwaTr/Template-MDS---Grupo-9?node-id=2128-1592&t=FLYotQksvnPU1YJJ-0
 ---
 
 
