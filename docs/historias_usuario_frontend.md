@@ -63,7 +63,7 @@ Eu, como usuário, desejo pesquisar disciplinas por nome ou código acadêmico, 
 
 **Nessa issue deve ser feito:**
 - Criar componente de barra de pesquisa com *debounce* na página do catálogo
-- Implementar filtros rápidos por departamento acadêmico (ex.: FGA, MAT) e turno
+- Implementar filtros rápidos por departamento acadêmico (ex.: FGA, MAT)
 - Integrar os filtros com os parâmetros de consulta da API (`GET /catalogo/cadeiras`)
 - Exibir estado de lista vazia quando nenhum resultado corresponder aos critérios informados
 
@@ -122,7 +122,7 @@ Eu, como estudante autenticado, desejo registrar minha situação na matéria at
 **Nessa issue deve ser feito:**
 - Criar componente visual de votação rápida com as opções: `Aprovado`, `Reprovado por Nota`, `Reprovado por Falta` e `Trancado`
 - Destacar a opção já selecionada anteriormente pelo usuário autenticado
-- Integrar chamada à API (`POST /cadeiras/{id}/situacao`) com atualização reativa do contador
+- Integrar chamada à API (`POST /turmas/{id}/doacoes`) com atualização reativa do contador
 - Exibir modal ou aviso convidando visitantes não autenticados a fazerem login para votar
 
 **Critérios de aceitação:**
@@ -155,8 +155,8 @@ Eu, como estudante autenticado, desejo submeter novos links e resumos através d
 
 **Nessa issue deve ser feito:**
 - Criar botão "Adicionar Material" visível nas abas de conteúdos da disciplina
-- Construir modal com campos: Título, Tipo (Link Útil, Resumo, Prova Antiga, Dica), URL/Origem e Semestre
-- Implementar validação dos campos e chamada à API (`POST /materiais`)
+- Construir modal com campos: Título, Tipo (Link Útil, Resumo, Prova Antiga, Dica), Arquivo e Semestre
+- Implementar validação dos campos e chamada à API (`POST /cadeiras/{id}/materiais`) em `multipart/form-data`
 - Exibir aviso sobre a regra ética que proíbe gabaritos de listas contínuas vigentes
 
 **Critérios de aceitação:**

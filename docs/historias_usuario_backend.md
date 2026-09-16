@@ -6,7 +6,7 @@
 Eu, como visitante não autenticado, desejo me cadastrar na plataforma com e-mail e senha, a fim de obter acesso às funcionalidades restritas a alunos autenticados.
  
 **Nessa issue deve ser feito:**
-- Criar model SQLAlchemy `User` (id, email, senha_hash, perfil, criado_em)
+- Criar model SQLAlchemy `User` (id UUID, nome, email, password_hash, role, is_active, created_at)
 - Criar schema Pydantic `UserCreate` com validação de e-mail e força de senha
 - Integrar biblioteca de hashing bcrypt (ex: passlib) ao fluxo de criação
 - Criar endpoint `POST /auth/register` com verificação de e-mail duplicado
