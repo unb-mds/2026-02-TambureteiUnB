@@ -74,7 +74,7 @@ Eu, como Engenheiro de Dados, desejo modelar a tabela fato `metricas_academicas`
 - Impedir duplicidade de métricas para a mesma disciplina no mesmo ano e semestre
 - Garantir que consultas analíticas por intervalo de anos respondam em menos de 300 ms
 - Garantir que a exclusão de uma disciplina remova em cascata suas métricas históricas
-- Consolidar em nível de consulta pública as turmas com menos de 5 estudantes, preservando anonimização e conformidade com LGPD
+- Aplicar a regra RNF02/RN07 de consolidação em nível de consulta pública para turmas com menos de 5 estudantes, preservando anonimização e conformidade com LGPD
 
 ---
 
