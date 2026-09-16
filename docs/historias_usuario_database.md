@@ -29,7 +29,7 @@ Eu, como Engenheiro de Banco de Dados, desejo modelar as tabelas `cursos` e `dis
 **Nessa issue deve ser feito:**
 - Criar tabela `cursos`: `id` (SERIAL PK), `codigo_mec` (VARCHAR 20 UNIQUE), `nome` (VARCHAR 150), `campus` (VARCHAR 100), `grau` (VARCHAR 50), `turno` (VARCHAR 50), `slug` (VARCHAR 150 UNIQUE) e `created_at`
 - Criar tabela `disciplinas`: `id` (SERIAL PK), `codigo` (VARCHAR 30), `slug` (VARCHAR 150 UNIQUE), `nome` (VARCHAR 150), `departamento` (VARCHAR 100), `creditos` (INT), `carga_horaria` (INT), `ementa` (TEXT) e `created_at`
-- Criar índices nos campos `slug` e `codigo` de ambas as tabelas
+- Criar índices nos campos `slug` e `codigo_mec` da tabela `cursos`, e nos campos `slug` e `codigo` da tabela `disciplinas`
 - Garantir suporte a textos longos de ementa em Markdown utilizando o mecanismo nativo TOAST do PostgreSQL
 
 **Critérios de aceitação:**
@@ -74,6 +74,7 @@ Eu, como Engenheiro de Dados, desejo modelar a tabela fato `metricas_academicas`
 - Impedir duplicidade de métricas para a mesma disciplina no mesmo ano e semestre
 - Garantir que consultas analíticas por intervalo de anos respondam em menos de 300 ms
 - Garantir que a exclusão de uma disciplina remova em cascata suas métricas históricas
+- Consolidar em nível de consulta pública as turmas com menos de 5 estudantes, preservando anonimização e conformidade com LGPD
 
 ---
 
@@ -109,7 +110,7 @@ Depende de: US 1.1.1, US 2.1.1
 Eu, como Engenheiro de Banco de Dados, desejo modelar a tabela `conteudos`, a fim de persistir materiais de estudo e registrar seu ciclo de aprovação na moderação.
 
 **Nessa issue deve ser feito:**
-- Criar tabela `conteudos`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `titulo` (VARCHAR 200), `descricao` (TEXT), `tipo` (VARCHAR 30), `url_origem` (TEXT), `semestre` (VARCHAR 10), `status_curadoria` (VARCHAR 20) e carimbos de data
+- Criar tabela `conteudos`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `titulo` (VARCHAR 200), `descricao` (TEXT), `tipo` (VARCHAR 30), `url_origem` (TEXT nullable), `caminho_arquivo` (TEXT nullable), `formato` (VARCHAR 30 nullable), `semestre` (VARCHAR 10), `status_curadoria` (VARCHAR 20) e carimbos de data
 - Adicionar constraint CHECK para os tipos aceitos: `'LINK_UTIL'`, `'RESUMO'`, `'PROVA_ANTIGA'`, `'DICA'`
 - Adicionar constraint CHECK para os status de curadoria: `'PENDENTE'`, `'APROVADO'`, `'RECUSADO'`, com default `'PENDENTE'`
 - Criar índice composto em `(disciplina_id, tipo, status_curadoria)` para agilizar a listagem de materiais públicos
@@ -125,7 +126,7 @@ Depende de: US 1.1.1, US 2.1.1
 Eu, como Engenheiro de Banco de Dados, desejo modelar a tabela `comentarios`, a fim de possibilitar discussões sob pseudônimo e respostas aninhadas (threads).
 
 **Nessa issue deve ser feito:**
-- Criar tabela `comentarios`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE CASCADE), `autor_alias` (VARCHAR 50 default 'Estudante Anônimo'), `topico_dificuldade` (VARCHAR 150), `conteudo` (TEXT), `parent_id` (BIGINT) e `status_moderacao` (VARCHAR 20)
+- Criar tabela `comentarios`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `autor_alias` (VARCHAR 50 default 'Estudante Anônimo'), `topico_dificuldade` (VARCHAR 150), `conteudo` (TEXT), `parent_id` (BIGINT), `created_at` (TIMESTAMPTZ) e `status_moderacao` (VARCHAR 20)
 - Configurar chave estrangeira auto-referencial em `parent_id` apontando para `comentarios.id` com `ON DELETE CASCADE`
 - Adicionar constraint CHECK para os status de moderação: `'PUBLICADO'`, `'PENDENTE'`, `'OCULTO'`
 - Criar índices nas colunas `disciplina_id` e `parent_id`
