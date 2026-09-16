@@ -1,4 +1,4 @@
-# 📊 Tamburetei UnB
+# 📊 Documento de Visão — Tamburetei UnB
 
 Bem-vindo à documentação oficial do **Tamburetei UnB**, uma plataforma aberta, colaborativa e analítica voltada à comunidade acadêmica da **Universidade de Brasília (UnB)**, hospedada sob a organização **unb-mds**.
 
