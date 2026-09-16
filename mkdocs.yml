@@ -28,7 +28,7 @@ extra_javascript:
   - https://unpkg.com/mermaid@10/dist/mermaid.min.js
 
 nav:
-  - Início: documento-visao.md
+  - Documento de Visão: index.md
   - Requisitos do Sistema: requisitos.md
   - Histórias de Usuário do Backend: historias_usuario_backend.md
   - Histórias de Usuário do Frontend: historias_usuario_frontend.md
