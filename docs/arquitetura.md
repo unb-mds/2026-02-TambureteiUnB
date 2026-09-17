@@ -34,19 +34,12 @@ graph TD
     end
 
     subgraph Armazenamento["Persistência e Arquivos"]
-        DB[("PostgreSQL 17 (Docker)
-        - Tabelas Canônicas
-        - Views Materializadas
-        - Índices B-Tree")]
-        Storage[("Volume Docker Seguro
-        - Arquivos Multipart
-        - PDF, PNG, JPG")]
+        DB[("PostgreSQL 17 (Docker)<br/>• Tabelas Canônicas<br/>• Views Materializadas<br/>• Índices B-Tree")]
+        Storage[("Volume Docker Seguro<br/>• Arquivos Multipart<br/>• PDF, PNG, JPG")]
     end
 
     subgraph Pipeline["Ingestão de Dados Abertos"]
-        ETL["Pipeline ETL Docker
-        - DPO / INEP / LAI
-        - Sanitização LGPD (RN07)"]
+        ETL["Pipeline ETL Docker<br/>• DPO / INEP / LAI<br/>• Sanitização LGPD (RN07)"]
     end
 
     V -->|Navega / Consulta pública| UI
