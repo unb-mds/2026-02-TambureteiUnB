@@ -57,7 +57,7 @@ graph TD
     Services --> Repos
     Services -->|Gravação física de arquivos| Storage
 
-    Repos -->|SQL assíncrono (asyncpg)| DB
+    Repos -->|SQL assíncrono via asyncpg| DB
     ETL -->|Carga de métricas históricas| DB
 ```
 
