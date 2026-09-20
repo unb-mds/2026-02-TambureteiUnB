@@ -33,6 +33,6 @@ nav:
   - Histórias de Usuário do Backend: historias_usuario_backend.md
   - Histórias de Usuário do Frontend: historias_usuario_frontend.md
   - Histórias de Usuário do Banco de Dados: historias_usuario_database.md
-  - Arquitetura & Banco de Dados: arquitetura.md
+  - Arquitetura & Banco de Dados: historias_usuario_arquitetura.md
   - Regras de Negócio & Governança: regras_negocio.md
   - Guia de Desenvolvimento: desenvolvimento.md
