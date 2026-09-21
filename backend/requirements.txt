@@ -5,3 +5,6 @@ pydantic-settings
 python-jose[cryptography]
 passlib[bcrypt]
 python-dotenv
+passlib[bcrypt]==1.7.4
+PyJWT==2.8.0
+email-validator==2.1.1
