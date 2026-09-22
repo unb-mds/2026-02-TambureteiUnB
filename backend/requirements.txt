@@ -3,8 +3,11 @@ uvicorn[standard]
 pydantic[email]
 pydantic-settings
 python-jose[cryptography]
-passlib[bcrypt]
 python-dotenv
 passlib[bcrypt]==1.7.4
 PyJWT==2.8.0
 email-validator==2.1.1
+bcrypt==3.2.2
+sqlalchemy>=2.0.28
+psycopg2-binary>=2.9.9
+python-multipart>=0.0.9
