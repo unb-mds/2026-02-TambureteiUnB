@@ -1,4 +1,4 @@
-"""initial_schema
+﻿"""initial_schema
 
 Revision ID: 001
 Revises: 
@@ -76,7 +76,39 @@ def upgrade() -> None:
     op.create_index('ix_cursos_disciplinas_curso', 'cursos_disciplinas', ['curso_id'])
     op.create_index('ix_cursos_disciplinas_disciplina', 'cursos_disciplinas', ['disciplina_id'])
 
-    # 5. Tabela metricas_academicas
+    # 5. Tabela professores
+    op.create_table(
+        'professores',
+        sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
+        sa.Column('nome', sa.String(length=150), nullable=False),
+        sa.Column('departamento', sa.String(length=100), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    )
+    op.create_index('ix_professores_nome', 'professores', ['nome'])
+
+    # 6. Tabela turmas
+    op.create_table(
+        'turmas',
+        sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
+        sa.Column('disciplina_id', sa.Integer(), sa.ForeignKey('disciplinas.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('codigo_turma', sa.String(length=10), nullable=False),
+        sa.Column('semestre', sa.String(length=10), nullable=False),
+        sa.Column('horario', sa.String(length=50), nullable=True),
+        sa.Column('local', sa.String(length=100), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.UniqueConstraint('disciplina_id', 'codigo_turma', 'semestre', name='uq_disciplina_turma_semestre')
+    )
+    op.create_index('ix_turmas_disciplina_id', 'turmas', ['disciplina_id'])
+    op.create_index('ix_turmas_semestre', 'turmas', ['semestre'])
+
+    # 7. Tabela associativa turmas_professores (N:N)
+    op.create_table(
+        'turmas_professores',
+        sa.Column('turma_id', sa.Integer(), sa.ForeignKey('turmas.id', ondelete='CASCADE'), primary_key=True),
+        sa.Column('professor_id', sa.Integer(), sa.ForeignKey('professores.id', ondelete='CASCADE'), primary_key=True),
+    )
+
+    # 8. Tabela metricas_academicas
     op.create_table(
         'metricas_academicas',
         sa.Column('id', sa.BigInteger(), primary_key=True, autoincrement=True),
@@ -95,7 +127,7 @@ def upgrade() -> None:
     )
     op.create_index('ix_metricas_disciplina_ano', 'metricas_academicas', ['disciplina_id', 'ano'])
 
-    # 6. Tabela situacoes_disciplinas
+    # 9. Tabela situacoes_disciplinas
     op.create_table(
         'situacoes_disciplinas',
         sa.Column('id', sa.BigInteger(), primary_key=True, autoincrement=True),
@@ -108,11 +140,12 @@ def upgrade() -> None:
     )
     op.create_index('ix_situacoes_disciplina', 'situacoes_disciplinas', ['disciplina_id'])
 
-    # 7. Tabela conteudos
+    # 10. Tabela conteudos
     op.create_table(
         'conteudos',
         sa.Column('id', sa.BigInteger(), primary_key=True, autoincrement=True),
         sa.Column('disciplina_id', sa.Integer(), sa.ForeignKey('disciplinas.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('turma_id', sa.Integer(), sa.ForeignKey('turmas.id', ondelete='SET NULL'), nullable=True),
         sa.Column('usuario_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('usuarios.id', ondelete='SET NULL'), nullable=True),
         sa.Column('titulo', sa.String(length=200), nullable=False),
         sa.Column('descricao', sa.Text(), nullable=True),
@@ -126,12 +159,14 @@ def upgrade() -> None:
         sa.CheckConstraint("status_curadoria IN ('PENDENTE', 'APROVADO', 'RECUSADO')", name='chk_status_curadoria')
     )
     op.create_index('ix_conteudos_disciplina_tipo', 'conteudos', ['disciplina_id', 'tipo', 'status_curadoria'])
+    op.create_index('ix_conteudos_turma_id', 'conteudos', ['turma_id'])
 
-    # 8. Tabela comentarios
+    # 11. Tabela comentarios
     op.create_table(
         'comentarios',
         sa.Column('id', sa.BigInteger(), primary_key=True, autoincrement=True),
         sa.Column('disciplina_id', sa.Integer(), sa.ForeignKey('disciplinas.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('turma_id', sa.Integer(), sa.ForeignKey('turmas.id', ondelete='SET NULL'), nullable=True),
         sa.Column('usuario_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False),
         sa.Column('autor_alias', sa.String(length=50), server_default='Estudante Anônimo', nullable=False),
         sa.Column('topico_dificuldade', sa.String(length=150), nullable=True),
@@ -142,9 +177,10 @@ def upgrade() -> None:
         sa.CheckConstraint("status_moderacao IN ('PUBLICADO', 'PENDENTE', 'OCULTO')", name='chk_status_moderacao')
     )
     op.create_index('ix_comentarios_disciplina', 'comentarios', ['disciplina_id'])
+    op.create_index('ix_comentarios_turma_id', 'comentarios', ['turma_id'])
     op.create_index('ix_comentarios_parent', 'comentarios', ['parent_id'])
 
-    # 9. Tabela votos_uteis
+    # 12. Tabela votos_uteis
     op.create_table(
         'votos_uteis',
         sa.Column('id', sa.BigInteger(), primary_key=True, autoincrement=True),
@@ -164,6 +200,9 @@ def downgrade() -> None:
     op.drop_table('conteudos')
     op.drop_table('situacoes_disciplinas')
     op.drop_table('metricas_academicas')
+    op.drop_table('turmas_professores')
+    op.drop_table('turmas')
+    op.drop_table('professores')
     op.drop_table('cursos_disciplinas')
     op.drop_table('disciplinas')
     op.drop_table('cursos')

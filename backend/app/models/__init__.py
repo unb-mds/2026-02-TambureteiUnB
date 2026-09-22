@@ -1,6 +1,8 @@
 from app.core.database import Base
 from app.models.curso import Curso, CursoDisciplina
 from app.models.disciplina import Disciplina
+from app.models.professor import Professor
+from app.models.turma import Turma, turmas_professores
 from app.models.usuario import Usuario
 from app.models.metrica import MetricaAcademica
 from app.models.situacao import SituacaoDisciplina
@@ -13,6 +15,9 @@ __all__ = [
     "Curso",
     "CursoDisciplina",
     "Disciplina",
+    "Professor",
+    "Turma",
+    "turmas_professores",
     "Usuario",
     "MetricaAcademica",
     "SituacaoDisciplina",
