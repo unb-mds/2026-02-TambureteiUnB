@@ -8,6 +8,7 @@ class Conteudo(Base):
 
     id = Column(BigInteger, primary_key=True, index=True)
     disciplina_id = Column(Integer, ForeignKey("disciplinas.id", ondelete="CASCADE"), nullable=False, index=True)
+    turma_id = Column(Integer, ForeignKey("turmas.id", ondelete="SET NULL"), nullable=True, index=True)
     usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True, index=True)
     titulo = Column(String(200), nullable=False)
     descricao = Column(Text, nullable=True)
@@ -19,6 +20,7 @@ class Conteudo(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     disciplina = relationship("Disciplina", back_populates="conteudos")
+    turma = relationship("Turma", back_populates="conteudos")
     usuario = relationship("Usuario", back_populates="conteudos")
 
     __table_args__ = (
