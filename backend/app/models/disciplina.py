@@ -17,6 +17,7 @@ class Disciplina(Base):
 
     # Relacionamentos
     cursos_disciplinas = relationship("CursoDisciplina", back_populates="disciplina", cascade="all, delete-orphan")
+    turmas = relationship("Turma", back_populates="disciplina", cascade="all, delete-orphan")
     metricas = relationship("MetricaAcademica", back_populates="disciplina", cascade="all, delete-orphan")
     situacoes = relationship("SituacaoDisciplina", back_populates="disciplina", cascade="all, delete-orphan")
     conteudos = relationship("Conteudo", back_populates="disciplina", cascade="all, delete-orphan")
