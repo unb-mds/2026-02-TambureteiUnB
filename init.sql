@@ -1,4 +1,4 @@
--- =====================================================================
+﻿-- =====================================================================
 -- PROJETO TAMBURETEI UnB - ESQUEMA RELACIONAL OFICIAL (PostgreSQL 17)
 -- Baseado no PROJECT_CONTEXT.md e na documentação técnica (MDS 2026/2)
 -- =====================================================================
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS cursos (
 
 CREATE TABLE IF NOT EXISTS disciplinas (
     id SERIAL PRIMARY KEY,
-    codigo VARCHAR(30) INDEX,
+    codigo VARCHAR(30) NOT NULL,
     slug VARCHAR(150) NOT NULL UNIQUE,
     nome VARCHAR(150) NOT NULL,
     departamento VARCHAR(100),
@@ -57,7 +57,36 @@ CREATE TABLE IF NOT EXISTS cursos_disciplinas (
 );
 
 -- =====================================================================
--- 3. MÉTRICAS ACADÊMICAS HISTÓRICAS (DPO / INEP / LAI)
+-- 3. CORPO DOCENTE E TURMAS (OFERTAS SEMESTRAIS)
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS professores (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    departamento VARCHAR(100),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Oferta concreta da disciplina em determinado semestre (ex.: Turma 01 Manhã vs Turma 02 Tarde)
+CREATE TABLE IF NOT EXISTS turmas (
+    id SERIAL PRIMARY KEY,
+    disciplina_id INT NOT NULL REFERENCES disciplinas(id) ON DELETE CASCADE,
+    codigo_turma VARCHAR(10) NOT NULL, -- Ex: '01', '02', 'A'
+    semestre VARCHAR(10) NOT NULL,     -- Ex: '2026.1'
+    horario VARCHAR(50),               -- Ex: '35M12' (manhã) ou '35T23' (tarde)
+    local VARCHAR(100),                -- Ex: 'UED - Sala 102'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_disciplina_turma_semestre UNIQUE (disciplina_id, codigo_turma, semestre)
+);
+
+-- Relação N:N entre Turmas e Professores (suporta co-docência com 2 ou mais docentes)
+CREATE TABLE IF NOT EXISTS turmas_professores (
+    turma_id INT NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
+    professor_id INT NOT NULL REFERENCES professores(id) ON DELETE CASCADE,
+    PRIMARY KEY (turma_id, professor_id)
+);
+
+-- =====================================================================
+-- 4. MÉTRICAS ACADÊMICAS HISTÓRICAS (DPO / INEP / LAI)
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS metricas_academicas (
     id BIGSERIAL PRIMARY KEY,
@@ -75,7 +104,7 @@ CREATE TABLE IF NOT EXISTS metricas_academicas (
 );
 
 -- =====================================================================
--- 4. CROWDSOURCING DISCENTE ("JÁ CURSEI ESSA MATÉRIA")
+-- 5. CROWDSOURCING DISCENTE ("JÁ CURSEI ESSA MATÉRIA")
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS situacoes_disciplinas (
     id BIGSERIAL PRIMARY KEY,
@@ -87,11 +116,12 @@ CREATE TABLE IF NOT EXISTS situacoes_disciplinas (
 );
 
 -- =====================================================================
--- 5. CONTEÚDOS DA DISCIPLINA (RESUMOS, LINKS, PROVAS PÚBLICAS, DICAS)
+-- 6. CONTEÚDOS DA DISCIPLINA (RESUMOS, LINKS, PROVAS PÚBLICAS, DICAS)
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS conteudos (
     id BIGSERIAL PRIMARY KEY,
     disciplina_id INT NOT NULL REFERENCES disciplinas(id) ON DELETE CASCADE,
+    turma_id INT REFERENCES turmas(id) ON DELETE SET NULL, -- Vínculo opcional com a turma específica
     usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
     titulo VARCHAR(200) NOT NULL,
     descricao TEXT,
@@ -104,11 +134,12 @@ CREATE TABLE IF NOT EXISTS conteudos (
 );
 
 -- =====================================================================
--- 6. COMENTÁRIOS E DISCUSSÕES ACADÊMICAS
+-- 7. COMENTÁRIOS E DISCUSSÕES ACADÊMICAS
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS comentarios (
     id BIGSERIAL PRIMARY KEY,
     disciplina_id INT NOT NULL REFERENCES disciplinas(id) ON DELETE CASCADE,
+    turma_id INT REFERENCES turmas(id) ON DELETE SET NULL, -- Relato sobre a matéria em geral ou turma específica
     usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
     autor_alias VARCHAR(50) NOT NULL DEFAULT 'Estudante Anônimo',
     topico_dificuldade VARCHAR(150),
@@ -119,7 +150,7 @@ CREATE TABLE IF NOT EXISTS comentarios (
 );
 
 -- =====================================================================
--- 7. VOTOS ÚTEIS (UPVOTES DE RELEVÂNCIA)
+-- 8. VOTOS ÚTEIS (UPVOTES DE RELEVÂNCIA)
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS votos_uteis (
     id BIGSERIAL PRIMARY KEY,
@@ -131,7 +162,7 @@ CREATE TABLE IF NOT EXISTS votos_uteis (
 );
 
 -- =====================================================================
--- 8. ÍNDICES PARA CONSULTAS DE ALTA PERFORMANCE (< 300ms)
+-- 9. ÍNDICES PARA CONSULTAS DE ALTA PERFORMANCE (< 300ms)
 -- =====================================================================
 CREATE INDEX IF NOT EXISTS idx_cursos_slug ON cursos(slug);
 CREATE INDEX IF NOT EXISTS idx_disciplinas_slug ON disciplinas(slug);
@@ -139,15 +170,22 @@ CREATE INDEX IF NOT EXISTS idx_disciplinas_codigo ON disciplinas(codigo);
 CREATE INDEX IF NOT EXISTS idx_cursos_disciplinas_curso ON cursos_disciplinas(curso_id);
 CREATE INDEX IF NOT EXISTS idx_cursos_disciplinas_disciplina ON cursos_disciplinas(disciplina_id);
 
+CREATE INDEX IF NOT EXISTS idx_professores_nome ON professores(nome);
+CREATE INDEX IF NOT EXISTS idx_turmas_disciplina ON turmas(disciplina_id);
+CREATE INDEX IF NOT EXISTS idx_turmas_semestre ON turmas(semestre);
+CREATE INDEX IF NOT EXISTS idx_turmas_professores_professor ON turmas_professores(professor_id);
+
 CREATE INDEX IF NOT EXISTS idx_metricas_disciplina_ano ON metricas_academicas(disciplina_id, ano);
 CREATE INDEX IF NOT EXISTS idx_situacoes_disciplina ON situacoes_disciplinas(disciplina_id);
 CREATE INDEX IF NOT EXISTS idx_conteudos_disciplina_tipo ON conteudos(disciplina_id, tipo, status_curadoria);
+CREATE INDEX IF NOT EXISTS idx_conteudos_turma ON conteudos(turma_id);
 CREATE INDEX IF NOT EXISTS idx_comentarios_disciplina ON comentarios(disciplina_id);
+CREATE INDEX IF NOT EXISTS idx_comentarios_turma ON comentarios(turma_id);
 CREATE INDEX IF NOT EXISTS idx_comentarios_parent ON comentarios(parent_id);
 CREATE INDEX IF NOT EXISTS idx_votos_target ON votos_uteis(target_type, target_id);
 
 -- =====================================================================
--- 9. DADOS INICIAIS DE TESTE (SEEDS - UnB / FCTE Gama)
+-- 10. DADOS INICIAIS DE TESTE (SEEDS - UnB / FCTE Gama)
 -- =====================================================================
 INSERT INTO cursos (codigo_mec, nome, campus, grau, turno, slug) VALUES 
 ('118928', 'Engenharia de Software', 'FCTE - Gama', 'Bacharelado', 'Diurno', 'engenharia-de-software'),
@@ -179,6 +217,53 @@ INSERT INTO cursos_disciplinas (curso_id, disciplina_id, periodo_sugerido, is_ob
 SELECT c.id, d.id, 3, TRUE 
 FROM cursos c, disciplinas d 
 WHERE c.slug = 'engenharia-de-software' AND d.slug = 'metodos-de-desenvolvimento-de-software'
+ON CONFLICT DO NOTHING;
+
+-- Professores de exemplo
+INSERT INTO professores (nome, departamento) VALUES 
+('Carla Rocha', 'FGA/FCTE'),
+('Hilmer Neri', 'FGA/FCTE'),
+('Edson Alves', 'FGA/FCTE'),
+('Luiz Leduino', 'MAT')
+ON CONFLICT DO NOTHING;
+
+-- Turmas de exemplo (demonstrando oferta matutina vs vespertina e co-docência)
+INSERT INTO turmas (disciplina_id, codigo_turma, semestre, horario, local)
+SELECT id, '01', '2026.1', '35T23', 'UED - Sala 102'
+FROM disciplinas WHERE slug = 'metodos-de-desenvolvimento-de-software'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO turmas (disciplina_id, codigo_turma, semestre, horario, local)
+SELECT id, '01', '2026.1', '35M12', 'UED - Lab 01'
+FROM disciplinas WHERE slug = 'algoritmos-e-programacao-de-computadores'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO turmas (disciplina_id, codigo_turma, semestre, horario, local)
+SELECT id, '02', '2026.1', '35T45', 'UED - Lab 02'
+FROM disciplinas WHERE slug = 'algoritmos-e-programacao-de-computadores'
+ON CONFLICT DO NOTHING;
+
+-- Associação N:N de Professores às Turmas
+-- MDS com co-docência (Carla Rocha e Hilmer Neri dividindo a Turma 01):
+INSERT INTO turmas_professores (turma_id, professor_id)
+SELECT t.id, p.id
+FROM turmas t
+JOIN disciplinas d ON d.id = t.disciplina_id
+CROSS JOIN professores p
+WHERE d.slug = 'metodos-de-desenvolvimento-de-software'
+  AND t.codigo_turma = '01'
+  AND p.nome IN ('Carla Rocha', 'Hilmer Neri')
+ON CONFLICT DO NOTHING;
+
+-- APC Turma 01 ministrada por Edson Alves:
+INSERT INTO turmas_professores (turma_id, professor_id)
+SELECT t.id, p.id
+FROM turmas t
+JOIN disciplinas d ON d.id = t.disciplina_id
+CROSS JOIN professores p
+WHERE d.slug = 'algoritmos-e-programacao-de-computadores'
+  AND t.codigo_turma = '01'
+  AND p.nome = 'Edson Alves'
 ON CONFLICT DO NOTHING;
 
 -- Métricas históricas agregadas de exemplo
