@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.routers import auth, cursos, disciplinas, turmas
 
+app.include_router(turmas.router)
 from app.core.config import settings
 from app.api.routers import auth, cursos, disciplinas
 
