@@ -8,7 +8,7 @@ class MetricaAcademica(Base):
     id = Column(BigInteger, primary_key=True, index=True)
     disciplina_id = Column(Integer, ForeignKey("disciplinas.id", ondelete="CASCADE"), nullable=False, index=True)
     ano = Column(Integer, nullable=False, index=True)
-    semestre = Column(Integer, nullable=False)
+    semestre = Column(Integer, nullable=False) # 1 ou 2
     matriculados = Column(Integer, default=0, nullable=False)
     aprovados = Column(Integer, default=0, nullable=False)
     reprovados_nota = Column(Integer, default=0, nullable=False)

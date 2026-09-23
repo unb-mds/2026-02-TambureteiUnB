@@ -15,7 +15,9 @@ class Disciplina(Base):
     ementa = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
+    # Relacionamentos
     cursos_disciplinas = relationship("CursoDisciplina", back_populates="disciplina", cascade="all, delete-orphan")
+    turmas = relationship("Turma", back_populates="disciplina", cascade="all, delete-orphan")
     metricas = relationship("MetricaAcademica", back_populates="disciplina", cascade="all, delete-orphan")
     situacoes = relationship("SituacaoDisciplina", back_populates="disciplina", cascade="all, delete-orphan")
     conteudos = relationship("Conteudo", back_populates="disciplina", cascade="all, delete-orphan")

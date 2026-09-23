@@ -1,8 +1,8 @@
 site_name: Tamburetei UnB
 site_description: Documentação Oficial do Tamburetei UnB — Métodos de Desenvolvimento de Software (MDS 2026/2 - FCTE/UnB)
 site_author: Grupo G9 — MDS UnB
-repo_name: unb-mds/G9-2026-2
-repo_url: https://github.com/unb-mds/G9-2026-2
+repo_name: unb-mds/2026-02-TambureteiUnB
+repo_url: https://github.com/unb-mds/2026-02-TambureteiUnB
 
 theme:
   name: readthedocs
@@ -28,8 +28,11 @@ extra_javascript:
   - https://unpkg.com/mermaid@10/dist/mermaid.min.js
 
 nav:
-  - Início: index.md
+  - Documento de Visão: index.md
   - Requisitos do Sistema: requisitos.md
-  - Arquitetura & Banco de Dados: arquitetura.md
+  - Histórias de Usuário do Backend: historias_usuario_backend.md
+  - Histórias de Usuário do Frontend: historias_usuario_frontend.md
+  - Histórias de Usuário do Banco de Dados: historias_usuario_database.md
+  - Arquitetura & Banco de Dados: historias_usuario_arquitetura.md
   - Regras de Negócio & Governança: regras_negocio.md
   - Guia de Desenvolvimento: desenvolvimento.md
