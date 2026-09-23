@@ -1,0 +1,6 @@
+[tool.mutmut]
+source_paths = ["app/"]
+only_mutate = ["app/domain/materiais.py"]
+also_copy = ["pytest.ini"]
+pytest_add_cli_args_test_selection = ["tests/unit/test_materiais.py"]
+pytest_add_cli_args = ["-q"]

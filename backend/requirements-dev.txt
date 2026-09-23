@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest==8.4.2
+bandit>=1.8,<2
+mutmut==3.8.0; sys_platform != 'win32'
