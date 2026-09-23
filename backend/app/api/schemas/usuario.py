@@ -1,28 +1,23 @@
 import re
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
-
+from pydantic_core import PydanticCustomError
 
 
 class UsuarioCreate(BaseModel):
     nome: str = Field(
         ...,
-        min_length=3,
-        max_length=100,
         description="Nome do estudante",
         examples=["Aluno da Silva"]
     )
     email: EmailStr = Field(
         ...,
-        max_length=150,
         description="E-mail do estudante",
         examples=["aluno@aluno.unb.br"]
     )
     senha: str = Field(
         ...,
-        min_length=8,
-        max_length=72,
-        description="Senha com no mínimo 8 caracteres (maiúscula, minúscula, número e caractere especial)",
+        description="Senha do estudante",
         examples=["SenhaForte123!"]
     )
 
@@ -31,28 +26,38 @@ class UsuarioCreate(BaseModel):
     def validar_nome(cls, v: str) -> str:
         v = " ".join(v.split())
         if len(v) < 3:
-            raise ValueError("O nome deve ter no mínimo 3 caracteres.")
+            raise PydanticCustomError("nome_curto", "O campo nome deve ter no mínimo 3 caracteres.")
+        if len(v) > 100:
+            raise PydanticCustomError("nome_longo", "O campo nome deve ter no máximo 100 caracteres.")
         if not re.match(r"^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$", v):
-            raise ValueError("O nome deve conter apenas letras e espaços.")
+            raise PydanticCustomError("nome_invalido", "O nome deve conter apenas letras e espaços.")
         return v
 
     @field_validator("email")
     @classmethod
     def normalizar_email(cls, v: str) -> str:
-        return v.strip().lower()
+        v = v.strip().lower()
+        if len(v) > 150:
+            raise PydanticCustomError("email_longo", "O e-mail deve ter no máximo 150 caracteres.")
+        return v
 
     @field_validator("senha")
     @classmethod
     def validar_complexidade_senha(cls, v: str) -> str:
+        if len(v) < 8:
+            raise PydanticCustomError("senha_curta", "A senha deve possuir pelo menos 8 caracteres.")
+        if len(v) > 72:
+            raise PydanticCustomError("senha_longa", "A senha não pode ultrapassar 72 caracteres.")
         if not re.search(r"[A-Z]", v):
-            raise ValueError("A senha deve conter pelo menos uma letra maiúscula.")
+            raise PydanticCustomError("senha_sem_maiuscula", "A senha deve conter pelo menos uma letra maiúscula.")
         if not re.search(r"[a-z]", v):
-            raise ValueError("A senha deve conter pelo menos uma letra minúscula.")
+            raise PydanticCustomError("senha_sem_minuscula", "A senha deve conter pelo menos uma letra minúscula.")
         if not re.search(r"[0-9]", v):
-            raise ValueError("A senha deve conter pelo menos um número.")
+            raise PydanticCustomError("senha_sem_numero", "A senha deve conter pelo menos um número.")
         if not re.search(r"[!@#$%^&*(),.?\":{}|<>\-_=+]", v):
-            raise ValueError("A senha deve conter pelo menos um caractere especial (!@#$%^&* etc.).")
+            raise PydanticCustomError("senha_sem_especial", "A senha deve conter pelo menos um caractere especial (!@#$%^&* etc.).")
         return v
+
 
 
 class UsuarioLogin(BaseModel):
@@ -81,4 +86,4 @@ class Token(BaseModel):
 
 
 class UsuarioDesativado(BaseModel):
-    detail: str = "Conta desativada com sucesso. Suas contribuições foram preservadas."
+    detail: str = "Conta desativada com sucesso. Suas contribuições foram preservadas."
