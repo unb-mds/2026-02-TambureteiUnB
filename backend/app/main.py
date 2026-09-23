@@ -1,13 +1,29 @@
 from fastapi import FastAPI
-from app.api.routers import auth, cursos, disciplinas
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="API Tamburetei", version="1.0.0")
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+)
 
-app.include_router(auth.router)
-app.include_router(cursos.router)
-app.include_router(disciplinas.router)
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
-def read_root():
-    return {"message": "API do Tamburetei rodando com sucesso!"}
+def root():
+    return {
+        "project": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "status": "online",
+        "docs": "/docs"
+    }
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}

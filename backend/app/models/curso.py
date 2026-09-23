@@ -14,6 +14,7 @@ class Curso(Base):
     slug = Column(String(150), unique=True, index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
+    # Relacionamentos
     curso_disciplinas = relationship("CursoDisciplina", back_populates="curso", cascade="all, delete-orphan")
 
     def __repr__(self):
@@ -26,7 +27,7 @@ class CursoDisciplina(Base):
     id = Column(Integer, primary_key=True, index=True)
     curso_id = Column(Integer, ForeignKey("cursos.id", ondelete="CASCADE"), nullable=False, index=True)
     disciplina_id = Column(Integer, ForeignKey("disciplinas.id", ondelete="CASCADE"), nullable=False, index=True)
-    periodo_sugerido = Column(Integer, nullable=True)
+    periodo_sugerido = Column(Integer, nullable=True) # 1, 2, 3...
     is_obrigatoria = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

@@ -9,7 +9,7 @@ class SituacaoDisciplina(Base):
     id = Column(BigInteger, primary_key=True, index=True)
     usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
     disciplina_id = Column(Integer, ForeignKey("disciplinas.id", ondelete="CASCADE"), nullable=False, index=True)
-    situacao = Column(String(20), nullable=False)
+    situacao = Column(String(20), nullable=False) # 'APROVADO', 'REPROVADO_NOTA', 'REPROVADO_FALTA', 'TRANCOU'
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     usuario = relationship("Usuario", back_populates="situacoes")
