@@ -29,7 +29,7 @@ class TestUsuarioCreateSchema:
                 email="aluno@unb.br",
                 senha="SenhaForte123!"
             )
-        assert "String should have at least 3 characters" in str(exc.value)
+        assert "O campo nome deve ter no mínimo 3 caracteres." in str(exc.value)
 
     def test_nome_com_numeros(self):
         with pytest.raises(ValidationError) as exc:
@@ -56,7 +56,8 @@ class TestUsuarioCreateSchema:
                 email="aluno@unb.br",
                 senha="Aa1!"
             )
-        assert "String should have at least 8 characters" in str(exc.value)
+        assert "A senha deve possuir pelo menos 8 caracteres." in str(exc.value)
+
 
     def test_senha_sem_maiuscula(self):
         with pytest.raises(ValidationError) as exc:
@@ -101,7 +102,8 @@ class TestUsuarioCreateSchema:
                 email="aluno@unb.br",
                 senha="A" * 70 + "1!a"
             )
-        assert "String should have at most 72 characters" in str(exc.value)
+        assert "A senha não pode ultrapassar 72 caracteres." in str(exc.value)
+
 
 
 class TestUsuarioLoginSchema:
