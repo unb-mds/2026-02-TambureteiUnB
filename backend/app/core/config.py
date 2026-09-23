@@ -8,9 +8,9 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Banco de Dados
-    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "db")
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "tamburetei_dev")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "tamburetei_secret")
+    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "tamburetei_db")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
     
@@ -32,12 +32,25 @@ class Settings(BaseSettings):
     AMOSTRAGEM_MINIMA_LGPD: int = 5
 
     @property
+    def SQLALCHEMY_DATABASE_URI(self):
+        from sqlalchemy.engine import URL
+
+        return URL.create(
+            "postgresql+psycopg2",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=int(self.POSTGRES_PORT),
+            database=self.POSTGRES_DB,
+        )
+
+    @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     class Config:
         case_sensitive = True
-        env_file = ".env"
+        env_file = (".env", "../.env")
         extra = "allow"
 
 settings = Settings()
