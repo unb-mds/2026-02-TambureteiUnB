@@ -8,9 +8,9 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Banco de Dados
-    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "db")
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "tamburetei_dev")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "tamburetei_secret")
+    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "tamburetei_db")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
     
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
 
     class Config:
         case_sensitive = True
-        env_file = ".env"
+        env_file = (".env", "../.env")
         extra = "allow"
 
 settings = Settings()
