@@ -10,7 +10,11 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   backend:
     build:
@@ -19,6 +23,7 @@ services:
     restart: always
     ports:
       - "8000:8000"
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
     environment:
       POSTGRES_SERVER: db
       POSTGRES_USER: ${POSTGRES_USER}
@@ -26,10 +31,14 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PORT: 5432
       SECRET_KEY: ${SECRET_KEY}
+      MATERIALS_DIR: /app/storage/materiais
+      MATERIAL_MAX_BYTES: ${MATERIAL_MAX_BYTES:-5242880}
     volumes:
       - ./backend:/app
+      - materiais_data:/app/storage/materiais
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   adminer:
     image: adminer
@@ -41,3 +50,4 @@ services:
 
 volumes:
   pgdata:
+  materiais_data:
