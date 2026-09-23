@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+from pydantic import Field
 from typing import List
 from pydantic_settings import BaseSettings
 
@@ -30,6 +32,9 @@ class Settings(BaseSettings):
     
     # Limiar para baixa amostragem LGPD / DPO (< 5 alunos)
     AMOSTRAGEM_MINIMA_LGPD: int = 5
+
+    MATERIALS_DIR: Path = Path(__file__).resolve().parents[2] / "storage" / "materiais"
+    MATERIAL_MAX_BYTES: int = Field(default=5 * 1024 * 1024, gt=0)
 
     @property
     def SQLALCHEMY_DATABASE_URI(self):
