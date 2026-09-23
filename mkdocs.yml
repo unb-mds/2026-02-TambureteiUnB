@@ -31,6 +31,7 @@ nav:
   - Documento de Visão: index.md
   - Requisitos do Sistema: requisitos.md
   - Histórias de Usuário do Backend: historias_usuario_backend.md
+  - Feature 5.2 — Materiais: feature_5_2_materiais.md
   - Histórias de Usuário do Frontend: historias_usuario_frontend.md
   - Histórias de Usuário do Banco de Dados: historias_usuario_database.md
   - Arquitetura & Banco de Dados: historias_usuario_arquitetura.md

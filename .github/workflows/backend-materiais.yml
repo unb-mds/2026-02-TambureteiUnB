@@ -1,0 +1,89 @@
+name: Backend - Materiais
+
+on:
+  push:
+    branches: ["feat/materiais-apoio", "feat/integracao-autenticacao", "develop", "main"]
+    paths: ["backend/**", "docker-compose.yml", ".github/workflows/backend-materiais.yml"]
+  pull_request:
+    paths: ["backend/**", "docker-compose.yml", ".github/workflows/backend-materiais.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: materiais_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d materiais_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/materiais_test
+      SECRET_KEY: chave-exclusiva-de-testes-nao-usar-em-producao
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Instalar dependências
+        run: python -m pip install -r requirements-dev.txt
+      - name: Validar migrações, endpoints e cobertura
+        run: >-
+          python -m pytest -q
+          --cov=app.domain --cov=app.services.material_service
+          --cov=app.services.armazenamento_material --cov=app.repositories.material_repo
+          --cov-report=term-missing --cov-fail-under=90
+      - name: Análise de segurança
+        run: python -m bandit -r app -ll
+      - name: Testes de mutação do domínio
+        run: |
+          mutmut run --max-children 2
+          mutmut export-cicd-stats
+      - name: Exigir pelo menos 50% de mutantes mortos
+        run: >-
+          python -c "import json; from pathlib import Path;
+          s=json.loads(Path('mutants/mutmut-cicd-stats.json').read_text());
+          total=s['total']-s['skipped'];
+          score=s['killed']/total if total else 0;
+          print(f'Mutação: {s} | escore: {score:.1%}');
+          assert total > 0 and score >= 0.5, 'Escore de mutação insuficiente'"
+      - name: Guardar resultados de mutação
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: materiais-mutacao
+          path: backend/mutants/mutmut-cicd-stats.json
+          if-no-files-found: ignore
+
+  smoke-docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Iniciar ambiente novo pelo Compose
+        run: docker compose --env-file .env.example -p materiais-ci up -d --build backend
+      - name: Verificar API e migração aplicada
+        run: |
+          curl --fail --retry 30 --retry-delay 2 --retry-all-errors http://localhost:8000/health
+          docker compose --env-file .env.example -p materiais-ci exec -T backend alembic current | grep 002_materiais
+          docker compose --env-file .env.example -p materiais-ci exec -T backend python -c "from app.core.database import SessionLocal; from app.models import Material; s=SessionLocal(); print('Materiais:', s.query(Material).count()); s.close()"
+      - name: Logs do ambiente
+        if: failure()
+        run: docker compose --env-file .env.example -p materiais-ci logs
+      - name: Encerrar ambiente de teste
+        if: always()
+        run: docker compose --env-file .env.example -p materiais-ci down --volumes

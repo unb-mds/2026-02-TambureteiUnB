@@ -8,3 +8,9 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+backend/storage/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+backend/mutants/
