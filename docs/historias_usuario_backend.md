@@ -277,6 +277,8 @@ Eu, como aluno autenticado, desejo editar ou remover o meu próprio comentário,
 - Garantir que comentários excluídos não sejam exibidos nas listagens
 - Garantir que os comentários editados continuem respeitando os limites de caracteres
 ### Feature 5.2: Compartilhamento e Upload de Materiais
+
+Consulte o [guia de implementação e testes da Feature 5.2](feature_5_2_materiais.md) para contratos da API, migrações, configuração e validação dos critérios de aceitação.
  
 #### User Story 5.2.1: Upload físico de material de apoio
 Depende de: US 1.1.2
