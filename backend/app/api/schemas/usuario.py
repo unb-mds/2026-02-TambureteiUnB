@@ -1,5 +1,6 @@
 import re
 from uuid import UUID
+from email_validator import validate_email, EmailNotValidError
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from pydantic_core import PydanticCustomError
 
@@ -33,13 +34,22 @@ class UsuarioCreate(BaseModel):
             raise PydanticCustomError("nome_invalido", "O nome deve conter apenas letras e espaços.")
         return v
 
-    @field_validator("email")
+    @field_validator("email", mode="before")
     @classmethod
-    def normalizar_email(cls, v: str) -> str:
+    def validar_email(cls, v: str) -> str:
+        if not isinstance(v, str):
+            raise PydanticCustomError("email_invalido", "O e-mail deve ser um texto.")
         v = v.strip().lower()
         if len(v) > 150:
             raise PydanticCustomError("email_longo", "O e-mail deve ter no máximo 150 caracteres.")
-        return v
+        try:
+            valid = validate_email(v, check_deliverability=False)
+            return valid.normalized
+        except EmailNotValidError:
+            raise PydanticCustomError(
+                "email_invalido",
+                "Por favor, informe um endereço de e-mail válido (exemplo: usuario@dominio.com)."
+            )
 
     @field_validator("senha")
     @classmethod
@@ -59,15 +69,25 @@ class UsuarioCreate(BaseModel):
         return v
 
 
-
 class UsuarioLogin(BaseModel):
-    email: EmailStr = Field(..., max_length=150, description="E-mail cadastrado")
-    senha: str = Field(..., min_length=1, max_length=72, description="Senha do usuário")
+    email: EmailStr = Field(..., description="E-mail cadastrado")
+    senha: str = Field(..., description="Senha do usuário")
 
-    @field_validator("email")
+    @field_validator("email", mode="before")
     @classmethod
-    def normalizar_email(cls, v: str) -> str:
-        return v.strip().lower()
+    def validar_email(cls, v: str) -> str:
+        if not isinstance(v, str):
+            raise PydanticCustomError("email_invalido", "O e-mail deve ser um texto.")
+        v = v.strip().lower()
+        try:
+            valid = validate_email(v, check_deliverability=False)
+            return valid.normalized
+        except EmailNotValidError:
+            raise PydanticCustomError(
+                "email_invalido",
+                "Por favor, informe um endereço de e-mail válido (exemplo: usuario@dominio.com)."
+            )
+
 
 
 class UsuarioResponse(BaseModel):

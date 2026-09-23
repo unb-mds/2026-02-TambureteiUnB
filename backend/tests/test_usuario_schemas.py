@@ -47,7 +47,8 @@ class TestUsuarioCreateSchema:
                 email="email_sem_arroba",
                 senha="SenhaForte123!"
             )
-        assert "value is not a valid email address" in str(exc.value)
+        assert "Por favor, informe um endereço de e-mail válido" in str(exc.value)
+
 
     def test_senha_menos_de_8_caracteres(self):
         with pytest.raises(ValidationError) as exc:
@@ -116,8 +117,10 @@ class TestUsuarioLoginSchema:
         assert login.senha == "QualquerSenha123"
 
     def test_login_email_invalido(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc:
             UsuarioLogin(
                 email="nao-eh-email",
                 senha="123"
             )
+        assert "Por favor, informe um endereço de e-mail válido" in str(exc.value)
+
