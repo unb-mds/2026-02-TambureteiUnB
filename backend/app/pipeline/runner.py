@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from app.pipeline.config import pipeline_settings
 from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
@@ -47,6 +47,8 @@ class ETLRunner:
         self,
         semestre: str = "2026.1",
         input_file: Optional[str] = None,
+        departamentos: Optional[List[int]] = None,
+        max_departamentos: Optional[int] = None,
         dry_run: bool = False,
         export: bool = True,
     ) -> Dict[str, Any]:
@@ -56,7 +58,12 @@ class ETLRunner:
         logger.info(f"=== Iniciando Pipeline ETL SIGAA (Semestre: {semestre}) ===")
 
         # 1. Extração
-        raw_data = self.sigaa_extractor.extract(semestre=semestre, input_file=input_file)
+        raw_data = self.sigaa_extractor.extract(
+            semestre=semestre,
+            input_file=input_file,
+            departamentos=departamentos,
+            max_departamentos=max_departamentos,
+        )
         logger.info("Extração de dados concluída.")
 
         # 2. Transformação
