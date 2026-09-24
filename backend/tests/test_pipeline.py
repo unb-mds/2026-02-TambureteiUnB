@@ -55,7 +55,7 @@ class TestSIGAATransformer:
         clean = transformer.transform_docentes(raw_docentes)
         assert len(clean) == 2
         nomes = [d.nome for d in clean]
-        assert "Joao Silva" in nomes
+        assert "João Silva" in nomes
         assert "Maria Santos" in nomes
 
     def test_transform_turmas(self):
