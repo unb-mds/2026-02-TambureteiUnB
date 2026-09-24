@@ -21,14 +21,20 @@ class PipelineSettings(BaseSettings):
         "UNB_DADOS_ABERTOS_URL",
         "https://dados.unb.br/dataset"
     )
+    SIGAA_HOME_URL: str = os.getenv(
+        "SIGAA_HOME_URL",
+        "https://sigaa.unb.br/sigaa/public/home.jsf"
+    )
     SIGAA_BASE_URL: str = os.getenv(
         "SIGAA_BASE_URL",
         "https://sigaa.unb.br/sigaa/public/turmas/listar.jsf"
     )
 
-    # Diretórios de persistência intermediária
+    # Diretórios de persistência intermediária e metadados
+    DATA_PATH: Path = DATA_DIR
     RAW_DIR: Path = RAW_DATA_DIR
     PROCESSED_DIR: Path = PROCESSED_DATA_DIR
+    DEPARTAMENTOS_CSV: Path = DATA_DIR / "departamentos_ID_unb.csv"
 
     # Governança e LGPD (RN07 / RNF02)
     # Turmas ou amostragens com menos de 5 alunos devem ser consolidadas/suprimidas
