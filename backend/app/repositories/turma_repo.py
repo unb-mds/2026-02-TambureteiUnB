@@ -19,4 +19,16 @@ class TurmaRepository(BaseRepository[Turma]):
     def get_by_semestre(self, db: Session, semestre: str, skip: int = 0, limit: int = 100) -> List[Turma]:
         return db.query(Turma).options(joinedload(Turma.professores)).filter(Turma.semestre == semestre).offset(skip).limit(limit).all()
 
+    def get_duplicada(self, db: Session, disciplina_id: int, codigo_turma: str, semestre: str) -> Optional[Turma]:
+        return (
+            db.query(Turma)
+            .filter(
+                Turma.disciplina_id == disciplina_id,
+                Turma.codigo_turma == codigo_turma,
+                Turma.semestre == semestre,
+            )
+            .first()
+        )
+        
+
 turma_repo = TurmaRepository()
