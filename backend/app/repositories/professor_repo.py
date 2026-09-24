@@ -13,4 +13,7 @@ class ProfessorRepository(BaseRepository[Professor]):
     def get_by_departamento(self, db: Session, departamento: str, skip: int = 0, limit: int = 100) -> List[Professor]:
         return db.query(Professor).filter(Professor.departamento == departamento).offset(skip).limit(limit).all()
 
+    def get_by_ids(self, db: Session, ids: List[int]) -> List[Professor]:
+        return db.query(Professor).filter(Professor.id.in_(ids)).all()
+
 professor_repo = ProfessorRepository()
