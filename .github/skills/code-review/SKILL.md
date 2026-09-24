@@ -23,8 +23,8 @@ Se a PR violar qualquer um destes pontos, aponte imediatamente como **Bloqueante
    * Nenhuma alteração de schema de banco de dados pode ser feita diretamente em código sem a respectiva migração do Alembic (`backend/alembic/versions/`).
 3. **Over-engineering Não Autorizado (ADR 01):**
    * Proibido incluir dependências de Redis, MongoDB, filas assíncronas (Celery/RabbitMQ) ou microsserviços. Toda a persistência deve ser em PostgreSQL 17.
-4. **Consultas de Banco nas Rotas HTTP:**
-   * A camada de API (`app/api/`) não pode conter consultas diretas ao banco. Toda interação deve passar por `services/` e `repositories/`.
+4. **Consultas de Banco e Lógica nas Rotas HTTP (specs/backend-architecture-spec.md):**
+   * A camada de API (`app/api/routers/`) deve ser 100% declarativa. É estritamente proibido colocar `db.query(...)`, chamar repositórios diretamente, instanciar modelos ORM ou executar regras de negócio no router. Toda interação deve delegar para `app/services/`.
 5. **Segredos no Código:**
    * Nenhuma chave de API, secret JWT, senha ou credencial de banco pode estar *hardcoded*. Devem vir de variáveis de ambiente (`.env`).
 
@@ -33,14 +33,15 @@ Se a PR violar qualquer um destes pontos, aponte imediatamente como **Bloqueante
 ## 🔍 Checklist de Auditoria por Camada
 
 ### 1. Banco de Dados e SQLAlchemy
-- [ ] **Queries N+1:** Verificar se relacionamentos estão sendo carregados adequadamente (`selectinload` ou `joinedload`) para não degradar a latência (< 300ms).
+- [ ] **Queries N+1 e Duplicações N:N:** Verificar se relacionamentos estão sendo carregados adequadamente. Relacionamentos N:N (ex.: turmas e professores) devem utilizar `selectinload` para evitar linhas duplicadas no retorno.
 - [ ] **Tipagem e Chaves:** Uso de UUIDs para identidades de usuários e SERIAL/BIGINT para catálogos fixos.
 - [ ] **Integridade:** Constraints `CHECK`, `UNIQUE` e regras de integridade referencial (`ON DELETE CASCADE` ou `SET NULL`).
 
 ### 2. Backend (FastAPI / Python)
+- [ ] **Arquitetura em Camadas:** O código respeita a especificação em `specs/backend-architecture-spec.md` (`Router` -> `Service` -> `Repository`).
 - [ ] **Tipagem Estrita:** Uso de Type Hints do Python em funções e retornos.
-- [ ] **Validação com Pydantic v2:** Todos os endpoints devem receber e retornar schemas Pydantic tipados.
-- [ ] **Tratamento de Erros:** Erros de negócio devem retornar `HTTPException` com status codes semânticos (400, 401, 403, 404, 422).
+- [ ] **Validação com Pydantic v2:** Schemas com mensagens em português manual (`PydanticCustomError`) sem textos em inglês soltos.
+- [ ] **Tratamento de Erros:** Erros de negócio centralizados na camada de serviços retornando `HTTPException` com status semânticos (400, 401, 403, 404, 409, 422).
 
 ### 3. Frontend (Next.js / React / TypeScript)
 - [ ] **TypeScript Estrito:** Proibido o uso de `any` desnecessário; interfaces/tipos devem ser claros.
