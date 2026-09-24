@@ -231,3 +231,58 @@ class TestETLRunner:
         assert res["status"] == "success"
         assert mock_db_loader.load.called is False  # Dry-run não deve chamar o banco
         assert mock_export_loader.load.called is True
+
+
+class TestSIGAAExtractor:
+    def test_load_departamentos_ids(self):
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
+        extractor = SIGAAExtractor()
+        ids = extractor.load_departamentos_ids()
+        assert len(ids) > 0
+        assert 673 in ids  # FCTE / Gama
+        assert 361 in ids  # MAT
+
+    def test_extract_from_sample_csv(self):
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
+        sample_file = Path(__file__).resolve().parent.parent / "app" / "pipeline" / "data" / "sample_turmas.csv"
+        extractor = SIGAAExtractor()
+        data = extractor.extract_from_file(sample_file, semestre="2026.1")
+        assert len(data["turmas"]) == 4
+        assert len(data["disciplinas"]) == 4
+        codigos = [d["codigo"] for d in data["disciplinas"]]
+        assert "FGA0030" in codigos
+        assert "MAT0025" in codigos
+
+    def test_parse_turmas_html_agrupador_e_linha(self):
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
+        html = """
+        <div id="turmasAbertas">
+            <table class="listagem">
+                <tr class="agrupador">
+                    <td><span class="tituloDisciplina">FGA0030 - ESTRUTURAS DE DADOS 2</span></td>
+                </tr>
+                <tr class="linhaPar">
+                    <td>01</td>
+                    <td>2026.1</td>
+                    <td>EDSON ALVES DA COSTA JUNIOR (60h)</td>
+                    <td>35T23 (PRESENCIAL)</td>
+                    <td>Graduação</td>
+                    <td>80</td>
+                    <td>65</td>
+                    <td>FCTE - S1</td>
+                </tr>
+            </table>
+        </div>
+        """
+        extractor = SIGAAExtractor()
+        res = extractor.parse_turmas_html(html, departamento_id=673, semestre="2026.1")
+        assert len(res["turmas"]) == 1
+        turma = res["turmas"][0]
+        assert turma["codigo_disciplina"] == "FGA0030"
+        assert turma["nome_disciplina"] == "ESTRUTURAS DE DADOS 2"
+        assert turma["codigo_turma"] == "01"
+        assert turma["horario"] == "35T23"
+        assert turma["docentes"] == ["EDSON ALVES DA COSTA JUNIOR"]
+        assert turma["matriculados"] == 80
+        assert turma["local"] == "FCTE - S1"
+

@@ -59,6 +59,10 @@ class SIGAATransformer(BaseTransformer):
             if not codigo or not nome:
                 continue
 
+            # Remove prefixo redundante caso o nome venha como 'CODIGO - NOME'
+            nome_limpo = re.sub(rf"^{re.escape(codigo)}\s*-\s*", "", nome, flags=re.IGNORECASE).strip()
+            nome_final = nome_limpo if nome_limpo else nome
+
             if codigo in seen_codigos:
                 continue
             seen_codigos.add(codigo)
@@ -66,8 +70,8 @@ class SIGAATransformer(BaseTransformer):
             clean.append(
                 SIGAADisciplinaClean(
                     codigo=codigo,
-                    slug=slugify(nome),
-                    nome=nome,
+                    slug=slugify(nome_final),
+                    nome=nome_final,
                     departamento=item.get("departamento", "").strip() or None,
                     creditos=int(item["creditos"]) if item.get("creditos") else None,
                     carga_horaria=int(item["carga_horaria"]) if item.get("carga_horaria") else None,
@@ -122,10 +126,13 @@ class SIGAATransformer(BaseTransformer):
             docentes_raw = item.get("docentes", [])
             docentes = [str(d).strip() for d in docentes_raw if str(d).strip()]
 
+            nome_disc_limpo = re.sub(rf"^{re.escape(cod_disc)}\s*-\s*", "", nome_disc, flags=re.IGNORECASE).strip()
+            slug_disc = slugify(nome_disc_limpo if nome_disc_limpo else cod_disc)
+
             clean.append(
                 SIGAATurmaClean(
                     codigo_disciplina=cod_disc,
-                    slug_disciplina=slugify(nome_disc or cod_disc),
+                    slug_disciplina=slug_disc,
                     codigo_turma=cod_turma,
                     semestre=semestre,
                     horario=str(item.get("horario", "")).strip() or None,
