@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import auth, cursos, disciplinas, turmas
+from app.api.routers import auth, cursos, disciplinas, turmas, professores
 
 from app.core.config import settings
 from app.api.routers import auth, cursos, disciplinas
@@ -24,6 +24,8 @@ app.include_router(auth.router)
 app.include_router(cursos.router)
 app.include_router(disciplinas.router)
 app.include_router(turmas.router)
+app.include_router(professores.router)
+
 
 @app.get("/")
 def root():
