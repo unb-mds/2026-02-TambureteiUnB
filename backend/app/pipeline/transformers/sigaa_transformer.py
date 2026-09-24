@@ -90,13 +90,15 @@ class SIGAATransformer(BaseTransformer):
             if not nome_raw:
                 continue
 
-            # Remove prefixos como "Prof.", "Dr.", "Dra."
-            nome_limpo = re.sub(r"^(Prof\.|Profa\.|Dr\.|Dra\.|Me\.|Ma\.)\s*", "", nome_raw, flags=re.IGNORECASE)
-            nome_normalizado = " ".join([part.capitalize() for part in nome_limpo.split()])
+            # Remove prefixos como "Prof.", "Dr.", "Dra." (inclusive títulos compostos como "Prof. Dr.")
+            nome_limpo = re.sub(r"^(?:(?:prof\.|profa\.|dr\.|dra\.|me\.|ma\.)\s*)+", "", nome_raw, flags=re.IGNORECASE).strip()
+            partes = [part.capitalize() for part in nome_limpo.split()]
+            nome_normalizado = " ".join(partes)
 
-            if nome_normalizado in seen_nomes:
+            chave_dedup = slugify(nome_normalizado)
+            if not chave_dedup or chave_dedup in seen_nomes:
                 continue
-            seen_nomes.add(nome_normalizado)
+            seen_nomes.add(chave_dedup)
 
             clean.append(
                 SIGAADocenteClean(
