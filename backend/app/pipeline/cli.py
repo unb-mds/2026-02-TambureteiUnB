@@ -37,6 +37,16 @@ def main():
         help="Caminho opcional para arquivo local bruto (CSV/JSON) para processamento",
     )
     parser.add_argument(
+        "--departamento",
+        type=int,
+        help="ID de um departamento específico para scraping online no SIGAA (ex: 673 para FCTE)",
+    )
+    parser.add_argument(
+        "--max-departamentos",
+        type=int,
+        help="Limite máximo de departamentos a processar durante o scraping online",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Executa extração, transformação e validação sem persistir no banco de dados",
@@ -53,9 +63,12 @@ def main():
 
     try:
         if args.source in ("sigaa", "all"):
+            deptos = [args.departamento] if args.departamento else None
             runner.run_sigaa_pipeline(
                 semestre=args.semestre,
                 input_file=args.input_file,
+                departamentos=deptos,
+                max_departamentos=args.max_departamentos,
                 dry_run=args.dry_run,
                 export=export,
             )
