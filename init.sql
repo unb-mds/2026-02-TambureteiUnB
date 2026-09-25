@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS turmas (
     disciplina_id INT NOT NULL REFERENCES disciplinas(id) ON DELETE CASCADE,
     codigo_turma VARCHAR(10) NOT NULL, -- Ex: '01', '02', 'A'
     semestre VARCHAR(10) NOT NULL,     -- Ex: '2026.1'
-    horario VARCHAR(50),               -- Ex: '35M12' (manhã) ou '35T23' (tarde)
-    local VARCHAR(100),                -- Ex: 'UED - Sala 102'
+    horario VARCHAR(255),              -- Ex: '35M12' (manhã) ou '35T23' (tarde)
+    local VARCHAR(255),                -- Ex: 'UED - Sala 102'
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_disciplina_turma_semestre UNIQUE (disciplina_id, codigo_turma, semestre)
 );
