@@ -99,7 +99,6 @@ CREATE TABLE IF NOT EXISTS metricas_academicas (
     reprovados_falta INT NOT NULL DEFAULT 0,
     trancamentos INT NOT NULL DEFAULT 0,
     taxa_aprovacao NUMERIC(5, 2), -- Ex: 78.50%
-    amostragem_suprimida_lgpd BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_disciplina_ano_semestre UNIQUE (disciplina_id, ano, semestre)
 );

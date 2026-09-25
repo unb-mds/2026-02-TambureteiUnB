@@ -50,6 +50,7 @@ class LGPDSanitizer(BaseTransformer):
         Garante:
         - Remoção de qualquer metadado sensível de discentes
         - Integridade e anonimização de turmas e docentes
+        - [RN07] Supressão do quantitativo discente em turmas com menos de 5 estudantes
         """
         disciplinas: List[SIGAADisciplinaClean] = data.get("disciplinas", [])
         docentes: List[SIGAADocenteClean] = data.get("docentes", [])
@@ -57,12 +58,23 @@ class LGPDSanitizer(BaseTransformer):
 
         clean_turmas: List[SIGAATurmaClean] = []
         for t in turmas:
-            # Garante que lista de docentes não contenha campos indevidos
+            # 1. Garante que lista de docentes não contenha campos indevidos
             docentes_limpos = [
                 d for d in t.docentes
                 if not any(termo in d.lower() for termo in ["cpf", "matrícula", "matricula", "@"])
             ]
             t.docentes = docentes_limpos
+
+            # 2. [RN07] Proteção para turmas com baixa amostragem (< 5 estudantes)
+            if t.matriculados is not None and t.matriculados < self.amostragem_minima:
+                self.logger.warning(
+                    f"Aplicando RN07 (LGPD): Turma {t.codigo_turma} da disciplina {t.codigo_disciplina} "
+                    f"possui apenas {t.matriculados} matriculados (< {self.amostragem_minima}). "
+                    f"Dado individual de matriculados suprimido para impedir reidentificação discente."
+                )
+                t.amostragem_suprimida_lgpd = True
+                t.matriculados = None
+
             clean_turmas.append(t)
 
         return {
@@ -76,10 +88,9 @@ class LGPDSanitizer(BaseTransformer):
         Aplica a regra RN07 sobre a lista de métricas acadêmicas.
         
         Para registros com matriculados < 5:
-        1. Suprime os microdados no registro individual (aprovados=0, taxa_aprovacao=None,
-           amostragem_suprimida_lgpd=True).
-        2. Consolida os quantitativos brutos no acumulado geral da disciplina (RN07),
-           assegurando a fidedignidade estatística global sem expor pequenas amostragens.
+        1. Consolida os quantitativos brutos no acumulado geral da disciplina (RN07).
+        2. Remove o registro individual da lista de saída para impedir que a existência
+           e o quantitativo da turma de baixa amostragem sejam expostos individualmente.
         """
         sanitizadas: List[MetricaAcademicaClean] = []
         self.acumulados_gerais.clear()
@@ -107,17 +118,13 @@ class LGPDSanitizer(BaseTransformer):
 
             if m.matriculados < self.amostragem_minima:
                 self.logger.warning(
-                    f"Aplicando RN07 (LGPD): Turma/Métrica de {m.codigo_disciplina} ({m.ano}/{m.semestre}) "
+                    f"Aplicando RN07 (LGPD): Métrica de {m.codigo_disciplina} ({m.ano}/{m.semestre}) "
                     f"possui apenas {m.matriculados} matriculados (< {self.amostragem_minima}). "
-                    f"Microdados suprimidos e consolidados no acumulado geral da disciplina."
+                    f"Registro individual removido da saída e consolidado no acumulado geral da disciplina."
                 )
                 acum["total_turmas_suprimidas"] += 1
-                m.amostragem_suprimida_lgpd = True
-                m.aprovados = 0
-                m.reprovados_nota = 0
-                m.reprovados_falta = 0
-                m.trancamentos = 0
-                m.taxa_aprovacao = None
+                # RN07: Remove o registro individual de baixa amostragem
+                continue
 
             sanitizadas.append(m)
 

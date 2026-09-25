@@ -4,7 +4,7 @@ from app.models.disciplina import Disciplina
 from app.models.professor import Professor
 from app.models.turma import Turma, turmas_professores
 from app.models.usuario import Usuario
-from app.models.metrica import MetricaAcademica
+from app.models.metrica import MetricaAcademica, MetricaConsolidada
 from app.models.situacao import SituacaoDisciplina
 from app.models.conteudo import Conteudo
 from app.models.comentario import Comentario
@@ -20,6 +20,7 @@ __all__ = [
     "turmas_professores",
     "Usuario",
     "MetricaAcademica",
+    "MetricaConsolidada",
     "SituacaoDisciplina",
     "Conteudo",
     "Comentario",

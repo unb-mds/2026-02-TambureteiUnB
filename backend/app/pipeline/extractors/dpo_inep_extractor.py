@@ -16,22 +16,29 @@ class DPOINEPExtractor(BaseExtractor):
     - Indicadores agregados por curso e disciplina
     """
 
-    def __init__(self):
+    DEFAULT_SAMPLE_PATH = Path(__file__).resolve().parent.parent / "data" / "sample_metricas.csv"
+
+    def __init__(self, default_file: Optional[Path] = None):
         super().__init__(name="DPOINEPExtractor")
+        self.default_file = default_file or self.DEFAULT_SAMPLE_PATH
 
     def extract(self, ano_inicio: Optional[int] = None, ano_fim: Optional[int] = None, **kwargs) -> List[Dict[str, Any]]:
         """
         Extrai séries históricas do DPO/INEP por intervalo de anos a partir de dataset local.
+        Caso input_file não seja informado, recorre à fonte padrão pré-configurada.
         """
         input_file = kwargs.get("input_file")
         if not input_file:
-            raise ValueError(
-                "É necessário fornecer um 'input_file' válido (CSV ou JSON) para extração de métricas do DPO/INEP."
-            )
-
-        file_path = Path(input_file)
-        if not file_path.is_file():
-            raise FileNotFoundError(f"Arquivo de entrada não encontrado: {input_file}")
+            if self.default_file and self.default_file.is_file():
+                self.logger.info(f"Nenhum 'input_file' fornecido para métricas. Utilizando fonte padrão: {self.default_file}")
+                file_path = self.default_file
+            else:
+                self.logger.warning("Nenhum 'input_file' fornecido para métricas e fonte padrão não localizada. Retornando lista vazia.")
+                return []
+        else:
+            file_path = Path(input_file)
+            if not file_path.is_file():
+                raise FileNotFoundError(f"Arquivo de entrada não encontrado: {input_file}")
 
         self.logger.info(f"Extraindo métricas históricas DPO/INEP de {ano_inicio} a {ano_fim} a partir de {file_path}...")
         records = self.extract_from_file(file_path)

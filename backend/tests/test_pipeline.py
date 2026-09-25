@@ -118,6 +118,52 @@ class TestMetricasTransformer:
         assert clean[0].semestre == 1
         assert clean[0].taxa_aprovacao == Decimal("70.00")
 
+    def test_transform_metricas_integridade_numerica(self):
+        transformer = MetricasTransformer()
+        raw_metricas = [
+            # Aprovados > matriculados (inválido)
+            {
+                "codigo_disciplina": "MAT0025",
+                "ano": 2024,
+                "semestre": 1,
+                "matriculados": 10,
+                "aprovados": 15,
+            },
+            # Soma dos resultados > matriculados (inválido)
+            {
+                "codigo_disciplina": "MAT0025",
+                "ano": 2024,
+                "semestre": 2,
+                "matriculados": 20,
+                "aprovados": 10,
+                "reprovados_nota": 10,
+                "reprovados_falta": 5,
+            },
+            # Valores negativos (inválido)
+            {
+                "codigo_disciplina": "MAT0025",
+                "ano": 2023,
+                "semestre": 1,
+                "matriculados": 20,
+                "aprovados": -2,
+            },
+            # Registro válido
+            {
+                "codigo_disciplina": "MAT0025",
+                "ano": 2024,
+                "semestre": 1,
+                "matriculados": 50,
+                "aprovados": 35,
+                "reprovados_nota": 10,
+                "reprovados_falta": 3,
+                "trancamentos": 2,
+            },
+        ]
+        clean = transformer.transform(raw_metricas)
+        assert len(clean) == 1
+        assert clean[0].matriculados == 50
+        assert clean[0].aprovados == 35
+
 
 class TestLGPDSanitizer:
     def test_remover_campos_sensiveis_individuais(self):
@@ -141,7 +187,7 @@ class TestLGPDSanitizer:
         assert sanitizado["turma"] == "01"
 
     def test_regra_rn07_baixa_amostragem_suprimida(self):
-        """Turmas com menos de 5 matriculados devem ter valores individuais suprimidos."""
+        """Turmas com menos de 5 matriculados devem ter valores individuais consolidados e removidos da listagem individual."""
         sanitizer = LGPDSanitizer(amostragem_minima=5)
         metricas = [
             MetricaAcademicaClean(
@@ -172,16 +218,55 @@ class TestLGPDSanitizer:
 
         resultado = sanitizer.sanitize_metricas(metricas)
 
-        # Registro com baixa amostragem (< 5)
-        assert resultado[0].amostragem_suprimida_lgpd is True
-        assert resultado[0].aprovados == 0
-        assert resultado[0].reprovados_nota == 0
-        assert resultado[0].taxa_aprovacao is None
+        # Registro com baixa amostragem (< 5) é removido da lista individual (RN07)
+        assert len(resultado) == 1
+        assert resultado[0].codigo_disciplina == "MAT0025"
+        assert resultado[0].matriculados == 60
+        assert resultado[0].aprovados == 45
+        assert resultado[0].taxa_aprovacao == Decimal("75.00")
 
-        # Registro normal (>= 5)
-        assert resultado[1].amostragem_suprimida_lgpd is False
-        assert resultado[1].aprovados == 45
-        assert resultado[1].taxa_aprovacao == Decimal("75.00")
+        # Acumulado geral da matéria consolidou a turma suprimida
+        acum_mat0099 = sanitizer.get_acumulado_geral("MAT0099")
+        assert acum_mat0099 is not None
+        assert acum_mat0099["matriculados"] == 3
+        assert acum_mat0099["aprovados"] == 2
+        assert acum_mat0099["total_turmas_suprimidas"] == 1
+
+    def test_sanitize_sigaa_turmas_rn07(self):
+        """Turmas do SIGAA com menos de 5 alunos têm seus dados de matriculados suprimidos (RN07)."""
+        from app.pipeline.schemas.sigaa import SIGAATurmaClean
+        sanitizer = LGPDSanitizer(amostragem_minima=5)
+        turmas = [
+            SIGAATurmaClean(
+                codigo_disciplina="MAT0025",
+                slug_disciplina="calculo-1",
+                codigo_turma="01",
+                semestre="2026.1",
+                capacidade=40,
+                matriculados=3,  # < 5 alunos
+                docentes=["Prof. A"],
+            ),
+            SIGAATurmaClean(
+                codigo_disciplina="MAT0025",
+                slug_disciplina="calculo-1",
+                codigo_turma="02",
+                semestre="2026.1",
+                capacidade=40,
+                matriculados=25,  # >= 5 alunos
+                docentes=["Prof. B"],
+            ),
+        ]
+        res = sanitizer.sanitize_sigaa({"turmas": turmas})
+        clean = res["turmas"]
+        assert len(clean) == 2
+        # Turma com baixa amostragem (< 5) tem matriculados suprimido e flag ativada
+        assert clean[0].amostragem_suprimida_lgpd is True
+        assert clean[0].matriculados is None
+        assert clean[0].capacidade == 40
+
+        # Turma normal mantém dados
+        assert clean[1].amostragem_suprimida_lgpd is False
+        assert clean[1].matriculados == 25
 
 
 class TestExportLoader:
@@ -337,11 +422,20 @@ class TestSIGAAExtractor:
         assert len(filtered) == 1
         assert filtered[0]["ano"] == 2023
 
-    def test_dpo_extractor_missing_file_raises(self):
+    def test_dpo_extractor_default_sample_metrics(self):
         from app.pipeline.extractors.dpo_inep_extractor import DPOINEPExtractor
         extractor = DPOINEPExtractor()
-        with pytest.raises(ValueError):
-            extractor.extract(input_file=None)
+        records = extractor.extract(ano_inicio=2024, ano_fim=2024)
+        assert len(records) > 0
+        codigos = [r.get("codigo_disciplina") for r in records]
+        assert "MAT0025" in codigos
+        assert "FGA0030" in codigos
+
+    def test_dpo_extractor_file_not_found(self):
+        from app.pipeline.extractors.dpo_inep_extractor import DPOINEPExtractor
+        extractor = DPOINEPExtractor()
+        with pytest.raises(FileNotFoundError):
+            extractor.extract(input_file="arquivo_inexistente_99999.csv")
 
     def test_lgpd_sanitizer_acumulado_geral_rn07(self):
         sanitizer = LGPDSanitizer(amostragem_minima=5)
@@ -370,9 +464,10 @@ class TestSIGAAExtractor:
             ),
         ]
         sanitizadas = sanitizer.sanitize_metricas(metricas)
-        assert sanitizadas[0].amostragem_suprimida_lgpd is True
-        assert sanitizadas[0].aprovados == 0
-        assert sanitizadas[1].amostragem_suprimida_lgpd is False
+        # O registro individual de baixa amostragem é removido da saída por privacidade (RN07)
+        assert len(sanitizadas) == 1
+        assert sanitizadas[0].semestre == 2
+        assert sanitizadas[0].matriculados == 20
 
         # Verifica se o acumulado geral consolidou ambos (RN07)
         acumulado = sanitizer.get_acumulado_geral("MAT0025")
@@ -380,5 +475,66 @@ class TestSIGAAExtractor:
         assert acumulado["matriculados"] == 23  # 3 + 20
         assert acumulado["aprovados"] == 17     # 2 + 15
         assert acumulado["total_turmas_suprimidas"] == 1
+
+
+class TestDatabaseLoader:
+    def test_load_turmas_persists_capacidade_matriculados(self):
+        from app.pipeline.loaders.db_loader import DatabaseLoader
+        from app.pipeline.schemas.sigaa import SIGAATurmaClean
+        from app.models.disciplina import Disciplina
+
+        mock_db = MagicMock()
+        mock_disc = Disciplina(id=1, codigo="MAT0025", slug="calculo-1", nome="Cálculo 1")
+        mock_db.query.return_value.filter.return_value.all.return_value = [mock_disc]
+        mock_db.query.return_value.all.return_value = []
+
+        loader = DatabaseLoader(db_session=mock_db)
+        turmas = [
+            SIGAATurmaClean(
+                codigo_disciplina="MAT0025",
+                slug_disciplina="calculo-1",
+                codigo_turma="01",
+                semestre="2026.1",
+                capacidade=60,
+                matriculados=45,
+            )
+        ]
+        loaded_count = loader.load_turmas(mock_db, turmas)
+        assert loaded_count == 1
+        assert mock_db.add.called
+        added_turma = mock_db.add.call_args[0][0]
+        assert added_turma.capacidade == 60
+        assert added_turma.matriculados == 45
+
+    def test_load_metricas_consolidadas(self):
+        from app.pipeline.loaders.db_loader import DatabaseLoader
+        from app.models.disciplina import Disciplina
+
+        mock_db = MagicMock()
+        mock_disc = Disciplina(id=1, codigo="FGA0030", slug="estruturas-de-dados-2", nome="Estruturas de Dados 2")
+        mock_db.query.return_value.filter.return_value.all.return_value = [mock_disc]
+        mock_db.query.return_value.all.return_value = []
+
+        loader = DatabaseLoader(db_session=mock_db)
+        consolidadas = [
+            {
+                "codigo_disciplina": "FGA0030",
+                "matriculados": 48,
+                "aprovados": 37,
+                "reprovados_nota": 6,
+                "reprovados_falta": 3,
+                "trancamentos": 2,
+                "taxa_aprovacao_acumulada": Decimal("77.08"),
+                "total_turmas_suprimidas": 1,
+            }
+        ]
+        loaded_count = loader.load_metricas_consolidadas(mock_db, consolidadas)
+        assert loaded_count == 1
+        assert mock_db.add.called
+        added_mc = mock_db.add.call_args[0][0]
+        assert added_mc.disciplina_id == 1
+        assert added_mc.matriculados == 48
+        assert added_mc.total_turmas_suprimidas == 1
+
 
 
