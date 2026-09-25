@@ -1,4 +1,4 @@
-﻿from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, func, UniqueConstraint, Table
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, func, UniqueConstraint, Table
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -19,6 +19,8 @@ class Turma(Base):
     semestre = Column(String(10), nullable=False, index=True)  # Ex: '2026.1'
     horario = Column(String(50), nullable=True)  # Ex: '35M12', '35T23'
     local = Column(String(100), nullable=True)  # Ex: 'UED - Sala 102'
+    capacidade = Column(Integer, nullable=True)
+    matriculados = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     __table_args__ = (

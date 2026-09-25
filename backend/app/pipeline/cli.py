@@ -34,7 +34,11 @@ def main():
     )
     parser.add_argument(
         "--input-file",
-        help="Caminho opcional para arquivo local bruto (CSV/JSON) para processamento",
+        help="Caminho opcional para arquivo local bruto de turmas do SIGAA (CSV/JSON)",
+    )
+    parser.add_argument(
+        "--input-metricas",
+        help="Caminho opcional para arquivo local bruto de métricas históricas do DPO/INEP (CSV/JSON)",
     )
     parser.add_argument(
         "--departamento",
@@ -74,10 +78,15 @@ def main():
             )
 
         if args.source in ("metricas", "all"):
+            # Para fonte métricas isolada, aceita --input-metricas ou --input-file
+            metricas_input = args.input_metricas
+            if not metricas_input and args.source == "metricas":
+                metricas_input = args.input_file
+
             runner.run_metricas_pipeline(
                 ano_inicio=args.ano_inicio,
                 ano_fim=args.ano_fim,
-                input_file=args.input_file,
+                input_file=metricas_input,
                 dry_run=args.dry_run,
                 export=export,
             )

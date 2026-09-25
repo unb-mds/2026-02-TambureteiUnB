@@ -115,14 +115,26 @@ class ETLRunner:
             ano_fim=ano_fim,
             input_file=input_file
         )
+        if not raw_metricas:
+            logger.warning("Nenhum registro de métrica encontrado para processamento.")
+            return {
+                "status": "success",
+                "metricas_processadas": 0,
+                "metricas_consolidadas": 0,
+                "loaded": {},
+            }
 
         # 2. Transformação e cálculo de taxas
         clean_metricas = self.metricas_transformer.transform(raw_metricas)
 
-        # 3. Sanitização LGPD (RN07 - Baixa Amostragem < 5 alunos)
+        # 3. Sanitização LGPD (RN07 - Baixa Amostragem < 5 alunos consolidada)
         sanitized_metricas = self.sanitizer.sanitize_metricas(clean_metricas)
+        consolidadas = list(self.sanitizer.acumulados_gerais.values())
 
-        payload = {"metricas": sanitized_metricas}
+        payload = {
+            "metricas": sanitized_metricas,
+            "metricas_consolidadas": consolidadas,
+        }
 
         # 4. Exportação
         if export:
@@ -137,5 +149,6 @@ class ETLRunner:
         return {
             "status": "success",
             "metricas_processadas": len(sanitized_metricas),
+            "metricas_consolidadas": len(consolidadas),
             "loaded": load_stats,
         }

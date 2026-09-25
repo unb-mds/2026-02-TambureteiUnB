@@ -59,3 +59,4 @@ class SIGAATurmaClean(BaseModel):
     docentes: List[str] = Field(default_factory=list)
     capacidade: Optional[int] = None
     matriculados: Optional[int] = None
+    amostragem_suprimida_lgpd: bool = False

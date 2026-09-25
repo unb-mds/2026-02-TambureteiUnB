@@ -75,7 +75,8 @@ backend/app/pipeline/
 │   ├── raw/               # Arquivos brutos baixados (ignorado no Git)
 │   ├── processed/         # Datasets higienizados gerados pelo ExportLoader
 │   ├── departamentos_ID_unb.csv # Mapeamento dos 211 departamentos da UnB
-│   └── sample_turmas.csv  # Amostra canônica para testes automatizados
+│   ├── sample_turmas.csv  # Amostra canônica de turmas para testes
+│   └── sample_metricas.csv # Amostra canônica de métricas com casos RN07
 │
 ├── config.py              # Parâmetros de execução, URLs e limites LGPD
 ├── runner.py              # Orquestrador unificado do pipeline (ETLRunner)
@@ -102,7 +103,9 @@ O portal público do SIGAA da UnB utiliza a tecnologia legada **JavaServer Faces
 O pipeline segue estritamente as regras de privacidade discente estabelecidas para o projeto:
 
 * **[RN01 / RNF02] Anonimato Discente:** O `LGPDSanitizer` (em `backend/app/pipeline/transformers/sanitizer.py`) atua como um filtro ativo que elimina qualquer identificador pessoal direto ou indireto (matrícula, CPF, e-mail institucional, nomes de alunos ou IRA) antes de qualquer persistência.
-* **[RN07] Política de Baixa Amostragem:** Turmas ou métricas históricas com menos de **5 alunos matriculados** têm seus microdados individuais suprimidos (`amostragem_suprimida_lgpd = True`), anulando contadores parciais de reprovação para impedir a reidentificação discente por inferência estatística, e consolidando esses totais no acumulado geral da disciplina.
+* **[RN07] Política de Baixa Amostragem:** 
+  - **Turmas do SIGAA:** Ofertas com menos de **5 alunos matriculados** têm o quantitativo discente individual suprimido (`matriculados = None`, `amostragem_suprimida_lgpd = True`), impedindo reidentificação.
+  - **Métricas Históricas DPO/INEP:** Registros com menos de **5 alunos matriculados** têm seus microdados removidos da listagem individual e são plenamente consolidados no acumulado geral da matéria (`metricas_consolidadas`), preservando a fidedignidade estatística sem expor amostras sensíveis.
 
 ---
 
@@ -117,22 +120,32 @@ Com os contêineres em execução (`docker compose up -d`):
    docker compose exec backend pytest tests/test_pipeline.py -v
    ```
 
-2. **Processar dados em modo simulação (Dry-Run — sem alterar o banco):**
+2. **Processar dados de turmas do SIGAA (Dry-Run):**
    ```bash
    docker compose exec backend python -m app.pipeline.cli --source sigaa --input-file app/pipeline/data/sample_turmas.csv --dry-run
    ```
 
-3. **Carga real de dados no PostgreSQL 17:**
+3. **Carga real de turmas no PostgreSQL 17:**
    ```bash
    docker compose exec backend python -m app.pipeline.cli --source sigaa --input-file app/pipeline/data/sample_turmas.csv
    ```
 
-4. **Processar o dataset de 6.133 turmas da UnB de 2026.1:**
+4. **Processar métricas históricas (DPO/INEP) com consolidação RN07:**
+   ```bash
+   docker compose exec backend python -m app.pipeline.cli --source metricas --input-metricas app/pipeline/data/sample_metricas.csv
+   ```
+
+5. **Execução completa integrada (SIGAA + Métricas DPO/INEP):**
+   ```bash
+   docker compose exec backend python -m app.pipeline.cli --source all --input-file app/pipeline/data/sample_turmas.csv --input-metricas app/pipeline/data/sample_metricas.csv
+   ```
+
+6. **Processar o dataset de 6.133 turmas da UnB de 2026.1:**
    ```bash
    docker compose exec backend python -m app.pipeline.cli --source sigaa --input-file app/pipeline/data/raw/turmas_unb_20260226_FULL.csv --dry-run
    ```
 
-5. **Scraping online ao vivo do SIGAA:**
+7. **Scraping online ao vivo do SIGAA:**
    ```bash
    docker compose exec backend python -m app.pipeline.cli --source sigaa --semestre 2026.1 --dry-run
    ```

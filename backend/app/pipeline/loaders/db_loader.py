@@ -5,7 +5,7 @@ from app.core.database import SessionLocal
 from app.models.disciplina import Disciplina
 from app.models.professor import Professor
 from app.models.turma import Turma
-from app.models.metrica import MetricaAcademica
+from app.models.metrica import MetricaAcademica, MetricaConsolidada
 from app.pipeline.loaders.base import BaseLoader
 from app.pipeline.schemas.sigaa import (
     SIGAADisciplinaClean,
@@ -41,6 +41,7 @@ class DatabaseLoader(BaseLoader):
             "professores_carregados": 0,
             "turmas_carregadas": 0,
             "metricas_carregadas": 0,
+            "metricas_consolidadas_carregadas": 0,
         }
 
         db = self._get_session()
@@ -58,6 +59,9 @@ class DatabaseLoader(BaseLoader):
 
             if "metricas" in data:
                 stats["metricas_carregadas"] = self.load_metricas(db, data["metricas"])
+
+            if "metricas_consolidadas" in data:
+                stats["metricas_consolidadas_carregadas"] = self.load_metricas_consolidadas(db, data["metricas_consolidadas"])
 
             db.commit()
             self.logger.info(f"Carga no banco concluída com sucesso: {stats}")
@@ -92,10 +96,10 @@ class DatabaseLoader(BaseLoader):
             codigo_key = item.codigo.strip().upper() if item.codigo else ""
             existing: Optional[Disciplina] = None
 
-            # Resolução inequívoca por código
+            # Resolução inequívoca por código; fallback por slug APENAS quando não houver código
             if codigo_key and codigo_key in existing_by_codigo:
                 existing = existing_by_codigo[codigo_key]
-            elif item.slug in existing_by_slug:
+            elif not codigo_key and item.slug in existing_by_slug:
                 existing = existing_by_slug[item.slug]
 
             if existing:
@@ -109,9 +113,13 @@ class DatabaseLoader(BaseLoader):
                 if item.ementa:
                     existing.ementa = item.ementa
             else:
+                slug_to_use = item.slug
+                if slug_to_use in existing_by_slug:
+                    slug_to_use = f"{item.slug}-{codigo_key.lower()}" if codigo_key else f"{item.slug}-1"
+
                 nova = Disciplina(
                     codigo=codigo_key or None,
-                    slug=item.slug,
+                    slug=slug_to_use,
                     nome=item.nome,
                     departamento=item.departamento,
                     creditos=item.creditos,
@@ -122,7 +130,7 @@ class DatabaseLoader(BaseLoader):
                 db.flush()
                 if codigo_key:
                     existing_by_codigo[codigo_key] = nova
-                existing_by_slug[item.slug] = nova
+                existing_by_slug[slug_to_use] = nova
 
             count += 1
 
@@ -197,9 +205,9 @@ class DatabaseLoader(BaseLoader):
             disciplina: Optional[Disciplina] = None
 
             # Resolução determinística: prioriza código canônico
-            if cod_key in disciplinas_by_code:
+            if cod_key and cod_key in disciplinas_by_code:
                 disciplina = disciplinas_by_code[cod_key]
-            elif item.slug_disciplina in disciplinas_by_slug:
+            elif not cod_key and item.slug_disciplina in disciplinas_by_slug:
                 disciplina = disciplinas_by_slug[item.slug_disciplina]
 
             if not disciplina:
@@ -215,6 +223,10 @@ class DatabaseLoader(BaseLoader):
             if turma:
                 turma.horario = item.horario or turma.horario
                 turma.local = item.local or turma.local
+                if item.capacidade is not None:
+                    turma.capacidade = item.capacidade
+                if item.matriculados is not None:
+                    turma.matriculados = item.matriculados
             else:
                 turma = Turma(
                     disciplina_id=disciplina.id,
@@ -222,6 +234,8 @@ class DatabaseLoader(BaseLoader):
                     semestre=item.semestre,
                     horario=item.horario,
                     local=item.local,
+                    capacidade=item.capacidade,
+                    matriculados=item.matriculados,
                 )
                 db.add(turma)
                 db.flush()
@@ -267,9 +281,9 @@ class DatabaseLoader(BaseLoader):
             cod_key = item.codigo_disciplina.strip().upper()
             disciplina: Optional[Disciplina] = None
 
-            if cod_key in disciplinas_by_code:
+            if cod_key and cod_key in disciplinas_by_code:
                 disciplina = disciplinas_by_code[cod_key]
-            elif item.slug_disciplina in disciplinas_by_slug:
+            elif not cod_key and item.slug_disciplina in disciplinas_by_slug:
                 disciplina = disciplinas_by_slug[item.slug_disciplina]
 
             if not disciplina:
@@ -302,6 +316,68 @@ class DatabaseLoader(BaseLoader):
                 db.add(nova_metrica)
                 db.flush()
                 existing_metricas_map[metrica_key] = nova_metrica
+
+            count += 1
+
+        db.flush()
+        return count
+
+    def load_metricas_consolidadas(self, db: Session, consolidadas: List[Dict[str, Any]]) -> int:
+        """
+        Insere ou atualiza métricas consolidadas agregadas da disciplina (RN07 - LGPD).
+        Garante a integridade do acumulado geral da matéria incluindo turmas suprimidas.
+        """
+        if not consolidadas:
+            return 0
+
+        disciplinas_by_code: Dict[str, Disciplina] = {
+            d.codigo.upper(): d for d in db.query(Disciplina).filter(Disciplina.codigo.isnot(None)).all()
+        }
+        disciplinas_by_slug: Dict[str, Disciplina] = {
+            d.slug: d for d in db.query(Disciplina).all()
+        }
+
+        existing_map: Dict[int, MetricaConsolidada] = {
+            mc.disciplina_id: mc for mc in db.query(MetricaConsolidada).all()
+        }
+
+        count = 0
+        for item in consolidadas:
+            cod_key = str(item.get("codigo_disciplina", "")).strip().upper()
+            slug_key = str(item.get("slug_disciplina", "")).strip()
+
+            disciplina: Optional[Disciplina] = None
+            if cod_key and cod_key in disciplinas_by_code:
+                disciplina = disciplinas_by_code[cod_key]
+            elif not cod_key and slug_key in disciplinas_by_slug:
+                disciplina = disciplinas_by_slug[slug_key]
+
+            if not disciplina:
+                continue
+
+            existing = existing_map.get(disciplina.id)
+            if existing:
+                existing.matriculados = item.get("matriculados", 0)
+                existing.aprovados = item.get("aprovados", 0)
+                existing.reprovados_nota = item.get("reprovados_nota", 0)
+                existing.reprovados_falta = item.get("reprovados_falta", 0)
+                existing.trancamentos = item.get("trancamentos", 0)
+                existing.taxa_aprovacao_acumulada = item.get("taxa_aprovacao_acumulada")
+                existing.total_turmas_suprimidas = item.get("total_turmas_suprimidas", 0)
+            else:
+                nova = MetricaConsolidada(
+                    disciplina_id=disciplina.id,
+                    matriculados=item.get("matriculados", 0),
+                    aprovados=item.get("aprovados", 0),
+                    reprovados_nota=item.get("reprovados_nota", 0),
+                    reprovados_falta=item.get("reprovados_falta", 0),
+                    trancamentos=item.get("trancamentos", 0),
+                    taxa_aprovacao_acumulada=item.get("taxa_aprovacao_acumulada"),
+                    total_turmas_suprimidas=item.get("total_turmas_suprimidas", 0),
+                )
+                db.add(nova)
+                db.flush()
+                existing_map[disciplina.id] = nova
 
             count += 1
 

@@ -23,8 +23,8 @@ class MetricasTransformer(BaseTransformer):
         clean_metricas: List[MetricaAcademicaClean] = []
 
         for item in raw_list:
-            cod_disc = str(item.get("codigo_disciplina", "")).strip().upper()
-            nome_disc = str(item.get("nome_disciplina", "")).strip()
+            cod_disc = str(item.get("codigo_disciplina") or item.get("codigo") or "").strip().upper()
+            nome_disc = str(item.get("nome_disciplina") or item.get("nome") or "").strip()
 
             try:
                 ano = int(item.get("ano", 0))
@@ -38,6 +38,19 @@ class MetricasTransformer(BaseTransformer):
                 reprovados_nota = int(item.get("reprovados_nota", 0))
                 reprovados_falta = int(item.get("reprovados_falta", 0))
                 trancamentos = int(item.get("trancamentos", 0))
+
+                # Validação estrita de integridade numérica
+                if (
+                    min(matriculados, aprovados, reprovados_nota, reprovados_falta, trancamentos) < 0
+                    or aprovados > matriculados
+                    or (aprovados + reprovados_nota + reprovados_falta + trancamentos) > matriculados
+                ):
+                    self.logger.warning(
+                        f"Ignorando registro de métrica com integridade numérica inválida para '{cod_disc}' ({ano}/{semestre}): "
+                        f"matriculados={matriculados}, aprovados={aprovados}, reprovados_nota={reprovados_nota}, "
+                        f"reprovados_falta={reprovados_falta}, trancamentos={trancamentos}."
+                    )
+                    continue
 
                 taxa_aprovacao = self.calcular_taxa_aprovacao(aprovados, matriculados)
 
