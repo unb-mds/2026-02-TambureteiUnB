@@ -47,7 +47,7 @@ flowchart LR
 
 ## 2. Arquitetura Modular em Camadas
 
-O módulo reside em [`backend/app/pipeline/`](file:///c:/Users/Wagne/OneDrive/Desktop/Projetos/G9-2026-2/backend/app/pipeline/) e é decomposto em quatro responsabilidades estritas:
+O módulo reside em `backend/app/pipeline/` e é decomposto em quatro responsabilidades estritas:
 
 ```
 backend/app/pipeline/
@@ -90,7 +90,7 @@ O portal público do SIGAA da UnB utiliza a tecnologia legada **JavaServer Faces
 
 | Desafio no SIGAA | Causa Raiz | Solução Implementada no Extrator |
 | :--- | :--- | :--- |
-| **Busca obrigatória por Unidade** | O formulário não permite selecionar "todas as turmas" de uma vez. | Utilização da lista [`departamentos_ID_unb.csv`](file:///c:/Users/Wagne/OneDrive/Desktop/Projetos/G9-2026-2/backend/app/pipeline/data/departamentos_ID_unb.csv) para consultar sequencialmente os 211 departamentos da UnB. |
+| **Busca obrigatória por Unidade** | O formulário não permite selecionar "todas as turmas" de uma vez. | Utilização da lista `backend/app/pipeline/data/departamentos_ID_unb.csv` para consultar sequencialmente os 211 departamentos da UnB. |
 | **Sessão JSF e ViewState expirados** | Requisições POST diretas sem cookie inicial falham com `ViewExpiredException`. | Abertura de sessão com requisição prévia à home (`/public/home.jsf`) e extração dinâmica do token `javax.faces.ViewState`. |
 | **Nome dinâmico do botão de busca** | O atributo `name` do botão "Buscar" varia a cada build do SIGAA. | Inspeção do DOM via BeautifulSoup para localizar dinamicamente o `name` do elemento com `value="Buscar"`. |
 | **Co-docência e Carga Horária** | Docentes são listados com carga horária agregada (ex: `PROF A (60h)`). | Expressão regular que extrai e separa múltiplos professores e remove a notação de carga horária para popular a tabela N:N `turmas_professores`. |
@@ -101,8 +101,8 @@ O portal público do SIGAA da UnB utiliza a tecnologia legada **JavaServer Faces
 
 O pipeline segue estritamente as regras de privacidade discente estabelecidas para o projeto:
 
-* **[RN01 / RNF02] Anonimato Discente:** O [`LGPDSanitizer`](file:///c:/Users/Wagne/OneDrive/Desktop/Projetos/G9-2026-2/backend/app/pipeline/transformers/sanitizer.py) atua como um filtro ativo que elimina qualquer identificador pessoal direto ou indireto (matrícula, CPF, e-mail institucional, nomes de alunos ou IRA) antes de qualquer persistência.
-* **[RN07] Política de Baixa Amostragem:** Turmas ou métricas históricas com menos de **5 alunos matriculados** têm seus microdados individuais suprimidos (`amostragem_suprimida_lgpd = True`), anulando contadores parciais de reprovação para impedir a reidentificação discente por inferência estatística.
+* **[RN01 / RNF02] Anonimato Discente:** O `LGPDSanitizer` (em `backend/app/pipeline/transformers/sanitizer.py`) atua como um filtro ativo que elimina qualquer identificador pessoal direto ou indireto (matrícula, CPF, e-mail institucional, nomes de alunos ou IRA) antes de qualquer persistência.
+* **[RN07] Política de Baixa Amostragem:** Turmas ou métricas históricas com menos de **5 alunos matriculados** têm seus microdados individuais suprimidos (`amostragem_suprimida_lgpd = True`), anulando contadores parciais de reprovação para impedir a reidentificação discente por inferência estatística, e consolidando esses totais no acumulado geral da disciplina.
 
 ---
 

@@ -1,6 +1,7 @@
 import re
 import unicodedata
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
+from pydantic import ValidationError
 from app.pipeline.transformers.base import BaseTransformer
 from app.pipeline.schemas.sigaa import (
     SIGAADocenteClean,
@@ -25,6 +26,7 @@ class SIGAATransformer(BaseTransformer):
     - Geração de slugs padronizados para disciplinas
     - Limpeza de nomes de docentes (Title Case e remoção de títulos/graus)
     - Padronização do código de turma e formato do semestre (YYYY.S)
+    - Validação de integridade estrutural via contratos Pydantic
     """
 
     def __init__(self):
@@ -49,7 +51,7 @@ class SIGAATransformer(BaseTransformer):
         }
 
     def transform_disciplinas(self, raw_list: List[Dict[str, Any]]) -> List[SIGAADisciplinaClean]:
-        """Normaliza e dedupica componentes curriculares."""
+        """Normaliza, dedupica e valida componentes curriculares."""
         seen_codigos = set()
         clean: List[SIGAADisciplinaClean] = []
 
@@ -67,17 +69,23 @@ class SIGAATransformer(BaseTransformer):
                 continue
             seen_codigos.add(codigo)
 
-            clean.append(
-                SIGAADisciplinaClean(
-                    codigo=codigo,
-                    slug=slugify(nome_final),
-                    nome=nome_final,
-                    departamento=item.get("departamento", "").strip() or None,
-                    creditos=int(item["creditos"]) if item.get("creditos") else None,
-                    carga_horaria=int(item["carga_horaria"]) if item.get("carga_horaria") else None,
-                    ementa=item.get("ementa", "").strip() or None,
+            try:
+                creditos_val = int(item["creditos"]) if item.get("creditos") is not None and str(item["creditos"]).isdigit() else None
+                ch_val = int(item["carga_horaria"]) if item.get("carga_horaria") is not None and str(item["carga_horaria"]).isdigit() else None
+                clean.append(
+                    SIGAADisciplinaClean(
+                        codigo=codigo,
+                        slug=slugify(nome_final),
+                        nome=nome_final,
+                        departamento=item.get("departamento", "").strip() or None,
+                        creditos=creditos_val,
+                        carga_horaria=ch_val,
+                        ementa=item.get("ementa", "").strip() or None,
+                    )
                 )
-            )
+            except (ValidationError, Exception) as e:
+                self.logger.warning(f"Ignorando registro de disciplina inválido '{codigo}': {e}")
+
         return clean
 
     def transform_docentes(self, raw_list: List[Dict[str, Any]]) -> List[SIGAADocenteClean]:
@@ -100,16 +108,20 @@ class SIGAATransformer(BaseTransformer):
                 continue
             seen_nomes.add(chave_dedup)
 
-            clean.append(
-                SIGAADocenteClean(
-                    nome=nome_normalizado,
-                    departamento=item.get("departamento", "").strip() or None,
+            try:
+                clean.append(
+                    SIGAADocenteClean(
+                        nome=nome_normalizado,
+                        departamento=item.get("departamento", "").strip() or None,
+                    )
                 )
-            )
+            except (ValidationError, Exception) as e:
+                self.logger.warning(f"Ignorando registro de docente inválido '{nome_normalizado}': {e}")
+
         return clean
 
     def transform_turmas(self, raw_list: List[Dict[str, Any]]) -> List[SIGAATurmaClean]:
-        """Padroniza informações de turmas ofertadas."""
+        """Padroniza e valida informações de turmas ofertadas."""
         clean: List[SIGAATurmaClean] = []
 
         for item in raw_list:
@@ -131,16 +143,24 @@ class SIGAATransformer(BaseTransformer):
             nome_disc_limpo = re.sub(rf"^{re.escape(cod_disc)}\s*-\s*", "", nome_disc, flags=re.IGNORECASE).strip()
             slug_disc = slugify(nome_disc_limpo if nome_disc_limpo else cod_disc)
 
-            clean.append(
-                SIGAATurmaClean(
-                    codigo_disciplina=cod_disc,
-                    slug_disciplina=slug_disc,
-                    codigo_turma=cod_turma,
-                    semestre=semestre,
-                    horario=str(item.get("horario", "")).strip() or None,
-                    local=str(item.get("local", "")).strip() or None,
-                    docentes=docentes,
-                    matriculados=int(item["matriculados"]) if item.get("matriculados") is not None else None,
+            try:
+                cap_val = int(item["capacidade"]) if item.get("capacidade") is not None and str(item["capacidade"]).isdigit() else None
+                matr_val = int(item["matriculados"]) if item.get("matriculados") is not None and str(item["matriculados"]).isdigit() else None
+
+                clean.append(
+                    SIGAATurmaClean(
+                        codigo_disciplina=cod_disc,
+                        slug_disciplina=slug_disc,
+                        codigo_turma=cod_turma,
+                        semestre=semestre,
+                        horario=str(item.get("horario", "")).strip() or None,
+                        local=str(item.get("local", "")).strip() or None,
+                        docentes=docentes,
+                        capacidade=cap_val,
+                        matriculados=matr_val,
+                    )
                 )
-            )
+            except (ValidationError, Exception) as e:
+                self.logger.warning(f"Ignorando turma inválida '{cod_disc} - {cod_turma}': {e}")
+
         return clean

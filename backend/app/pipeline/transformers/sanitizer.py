@@ -1,7 +1,13 @@
-from typing import Any, Dict, List
+from decimal import Decimal, ROUND_HALF_UP
+from typing import Any, Dict, List, Optional
 from app.pipeline.transformers.base import BaseTransformer
 from app.pipeline.config import pipeline_settings
 from app.pipeline.schemas.metricas import MetricaAcademicaClean
+from app.pipeline.schemas.sigaa import (
+    SIGAADisciplinaClean,
+    SIGAADocenteClean,
+    SIGAATurmaClean,
+)
 
 
 class LGPDSanitizer(BaseTransformer):
@@ -10,15 +16,16 @@ class LGPDSanitizer(BaseTransformer):
     
     Regras implementadas:
     - [RN01 / RNF02] Anonimato Discente: Remoção de qualquer campo de identificação
-      individual (matrícula, CPF, e-mail discente, nomes de estudantes).
+      individual (matrícula, CPF, e-mail discente, nomes de estudantes, etc.).
     - [RN07] Baixa Amostragem: Registros históricos ou turmas com menos de
-      5 alunos matriculados têm seus microdados suprimidos ou consolidados
-      para impedir reidentificação indireta de estudantes.
+      5 alunos matriculados têm seus microdados suprimidos no registro individual
+      e consolidados no acumulado geral da matéria para impedir reidentificação indireta.
     """
 
     def __init__(self, amostragem_minima: int = pipeline_settings.AMOSTRAGEM_MINIMA_LGPD):
         super().__init__(name="LGPDSanitizer")
         self.amostragem_minima = amostragem_minima
+        self.acumulados_gerais: Dict[str, Dict[str, Any]] = {}
 
     def transform(self, raw_data: Any) -> Any:
         """Sanitiza payloads genéricos aplicando filtros de privacidade."""
@@ -36,23 +43,75 @@ class LGPDSanitizer(BaseTransformer):
         }
         return {k: v for k, v in record.items() if k.lower() not in campos_proibidos}
 
+    def sanitize_sigaa(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Aplica sanitização LGPD completa no fluxo de dados do SIGAA.
+        
+        Garante:
+        - Remoção de qualquer metadado sensível de discentes
+        - Integridade e anonimização de turmas e docentes
+        """
+        disciplinas: List[SIGAADisciplinaClean] = data.get("disciplinas", [])
+        docentes: List[SIGAADocenteClean] = data.get("docentes", [])
+        turmas: List[SIGAATurmaClean] = data.get("turmas", [])
+
+        clean_turmas: List[SIGAATurmaClean] = []
+        for t in turmas:
+            # Garante que lista de docentes não contenha campos indevidos
+            docentes_limpos = [
+                d for d in t.docentes
+                if not any(termo in d.lower() for termo in ["cpf", "matrícula", "matricula", "@"])
+            ]
+            t.docentes = docentes_limpos
+            clean_turmas.append(t)
+
+        return {
+            "disciplinas": disciplinas,
+            "docentes": docentes,
+            "turmas": clean_turmas,
+        }
+
     def sanitize_metricas(self, metricas: List[MetricaAcademicaClean]) -> List[MetricaAcademicaClean]:
         """
         Aplica a regra RN07 sobre a lista de métricas acadêmicas.
         
-        Se matriculados < 5:
-        - Marca amostragem_suprimida_lgpd = True
-        - Suprime os valores detalhados de reprovação/trancamento no registro individual
+        Para registros com matriculados < 5:
+        1. Suprime os microdados no registro individual (aprovados=0, taxa_aprovacao=None,
+           amostragem_suprimida_lgpd=True).
+        2. Consolida os quantitativos brutos no acumulado geral da disciplina (RN07),
+           assegurando a fidedignidade estatística global sem expor pequenas amostragens.
         """
         sanitizadas: List[MetricaAcademicaClean] = []
+        self.acumulados_gerais.clear()
 
         for m in metricas:
+            cod = m.codigo_disciplina
+            if cod not in self.acumulados_gerais:
+                self.acumulados_gerais[cod] = {
+                    "codigo_disciplina": cod,
+                    "matriculados": 0,
+                    "aprovados": 0,
+                    "reprovados_nota": 0,
+                    "reprovados_falta": 0,
+                    "trancamentos": 0,
+                    "total_turmas_suprimidas": 0,
+                }
+
+            # Consolidação no acumulado geral da disciplina (RN07)
+            acum = self.acumulados_gerais[cod]
+            acum["matriculados"] += m.matriculados
+            acum["aprovados"] += m.aprovados
+            acum["reprovados_nota"] += m.reprovados_nota
+            acum["reprovados_falta"] += m.reprovados_falta
+            acum["trancamentos"] += m.trancamentos
+
             if m.matriculados < self.amostragem_minima:
                 self.logger.warning(
                     f"Aplicando RN07 (LGPD): Turma/Métrica de {m.codigo_disciplina} ({m.ano}/{m.semestre}) "
                     f"possui apenas {m.matriculados} matriculados (< {self.amostragem_minima}). "
-                    f"Valores individuais suprimidos para evitar reidentificação."
+                    f"Microdados suprimidos e consolidados no acumulado geral da disciplina."
                 )
+                acum["total_turmas_suprimidas"] += 1
                 m.amostragem_suprimida_lgpd = True
                 m.aprovados = 0
                 m.reprovados_nota = 0
@@ -62,4 +121,17 @@ class LGPDSanitizer(BaseTransformer):
 
             sanitizadas.append(m)
 
+        # Computa a taxa acumulada geral
+        for acum in self.acumulados_gerais.values():
+            total_matr = acum["matriculados"]
+            if total_matr > 0:
+                taxa = (Decimal(acum["aprovados"]) / Decimal(total_matr)) * Decimal("100")
+                acum["taxa_aprovacao_acumulada"] = taxa.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            else:
+                acum["taxa_aprovacao_acumulada"] = Decimal("0.00")
+
         return sanitizadas
+
+    def get_acumulado_geral(self, codigo_disciplina: str) -> Optional[Dict[str, Any]]:
+        """Retorna as métricas agregadas consolidadas da disciplina com inclusão das amostras suprimidas."""
+        return self.acumulados_gerais.get(codigo_disciplina.upper())

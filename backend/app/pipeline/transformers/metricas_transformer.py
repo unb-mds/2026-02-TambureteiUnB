@@ -25,34 +25,38 @@ class MetricasTransformer(BaseTransformer):
         for item in raw_list:
             cod_disc = str(item.get("codigo_disciplina", "")).strip().upper()
             nome_disc = str(item.get("nome_disciplina", "")).strip()
-            ano = int(item.get("ano", 0))
-            semestre = int(item.get("semestre", 0))
 
-            if not cod_disc or ano <= 2000 or semestre not in (1, 2):
-                continue
+            try:
+                ano = int(item.get("ano", 0))
+                semestre = int(item.get("semestre", 0))
 
-            matriculados = int(item.get("matriculados", 0))
-            aprovados = int(item.get("aprovados", 0))
-            reprovados_nota = int(item.get("reprovados_nota", 0))
-            reprovados_falta = int(item.get("reprovados_falta", 0))
-            trancamentos = int(item.get("trancamentos", 0))
+                if not cod_disc or ano <= 2000 or semestre not in (1, 2):
+                    continue
 
-            taxa_aprovacao = self.calcular_taxa_aprovacao(aprovados, matriculados)
+                matriculados = int(item.get("matriculados", 0))
+                aprovados = int(item.get("aprovados", 0))
+                reprovados_nota = int(item.get("reprovados_nota", 0))
+                reprovados_falta = int(item.get("reprovados_falta", 0))
+                trancamentos = int(item.get("trancamentos", 0))
 
-            clean_metricas.append(
-                MetricaAcademicaClean(
-                    codigo_disciplina=cod_disc,
-                    slug_disciplina=slugify(nome_disc or cod_disc),
-                    ano=ano,
-                    semestre=semestre,
-                    matriculados=matriculados,
-                    aprovados=aprovados,
-                    reprovados_nota=reprovados_nota,
-                    reprovados_falta=reprovados_falta,
-                    trancamentos=trancamentos,
-                    taxa_aprovacao=taxa_aprovacao,
+                taxa_aprovacao = self.calcular_taxa_aprovacao(aprovados, matriculados)
+
+                clean_metricas.append(
+                    MetricaAcademicaClean(
+                        codigo_disciplina=cod_disc,
+                        slug_disciplina=slugify(nome_disc or cod_disc),
+                        ano=ano,
+                        semestre=semestre,
+                        matriculados=matriculados,
+                        aprovados=aprovados,
+                        reprovados_nota=reprovados_nota,
+                        reprovados_falta=reprovados_falta,
+                        trancamentos=trancamentos,
+                        taxa_aprovacao=taxa_aprovacao,
+                    )
                 )
-            )
+            except Exception as e:
+                self.logger.warning(f"Ignorando registro de métrica corrompido para '{cod_disc}': {e}")
 
         return clean_metricas
 

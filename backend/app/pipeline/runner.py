@@ -74,12 +74,8 @@ class ETLRunner:
             f"{len(transformed.get('turmas', []))} turmas."
         )
 
-        # 3. Sanitização LGPD
-        sanitized_data = {
-            "disciplinas": transformed.get("disciplinas", []),
-            "docentes": transformed.get("docentes", []),
-            "turmas": transformed.get("turmas", []),
-        }
+        # 3. Sanitização LGPD (RN01, RN07 e RNF02)
+        sanitized_data = self.sanitizer.sanitize_sigaa(transformed)
 
         # 4. Exportação em arquivos se solicitado
         if export:
