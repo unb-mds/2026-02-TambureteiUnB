@@ -1,11 +1,10 @@
-import math
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.schemas.professor import ProfessorDetalhe, ProfessorListaPaginada
 from app.core.database import get_db
-from app.repositories.professor_repo import professor_repo
+from app.services.professor_service import professor_service
 
 router = APIRouter(prefix="/professores", tags=["Professores"])
 
@@ -17,19 +16,9 @@ def listar_professores(
     size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    items, total = professor_repo.search_paginated(db, nome=nome, skip=(page - 1) * size, limit=size)
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "size": size,
-        "pages": math.ceil(total / size) if total else 0,
-    }
+    return professor_service.listar_paginado(db, nome, page, size)
 
 
 @router.get("/{professor_id}", response_model=ProfessorDetalhe)
 def obter_professor(professor_id: int, db: Session = Depends(get_db)):
-    professor = professor_repo.get_with_turmas(db, professor_id)
-    if not professor:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Professor não encontrado.")
-    return professor
+    return professor_service.obter_com_turmas(db, professor_id)
