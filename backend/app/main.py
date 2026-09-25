@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import auth, cursos, disciplinas, turmas, professores
 
 from app.core.config import settings
-from app.api.routers import auth, cursos, disciplinas
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
