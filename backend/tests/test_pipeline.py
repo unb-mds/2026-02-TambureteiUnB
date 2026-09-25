@@ -186,6 +186,24 @@ class TestLGPDSanitizer:
         assert sanitizado["codigo_disciplina"] == "CIC0004"
         assert sanitizado["turma"] == "01"
 
+    def test_remover_campos_sensiveis_com_acentos(self):
+        sanitizer = LGPDSanitizer()
+        registro_com_acentos = {
+            "codigo_disciplina": "MAT0025",
+            "Matrícula": "190012345",
+            "Endereço": "Campus Darcy Ribeiro",
+            "E-mail Aluno": "aluno@unb.br",
+            "CPF": "12345678900",
+            "turma": "02",
+        }
+        sanitizado = sanitizer.sanitize_record(registro_com_acentos)
+        assert "Matrícula" not in sanitizado
+        assert "Endereço" not in sanitizado
+        assert "E-mail Aluno" not in sanitizado
+        assert "CPF" not in sanitizado
+        assert sanitizado["codigo_disciplina"] == "MAT0025"
+        assert sanitizado["turma"] == "02"
+
     def test_regra_rn07_baixa_amostragem_suprimida(self):
         """Turmas com menos de 5 matriculados devem ter valores individuais consolidados e removidos da listagem individual."""
         sanitizer = LGPDSanitizer(amostragem_minima=5)
@@ -482,11 +500,28 @@ class TestDatabaseLoader:
         from app.pipeline.loaders.db_loader import DatabaseLoader
         from app.pipeline.schemas.sigaa import SIGAATurmaClean
         from app.models.disciplina import Disciplina
+        from app.models.turma import Turma
+        from app.models.professor import Professor
 
         mock_db = MagicMock()
         mock_disc = Disciplina(id=1, codigo="MAT0025", slug="calculo-1", nome="Cálculo 1")
-        mock_db.query.return_value.filter.return_value.all.return_value = [mock_disc]
-        mock_db.query.return_value.all.return_value = []
+
+        def mock_query(model):
+            mock_q = MagicMock()
+            if model == Disciplina:
+                mock_q.filter.return_value.all.return_value = [mock_disc]
+                mock_q.all.return_value = [mock_disc]
+            elif model == Turma:
+                mock_q.filter.return_value.all.return_value = []
+                mock_q.all.return_value = []
+            elif model == Professor:
+                mock_q.all.return_value = []
+            else:
+                mock_q.filter.return_value.all.return_value = []
+                mock_q.all.return_value = []
+            return mock_q
+
+        mock_db.query.side_effect = mock_query
 
         loader = DatabaseLoader(db_session=mock_db)
         turmas = [
@@ -505,6 +540,102 @@ class TestDatabaseLoader:
         added_turma = mock_db.add.call_args[0][0]
         assert added_turma.capacidade == 60
         assert added_turma.matriculados == 45
+
+    def test_load_turmas_clears_suppressed_matriculados(self):
+        from app.pipeline.loaders.db_loader import DatabaseLoader
+        from app.pipeline.schemas.sigaa import SIGAATurmaClean
+        from app.models.disciplina import Disciplina
+        from app.models.turma import Turma
+        from app.models.professor import Professor
+
+        mock_db = MagicMock()
+        mock_disc = Disciplina(id=1, codigo="MAT0025", slug="calculo-1", nome="Cálculo 1")
+        existing_turma = Turma(
+            id=10,
+            disciplina_id=1,
+            codigo_turma="01",
+            semestre="2026.1",
+            capacidade=40,
+            matriculados=30,
+        )
+
+        def mock_query(model):
+            mock_q = MagicMock()
+            if model == Disciplina:
+                mock_q.filter.return_value.all.return_value = [mock_disc]
+                mock_q.all.return_value = [mock_disc]
+            elif model == Turma:
+                mock_q.filter.return_value.all.return_value = [existing_turma]
+                mock_q.all.return_value = [existing_turma]
+            elif model == Professor:
+                mock_q.all.return_value = []
+            else:
+                mock_q.filter.return_value.all.return_value = []
+                mock_q.all.return_value = []
+            return mock_q
+
+        mock_db.query.side_effect = mock_query
+
+        loader = DatabaseLoader(db_session=mock_db)
+        turmas = [
+            SIGAATurmaClean(
+                codigo_disciplina="MAT0025",
+                slug_disciplina="calculo-1",
+                codigo_turma="01",
+                semestre="2026.1",
+                capacidade=40,
+                matriculados=None,
+                amostragem_suprimida_lgpd=True,
+            )
+        ]
+        loader.load_turmas(mock_db, turmas)
+        assert existing_turma.matriculados is None
+
+    def test_load_metricas_deletes_suppressed_records(self):
+        from app.pipeline.loaders.db_loader import DatabaseLoader
+        from app.pipeline.schemas.metricas import MetricaAcademicaClean
+        from app.models.disciplina import Disciplina
+        from app.models.metrica import MetricaAcademica
+
+        mock_db = MagicMock()
+        mock_disc = Disciplina(id=1, codigo="MAT0025", slug="calculo-1", nome="Cálculo 1")
+        existing_metrica = MetricaAcademica(
+            id=5,
+            disciplina_id=1,
+            ano=2024,
+            semestre=1,
+            matriculados=4,
+            aprovados=3,
+        )
+
+        def mock_query(model):
+            mock_q = MagicMock()
+            if model == Disciplina:
+                mock_q.filter.return_value.all.return_value = [mock_disc]
+                mock_q.all.return_value = [mock_disc]
+            elif model == MetricaAcademica:
+                mock_q.all.return_value = [existing_metrica]
+            return mock_q
+
+        mock_db.query.side_effect = mock_query
+
+        loader = DatabaseLoader(db_session=mock_db)
+        suprimidas = [
+            MetricaAcademicaClean(
+                codigo_disciplina="MAT0025",
+                slug_disciplina="calculo-1",
+                ano=2024,
+                semestre=1,
+                matriculados=4,
+                aprovados=3,
+                reprovados_nota=1,
+                reprovados_falta=0,
+                trancamentos=0,
+                amostragem_suprimida_lgpd=True,
+            )
+        ]
+        loader.load_metricas(mock_db, metricas=[], metricas_suprimidas=suprimidas)
+        mock_db.delete.assert_called_once_with(existing_metrica)
 
     def test_load_metricas_consolidadas(self):
         from app.pipeline.loaders.db_loader import DatabaseLoader

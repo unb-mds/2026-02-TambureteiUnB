@@ -276,3 +276,13 @@ INSERT INTO metricas_academicas (disciplina_id, ano, semestre, matriculados, apr
 SELECT id, 2024, 1, 60, 48, 6, 2, 4, 80.00
 FROM disciplinas WHERE slug = 'algoritmos-e-programacao-de-computadores'
 ON CONFLICT DO NOTHING;
+
+-- =====================================================================
+-- 8. CONTROLE DE VERSÃO DE MIGRAÇÕES (ALEMBIC)
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS alembic_version (
+    version_num VARCHAR(32) NOT NULL,
+    CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+);
+INSERT INTO alembic_version (version_num) VALUES ('001') ON CONFLICT DO NOTHING;
+
