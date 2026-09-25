@@ -84,6 +84,7 @@ class ETLRunner:
         # 5. Carga no banco de dados (se não for dry-run)
         load_stats = {}
         if not dry_run:
+            self.db_loader.ensure_schema_up_to_date()
             load_stats = self.db_loader.load(sanitized_data)
         else:
             logger.info("Modo Dry-Run ativo: nenhuma escrita persistida no banco de dados.")
@@ -133,6 +134,7 @@ class ETLRunner:
 
         payload = {
             "metricas": sanitized_metricas,
+            "metricas_suprimidas": list(self.sanitizer.metricas_suprimidas),
             "metricas_consolidadas": consolidadas,
         }
 
@@ -143,6 +145,7 @@ class ETLRunner:
         # 5. Carga
         load_stats = {}
         if not dry_run:
+            self.db_loader.ensure_schema_up_to_date()
             load_stats = self.db_loader.load(payload)
 
         logger.info("=== Pipeline ETL Métricas DPO/INEP finalizado com sucesso ===")

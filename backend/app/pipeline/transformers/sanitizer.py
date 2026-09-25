@@ -1,3 +1,4 @@
+import unicodedata
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional
 from app.pipeline.transformers.base import BaseTransformer
@@ -26,6 +27,7 @@ class LGPDSanitizer(BaseTransformer):
         super().__init__(name="LGPDSanitizer")
         self.amostragem_minima = amostragem_minima
         self.acumulados_gerais: Dict[str, Dict[str, Any]] = {}
+        self.metricas_suprimidas: List[MetricaAcademicaClean] = []
 
     def transform(self, raw_data: Any) -> Any:
         """Sanitiza payloads genéricos aplicando filtros de privacidade."""
@@ -35,13 +37,24 @@ class LGPDSanitizer(BaseTransformer):
             return self.sanitize_record(raw_data)
         return raw_data
 
+    @staticmethod
+    def _normalize_key(key: str) -> str:
+        """Remove acentos, caracteres diacríticos, traços e espaços, normalizando para minúsculas."""
+        normalized = unicodedata.normalize("NFKD", str(key))
+        ascii_text = "".join(c for c in normalized if not unicodedata.combining(c))
+        return ascii_text.strip().lower().replace("-", "_").replace(" ", "_")
+
     def sanitize_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
-        """Remove campos sensíveis individuais caso existam no dataset bruto."""
+        """Remove campos sensíveis individuais caso existam no dataset bruto, tratando acentuação e formatos."""
         campos_proibidos = {
-            "matricula", "cpf", "email_aluno", "nome_aluno", "ira", "identidade",
-            "telefone", "endereco", "data_nascimento"
+            "matricula", "matricula_aluno", "matricula_discente", "cpf", "cpf_aluno",
+            "email_aluno", "email_discente", "email", "nome_aluno", "nome_estudante",
+            "nome_discente", "ira", "identidade", "telefone", "endereco", "data_nascimento", "rg"
         }
-        return {k: v for k, v in record.items() if k.lower() not in campos_proibidos}
+        return {
+            k: v for k, v in record.items()
+            if self._normalize_key(k) not in campos_proibidos
+        }
 
     def sanitize_sigaa(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -94,6 +107,7 @@ class LGPDSanitizer(BaseTransformer):
         """
         sanitizadas: List[MetricaAcademicaClean] = []
         self.acumulados_gerais.clear()
+        self.metricas_suprimidas.clear()
 
         for m in metricas:
             cod = m.codigo_disciplina
@@ -123,6 +137,7 @@ class LGPDSanitizer(BaseTransformer):
                     f"Registro individual removido da saída e consolidado no acumulado geral da disciplina."
                 )
                 acum["total_turmas_suprimidas"] += 1
+                self.metricas_suprimidas.append(m)
                 # RN07: Remove o registro individual de baixa amostragem
                 continue
 

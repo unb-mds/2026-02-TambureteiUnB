@@ -297,10 +297,10 @@ class SIGAAExtractor(BaseExtractor):
                     local = row.get("local", "").strip() or None
 
                     vagas_str = row.get("qnt_vagas") or row.get("vagas_ofertadas") or row.get("capacidade") or ""
-                    capacidade = int(vagas_str) if str(vagas_str).isdigit() else None
+                    capacidade = int(str(vagas_str).strip()) if str(vagas_str).strip().isdigit() else None
 
                     matr_str = row.get("matriculados") or row.get("vagas_ocupadas") or row.get("ocupadas") or ""
-                    matriculados = int(matr_str) if str(matr_str).isdigit() else None
+                    matriculados = int(str(matr_str).strip()) if str(matr_str).strip().isdigit() else None
 
                     depto_id = row.get("departamento_id", "").strip() or None
 
@@ -361,6 +361,12 @@ class SIGAAExtractor(BaseExtractor):
                             "departamento": item.get("departamento") or item.get("departamento_id"),
                         }
 
+                    cap_val = item.get("capacidade") if item.get("capacidade") is not None else item.get("qnt_vagas")
+                    capacidade = int(str(cap_val).strip()) if cap_val is not None and str(cap_val).strip().isdigit() else None
+
+                    matr_val = item.get("matriculados") if item.get("matriculados") is not None else (item.get("vagas_ocupadas") or item.get("ocupadas"))
+                    matriculados = int(str(matr_val).strip()) if matr_val is not None and str(matr_val).strip().isdigit() else None
+
                     turmas_raw.append({
                         "codigo_disciplina": cod,
                         "nome_disciplina": nome,
@@ -369,10 +375,8 @@ class SIGAAExtractor(BaseExtractor):
                         "docentes": doc_clean,
                         "horario": item.get("horario"),
                         "local": item.get("local"),
-                        "capacidade": int(item["capacidade"]) if item.get("capacidade") is not None else (
-                            int(item["qnt_vagas"]) if item.get("qnt_vagas") is not None else None
-                        ),
-                        "matriculados": int(item["matriculados"]) if item.get("matriculados") is not None else None,
+                        "capacidade": capacidade,
+                        "matriculados": matriculados,
                     })
 
         return {

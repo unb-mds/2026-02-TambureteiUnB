@@ -31,6 +31,23 @@ class DatabaseLoader(BaseLoader):
         super().__init__(name="DatabaseLoader")
         self._external_session = db_session
 
+    @staticmethod
+    def ensure_schema_up_to_date():
+        """Aplica migrações pendentes do Alembic até a revisão head."""
+        try:
+            import os
+            from alembic.config import Config
+            from alembic import command
+            
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+            alembic_ini = os.path.join(base_dir, "alembic.ini")
+            if os.path.exists(alembic_ini):
+                cfg = Config(alembic_ini)
+                command.upgrade(cfg, "head")
+        except Exception:
+            # Em ambiente sem banco configurado ou teste unitário isolado, não interrompe execução
+            pass
+
     def _get_session(self) -> Session:
         return self._external_session if self._external_session is not None else SessionLocal()
 
@@ -48,6 +65,9 @@ class DatabaseLoader(BaseLoader):
         owns_session = self._external_session is None
 
         try:
+            if owns_session:
+                self.ensure_schema_up_to_date()
+
             if "disciplinas" in data:
                 stats["disciplinas_carregadas"] = self.load_disciplinas(db, data["disciplinas"])
 
@@ -58,7 +78,11 @@ class DatabaseLoader(BaseLoader):
                 stats["turmas_carregadas"] = self.load_turmas(db, data["turmas"])
 
             if "metricas" in data:
-                stats["metricas_carregadas"] = self.load_metricas(db, data["metricas"])
+                stats["metricas_carregadas"] = self.load_metricas(
+                    db,
+                    data["metricas"],
+                    metricas_suprimidas=data.get("metricas_suprimidas"),
+                )
 
             if "metricas_consolidadas" in data:
                 stats["metricas_consolidadas_carregadas"] = self.load_metricas_consolidadas(db, data["metricas_consolidadas"])
@@ -225,7 +249,9 @@ class DatabaseLoader(BaseLoader):
                 turma.local = item.local or turma.local
                 if item.capacidade is not None:
                     turma.capacidade = item.capacidade
-                if item.matriculados is not None:
+                if item.amostragem_suprimida_lgpd:
+                    turma.matriculados = None
+                elif item.matriculados is not None:
                     turma.matriculados = item.matriculados
             else:
                 turma = Turma(
@@ -235,7 +261,7 @@ class DatabaseLoader(BaseLoader):
                     horario=item.horario,
                     local=item.local,
                     capacidade=item.capacidade,
-                    matriculados=item.matriculados,
+                    matriculados=None if item.amostragem_suprimida_lgpd else item.matriculados,
                 )
                 db.add(turma)
                 db.flush()
@@ -255,12 +281,18 @@ class DatabaseLoader(BaseLoader):
         db.flush()
         return count
 
-    def load_metricas(self, db: Session, metricas: List[MetricaAcademicaClean]) -> int:
+    def load_metricas(
+        self,
+        db: Session,
+        metricas: List[MetricaAcademicaClean],
+        metricas_suprimidas: Optional[List[MetricaAcademicaClean]] = None,
+    ) -> int:
         """
         Insere ou atualiza métricas históricas agregadas com persistência do indicador LGPD.
         Elimina consultas N+1 via batch hashing.
+        Reconciliação LGPD (RN07): Remove do banco métricas que se tornaram suprimidas.
         """
-        if not metricas:
+        if not metricas and not metricas_suprimidas:
             return 0
 
         disciplinas_by_code: Dict[str, Disciplina] = {
@@ -275,6 +307,30 @@ class DatabaseLoader(BaseLoader):
             (m.disciplina_id, m.ano, m.semestre): m
             for m in db.query(MetricaAcademica).all()
         }
+
+        # 1. Reconciliação LGPD RN07: Remove registros previamente persistidos que agora possuem baixa amostragem
+        if metricas_suprimidas:
+            for m_sup in metricas_suprimidas:
+                cod_key = m_sup.codigo_disciplina.strip().upper()
+                disciplina_sup: Optional[Disciplina] = None
+
+                if cod_key and cod_key in disciplinas_by_code:
+                    disciplina_sup = disciplinas_by_code[cod_key]
+                elif not cod_key and m_sup.slug_disciplina in disciplinas_by_slug:
+                    disciplina_sup = disciplinas_by_slug[m_sup.slug_disciplina]
+
+                if not disciplina_sup:
+                    continue
+
+                metrica_key_sup = (disciplina_sup.id, m_sup.ano, m_sup.semestre)
+                existing_sup = existing_metricas_map.get(metrica_key_sup)
+                if existing_sup:
+                    db.delete(existing_sup)
+                    del existing_metricas_map[metrica_key_sup]
+                    self.logger.warning(
+                        f"LGPD RN07: Registro previamente persistido da disciplina '{cod_key}' "
+                        f"({m_sup.ano}/{m_sup.semestre}) foi suprimido e excluído de metricas_academicas."
+                    )
 
         count = 0
         for item in metricas:
