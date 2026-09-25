@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, BigInteger, Numeric, ForeignKey, DateTime, func, UniqueConstraint, CheckConstraint
+from sqlalchemy import Column, Integer, BigInteger, Numeric, Boolean, ForeignKey, DateTime, func, UniqueConstraint, CheckConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -15,6 +15,7 @@ class MetricaAcademica(Base):
     reprovados_falta = Column(Integer, default=0, nullable=False)
     trancamentos = Column(Integer, default=0, nullable=False)
     taxa_aprovacao = Column(Numeric(5, 2), nullable=True)
+    amostragem_suprimida_lgpd = Column(Boolean, default=False, server_default="false", nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     disciplina = relationship("Disciplina", back_populates="metricas")

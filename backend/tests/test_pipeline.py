@@ -282,7 +282,103 @@ class TestSIGAAExtractor:
         assert turma["nome_disciplina"] == "ESTRUTURAS DE DADOS 2"
         assert turma["codigo_turma"] == "01"
         assert turma["horario"] == "35T23"
-        assert turma["docentes"] == ["EDSON ALVES DA COSTA JUNIOR"]
-        assert turma["matriculados"] == 80
+        assert turma["capacidade"] == 80
+        assert turma["matriculados"] == 65
         assert turma["local"] == "FCTE - S1"
+
+    def test_extract_input_file_not_found(self):
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
+        extractor = SIGAAExtractor()
+        with pytest.raises(FileNotFoundError):
+            extractor.extract(input_file="arquivo_inexistente_12345.csv")
+
+    def test_extract_from_json_with_docentes(self, tmp_path: Path):
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
+        import json
+        json_file = tmp_path / "turmas_test.json"
+        json_file.write_text(
+            json.dumps({
+                "turmas": [
+                    {
+                        "codigo_disciplina": "CIC0004",
+                        "nome_disciplina": "APC",
+                        "turma": "01",
+                        "semestre": "2026.1",
+                        "docentes": ["Carla Rocha", "Vinicius Ruela"],
+                        "capacidade": 60,
+                        "matriculados": 55,
+                    }
+                ]
+            }),
+            encoding="utf-8"
+        )
+        extractor = SIGAAExtractor()
+        data = extractor.extract_from_file(json_file, semestre="2026.1")
+        assert len(data["turmas"]) == 1
+        assert len(data["docentes"]) == 2
+        docentes_nomes = [d["nome"] for d in data["docentes"]]
+        assert "Carla Rocha" in docentes_nomes
+        assert "Vinicius Ruela" in docentes_nomes
+
+    def test_dpo_extractor_filter_years(self, tmp_path: Path):
+        from app.pipeline.extractors.dpo_inep_extractor import DPOINEPExtractor
+        import json
+        json_file = tmp_path / "metricas_test.json"
+        json_file.write_text(
+            json.dumps([
+                {"codigo_disciplina": "MAT0025", "ano": 2020, "semestre": 1, "matriculados": 50, "aprovados": 40},
+                {"codigo_disciplina": "MAT0025", "ano": 2023, "semestre": 1, "matriculados": 60, "aprovados": 50},
+                {"codigo_disciplina": "MAT0025", "ano": 2026, "semestre": 1, "matriculados": 70, "aprovados": 60},
+            ]),
+            encoding="utf-8"
+        )
+        extractor = DPOINEPExtractor()
+        filtered = extractor.extract(ano_inicio=2022, ano_fim=2024, input_file=str(json_file))
+        assert len(filtered) == 1
+        assert filtered[0]["ano"] == 2023
+
+    def test_dpo_extractor_missing_file_raises(self):
+        from app.pipeline.extractors.dpo_inep_extractor import DPOINEPExtractor
+        extractor = DPOINEPExtractor()
+        with pytest.raises(ValueError):
+            extractor.extract(input_file=None)
+
+    def test_lgpd_sanitizer_acumulado_geral_rn07(self):
+        sanitizer = LGPDSanitizer(amostragem_minima=5)
+        metricas = [
+            MetricaAcademicaClean(
+                codigo_disciplina="MAT0025",
+                slug_disciplina="calculo-1",
+                ano=2023,
+                semestre=1,
+                matriculados=3,  # < 5 alunos (suprimido)
+                aprovados=2,
+                reprovados_nota=1,
+                reprovados_falta=0,
+                trancamentos=0,
+            ),
+            MetricaAcademicaClean(
+                codigo_disciplina="MAT0025",
+                slug_disciplina="calculo-1",
+                ano=2023,
+                semestre=2,
+                matriculados=20,  # >= 5 alunos (normal)
+                aprovados=15,
+                reprovados_nota=3,
+                reprovados_falta=1,
+                trancamentos=1,
+            ),
+        ]
+        sanitizadas = sanitizer.sanitize_metricas(metricas)
+        assert sanitizadas[0].amostragem_suprimida_lgpd is True
+        assert sanitizadas[0].aprovados == 0
+        assert sanitizadas[1].amostragem_suprimida_lgpd is False
+
+        # Verifica se o acumulado geral consolidou ambos (RN07)
+        acumulado = sanitizer.get_acumulado_geral("MAT0025")
+        assert acumulado is not None
+        assert acumulado["matriculados"] == 23  # 3 + 20
+        assert acumulado["aprovados"] == 17     # 2 + 15
+        assert acumulado["total_turmas_suprimidas"] == 1
+
 

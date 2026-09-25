@@ -5,6 +5,7 @@ import re
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
+from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup
@@ -79,8 +80,11 @@ class SIGAAExtractor(BaseExtractor):
         """
         Executa extração completa a partir de arquivo local ou scraping online do SIGAA.
         """
-        if input_file and Path(input_file).exists():
-            return self.extract_from_file(Path(input_file), semestre=semestre)
+        if input_file:
+            path = Path(input_file)
+            if not path.is_file():
+                raise FileNotFoundError(f"Arquivo de entrada não encontrado: {input_file}")
+            return self.extract_from_file(path, semestre=semestre)
 
         # Extração via Scraping online do SIGAA
         self.logger.info(f"Iniciando scraping online do SIGAA para o semestre {semestre}...")
@@ -98,6 +102,7 @@ class SIGAAExtractor(BaseExtractor):
         todas_turmas: List[Dict[str, Any]] = []
         disciplinas_map: Dict[str, Dict[str, Any]] = {}
         docentes_set: Set[str] = set()
+        successful_deptos = 0
 
         with httpx.Client(headers=self.HEADERS, timeout=45.0, follow_redirects=True) as client:
             # 1. Inicializa cookies de sessão na home
@@ -126,9 +131,16 @@ class SIGAAExtractor(BaseExtractor):
                             if doc:
                                 docentes_set.add(doc)
 
+                    successful_deptos += 1
                     self.logger.info(f"Depto {depto_id}: {len(turmas_depto)} turmas encontradas.")
                 except Exception as e:
                     self.logger.error(f"Erro ao raspar departamento {depto_id}: {e}")
+
+        if deptos_ids and successful_deptos == 0:
+            raise RuntimeError(
+                f"Falha total na extração online do SIGAA: todos os {len(deptos_ids)} departamentos falharam. "
+                "Verifique a conectividade ou formato da sessão JSF."
+            )
 
         docentes_list = [{"nome": d} for d in sorted(docentes_set)]
 
@@ -157,9 +169,8 @@ class SIGAAExtractor(BaseExtractor):
         if not form_turma:
             raise RuntimeError("Formulário formTurma não localizado no HTML do SIGAA.")
 
-        action_url = form_turma.get("action", self.base_url)
-        if action_url.startswith("/"):
-            action_url = f"https://sigaa.unb.br{action_url}"
+        raw_action = form_turma.get("action") or self.base_url
+        action_url = urljoin(self.base_url, raw_action)
 
         form_data: Dict[str, str] = {}
         for hidden in form_turma.find_all("input", type="hidden"):
@@ -237,8 +248,14 @@ class SIGAAExtractor(BaseExtractor):
                         horario_raw = cols[3].get_text(strip=True)
                         horario = horario_raw.split("(")[0].strip() if horario_raw else None
 
+                        # cols[5] = Vagas ofertadas / capacidade total
+                        # cols[6] = Vagas ocupadas / matriculados
                         vagas_str = cols[5].get_text(strip=True)
-                        vagas = int(vagas_str) if vagas_str.isdigit() else None
+                        capacidade = int(vagas_str) if vagas_str.isdigit() else None
+
+                        matriculados_str = cols[6].get_text(strip=True) if len(cols) > 6 else ""
+                        matriculados = int(matriculados_str) if matriculados_str.isdigit() else None
+
                         local = cols[7].get_text(strip=True) if len(cols) > 7 else None
 
                         turmas.append({
@@ -249,7 +266,8 @@ class SIGAAExtractor(BaseExtractor):
                             "docentes": docentes,
                             "horario": horario,
                             "local": local or None,
-                            "matriculados": vagas,
+                            "capacidade": capacidade,
+                            "matriculados": matriculados,
                             "departamento_id": departamento_id,
                         })
 
@@ -277,8 +295,13 @@ class SIGAAExtractor(BaseExtractor):
                     docentes_raw = row.get("docente", "").strip()
                     horario = row.get("horario", "").strip() or None
                     local = row.get("local", "").strip() or None
-                    vagas_str = row.get("qnt_vagas") or row.get("vagas_ofertadas") or "0"
-                    matriculados = int(vagas_str) if str(vagas_str).isdigit() else None
+
+                    vagas_str = row.get("qnt_vagas") or row.get("vagas_ofertadas") or row.get("capacidade") or ""
+                    capacidade = int(vagas_str) if str(vagas_str).isdigit() else None
+
+                    matr_str = row.get("matriculados") or row.get("vagas_ocupadas") or row.get("ocupadas") or ""
+                    matriculados = int(matr_str) if str(matr_str).isdigit() else None
+
                     depto_id = row.get("departamento_id", "").strip() or None
 
                     docentes = [
@@ -305,6 +328,7 @@ class SIGAAExtractor(BaseExtractor):
                         "docentes": docentes,
                         "horario": horario,
                         "local": local,
+                        "capacidade": capacidade,
                         "matriculados": matriculados,
                     })
 
@@ -313,15 +337,43 @@ class SIGAAExtractor(BaseExtractor):
                 data = json.load(f)
                 items = data if isinstance(data, list) else data.get("turmas", [])
                 for item in items:
-                    turmas_raw.append(item)
-                    cod = item.get("codigo_disciplina") or item.get("codigo")
-                    nome = item.get("nome_disciplina") or item.get("nome")
+                    cod = item.get("codigo_disciplina") or item.get("codigo", "")
+                    nome = item.get("nome_disciplina") or item.get("nome", "")
+
+                    raw_doc = item.get("docentes") or item.get("docente") or []
+                    if isinstance(raw_doc, str):
+                        doc_list = [d.strip() for d in re.split(r"[/,]", raw_doc) if d.strip()]
+                    elif isinstance(raw_doc, list):
+                        doc_list = [str(d).strip() for d in raw_doc if str(d).strip()]
+                    else:
+                        doc_list = []
+
+                    doc_clean: List[str] = []
+                    for d in doc_list:
+                        if d.upper() != "NAO INFORMADO":
+                            docentes_set.add(d)
+                            doc_clean.append(d)
+
                     if cod and cod not in disciplinas_map:
                         disciplinas_map[cod] = {
                             "codigo": cod,
                             "nome": nome or cod,
-                            "departamento": item.get("departamento"),
+                            "departamento": item.get("departamento") or item.get("departamento_id"),
                         }
+
+                    turmas_raw.append({
+                        "codigo_disciplina": cod,
+                        "nome_disciplina": nome,
+                        "codigo_turma": str(item.get("codigo_turma") or item.get("turma", "")).strip(),
+                        "semestre": str(item.get("semestre", semestre)).strip(),
+                        "docentes": doc_clean,
+                        "horario": item.get("horario"),
+                        "local": item.get("local"),
+                        "capacidade": int(item["capacidade"]) if item.get("capacidade") is not None else (
+                            int(item["qnt_vagas"]) if item.get("qnt_vagas") is not None else None
+                        ),
+                        "matriculados": int(item["matriculados"]) if item.get("matriculados") is not None else None,
+                    })
 
         return {
             "turmas": turmas_raw,

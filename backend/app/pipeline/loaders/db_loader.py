@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
@@ -17,14 +17,14 @@ from app.pipeline.schemas.metricas import MetricaAcademicaClean
 
 class DatabaseLoader(BaseLoader):
     """
-    Carregador relacional para persistência dos dados no PostgreSQL 17 via SQLAlchemy.
+    Carregador relacional otimizado para persistência dos dados no PostgreSQL 17.
     
-    Gerencia transações e inserções com idempotência (upsert / checagem de existência)
-    para as entidades canônicas do banco:
-    - disciplinas
-    - professores
-    - turmas e turmas_professores
-    - metricas_academicas
+    Características:
+    - Prevenção do problema N+1 através de pré-carregamento em memória (batch hashing).
+    - Resolução determinística e inequívoca de disciplinas por código acadêmico canônico.
+    - Vinculação exata de docentes por correspondência normalizada (sem falsos positivos de wildcard).
+    - Persistência explícita do indicador de supressão LGPD (RN07).
+    - Idempotência transacional (upsert com flush periódico e commit atômico).
     """
 
     def __init__(self, db_session: Optional[Session] = None):
@@ -72,26 +72,45 @@ class DatabaseLoader(BaseLoader):
         return stats
 
     def load_disciplinas(self, db: Session, disciplinas: List[SIGAADisciplinaClean]) -> int:
-        """Insere ou atualiza disciplinas canônicas."""
+        """
+        Insere ou atualiza disciplinas canônicas evitando consultas N+1.
+        Resolução determinística: prioriza código canônico; fallback em slug.
+        """
+        if not disciplinas:
+            return 0
+
+        # Pré-carregamento em batch para eliminar N+1
+        existing_by_codigo: Dict[str, Disciplina] = {
+            d.codigo.upper(): d for d in db.query(Disciplina).filter(Disciplina.codigo.isnot(None)).all()
+        }
+        existing_by_slug: Dict[str, Disciplina] = {
+            d.slug: d for d in db.query(Disciplina).all()
+        }
+
         count = 0
         for item in disciplinas:
-            existing = db.query(Disciplina).filter(
-                (Disciplina.slug == item.slug) | (Disciplina.codigo == item.codigo)
-            ).first()
+            codigo_key = item.codigo.strip().upper() if item.codigo else ""
+            existing: Optional[Disciplina] = None
+
+            # Resolução inequívoca por código
+            if codigo_key and codigo_key in existing_by_codigo:
+                existing = existing_by_codigo[codigo_key]
+            elif item.slug in existing_by_slug:
+                existing = existing_by_slug[item.slug]
 
             if existing:
                 existing.nome = item.nome
                 if item.departamento:
                     existing.departamento = item.departamento
-                if item.creditos:
+                if item.creditos is not None:
                     existing.creditos = item.creditos
-                if item.carga_horaria:
+                if item.carga_horaria is not None:
                     existing.carga_horaria = item.carga_horaria
                 if item.ementa:
                     existing.ementa = item.ementa
             else:
                 nova = Disciplina(
-                    codigo=item.codigo,
+                    codigo=codigo_key or None,
                     slug=item.slug,
                     nome=item.nome,
                     departamento=item.departamento,
@@ -100,50 +119,100 @@ class DatabaseLoader(BaseLoader):
                     ementa=item.ementa,
                 )
                 db.add(nova)
+                db.flush()
+                if codigo_key:
+                    existing_by_codigo[codigo_key] = nova
+                existing_by_slug[item.slug] = nova
+
             count += 1
+
         db.flush()
         return count
 
     def load_professores(self, db: Session, docentes: List[SIGAADocenteClean]) -> int:
-        """Insere ou atualiza professores."""
+        """
+        Insere ou atualiza professores utilizando comparação de nome normalizado exato.
+        Elimina consultas N+1 via hashmap pré-carregado.
+        """
+        if not docentes:
+            return 0
+
+        # Pré-carregamento de todos os professores em memória
+        existing_by_nome: Dict[str, Professor] = {
+            p.nome.strip().lower(): p for p in db.query(Professor).all()
+        }
+
         count = 0
         for item in docentes:
-            existing = db.query(Professor).filter(Professor.nome == item.nome).first()
+            nome_key = item.nome.strip().lower()
+            existing = existing_by_nome.get(nome_key)
+
             if existing:
                 if item.departamento and not existing.departamento:
                     existing.departamento = item.departamento
             else:
                 novo = Professor(
-                    nome=item.nome,
+                    nome=item.nome.strip(),
                     departamento=item.departamento,
                 )
                 db.add(novo)
+                db.flush()
+                existing_by_nome[nome_key] = novo
+
             count += 1
+
         db.flush()
         return count
 
     def load_turmas(self, db: Session, turmas: List[SIGAATurmaClean]) -> int:
-        """Insere ou atualiza turmas e vincula docentes."""
+        """
+        Insere ou atualiza turmas e associa docentes de forma estrita e sem consultas N+1.
+        """
+        if not turmas:
+            return 0
+
+        # 1. Pré-carregamento de disciplinas por código canônico (e fallback por slug)
+        disciplinas_by_code: Dict[str, Disciplina] = {
+            d.codigo.upper(): d for d in db.query(Disciplina).filter(Disciplina.codigo.isnot(None)).all()
+        }
+        disciplinas_by_slug: Dict[str, Disciplina] = {
+            d.slug: d for d in db.query(Disciplina).all()
+        }
+
+        # 2. Pré-carregamento de professores por nome exato normalizado
+        professores_by_nome: Dict[str, Professor] = {
+            p.nome.strip().lower(): p for p in db.query(Professor).all()
+        }
+
+        # 3. Pré-carregamento de turmas existentes para os semestres do payload
+        semestres_payload = list({t.semestre for t in turmas})
+        existing_turmas_map: Dict[tuple, Turma] = {
+            (t.disciplina_id, t.codigo_turma, t.semestre): t
+            for t in db.query(Turma).filter(Turma.semestre.in_(semestres_payload)).all()
+        }
+
         count = 0
         for item in turmas:
-            disciplina = db.query(Disciplina).filter(
-                (Disciplina.codigo == item.codigo_disciplina) | (Disciplina.slug == item.slug_disciplina)
-            ).first()
+            cod_key = item.codigo_disciplina.strip().upper()
+            disciplina: Optional[Disciplina] = None
+
+            # Resolução determinística: prioriza código canônico
+            if cod_key in disciplinas_by_code:
+                disciplina = disciplinas_by_code[cod_key]
+            elif item.slug_disciplina in disciplinas_by_slug:
+                disciplina = disciplinas_by_slug[item.slug_disciplina]
 
             if not disciplina:
                 self.logger.warning(
-                    f"Disciplina {item.codigo_disciplina} não encontrada. Ignorando turma {item.codigo_turma}."
+                    f"Disciplina '{item.codigo_disciplina}' não localizada no banco. "
+                    f"Ignorando turma '{item.codigo_turma}' ({item.semestre})."
                 )
                 continue
 
-            existing_turma = db.query(Turma).filter(
-                Turma.disciplina_id == disciplina.id,
-                Turma.codigo_turma == item.codigo_turma,
-                Turma.semestre == item.semestre,
-            ).first()
+            turma_key = (disciplina.id, item.codigo_turma, item.semestre)
+            turma = existing_turmas_map.get(turma_key)
 
-            if existing_turma:
-                turma = existing_turma
+            if turma:
                 turma.horario = item.horario or turma.horario
                 turma.local = item.local or turma.local
             else:
@@ -156,33 +225,58 @@ class DatabaseLoader(BaseLoader):
                 )
                 db.add(turma)
                 db.flush()
+                existing_turmas_map[turma_key] = turma
 
-            # Vincula docentes cadastrados à turma
+            # Vinculação estrita de docentes (correspondência exata de nome, sem falsos positivos)
+            current_profs_ids: Set[int] = {p.id for p in turma.professores}
             for doc_nome in item.docentes:
-                prof = db.query(Professor).filter(Professor.nome.ilike(f"%{doc_nome}%")).first()
-                if prof and prof not in turma.professores:
+                doc_key = doc_nome.strip().lower()
+                prof = professores_by_nome.get(doc_key)
+                if prof and prof.id not in current_profs_ids:
                     turma.professores.append(prof)
+                    current_profs_ids.add(prof.id)
 
             count += 1
+
         db.flush()
         return count
 
     def load_metricas(self, db: Session, metricas: List[MetricaAcademicaClean]) -> int:
-        """Insere ou atualiza métricas históricas agregadas."""
+        """
+        Insere ou atualiza métricas históricas agregadas com persistência do indicador LGPD.
+        Elimina consultas N+1 via batch hashing.
+        """
+        if not metricas:
+            return 0
+
+        disciplinas_by_code: Dict[str, Disciplina] = {
+            d.codigo.upper(): d for d in db.query(Disciplina).filter(Disciplina.codigo.isnot(None)).all()
+        }
+        disciplinas_by_slug: Dict[str, Disciplina] = {
+            d.slug: d for d in db.query(Disciplina).all()
+        }
+
+        # Pré-carrega métricas existentes em um mapa (disciplina_id, ano, semestre)
+        existing_metricas_map: Dict[tuple, MetricaAcademica] = {
+            (m.disciplina_id, m.ano, m.semestre): m
+            for m in db.query(MetricaAcademica).all()
+        }
+
         count = 0
         for item in metricas:
-            disciplina = db.query(Disciplina).filter(
-                (Disciplina.codigo == item.codigo_disciplina) | (Disciplina.slug == item.slug_disciplina)
-            ).first()
+            cod_key = item.codigo_disciplina.strip().upper()
+            disciplina: Optional[Disciplina] = None
+
+            if cod_key in disciplinas_by_code:
+                disciplina = disciplinas_by_code[cod_key]
+            elif item.slug_disciplina in disciplinas_by_slug:
+                disciplina = disciplinas_by_slug[item.slug_disciplina]
 
             if not disciplina:
                 continue
 
-            existing = db.query(MetricaAcademica).filter(
-                MetricaAcademica.disciplina_id == disciplina.id,
-                MetricaAcademica.ano == item.ano,
-                MetricaAcademica.semestre == item.semestre,
-            ).first()
+            metrica_key = (disciplina.id, item.ano, item.semestre)
+            existing = existing_metricas_map.get(metrica_key)
 
             if existing:
                 existing.matriculados = item.matriculados
@@ -191,6 +285,7 @@ class DatabaseLoader(BaseLoader):
                 existing.reprovados_falta = item.reprovados_falta
                 existing.trancamentos = item.trancamentos
                 existing.taxa_aprovacao = item.taxa_aprovacao
+                existing.amostragem_suprimida_lgpd = item.amostragem_suprimida_lgpd
             else:
                 nova_metrica = MetricaAcademica(
                     disciplina_id=disciplina.id,
@@ -202,8 +297,13 @@ class DatabaseLoader(BaseLoader):
                     reprovados_falta=item.reprovados_falta,
                     trancamentos=item.trancamentos,
                     taxa_aprovacao=item.taxa_aprovacao,
+                    amostragem_suprimida_lgpd=item.amostragem_suprimida_lgpd,
                 )
                 db.add(nova_metrica)
+                db.flush()
+                existing_metricas_map[metrica_key] = nova_metrica
+
             count += 1
+
         db.flush()
         return count

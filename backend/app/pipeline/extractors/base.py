@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -14,12 +14,12 @@ class BaseExtractor(ABC):
         self.logger = logging.getLogger(f"{__name__}.{name}")
 
     @abstractmethod
-    def extract(self, **kwargs) -> List[Dict[str, Any]]:
+    def extract(self, **kwargs) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
         """
         Executa a rotina de extração a partir da fonte correspondente.
         
         Retorna:
-            Lista de dicionários contendo os dados brutos extraídos.
+            Lista de registros ou dicionário estruturado com múltiplos conjuntos de dados brutos.
         """
         pass
 

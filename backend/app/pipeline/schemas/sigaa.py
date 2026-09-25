@@ -57,4 +57,5 @@ class SIGAATurmaClean(BaseModel):
     horario: Optional[str] = None
     local: Optional[str] = None
     docentes: List[str] = Field(default_factory=list)
+    capacidade: Optional[int] = None
     matriculados: Optional[int] = None
