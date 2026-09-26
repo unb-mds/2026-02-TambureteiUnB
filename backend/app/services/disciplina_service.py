@@ -11,7 +11,7 @@ from app.api.schemas.disciplina import (
 )
 from app.models.disciplina import Disciplina
 from app.repositories.disciplina_repo import disciplina_repo
-from app.pipeline.transformers.sigaa_transformer import slugify
+from app.core.texto import slugify
 
 
 class DisciplinaService:
@@ -69,8 +69,9 @@ class DisciplinaService:
 
         itens: List[DisciplinaResumo] = []
         codigos = list(dict.fromkeys(re.findall(r"\b[A-Z]{3,4}\d{4}\b", expressao)))
+        disciplinas = {disc.codigo: disc for disc in disciplina_repo.get_by_codigos(db, codigos)}
         for cod in codigos:
-            disc_alvo = disciplina_repo.get_by_codigo(db, cod)
+            disc_alvo = disciplinas.get(cod)
             if disc_alvo:
                 itens.append(
                     DisciplinaResumo(

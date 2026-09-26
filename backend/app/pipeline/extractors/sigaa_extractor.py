@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 
 from app.pipeline.config import pipeline_settings
 from app.pipeline.extractors.base import BaseExtractor
-from app.pipeline.transformers.sigaa_transformer import slugify
+from app.core.texto import slugify
 
 logger = logging.getLogger(__name__)
 

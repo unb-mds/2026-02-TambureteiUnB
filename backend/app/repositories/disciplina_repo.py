@@ -1,6 +1,7 @@
 from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from app.models.disciplina import Disciplina
+from app.models.curso import CursoDisciplina
 from app.repositories.base import BaseRepository
 
 class DisciplinaRepository(BaseRepository[Disciplina]):
@@ -8,7 +9,16 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
         super().__init__(Disciplina)
 
     def get_by_slug(self, db: Session, slug: str) -> Optional[Disciplina]:
-        return db.query(Disciplina).filter(Disciplina.slug == slug).first()
+        return (
+            db.query(Disciplina)
+            .options(selectinload(Disciplina.cursos_disciplinas).selectinload(CursoDisciplina.curso))
+            .filter(Disciplina.slug == slug).first()
+        )
+
+    def get_by_codigos(self, db: Session, codigos: list[str]) -> list[Disciplina]:
+        if not codigos:
+            return []
+        return db.query(Disciplina).filter(Disciplina.codigo.in_(codigos)).all()
 
     def get_by_codigo(self, db: Session, codigo: str) -> Optional[Disciplina]:
         return db.query(Disciplina).filter(Disciplina.codigo == codigo).first()

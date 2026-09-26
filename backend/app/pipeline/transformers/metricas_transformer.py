@@ -1,7 +1,7 @@
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List
 from app.pipeline.transformers.base import BaseTransformer
-from app.pipeline.transformers.sigaa_transformer import slugify
+from app.core.texto import slugify
 from app.pipeline.schemas.metricas import MetricaAcademicaClean
 
 

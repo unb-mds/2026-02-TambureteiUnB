@@ -1,7 +1,7 @@
 import re
-import unicodedata
 from typing import Any, Dict, List
 from pydantic import ValidationError
+from app.core.texto import slugify
 from app.pipeline.transformers.base import BaseTransformer
 from app.pipeline.schemas.sigaa import (
     SIGAADocenteClean,
@@ -12,11 +12,6 @@ from app.pipeline.schemas.sigaa import (
 )
 
 
-def slugify(text: str) -> str:
-    """Gera um slug canônico a partir de uma string textual (ex: 'Cálculo 1' -> 'calculo-1')."""
-    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
-    text = re.sub(r"[^\w\s-]", "", text.lower()).strip()
-    return re.sub(r"[-\s]+", "-", text)
 
 
 class SIGAATransformer(BaseTransformer):
