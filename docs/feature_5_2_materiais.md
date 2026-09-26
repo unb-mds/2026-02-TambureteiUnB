@@ -139,10 +139,10 @@ Em `backend/`, com Python 3.12+ e um ambiente virtual:
 
 ```bash
 python -m pip install -r requirements-dev.txt
-python -m pytest -q
+python -m pytest tests/unit -q
 ```
 
-Sem `TEST_DATABASE_URL`, os testes utilizam SQLite temporário para execução rápida. Para verificar PostgreSQL, use um banco exclusivo de testes cujo nome termine em `_test`:
+Os testes de integração exigem `TEST_DATABASE_URL` apontando para um PostgreSQL 17 exclusivo de testes, cujo nome termine em `_test`. As migrações do pipeline usam alterações de tipos não suportadas pelo SQLite. Sem banco configurado, execute apenas `python -m pytest tests/unit -q`. Use collation com suporte a caracteres acentuados (por exemplo, ICU `pt-BR`) para validar as buscas em português:
 
 ```bash
 export TEST_DATABASE_URL='postgresql://postgres:postgres@localhost:5432/materiais_test'
@@ -153,7 +153,7 @@ python -m pytest -q \
 python -m bandit -r app -ll
 ```
 
-As tabelas de teste são criadas pelas migrações reais; cada caso usa uma transação isolada. O teste de migração realiza downgrade para `001` e upgrade para `head`, portanto nunca use uma base de desenvolvimento compartilhada ou produção em `TEST_DATABASE_URL`.
+As tabelas de teste são criadas pelas migrações reais; cada caso usa uma transação isolada. O teste de migração verifica os pontos `001`, `006` e `002_materiais` e retorna para `head`, portanto nunca use uma base de desenvolvimento compartilhada ou produção em `TEST_DATABASE_URL`.
 
 No Windows, se houver erro de inicialização PyO3/bcrypt ao medir cobertura, carregue a biblioteca antes do pytest (`python -c "import bcrypt, pytest; raise SystemExit(pytest.main(['-q', '--cov=app.domain']))"`). Erros de permissão em temporários podem ser isolados com `--basetemp` apontando para uma pasta nova dedicada e `-p no:cacheprovider`.
 
@@ -171,3 +171,5 @@ mutmut results
 - O diretório de uploads não deve ser publicado como arquivos estáticos, pois isso contornaria autenticação e moderação.
 - A Feature 5.3 deverá gerenciar a moderação e a remoção física dos arquivos. Não foram adicionados endpoints administrativos fora do escopo 5.2.
 - Banco e diretório de arquivos não compartilham uma transação distribuída: erros capturados são compensados, mas interrupções abruptas do processo podem exigir reconciliação operacional de arquivos órfãos.
+
+A revisão `007_merge_materiais_pipeline` unifica os históricos de materiais e pipeline, permitindo `alembic upgrade head` a partir de qualquer um deles sem reescrever migrações publicadas.

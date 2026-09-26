@@ -74,9 +74,17 @@ O projeto organiza os testes automatizados em duas categorias principais:
 * **Testes Unitários (`tests/unit/`)**: Focados em regras de negócio puras, schemas Pydantic, transformers do pipeline ETL e sanitização LGPD. Executam em memória de forma isolada e ultrarrápida, sem dependência de banco de dados ativo.
 * **Testes de Integração (`tests/integration/`)**: Focados no ciclo de vida dos serviços e endpoints da API FastAPI, interagindo com o banco de dados PostgreSQL e validando respostas HTTP, transações e autenticação.
 
+Antes dos testes de integração, crie um PostgreSQL 17 exclusivo para testes (nome terminado em `_test`) e defina `TEST_DATABASE_URL`. Nunca use a base de desenvolvimento ou produção: a suíte aplica migrações e testa downgrade/upgrade. Consulte [o roteiro de testes](feature_5_2_materiais.md#9-executar-os-testes). Os testes unitários não exigem essa variável.
+
+Exemplo no terminal do host, usando as credenciais do seu banco dedicado:
+
+```bash
+export TEST_DATABASE_URL='postgresql://postgres:postgres@db:5432/materiais_test'
+```
+
 ### Executar a suíte completa de testes:
 ```bash
-docker compose exec backend pytest -v
+docker compose exec -e TEST_DATABASE_URL="$TEST_DATABASE_URL" backend pytest -v
 ```
 
 ### Executar apenas os testes unitários:
@@ -86,12 +94,12 @@ docker compose exec backend pytest tests/unit -v
 
 ### Executar apenas os testes de integração:
 ```bash
-docker compose exec backend pytest tests/integration -v
+docker compose exec -e TEST_DATABASE_URL="$TEST_DATABASE_URL" backend pytest tests/integration -v
 ```
 
 ### Executar testes com verificação de cobertura de código:
 ```bash
-docker compose exec backend pytest --cov=app --cov-report=term-missing
+docker compose exec -e TEST_DATABASE_URL="$TEST_DATABASE_URL" backend pytest --cov=app --cov-report=term-missing
 ```
 
 ### Executar testes de mutação (Mutmut):
@@ -114,3 +122,9 @@ Acesse no seu navegador: **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
 mkdocs build
 ```
 > 💡 A pasta `site/` gerada pelo comando de build deve constar no `.gitignore` para não poluir o repositório (se ainda não constar, adicione `site/`).
+
+## Configuração de segurança
+
+`SECRET_KEY` (mínimo de 32 caracteres) e `POSTGRES_PASSWORD` são obrigatórias no ambiente ou `.env`. Não use os exemplos em produção. `BACKEND_CORS_ORIGINS` aceita uma lista JSON de origens autorizadas; o padrão permite apenas os endereços locais de desenvolvimento.
+
+Consulte a [revisão de arquitetura](revisao_arquitetura.md) para o estado das camadas e divergências entre a spec e os documentos anteriores.
