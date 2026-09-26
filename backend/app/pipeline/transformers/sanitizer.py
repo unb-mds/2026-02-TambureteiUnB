@@ -48,8 +48,9 @@ class LGPDSanitizer(BaseTransformer):
         """Remove campos sensíveis individuais caso existam no dataset bruto, tratando acentuação e formatos."""
         campos_proibidos = {
             "matricula", "matricula_aluno", "matricula_discente", "cpf", "cpf_aluno",
-            "email_aluno", "email_discente", "email", "nome_aluno", "nome_estudante",
-            "nome_discente", "ira", "identidade", "telefone", "endereco", "data_nascimento", "rg"
+            "email_aluno", "e_mail_aluno", "email_discente", "e_mail_discente", "email", "e_mail",
+            "nome_aluno", "nome_estudante", "nome_discente", "ira", "identidade", "telefone",
+            "endereco", "data_nascimento", "rg"
         }
         return {
             k: v for k, v in record.items()
