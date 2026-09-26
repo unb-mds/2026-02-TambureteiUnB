@@ -1,59 +1,94 @@
+"""Testes isolados: PostgreSQL dedicado via TEST_DATABASE_URL."""
+
+import os
+from unittest.mock import patch
+
 import pytest
+from alembic import command
+from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import make_url
+from sqlalchemy.orm import Session
 
-from app.main import app
-from app.core.config import settings
+# Credenciais exclusivas dos testes, antes de importar a aplicação.
+os.environ.setdefault("SECRET_KEY", "chave-exclusiva-dos-testes-automatizados")
+os.environ.setdefault("POSTGRES_PASSWORD", "senha-exclusiva-de-testes")
+
+from app.core.config import Settings, settings
 from app.core.database import get_db
 from app.core.security import create_access_token, get_password_hash
-from app.models.usuario import Usuario
-from app.models.professor import Professor
-from app.models.disciplina import Disciplina
-
-engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+from app.main import app
+from app.models import Disciplina, Professor, Usuario
 
 
-@pytest.fixture()
-def db():
-    """Sessão de teste: tudo roda numa transação que é desfeita no final."""
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = TestingSessionLocal(bind=connection)
+@pytest.fixture(scope="session")
+def engine():
+    url = os.getenv("TEST_DATABASE_URL")
+    if url and not (make_url(url).database or "").endswith("_test"):
+        raise ValueError("TEST_DATABASE_URL deve apontar para um banco dedicado com sufixo _test.")
+    if not url:
+        raise ValueError("Configure TEST_DATABASE_URL para um PostgreSQL dedicado com sufixo _test.")
+    if make_url(url).get_backend_name() != "postgresql":
+        raise ValueError("As migracoes de integracao exigem PostgreSQL.")
+    engine = create_engine(url)
 
-    yield session
+    # Cria o esquema pelas migrações reais, nunca por Base.metadata.create_all().
+    with patch.object(Settings, "SQLALCHEMY_DATABASE_URI", property(lambda _: url)):
+        command.upgrade(Config("alembic.ini"), "head")
+    yield engine
+    engine.dispose()
 
-    session.close()
-    transaction.rollback()
-    connection.close()
+
+@pytest.fixture
+def db(engine):
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        session = Session(bind=connection, join_transaction_mode="create_savepoint")
+        try:
+            yield session
+        finally:
+            session.close()
+            transaction.rollback()
 
 
-@pytest.fixture()
-def client(db):
-    """TestClient usando a MESMA sessão de teste (via dependency override)."""
+@pytest.fixture
+def client(db, tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "MATERIALS_DIR", tmp_path / "uploads")
 
-    def override_get_db():
+    def database_override():
         yield db
 
-    app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
+    app.dependency_overrides[get_db] = database_override
+    with TestClient(app) as client:
+        yield client
     app.dependency_overrides.clear()
 
 
-@pytest.fixture()
-def disciplina(db):
-    d = Disciplina(
-        slug="fga0168-teste",
-        nome="Métodos de Desenvolvimento de Software",
-        codigo="FGA0168",
-        departamento="FCTE",
-    )
-    db.add(d)
+@pytest.fixture(scope="session")
+def password_hash():
+    return get_password_hash("SenhaDeTeste123!")
+
+
+@pytest.fixture
+def usuario(db, password_hash):
+    user = Usuario(nome="Aluno Teste", email="aluno@example.com", password_hash=password_hash)
+    db.add(user)
     db.commit()
-    db.refresh(d)
-    return d
+    return user
+
+
+@pytest.fixture
+def headers(usuario):
+    return {"Authorization": "Bearer " + create_access_token({"sub": usuario.email, "role": usuario.role})}
+
+
+@pytest.fixture
+def disciplina(db):
+    disciplina = Disciplina(codigo="MAT1", nome="Cálculo", slug="calculo")
+    db.add(disciplina)
+    db.commit()
+    return disciplina
 
 
 @pytest.fixture()
