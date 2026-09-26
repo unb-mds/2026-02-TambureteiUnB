@@ -17,7 +17,6 @@ from app.services.comentario_service import comentario_service
 router = APIRouter(prefix="/comentarios", tags=["Comentários"])
 
 
-# ── US 5.1.1 — Criação ───────────────────────────────────────────────
 @router.post(
     "",
     response_model=ComentarioResponse,
@@ -30,13 +29,13 @@ def criar_comentario(
 ):
     """Cria um comentário em uma disciplina ou turma.
 
-    Acessível somente por usuários autenticados (perfil aluno).
-    O comentário é criado com status_moderacao = 'ativo' (moderação reativa).
+    Acessível somente por usuários autenticados.
+    O comentário é criado com status_moderacao = 'ativo'.
     """
     return comentario_service.criar_comentario(db, dados, current_user)
 
 
-# ── US 5.1.3 — Edição ────────────────────────────────────────────────
+
 @router.patch(
     "/{comentario_id}",
     response_model=ComentarioResponse,
@@ -54,7 +53,7 @@ def editar_comentario(
     return comentario_service.editar_comentario(db, comentario_id, dados, current_user)
 
 
-# ── US 5.1.3 — Exclusão ──────────────────────────────────────────────
+
 @router.delete(
     "/{comentario_id}",
     status_code=status.HTTP_204_NO_CONTENT,
