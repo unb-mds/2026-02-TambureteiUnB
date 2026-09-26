@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 class MetricasCurso(BaseModel):
@@ -11,22 +11,24 @@ class MetricasCurso(BaseModel):
     desvinculados: int = 0
 
 class CursoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
   
-    codigo_mec: str
+    codigo_mec: str | None = None
     nome: str
     campus: str
-    grau: str
-    turno: str
+    grau: str | None = None
+    turno: str | None = None
     slug: str
-    modalidade: str
-    area_geral: str
-    area_especifica: str
+    modalidade: str | None = None
+    area_geral: str | None = None
+    area_especifica: str | None = None
     metricas_2024: Optional[MetricasCurso] = None
 
 class CursoResumo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
    
-    codigo_mec: str
+    codigo_mec: str | None = None
     nome: str
-    grau: str
-    turno: str
+    grau: str | None = None
+    turno: str | None = None
     slug: str
