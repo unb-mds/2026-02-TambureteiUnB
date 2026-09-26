@@ -36,19 +36,14 @@ class DatabaseLoader(BaseLoader):
     @staticmethod
     def ensure_schema_up_to_date():
         """Aplica migrações pendentes do Alembic até a revisão head."""
-        try:
-            import os
-            from alembic.config import Config
-            from alembic import command
-            
-            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-            alembic_ini = os.path.join(base_dir, "alembic.ini")
-            if os.path.exists(alembic_ini):
-                cfg = Config(alembic_ini)
-                command.upgrade(cfg, "head")
-        except Exception:
-            # Em ambiente sem banco configurado ou teste unitário isolado, não interrompe execução
-            pass
+        from pathlib import Path
+        from alembic import command
+        from alembic.config import Config
+
+        backend_dir = Path(__file__).resolve().parents[3]
+        cfg = Config(str(backend_dir / "alembic.ini"))
+        cfg.set_main_option("script_location", str(backend_dir / "alembic"))
+        command.upgrade(cfg, "head")
 
     def _get_session(self) -> Session:
         return self._external_session if self._external_session is not None else SessionLocal()

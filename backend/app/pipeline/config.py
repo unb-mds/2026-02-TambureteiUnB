@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Diretório raiz do pipeline e dos dados locais
 PIPELINE_DIR = Path(__file__).resolve().parent
@@ -67,9 +67,7 @@ class PipelineSettings(BaseSettings):
     BATCH_SIZE: int = 100
     REQUEST_TIMEOUT: int = 30  # segundos
 
-    class Config:
-        env_prefix = "PIPELINE_"
-        extra = "allow"
+    model_config = SettingsConfigDict(env_prefix="PIPELINE_", extra="allow")
 
 
 # Cursos oficiais da FCTE mapeados no SIGAA
