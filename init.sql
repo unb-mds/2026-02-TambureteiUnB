@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS votos_uteis (
 CREATE INDEX IF NOT EXISTS idx_cursos_slug ON cursos(slug);
 CREATE INDEX IF NOT EXISTS idx_disciplinas_slug ON disciplinas(slug);
 CREATE INDEX IF NOT EXISTS idx_disciplinas_codigo ON disciplinas(codigo);
+CREATE INDEX IF NOT EXISTS idx_disciplinas_nome ON disciplinas(nome);
+CREATE INDEX IF NOT EXISTS idx_disciplinas_departamento ON disciplinas(departamento);
 CREATE INDEX IF NOT EXISTS idx_cursos_disciplinas_curso ON cursos_disciplinas(curso_id);
 CREATE INDEX IF NOT EXISTS idx_cursos_disciplinas_disciplina ON cursos_disciplinas(disciplina_id);
 

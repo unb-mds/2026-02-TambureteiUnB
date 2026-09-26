@@ -1,8 +1,8 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 
 class DisciplinaResumo(BaseModel):
-  
+
     codigo: str
     nome: str
     slug: str
@@ -12,3 +12,11 @@ class DisciplinaResumo(BaseModel):
 class DisciplinaResponse(DisciplinaResumo):
 
     pass
+
+
+class DisciplinaListaPaginada(BaseModel):
+    items: List[DisciplinaResumo]
+    total: int
+    page: int
+    size: int
+    pages: int
