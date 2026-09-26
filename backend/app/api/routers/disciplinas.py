@@ -1,39 +1,38 @@
-from fastapi import APIRouter
 from typing import List, Optional
-from app.api.schemas.disciplina import DisciplinaResumo, DisciplinaResponse
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+
+from app.api.schemas.disciplina import DisciplinaResponse, DisciplinaResumo
+from app.core.database import get_db
+from app.services.disciplina_service import disciplina_service
 
 router = APIRouter(prefix="/cadeiras", tags=["Cadeiras (Disciplinas)"])
 
+
 @router.get("", response_model=List[DisciplinaResumo])
-async def listar_disciplinas(
-    q: Optional[str] = None,
-    departamento: Optional[str] = None
+def listar_disciplinas(
+    q: Optional[str] = Query(None, description="Busca por nome da disciplina"),
+    codigo: Optional[str] = Query(None, description="Busca por código da disciplina"),
+    departamento: Optional[str] = Query(None, description="Filtro por departamento"),
+    db: Session = Depends(get_db),
 ):
     """
     Catálogo e Busca de Cadeiras (RF04).
-    Permite busca por nome/código (q) e filtro por departamento.
-    TODO: Integrar com SQLAlchemy repository.
+    Permite busca por nome/código e filtro por departamento.
     """
-    return [
-        {
-            "codigo": "FGA0168",
-            "nome": "Métodos de Desenvolvimento de Software",
-            "slug": "fga0168-metodos-de-desenvolvimento-de-software",
-            "departamento": "FCTE",
-            "creditos": 4
-        }
-    ]
+    return disciplina_service.listar(
+        db,
+        nome=q,
+        codigo=codigo,
+        departamento=departamento,
+    )
+
 
 @router.get("/{slug}", response_model=DisciplinaResponse)
-async def obter_disciplina(slug: str):
+def obter_disciplina(slug: str, db: Session = Depends(get_db)):
     """
     Página individual da Cadeira (Hub Colaborativo - RF07/RF08).
-    TODO: Integrar com SQLAlchemy repository.
+    Retorna dados da disciplina, ementa, pré-requisitos, equivalências
+    e lista de itens resolvidos com seus respectivos slugs para navegação direta.
     """
-    return {
-        "codigo": "FGA0168",
-        "nome": "Métodos de Desenvolvimento de Software",
-        "slug": slug,
-        "departamento": "FCTE",
-        "creditos": 4
-    }
+    return disciplina_service.obter_por_slug(db, slug)
