@@ -59,6 +59,12 @@ docker compose exec backend alembic upgrade head
 docker compose exec backend alembic revision --autogenerate -m "descricao_da_alteracao"
 ```
 
+### Popular o banco de dados com dados do SIGAA:
+```bash
+docker compose exec backend python -m app.pipeline.cli --source sigaa --departamento 673 --semestre 2026.2
+```
+> 📖 Para opções avançadas (toda a UnB, métricas históricas, etc.), consulte o documento **[Como Popular o Banco de Dados](popular_banco_de_dados.md)**.
+
 ---
 
 ## 🧪 Testes Automatizados e Qualidade
