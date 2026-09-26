@@ -60,10 +60,38 @@ def main():
         action="store_true",
         help="Desativa a exportação dos datasets processados em CSV/JSON",
     )
+    parser.add_argument(
+        "--no-ementas",
+        action="store_true",
+        help="Desativa a extração detalhada de ementas no SIGAA (processamento expresso)",
+    )
+    parser.add_argument(
+        "--no-curriculos",
+        action="store_true",
+        help="Desativa a extração de matrizes curriculares dos cursos",
+    )
+    parser.add_argument(
+        "--curso",
+        type=int,
+        help="ID específico de um curso no SIGAA para extração de matriz (ex: 414924 para Software)",
+    )
+    parser.add_argument(
+        "--todos-cursos",
+        action="store_true",
+        help="Descobre e cataloga todos os 159 cursos de graduação da UnB (Darcy, FCTE, FCE e FUP)",
+    )
+    parser.add_argument(
+        "--todos-curriculos",
+        action="store_true",
+        help="Extrai a matriz curricular de todos os cursos descobertos",
+    )
 
     args = parser.parse_args()
     runner = ETLRunner()
     export = not args.no_export
+    fetch_ementas = not args.no_ementas
+    fetch_curriculos = not args.no_curriculos
+    cursos_ids = [args.curso] if args.curso else None
 
     try:
         if args.source in ("sigaa", "all"):
@@ -75,6 +103,11 @@ def main():
                 max_departamentos=args.max_departamentos,
                 dry_run=args.dry_run,
                 export=export,
+                fetch_ementas=fetch_ementas,
+                fetch_curriculos=fetch_curriculos,
+                cursos_ids=cursos_ids,
+                todos_cursos=args.todos_cursos,
+                todos_curriculos=args.todos_curriculos,
             )
 
         if args.source in ("metricas", "all"):

@@ -51,6 +51,11 @@ class ETLRunner:
         max_departamentos: Optional[int] = None,
         dry_run: bool = False,
         export: bool = True,
+        fetch_ementas: bool = True,
+        fetch_curriculos: bool = True,
+        cursos_ids: Optional[List[int]] = None,
+        todos_cursos: bool = False,
+        todos_curriculos: bool = False,
     ) -> Dict[str, Any]:
         """
         Executa o pipeline completo de ingestão e normalização de dados do SIGAA.
@@ -63,13 +68,19 @@ class ETLRunner:
             input_file=input_file,
             departamentos=departamentos,
             max_departamentos=max_departamentos,
+            fetch_ementas=fetch_ementas,
+            fetch_curriculos=fetch_curriculos,
+            cursos_ids=cursos_ids,
+            todos_cursos=todos_cursos,
+            todos_curriculos=todos_curriculos,
         )
         logger.info("Extração de dados concluída.")
 
         # 2. Transformação
         transformed = self.sigaa_transformer.transform(raw_data)
         logger.info(
-            f"Transformação concluída: {len(transformed.get('disciplinas', []))} disciplinas, "
+            f"Transformação concluída: {len(transformed.get('cursos', []))} cursos, "
+            f"{len(transformed.get('disciplinas', []))} disciplinas, "
             f"{len(transformed.get('docentes', []))} docentes, "
             f"{len(transformed.get('turmas', []))} turmas."
         )

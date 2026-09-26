@@ -42,10 +42,20 @@ class ExportLoader(BaseLoader):
             if dict_items:
                 csv_path = self.output_dir / f"{entity_name}.csv"
                 keys = dict_items[0].keys()
+                csv_rows = []
+                for item in dict_items:
+                    row_copy = {}
+                    for k, v in item.items():
+                        if isinstance(v, (list, dict)):
+                            row_copy[k] = json.dumps(v, ensure_ascii=False)
+                        else:
+                            row_copy[k] = v
+                    csv_rows.append(row_copy)
+
                 with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
                     writer = csv.DictWriter(f, fieldnames=keys, delimiter=";")
                     writer.writeheader()
-                    writer.writerows(dict_items)
+                    writer.writerows(csv_rows)
 
             stats[f"{entity_name}_exportados"] = len(dict_items)
             self.logger.info(f"Exportados {len(dict_items)} registros de {entity_name} em {self.output_dir}")

@@ -92,6 +92,7 @@ class LGPDSanitizer(BaseTransformer):
             clean_turmas.append(t)
 
         return {
+            "cursos": data.get("cursos", []),
             "disciplinas": disciplinas,
             "docentes": docentes,
             "turmas": clean_turmas,

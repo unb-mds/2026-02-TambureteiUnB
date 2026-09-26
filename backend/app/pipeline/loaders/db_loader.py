@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional, Set
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
+from app.models.curso import Curso, CursoDisciplina
 from app.models.disciplina import Disciplina
 from app.models.professor import Professor
 from app.models.turma import Turma
@@ -11,6 +12,7 @@ from app.pipeline.schemas.sigaa import (
     SIGAADisciplinaClean,
     SIGAADocenteClean,
     SIGAATurmaClean,
+    SIGAACursoClean,
 )
 from app.pipeline.schemas.metricas import MetricaAcademicaClean
 
@@ -54,6 +56,7 @@ class DatabaseLoader(BaseLoader):
     def load(self, data: Dict[str, Any], **kwargs) -> Dict[str, int]:
         """Persiste todos os dados transformados em uma única transação atômica."""
         stats = {
+            "cursos_carregados": 0,
             "disciplinas_carregadas": 0,
             "professores_carregados": 0,
             "turmas_carregadas": 0,
@@ -67,6 +70,9 @@ class DatabaseLoader(BaseLoader):
         try:
             if owns_session:
                 self.ensure_schema_up_to_date()
+
+            if "cursos" in data and data["cursos"]:
+                stats["cursos_carregados"] = self.load_cursos(db, data["cursos"])
 
             if "disciplinas" in data:
                 stats["disciplinas_carregadas"] = self.load_disciplinas(db, data["disciplinas"])
@@ -99,10 +105,44 @@ class DatabaseLoader(BaseLoader):
 
         return stats
 
+    def load_cursos(self, db: Session, cursos: List[SIGAACursoClean]) -> int:
+        """Insere ou atualiza cursos acadêmicos evitando duplicações."""
+        if not cursos:
+            return 0
+        existing_by_slug = {c.slug: c for c in db.query(Curso).all()}
+        count = 0
+        for item in cursos:
+            c = existing_by_slug.get(item.slug)
+            if c:
+                c.nome = item.nome
+                if item.codigo_mec:
+                    c.codigo_mec = item.codigo_mec
+                if item.campus:
+                    c.campus = item.campus
+                if item.grau:
+                    c.grau = item.grau
+                if item.turno:
+                    c.turno = item.turno
+            else:
+                novo = Curso(
+                    nome=item.nome,
+                    slug=item.slug,
+                    codigo_mec=item.codigo_mec,
+                    campus=item.campus,
+                    grau=item.grau,
+                    turno=item.turno,
+                )
+                db.add(novo)
+                existing_by_slug[item.slug] = novo
+                count += 1
+        db.flush()
+        return count
+
     def load_disciplinas(self, db: Session, disciplinas: List[SIGAADisciplinaClean]) -> int:
         """
         Insere ou atualiza disciplinas canônicas evitando consultas N+1.
         Resolução determinística: prioriza código canônico; fallback em slug.
+        Atualiza também os vínculos com cursos_disciplinas.
         """
         if not disciplinas:
             return 0
@@ -113,6 +153,11 @@ class DatabaseLoader(BaseLoader):
         }
         existing_by_slug: Dict[str, Disciplina] = {
             d.slug: d for d in db.query(Disciplina).all()
+        }
+        cursos_by_slug = {c.slug: c.id for c in db.query(Curso).all()}
+        existing_cds = {
+            (cd.curso_id, cd.disciplina_id): cd
+            for cd in db.query(CursoDisciplina).all()
         }
 
         count = 0
@@ -136,6 +181,13 @@ class DatabaseLoader(BaseLoader):
                     existing.carga_horaria = item.carga_horaria
                 if item.ementa:
                     existing.ementa = item.ementa
+                if item.pre_requisitos:
+                    existing.pre_requisitos = item.pre_requisitos
+                if item.co_requisitos:
+                    existing.co_requisitos = item.co_requisitos
+                if item.equivalencias:
+                    existing.equivalencias = item.equivalencias
+                target_disc = existing
             else:
                 slug_to_use = item.slug
                 if slug_to_use in existing_by_slug:
@@ -149,12 +201,43 @@ class DatabaseLoader(BaseLoader):
                     creditos=item.creditos,
                     carga_horaria=item.carga_horaria,
                     ementa=item.ementa,
+                    pre_requisitos=item.pre_requisitos,
+                    co_requisitos=item.co_requisitos,
+                    equivalencias=item.equivalencias,
                 )
                 db.add(nova)
                 db.flush()
                 if codigo_key:
                     existing_by_codigo[codigo_key] = nova
                 existing_by_slug[slug_to_use] = nova
+                target_disc = nova
+
+            # Atualiza vínculos da disciplina com a tabela associativa cursos_disciplinas
+            cursos_vinculos = getattr(item, "cursos", [])
+            if cursos_vinculos and target_disc and target_disc.id:
+                for c_vinc in cursos_vinculos:
+                    c_slug = getattr(c_vinc, "curso_slug", None) or (c_vinc.get("curso_slug") if isinstance(c_vinc, dict) else None)
+                    cid = cursos_by_slug.get(c_slug)
+                    if cid:
+                        pair = (cid, target_disc.id)
+                        p_sug = getattr(c_vinc, "periodo_sugerido", None) if not isinstance(c_vinc, dict) else c_vinc.get("periodo_sugerido")
+                        is_obrig = getattr(c_vinc, "is_obrigatoria", True) if not isinstance(c_vinc, dict) else c_vinc.get("is_obrigatoria", True)
+                        nat = getattr(c_vinc, "natureza", "Obrigatoria") if not isinstance(c_vinc, dict) else c_vinc.get("natureza", "Obrigatoria")
+                        cd_obj = existing_cds.get(pair)
+                        if cd_obj:
+                            cd_obj.periodo_sugerido = p_sug
+                            cd_obj.is_obrigatoria = is_obrig
+                            cd_obj.natureza = nat
+                        else:
+                            new_cd = CursoDisciplina(
+                                curso_id=cid,
+                                disciplina_id=target_disc.id,
+                                periodo_sugerido=p_sug,
+                                is_obrigatoria=is_obrig,
+                                natureza=nat,
+                            )
+                            db.add(new_cd)
+                            existing_cds[pair] = new_cd
 
             count += 1
 
@@ -180,12 +263,21 @@ class DatabaseLoader(BaseLoader):
             existing = existing_by_nome.get(nome_key)
 
             if existing:
-                if item.departamento and not existing.departamento:
-                    existing.departamento = item.departamento
+                if item.departamento:
+                    if not existing.departamento:
+                        existing.departamento = item.departamento[:255]
+                    elif item.departamento != existing.departamento:
+                        deptos_existentes = set(d.strip() for d in existing.departamento.split(","))
+                        deptos_novos = set(d.strip() for d in item.departamento.split(","))
+                        merged = ", ".join(sorted(deptos_existentes | deptos_novos))
+                        if len(merged) > 255:
+                            merged = merged[:252] + "..."
+                        existing.departamento = merged
             else:
+                depto_val = item.departamento[:255] if item.departamento else None
                 novo = Professor(
                     nome=item.nome.strip(),
-                    departamento=item.departamento,
+                    departamento=depto_val,
                 )
                 db.add(novo)
                 db.flush()
@@ -195,6 +287,9 @@ class DatabaseLoader(BaseLoader):
 
         db.flush()
         return count
+
+    # Alias semântico para a entidade docentes do pipeline
+    load_docentes = load_professores
 
     def load_turmas(self, db: Session, turmas: List[SIGAATurmaClean]) -> int:
         """
