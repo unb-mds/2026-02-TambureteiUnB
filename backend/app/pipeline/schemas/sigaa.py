@@ -16,6 +16,10 @@ class SIGAADisciplinaRaw(BaseModel):
     creditos: Optional[int] = None
     carga_horaria: Optional[int] = None
     ementa: Optional[str] = None
+    pre_requisitos: Optional[str] = None
+    co_requisitos: Optional[str] = None
+    equivalencias: Optional[str] = None
+    cursos: List[dict] = Field(default_factory=list)
 
 
 class SIGAATurmaRaw(BaseModel):
@@ -31,6 +35,26 @@ class SIGAATurmaRaw(BaseModel):
     matriculados: Optional[int] = None
 
 
+class SIGAACursoVinculoClean(BaseModel):
+    """Vínculo de uma disciplina com um curso específico (N:N)."""
+    curso_slug: str
+    periodo_sugerido: Optional[int] = None
+    is_obrigatoria: bool = True
+    natureza: str = "Obrigatoria"  # "Obrigatoria", "Optativa", "Complementar"
+
+
+class SIGAACursoClean(BaseModel):
+    """Dados cadastrais normalizados de um curso."""
+    id: Optional[int] = None
+    codigo_sigaa: Optional[int] = None
+    codigo_mec: Optional[str] = None
+    nome: str
+    slug: str
+    campus: str = "FCTE - Gama"
+    grau: Optional[str] = "Bacharelado"
+    turno: Optional[str] = "Diurno"
+
+
 class SIGAADocenteClean(BaseModel):
     """Dados normalizados de docente prontos para persistência."""
     nome: str
@@ -38,7 +62,7 @@ class SIGAADocenteClean(BaseModel):
 
 
 class SIGAADisciplinaClean(BaseModel):
-    """Dados normalizados de disciplina com slug canônico."""
+    """Dados normalizados de disciplina com slug canônico e lista de cursos vinculados."""
     codigo: str
     slug: str
     nome: str
@@ -46,6 +70,10 @@ class SIGAADisciplinaClean(BaseModel):
     creditos: Optional[int] = None
     carga_horaria: Optional[int] = None
     ementa: Optional[str] = None
+    pre_requisitos: Optional[str] = None
+    co_requisitos: Optional[str] = None
+    equivalencias: Optional[str] = None
+    cursos: List[SIGAACursoVinculoClean] = Field(default_factory=list)
 
 
 class SIGAATurmaClean(BaseModel):

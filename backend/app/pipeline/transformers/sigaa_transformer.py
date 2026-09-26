@@ -7,6 +7,8 @@ from app.pipeline.schemas.sigaa import (
     SIGAADocenteClean,
     SIGAADisciplinaClean,
     SIGAATurmaClean,
+    SIGAACursoClean,
+    SIGAACursoVinculoClean,
 )
 
 
@@ -34,21 +36,48 @@ class SIGAATransformer(BaseTransformer):
 
     def transform(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Transforma o payload bruto do SIGAA contendo turmas, disciplinas e docentes.
+        Transforma o payload bruto do SIGAA contendo turmas, disciplinas, docentes e cursos.
         """
         raw_turmas = raw_data.get("turmas", [])
         raw_disciplinas = raw_data.get("disciplinas", [])
         raw_docentes = raw_data.get("docentes", [])
+        raw_cursos = raw_data.get("cursos", [])
 
         clean_disciplinas = self.transform_disciplinas(raw_disciplinas)
         clean_docentes = self.transform_docentes(raw_docentes)
         clean_turmas = self.transform_turmas(raw_turmas)
+        clean_cursos = self.transform_cursos(raw_cursos)
 
         return {
+            "cursos": clean_cursos,
             "disciplinas": clean_disciplinas,
             "docentes": clean_docentes,
             "turmas": clean_turmas,
         }
+
+    def transform_cursos(self, raw_list: List[Dict[str, Any]]) -> List[SIGAACursoClean]:
+        """Normaliza e valida cursos acadêmicos."""
+        seen_slugs = set()
+        clean: List[SIGAACursoClean] = []
+        for item in raw_list:
+            nome = str(item.get("nome", "")).strip()
+            slug = str(item.get("slug", "")).strip() or slugify(nome)
+            if not slug or slug in seen_slugs:
+                continue
+            seen_slugs.add(slug)
+            clean.append(
+                SIGAACursoClean(
+                    id=item.get("id"),
+                    codigo_sigaa=item.get("codigo_sigaa"),
+                    codigo_mec=item.get("codigo_mec"),
+                    nome=nome,
+                    slug=slug,
+                    campus=item.get("campus", "FCTE - Gama"),
+                    grau=item.get("grau", "Bacharelado"),
+                    turno=item.get("turno", "Diurno"),
+                )
+            )
+        return clean
 
     def transform_disciplinas(self, raw_list: List[Dict[str, Any]]) -> List[SIGAADisciplinaClean]:
         """Normaliza, dedupica e valida componentes curriculares."""
@@ -70,17 +99,56 @@ class SIGAATransformer(BaseTransformer):
             seen_codigos.add(codigo)
 
             try:
-                creditos_val = int(item["creditos"]) if item.get("creditos") is not None and str(item["creditos"]).isdigit() else None
                 ch_val = int(item["carga_horaria"]) if item.get("carga_horaria") is not None and str(item["carga_horaria"]).isdigit() else None
+                creditos_val = int(item["creditos"]) if item.get("creditos") is not None and str(item["creditos"]).isdigit() else None
+                if creditos_val is None and ch_val:
+                    creditos_val = ch_val // 15
+
+                ementa_raw = item.get("ementa")
+                ementa_limpa = str(ementa_raw).strip() if ementa_raw else None
+                if ementa_limpa:
+                    ementa_limpa = re.sub(r"[ \t]+", " ", ementa_limpa)
+
+                # Processa vínculos com cursos
+                cursos_raw = item.get("cursos", [])
+                cursos_clean: List[SIGAACursoVinculoClean] = []
+                for c in cursos_raw:
+                    try:
+                        c_slug = c.get("curso_slug")
+                        if c_slug:
+                            cursos_clean.append(
+                                SIGAACursoVinculoClean(
+                                    curso_slug=c_slug,
+                                    periodo_sugerido=c.get("periodo_sugerido"),
+                                    is_obrigatoria=bool(c.get("is_obrigatoria", True)),
+                                    natureza=str(c.get("natureza", "Obrigatoria")),
+                                )
+                            )
+                    except Exception:
+                        pass
+
+                pre_req_raw = item.get("pre_requisitos")
+                pre_req_limpo = str(pre_req_raw).strip() if pre_req_raw else None
+
+                co_req_raw = item.get("co_requisitos")
+                co_req_limpo = str(co_req_raw).strip() if co_req_raw else None
+
+                equiv_raw = item.get("equivalencias")
+                equiv_limpo = str(equiv_raw).strip() if equiv_raw else None
+
                 clean.append(
                     SIGAADisciplinaClean(
                         codigo=codigo,
                         slug=slugify(nome_final),
                         nome=nome_final,
-                        departamento=item.get("departamento", "").strip() or None,
+                        departamento=str(item["departamento"]).strip() if item.get("departamento") is not None else None,
                         creditos=creditos_val,
                         carga_horaria=ch_val,
-                        ementa=item.get("ementa", "").strip() or None,
+                        ementa=ementa_limpa or None,
+                        pre_requisitos=pre_req_limpo or None,
+                        co_requisitos=co_req_limpo or None,
+                        equivalencias=equiv_limpo or None,
+                        cursos=cursos_clean,
                     )
                 )
             except (ValidationError, Exception) as e:
@@ -89,8 +157,8 @@ class SIGAATransformer(BaseTransformer):
         return clean
 
     def transform_docentes(self, raw_list: List[Dict[str, Any]]) -> List[SIGAADocenteClean]:
-        """Normaliza nomes de docentes para Title Case e remove duplicatas."""
-        seen_nomes = set()
+        """Normaliza nomes de docentes para Title Case, unifica departamentos e remove duplicatas."""
+        seen_docentes: Dict[str, SIGAADocenteClean] = {}
         clean: List[SIGAADocenteClean] = []
 
         for item in raw_list:
@@ -104,17 +172,32 @@ class SIGAATransformer(BaseTransformer):
             nome_normalizado = " ".join(partes)
 
             chave_dedup = slugify(nome_normalizado)
-            if not chave_dedup or chave_dedup in seen_nomes:
+            if not chave_dedup:
                 continue
-            seen_nomes.add(chave_dedup)
+
+            depto_novo = str(item.get("departamento") or "").strip() or None
+
+            if chave_dedup in seen_docentes:
+                existente = seen_docentes[chave_dedup]
+                if depto_novo and existente.departamento != depto_novo:
+                    deptos = set(d.strip() for d in existente.departamento.split(",")) if existente.departamento else set()
+                    deptos.update(d.strip() for d in depto_novo.split(","))
+                    merged = ", ".join(sorted(deptos))
+                    if len(merged) > 255:
+                        merged = merged[:252] + "..."
+                    existente.departamento = merged
+                continue
+
+            if depto_novo and len(depto_novo) > 255:
+                depto_novo = depto_novo[:252] + "..."
 
             try:
-                clean.append(
-                    SIGAADocenteClean(
-                        nome=nome_normalizado,
-                        departamento=item.get("departamento", "").strip() or None,
-                    )
+                doc_obj = SIGAADocenteClean(
+                    nome=nome_normalizado,
+                    departamento=depto_novo,
                 )
+                seen_docentes[chave_dedup] = doc_obj
+                clean.append(doc_obj)
             except (ValidationError, Exception) as e:
                 self.logger.warning(f"Ignorando registro de docente inválido '{nome_normalizado}': {e}")
 
