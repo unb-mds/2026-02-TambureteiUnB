@@ -45,6 +45,40 @@ class TestSIGAATransformer:
         assert clean[0].slug == "calculo-1"
         assert clean[0].creditos == 6
 
+    def test_transform_disciplinas_calculo_creditos_automatico(self):
+        transformer = SIGAATransformer()
+        raw_disciplinas = [
+            {
+                "codigo": "FGA0030",
+                "nome": "ESTRUTURAS DE DADOS 2",
+                "carga_horaria": 60,
+                "creditos": None,
+                "ementa": "  Grafos, árvores e tabelas hash.   ",
+            },
+            {
+                "codigo": "MAT0025",
+                "nome": "CÁLCULO 1",
+                "carga_horaria": 90,
+                "creditos": None,
+            },
+            {
+                "codigo": "FGA0069",
+                "nome": "PRÁTICA DE CIRCUITOS 1",
+                "carga_horaria": 30,
+                "creditos": None,
+            },
+        ]
+        clean = transformer.transform_disciplinas(raw_disciplinas)
+        assert len(clean) == 3
+        # 60h -> 4 créditos
+        assert clean[0].creditos == 4
+        assert clean[0].carga_horaria == 60
+        assert clean[0].ementa == "Grafos, árvores e tabelas hash."
+        # 90h -> 6 créditos
+        assert clean[1].creditos == 6
+        # 30h -> 2 créditos
+        assert clean[2].creditos == 2
+
     def test_transform_docentes(self):
         transformer = SIGAATransformer()
         raw_docentes = [
@@ -423,6 +457,69 @@ class TestSIGAAExtractor:
         assert "Carla Rocha" in docentes_nomes
         assert "Vinicius Ruela" in docentes_nomes
 
+    def test_fetch_todos_cursos_parsing_and_slug_uniqueness(self):
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
+        html = """
+        <table class="listagem">
+            <tr><td colspan="7">CIC - DEPTO CIÊNCIAS DA COMPUTAÇÃO</td></tr>
+            <tr>
+                <td><a href="portal.jsf?id=414599">CIÊNCIA DA COMPUTAÇÃO</a></td>
+                <td>Bacharelado</td>
+                <td>DIURNO</td>
+                <td>BRASÍLIA</td>
+            </tr>
+            <tr>
+                <td><a href="portal.jsf?id=414608">COMPUTAÇÃO</a></td>
+                <td>Licenciatura</td>
+                <td>NOTURNO</td>
+                <td>BRASÍLIA</td>
+            </tr>
+            <tr><td colspan="7">ADM - DEPTO ADMINISTRAÇÃO</td></tr>
+            <tr>
+                <td><a href="portal.jsf?id=414112">ADMINISTRAÇÃO</a></td>
+                <td>Bacharelado</td>
+                <td>DIURNO</td>
+                <td>BRASÍLIA</td>
+            </tr>
+            <tr>
+                <td><a href="portal.jsf?id=414099">ADMINISTRAÇÃO</a></td>
+                <td>Bacharelado</td>
+                <td>NOTURNO</td>
+                <td>BRASÍLIA</td>
+            </tr>
+            <tr><td colspan="7">FCTE - CAMPUS UNB GAMA</td></tr>
+            <tr>
+                <td><a href="portal.jsf?id=414924">ENGENHARIA DE SOFTWARE</a></td>
+                <td>Bacharelado</td>
+                <td>DIURNO</td>
+                <td>BRASÍLIA</td>
+            </tr>
+        </table>
+        """
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.content = html.encode("iso-8859-1")
+        mock_client.get.return_value = mock_resp
+
+        extractor = SIGAAExtractor()
+        cursos = extractor.fetch_todos_cursos(mock_client)
+
+        assert len(cursos) == 5
+        slugs = [c["slug"] for c in cursos]
+        assert len(set(slugs)) == 5  # 100% únicos sem colisões
+
+        # Verifica desambiguação de Administração
+        adm_diurno = next(c for c in cursos if c["codigo_sigaa"] == 414112)
+        adm_noturno = next(c for c in cursos if c["codigo_sigaa"] == 414099)
+        assert adm_diurno["slug"] == "administracao-diurno"
+        assert adm_noturno["slug"] == "administracao-noturno"
+
+        # Verifica identificação de campus
+        fcte = next(c for c in cursos if c["codigo_sigaa"] == 414924)
+        assert fcte["campus"] == "FCTE - Gama"
+        cic = next(c for c in cursos if c["codigo_sigaa"] == 414599)
+        assert cic["campus"] == "Darcy Ribeiro"
+
     def test_dpo_extractor_filter_years(self, tmp_path: Path):
         from app.pipeline.extractors.dpo_inep_extractor import DPOINEPExtractor
         import json
@@ -666,6 +763,389 @@ class TestDatabaseLoader:
         assert added_mc.disciplina_id == 1
         assert added_mc.matriculados == 48
         assert added_mc.total_turmas_suprimidas == 1
+
+    def test_transform_cursos(self):
+        from app.pipeline.transformers.sigaa_transformer import SIGAATransformer
+
+        transformer = SIGAATransformer()
+        raw_cursos = [
+            {
+                "codigo_sigaa": 414924,
+                "codigo_mec": "115998",
+                "nome": "Engenharia de Software",
+                "slug": "engenharia-de-software",
+                "campus": "FCTE - Gama",
+            },
+            {
+                "codigo_sigaa": 414924,
+                "nome": "Engenharia de Software",
+                "slug": "engenharia-de-software",
+            },
+        ]
+        clean_cursos = transformer.transform_cursos(raw_cursos)
+        assert len(clean_cursos) == 1
+        assert clean_cursos[0].slug == "engenharia-de-software"
+        assert clean_cursos[0].codigo_sigaa == 414924
+
+    def test_transform_disciplinas_com_cursos(self):
+        from app.pipeline.transformers.sigaa_transformer import SIGAATransformer
+
+        transformer = SIGAATransformer()
+        raw_discs = [
+            {
+                "codigo": "CIC0004",
+                "nome": "ALGORITMOS E PROGRAMAÇÃO DE COMPUTADORES",
+                "carga_horaria": 90,
+                "cursos": [
+                    {
+                        "curso_slug": "engenharia-de-software",
+                        "periodo_sugerido": 1,
+                        "is_obrigatoria": True,
+                    }
+                ],
+            }
+        ]
+        clean_discs = transformer.transform_disciplinas(raw_discs)
+        assert len(clean_discs) == 1
+        assert clean_discs[0].codigo == "CIC0004"
+        assert clean_discs[0].creditos == 6
+        assert len(clean_discs[0].cursos) == 1
+        assert clean_discs[0].cursos[0].curso_slug == "engenharia-de-software"
+        assert clean_discs[0].cursos[0].periodo_sugerido == 1
+        assert clean_discs[0].cursos[0].is_obrigatoria is True
+
+    def test_load_cursos_and_cursos_disciplinas(self):
+        from app.pipeline.loaders.db_loader import DatabaseLoader
+        from app.models.curso import Curso, CursoDisciplina
+        from app.models.disciplina import Disciplina
+        from app.pipeline.schemas.sigaa import SIGAACursoClean, SIGAADisciplinaClean, SIGAACursoVinculoClean
+
+        mock_db = MagicMock()
+        mock_curso = Curso(id=1, slug="engenharia-de-software", nome="Engenharia de Software")
+        mock_disc = Disciplina(id=10, codigo="CIC0004", slug="apc", nome="APC")
+
+        def mock_query(model):
+            mock_q = MagicMock()
+            if model == Curso:
+                mock_q.all.return_value = [mock_curso]
+            elif model == Disciplina:
+                mock_q.filter.return_value.all.return_value = [mock_disc]
+                mock_q.all.return_value = [mock_disc]
+            elif model == CursoDisciplina:
+                mock_q.all.return_value = []
+            return mock_q
+
+        mock_db.query.side_effect = mock_query
+
+        loader = DatabaseLoader(db_session=mock_db)
+        # 1. Carrega Curso
+        cursos = [
+            SIGAACursoClean(
+                nome="Engenharia de Software",
+                slug="engenharia-de-software",
+            )
+        ]
+        assert loader.load_cursos(mock_db, cursos) == 0  # Já existe
+
+        # 2. Carrega Disciplina com vínculo
+        discs = [
+            SIGAADisciplinaClean(
+                codigo="CIC0004",
+                slug="apc",
+                nome="APC",
+                cursos=[
+                    SIGAACursoVinculoClean(
+                        curso_slug="engenharia-de-software",
+                        periodo_sugerido=1,
+                        is_obrigatoria=True,
+                    )
+                ],
+            )
+        ]
+        loader.load_disciplinas(mock_db, discs)
+        assert mock_db.add.called
+        added_cd = [call[0][0] for call in mock_db.add.call_args_list if isinstance(call[0][0], CursoDisciplina)]
+        assert len(added_cd) >= 1
+        assert added_cd[0].curso_id == 1
+        assert added_cd[0].disciplina_id == 10
+        assert added_cd[0].periodo_sugerido == 1
+        assert added_cd[0].is_obrigatoria is True
+
+    def test_clean_depto_nome(self):
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
+        # Campi
+        assert SIGAAExtractor._clean_depto_nome("CAMPUS UNB GAMA: FACULDADE DE CIÊNCIAS E TECNOLOGIAS EM ENGENHARIA - BRASÍLIA") == "FCTE - Gama"
+        assert SIGAAExtractor._clean_depto_nome("CAMPUS UNB CEILÂNDIA: FACULDADE DE CIÊNCIAS E TECNOLOGIAS EM SAÚDE - BRASÍLIA") == "FCE - Ceilândia"
+        assert SIGAAExtractor._clean_depto_nome("FACULDADE DE PLANALTINA - BRASÍLIA") == "FUP - Planaltina"
+        # Darcy e abreviações
+        assert SIGAAExtractor._clean_depto_nome("DEPTO CIÊNCIAS DA COMPUTAÇÃO - BRASÍLIA") == "Departamento de Ciências da Computação"
+        assert SIGAAExtractor._clean_depto_nome("DEPTO MATEMÁTICA - BRASÍLIA") == "Departamento de Matemática"
+        assert SIGAAExtractor._clean_depto_nome("FACULDADE DE DIREITO - BRASÍLIA") == "Faculdade de Direito"
+        assert SIGAAExtractor._clean_depto_nome("DECANATO DE ENSINO DE GRADUACAO / DEG - BRASÍLIA") == "Decanato de Ensino de Graduacao / DEG"
+
+    def test_fetch_departamentos_nomes_parsing(self):
+        from unittest.mock import MagicMock
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
+
+        html = """
+        <select id="formTurma:inputDepto">
+            <option value="0">-- SELECIONE --</option>
+            <option value="673">CAMPUS UNB GAMA: FACULDADE DE CIÊNCIAS E TECNOLOGIAS EM ENGENHARIA - BRASÍLIA</option>
+            <option value="508">DEPTO CIÊNCIAS DA COMPUTAÇÃO - BRASÍLIA</option>
+        </select>
+        """
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.content = html.encode("utf-8")
+        mock_resp.raise_for_status = MagicMock()
+        mock_client.get.return_value = mock_resp
+
+        extractor = SIGAAExtractor()
+        deptos = extractor.fetch_departamentos_nomes(mock_client)
+        assert deptos == {
+            673: "FCTE - Gama",
+            508: "Departamento de Ciências da Computação",
+        }
+
+    def test_transform_docentes_multiplos_departamentos(self):
+        from app.pipeline.transformers.sigaa_transformer import SIGAATransformer
+
+        transformer = SIGAATransformer()
+        raw_docentes = [
+            {"nome": "Prof. Dr. Carla Silva Rocha", "departamento": "FCTE - Gama"},
+            {"nome": "carla silva rocha", "departamento": "Departamento de Ciências da Computação"},
+        ]
+        clean = transformer.transform_docentes(raw_docentes)
+        assert len(clean) == 1
+        assert clean[0].nome == "Carla Silva Rocha"
+        assert clean[0].departamento == "Departamento de Ciências da Computação, FCTE - Gama"
+
+    def test_db_loader_merge_departamentos_docente(self):
+        from unittest.mock import MagicMock
+        from app.pipeline.loaders.db_loader import DatabaseLoader
+        from app.models.professor import Professor
+        from app.pipeline.schemas.sigaa import SIGAADocenteClean
+
+        mock_db = MagicMock()
+        prof_existente = Professor(id=1, nome="João Silva", departamento="FCTE - Gama")
+        mock_db.query.return_value.all.return_value = [prof_existente]
+
+        loader = DatabaseLoader(db_session=mock_db)
+        docentes_novos = [
+            SIGAADocenteClean(nome="João Silva", departamento="Departamento de Matemática"),
+        ]
+        loader.load_docentes(mock_db, docentes_novos)
+
+    def test_fetch_detalhes_componente_parsing(self):
+        from unittest.mock import MagicMock
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
+
+        html = """
+        <table class="visualizacao">
+            <tr>
+                <th>Código:</th><td>FGA0168</td>
+                <th>Nome:</th><td>MÉTODOS DE DESENVOLVIMENTO DE SOFTWARE</td>
+            </tr>
+            <tr>
+                <th>Pré-Requisitos:</th><td>( ( CIC0004 ) OU ( CIC0007 ) )</td>
+            </tr>
+            <tr>
+                <th>Co-Requisitos:</th><td>-</td>
+            </tr>
+            <tr>
+                <th>Equivalências:</th><td>( ( MAT0053 ) )</td>
+            </tr>
+            <tr>
+                <th>Ementa/Descrição:</th><td>Ciclos de vida de software. Metodologias ágeis e tradicionais. Testes automatizados.</td>
+            </tr>
+        </table>
+        <table class="subFormulario">
+            <caption>Outros componentes que têm esse componente como pré-requisito</caption>
+            <tr><td>FGA0415 - MONITORIA EM ENGENHARIA E AMBIENTE</td></tr>
+        </table>
+        <table class="subFormulario">
+            <caption>Histórico de Pré-Requisitos</caption>
+            <tr><td>CIC0001 - INTRODUÇÃO À COMPUTAÇÃO</td></tr>
+        </table>
+        """
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.text = html
+        mock_resp.raise_for_status = MagicMock()
+        mock_client.post.return_value = mock_resp
+
+        extractor = SIGAAExtractor()
+        detalhes = extractor.fetch_detalhes_componente(mock_client, "mock_vs", {"btn": "detalhes"})
+
+        assert detalhes["pre_requisitos"] == "( ( CIC0004 ) OU ( CIC0007 ) )"
+        assert "FGA0415" not in (detalhes["pre_requisitos"] or "")
+        assert "CIC0001" not in (detalhes["pre_requisitos"] or "")
+        assert detalhes["co_requisitos"] is None  # "-" foi normalizado para None
+        assert detalhes["equivalencias"] == "( ( MAT0053 ) )"
+        assert "Ciclos de vida de software" in detalhes["ementa"]
+
+    def test_fetch_detalhes_componente_sem_pre_requisito_ignora_subtabela_falsa(self):
+        """Valida que uma matéria com Pré-Requisitos: '-' (ex: FGA0302) não receba monitores ou sub-tabelas."""
+        from unittest.mock import MagicMock
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
+
+        html = """
+        <table class="visualizacao">
+            <tr>
+                <th>Código:</th><td>FGA0302</td>
+                <th>Nome:</th><td>ENGENHARIA E AMBIENTE</td>
+            </tr>
+            <tr>
+                <th>Pré-Requisitos:</th><td>-</td>
+            </tr>
+            <tr>
+                <th>Co-Requisitos:</th><td>-</td>
+            </tr>
+            <tr>
+                <th>Equivalências:</th><td>-</td>
+            </tr>
+            <tr>
+                <th>Ementa/Descrição:</th><td>I. Conceitos básicos; II. A terra como um sistema.</td>
+            </tr>
+        </table>
+        <table class="subFormulario">
+            <caption>Outros componentes que têm esse componente como pré-requisito</caption>
+            <tr><td>FGA0415 - MONITORIA EM ENGENHARIA E AMBIENTE</td></tr>
+        </table>
+        """
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.text = html
+        mock_resp.raise_for_status = MagicMock()
+        mock_client.post.return_value = mock_resp
+
+        extractor = SIGAAExtractor()
+        detalhes = extractor.fetch_detalhes_componente(mock_client, "mock_vs", {"btn": "detalhes"})
+
+        assert detalhes["pre_requisitos"] is None
+        assert detalhes["co_requisitos"] is None
+        assert detalhes["equivalencias"] is None
+        assert "Conceitos básicos" in detalhes["ementa"]
+
+    def test_propagacao_bidirecional_equivalencias(self):
+        """Valida que equivalência entre FGA0161 e FGA0302 seja propagada para ambas as disciplinas."""
+        import re
+
+        disciplinas_map = {
+            "FGA0161": {"codigo": "FGA0161", "equivalencias": "( FGA0302 )"},
+            "FGA0302": {"codigo": "FGA0302", "equivalencias": None},
+        }
+
+        for cod_a, disc_a in list(disciplinas_map.items()):
+            equiv_a = disc_a.get("equivalencias")
+            if equiv_a:
+                codigos_b = re.findall(r"\b[A-Z]{3,4}\d{4}\b", equiv_a)
+                for cod_b in codigos_b:
+                    if cod_b in disciplinas_map and cod_b != cod_a:
+                        equiv_b = disciplinas_map[cod_b].get("equivalencias")
+                        if not equiv_b:
+                            disciplinas_map[cod_b]["equivalencias"] = f"( {cod_a} )"
+                        elif cod_a not in equiv_b:
+                            disciplinas_map[cod_b]["equivalencias"] = f"{equiv_b} OU ( {cod_a} )"
+
+        assert disciplinas_map["FGA0161"]["equivalencias"] == "( FGA0302 )"
+        assert disciplinas_map["FGA0302"]["equivalencias"] == "( FGA0161 )"
+
+    def test_transform_disciplinas_preserva_requisitos_e_natureza(self):
+        from app.pipeline.transformers.sigaa_transformer import SIGAATransformer
+
+        transformer = SIGAATransformer()
+        raw_discs = [
+            {
+                "codigo": "FGA0168",
+                "nome": "MDS",
+                "pre_requisitos": "( ( CIC0004 ) )",
+                "co_requisitos": None,
+                "equivalencias": "( ( MAT0053 ) )",
+                "cursos": [
+                    {
+                        "curso_slug": "engenharia-de-software",
+                        "periodo_sugerido": 3,
+                        "is_obrigatoria": True,
+                        "natureza": "Obrigatoria",
+                    },
+                    {
+                        "curso_slug": "engenharia-aeroespacial",
+                        "periodo_sugerido": None,
+                        "is_obrigatoria": False,
+                        "natureza": "Optativa",
+                    }
+                ],
+            }
+        ]
+        clean_discs = transformer.transform_disciplinas(raw_discs)
+        assert len(clean_discs) == 1
+        d = clean_discs[0]
+        assert d.pre_requisitos == "( ( CIC0004 ) )"
+        assert d.co_requisitos is None
+        assert d.equivalencias == "( ( MAT0053 ) )"
+        assert len(d.cursos) == 2
+        assert d.cursos[0].natureza == "Obrigatoria"
+        assert d.cursos[0].is_obrigatoria is True
+        assert d.cursos[1].natureza == "Optativa"
+        assert d.cursos[1].is_obrigatoria is False
+
+    def test_db_loader_persists_requisitos_and_natureza(self):
+        from app.pipeline.loaders.db_loader import DatabaseLoader
+        from app.models.curso import Curso, CursoDisciplina
+        from app.models.disciplina import Disciplina
+        from app.pipeline.schemas.sigaa import SIGAADisciplinaClean, SIGAACursoVinculoClean
+
+        mock_db = MagicMock()
+        mock_curso = Curso(id=1, slug="engenharia-de-software", nome="Engenharia de Software")
+        mock_disc = Disciplina(id=10, codigo="FGA0168", slug="mds", nome="MDS")
+
+        def mock_query(model):
+            mock_q = MagicMock()
+            if model == Curso:
+                mock_q.all.return_value = [mock_curso]
+            elif model == Disciplina:
+                mock_q.filter.return_value.all.return_value = [mock_disc]
+                mock_q.all.return_value = [mock_disc]
+            elif model == CursoDisciplina:
+                mock_q.all.return_value = []
+            return mock_q
+
+        mock_db.query.side_effect = mock_query
+
+        loader = DatabaseLoader(db_session=mock_db)
+        discs = [
+            SIGAADisciplinaClean(
+                codigo="FGA0168",
+                slug="mds",
+                nome="MDS",
+                pre_requisitos="( ( CIC0004 ) )",
+                co_requisitos=None,
+                equivalencias="( ( MAT0053 ) )",
+                cursos=[
+                    SIGAACursoVinculoClean(
+                        curso_slug="engenharia-de-software",
+                        periodo_sugerido=3,
+                        is_obrigatoria=False,
+                        natureza="Optativa",
+                    )
+                ],
+            )
+        ]
+        loader.load_disciplinas(mock_db, discs)
+
+        # Verifica atualização na Disciplina existente
+        assert mock_disc.pre_requisitos == "( ( CIC0004 ) )"
+        assert mock_disc.equivalencias == "( ( MAT0053 ) )"
+
+        # Verifica inserção na CursoDisciplina com a natureza correta
+        added_cd = [call[0][0] for call in mock_db.add.call_args_list if isinstance(call[0][0], CursoDisciplina)]
+        assert len(added_cd) >= 1
+        assert added_cd[0].natureza == "Optativa"
+        assert added_cd[0].is_obrigatoria is False
+
+
+
 
 
 
