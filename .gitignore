@@ -16,3 +16,10 @@ backend/app/pipeline/data/raw/*
 !backend/app/pipeline/data/raw/.gitkeep
 backend/app/pipeline/data/processed/*
 !backend/app/pipeline/data/processed/.gitkeep
+
+# Arquivos privados e artefatos locais
+backend/storage/
+backend/mutants/
+.venv/
+venv/
+.coverage.*
