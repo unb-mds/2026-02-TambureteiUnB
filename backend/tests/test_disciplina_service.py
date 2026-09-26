@@ -84,3 +84,101 @@ class TestCatalogoCadeiras:
         assert client.get("/catalogo/cadeiras?page=0").status_code == 422
         assert client.get("/catalogo/cadeiras?size=0").status_code == 422
         assert client.get("/catalogo/cadeiras?size=101").status_code == 422
+
+    def test_obter_disciplina_com_requisitos_e_natureza_cursos(self, client, db):
+        from app.models.curso import Curso, CursoDisciplina
+
+        req = Disciplina(
+            codigo="TEST0025",
+            slug="calculo-1-req",
+            nome="Cálculo 1 Teste",
+            departamento="MAT",
+            creditos=6,
+        )
+        eq = Disciplina(
+            codigo="TEST0053",
+            slug="calculo-1-eq",
+            nome="Cálculo 1 Equiv Teste",
+            departamento="MAT",
+            creditos=6,
+        )
+        disc = Disciplina(
+            codigo="TEST0026",
+            slug="calculo-2-hub",
+            nome="Cálculo 2 Teste",
+            departamento="MAT",
+            creditos=6,
+            carga_horaria=90,
+            ementa="Integrais múltiplas e séries.",
+            pre_requisitos="( ( TEST0025 ) )",
+            equivalencias="( ( TEST0053 ) )",
+        )
+        curso = Curso(
+            nome="Engenharia de Software",
+            slug="eng-software-teste",
+            campus="FCTE - Gama",
+        )
+        db.add_all([req, eq, disc, curso])
+        db.commit()
+
+        cd = CursoDisciplina(
+            curso_id=curso.id,
+            disciplina_id=disc.id,
+            periodo_sugerido=2,
+            is_obrigatoria=True,
+            natureza="Obrigatoria",
+        )
+        db.add(cd)
+        db.commit()
+
+        resp = client.get("/cadeiras/calculo-2-hub")
+        assert resp.status_code == 200
+        data = resp.json()
+
+        assert data["codigo"] == "TEST0026"
+        assert data["nome"] == "Cálculo 2 Teste"
+        assert data["ementa"] == "Integrais múltiplas e séries."
+        assert data["pre_requisitos"] == "( ( TEST0025 ) )"
+        assert len(data["pre_requisitos_itens"]) == 1
+        assert data["pre_requisitos_itens"][0]["codigo"] == "TEST0025"
+        assert data["pre_requisitos_itens"][0]["slug"] == "calculo-1-req"
+        assert data["pre_requisitos_itens"][0]["nome"] == "Cálculo 1 Teste"
+
+        assert len(data["equivalencias_itens"]) == 1
+        assert data["equivalencias_itens"][0]["codigo"] == "TEST0053"
+        assert data["equivalencias_itens"][0]["slug"] == "calculo-1-eq"
+
+        assert len(data["cursos"]) == 1
+        assert data["cursos"][0]["curso_slug"] == "eng-software-teste"
+        assert data["cursos"][0]["natureza"] == "Obrigatoria"
+        assert data["cursos"][0]["periodo_sugerido"] == 2
+        assert data["cursos"][0]["is_obrigatoria"] is True
+
+    def test_obter_disciplina_404(self, client):
+        resp = client.get("/cadeiras/slug-totalmente-inexistente")
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "Disciplina não encontrada"
+
+    def test_disciplina_service_obter_por_slug_direto(self, db):
+        import pytest
+        from fastapi import HTTPException
+        from app.services.disciplina_service import disciplina_service
+
+        _criar_disciplina(db, "SERV0001", "slug-serv-teste", "Disciplina Service Teste", "FCTE")
+        res = disciplina_service.obter_por_slug(db, "slug-serv-teste")
+        assert res.codigo == "SERV0001"
+        assert res.nome == "Disciplina Service Teste"
+        assert res.pre_requisitos_itens == []
+        assert res.equivalencias_itens == []
+
+        with pytest.raises(HTTPException) as exc_info:
+            disciplina_service.obter_por_slug(db, "inexistente-1234")
+        assert exc_info.value.status_code == 404
+
+    def test_disciplina_service_listar_direto(self, db):
+        from app.services.disciplina_service import disciplina_service
+
+        _criar_disciplina(db, "SERV0002", "slug-serv-2", "Matéria Busca Service", "CIC")
+        items = disciplina_service.listar(db, nome="Busca Service")
+        assert len(items) >= 1
+        assert any(d.codigo == "SERV0002" for d in items)
