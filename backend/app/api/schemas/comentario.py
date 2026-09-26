@@ -11,8 +11,8 @@ COMENTARIO_MAX_LENGTH = 2000
 class ComentarioCreate(BaseModel):
     """Schema de entrada para criação de comentário."""
 
-    disciplina_id: int = Field(..., description="ID da disciplina (Obrigatório no model atual)")
-    turma_id: Optional[int] = Field(None, description="ID da turma (Opcional)")
+    disciplina_id: int = Field(..., description="ID da disciplina")
+    turma_id: Optional[int] = Field(None, description="ID da turma")
     autor_alias: Optional[str] = Field("Estudante Anônimo", description="Apelido do autor")
     topico_dificuldade: Optional[str] = Field(None, description="Tópico de dificuldade")
     conteudo: str = Field(..., description="Texto do comentário")
