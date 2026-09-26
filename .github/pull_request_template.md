@@ -33,10 +33,12 @@ Antes de solicitar a revisão, marque todos os itens que se aplicam ao código d
 - [ ] **Migrations:** Nenhuma alteração de tabela foi feita sem a respectiva migração do Alembic.
 
 ### 4. Testes e Qualidade
+
+Configure `TEST_DATABASE_URL` para um PostgreSQL exclusivo com nome terminado em `_test`. Marque Docker somente após executar essa verificação.
 - [ ] **Testes Automatizados:** Foram adicionados testes com `pytest` em `backend/tests/` para os novos fluxos e schemas.
 - [ ] **Execução Verde:** A suíte de testes executa com 100% de sucesso via Docker:
   ```powershell
-  docker exec 2026-02-tambureteiunb-backend-1 pytest -v
+  docker compose exec -e TEST_DATABASE_URL="$TEST_DATABASE_URL" backend pytest -v
   ```
 
 ---

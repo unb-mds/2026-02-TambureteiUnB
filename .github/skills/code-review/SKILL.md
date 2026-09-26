@@ -67,3 +67,10 @@ Sempre que sugerir uma correção de código pontual, utilize o bloco nativo de 
 ```suggestion
 def get_disciplina_by_slug(slug: str) -> Disciplina | None:
     ...
+
+```
+````
+
+## Referência operacional
+
+Use `specs/backend-architecture-spec.md` e a skill canônica `skills/tamburetei-dev/SKILL.md`. A persistência atual é síncrona. Verifique a moderação por entidade: `conteudos` com curadoria prévia e `materiais` com estado inicial `ativo` na Feature 5.2. Não confundir fluxos planejados com funcionalidades entregues.

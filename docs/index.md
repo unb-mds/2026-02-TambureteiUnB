@@ -46,7 +46,7 @@ Espaço anônimo e seguro para a vivência dos estudantes:
 
 ## 🛠️ Stack Tecnológica
 
-* **Backend:** Python 3.12+, FastAPI (arquitetura assíncrona), Pydantic v2 e SQLAlchemy 2.0.
+* **Backend:** Python 3.12+, FastAPI, Pydantic v2 e SQLAlchemy 2.0 com sessões síncronas e psycopg2.
 * **Banco de Dados:** PostgreSQL 17 gerenciado via Docker e migrações versionadas exclusivamente com Alembic (*Database-as-Code*).
 * **Frontend:** Next.js (App Router), React, TypeScript e Tailwind CSS.
 * **Qualidade & Testes:** Pytest, Mutmut (testes de mutação), Bandit e SonarQube (SAST).

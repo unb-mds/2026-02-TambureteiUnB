@@ -85,13 +85,13 @@ Entregáveis técnicos:
 
 3.2. Backend
 - Python 3.12 ou superior;
-- FastAPI (arquitetura assíncrona);
+- FastAPI com rotas síncronas para operações de banco;
 - Pydantic v2 para validação e serialização de dados;
 - Documentação OpenAPI/Swagger nativa.
 
 3.3. Banco de dados
 - PostgreSQL 17, executado via Docker Compose;
-- SQLAlchemy como ORM assíncrono;
+- SQLAlchemy 2.0 com Session síncrona e driver psycopg2;
 - Alembic para controle de migrações e evolução do esquema (Database-as-Code).
 
 Decisão arquitetural (ADR): Redis e MongoDB foram explicitamente descartados
@@ -175,7 +175,7 @@ backend/app/
 |-- core/            Configurações de ambiente (.env), segurança e tokens JWT.
 |-- domain/          Lógica de negócio pura: cálculo de taxas, evasão e moderação.
 |-- services/        Casos de uso e orquestração entre API e repositórios.
-|-- repositories/    Consultas SQL e persistência assíncrona com SQLAlchemy.
+|-- repositories/    Consultas SQL e persistência síncrona com SQLAlchemy.
 |-- models/          Entidades relacionais do banco de dados em SQLAlchemy.
 `-- pipeline/        ETL: ingestão, limpeza e agregação de dados do DPO/INEP.
 
@@ -259,8 +259,10 @@ recorrentes (como testes semanais ou relatórios laboratoriais vigentes). São
 aceitos apenas enunciados de avaliações públicas anteriores e resumos conceituais.
 
 [RN06] Curadoria de Submissões Externas
-Materiais submetidos por estudantes são gravados com status_curadoria = PENDENTE
-e só são exibidos publicamente após aprovação de um moderador.
+Conteúdos em `conteudos` usam status_curadoria = PENDENTE e curadoria prévia.
+Arquivos da Feature 5.2 ficam em `materiais`, iniciam com status_moderacao = ativo
+e seguem moderação reativa. A listagem mostra apenas ativos; o download exige
+estudante autenticado. Ações administrativas pertencem à Feature 5.3, planejada.
 
 [RN07] Tratamento de Dados com Baixa Amostragem (LGPD / DPO)
 Agregações históricas oriundas de microdados públicos com menos de 5 alunos por
@@ -315,3 +317,7 @@ manuais e isolados. Utilizar exclusivamente migrações versionadas do Alembic.
 Não adicionar microsserviços, filas assíncronas complexas (RabbitMQ, Celery),
 Redis ou bancos NoSQL. Manter a arquitetura simples, sólida e modular no
 PostgreSQL 17.
+Referência operacional: specs/backend-architecture-spec.md. A persistência atual
+é síncrona; uma migração para async exige decisão e entrega próprias.
+A tabela `materiais` guarda metadados e a chave relativa do volume privado
+`materiais_data`; os binários não são armazenados no PostgreSQL.

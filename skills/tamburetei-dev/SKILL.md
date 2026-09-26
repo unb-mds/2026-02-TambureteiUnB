@@ -15,7 +15,7 @@ Esta skill instrui agentes de IA a seguirem rigorosamente os padrões técnicos,
    * `api/`: Apenas roteamento HTTP do FastAPI e validação de entrada/saída com schemas Pydantic v2. Nunca invocar consultas de banco de dados diretamente aqui.
    * `domain/`: Regras de negócio puras (cálculo de taxas de aprovação e evasão, moderação). Não depende de ORM, framework web ou banco.
    * `services/`: Casos de uso e orquestração entre a camada de API e os repositórios.
-   * `repositories/`: Consultas SQL e persistência assíncrona via SQLAlchemy 2.0.
+   * `repositories/`: Consultas SQL e persistência síncrona via SQLAlchemy 2.0 (`Session`, psycopg2), conforme `specs/backend-architecture-spec.md`.
    * `models/`: Mapeamento das entidades relacionais no PostgreSQL 17.
    * `pipeline/`: Scripts e jobs ETL para ingestão dos dados abertos (DPO/INEP/LAI).
 
@@ -53,7 +53,7 @@ Esta skill instrui agentes de IA a seguirem rigorosamente os padrões técnicos,
 * **[RN03] Unicidade de Upvote:** Máximo de 1 voto útil por usuário em cada material ou comentário. Repetir o voto desfaz a curtida.
 * **[RN04] Proteção a Docentes:** Vedada publicação de juízos depreciativos ou difamatórios contra professores. Foco estritamente pedagógico e conteudista.
 * **[RN05] Vedação de Resoluções Ativas:** Proibida a publicação de gabaritos de atividades avaliativas contínuas vigentes. Permitidos apenas enunciados de provas públicas antigas e materiais conceituais.
-* **[RN06] Curadoria de Submissões:** Novos materiais entram com `status_curadoria = PENDENTE` e exigem validação de moderador.
+* **[RN06] Moderação por entidade:** Registros em `conteudos` usam `status_curadoria = PENDENTE` e curadoria prévia. Arquivos da Feature 5.2 usam a tabela `materiais`, com `status_moderacao = ativo` e moderação reativa. Não aplicar a regra de uma entidade à outra; as ações administrativas da Feature 5.3 continuam planejadas.
 * **[RN07] Baixa Amostragem:** Dados históricos com menos de 5 alunos por turma são consolidados no acumulado geral.
 * **[RN08] Cálculo de Evasão:** `(total_desligamentos / total_matriculados_ativos) * 100`.
 
@@ -91,3 +91,7 @@ Esta skill instrui agentes de IA a seguirem rigorosamente os padrões técnicos,
   ```bash
   docker compose exec backend mutmut run
   ```
+
+## Referências e transações
+
+A especificação operacional é `specs/backend-architecture-spec.md`; regras de moderação estão em `docs/regras_negocio.md`. Em operações com arquivo e banco, o serviço coordena commit/rollback e compensação; o repositório faz flush sem commit antecipado. Não converter apenas uma camada para async.

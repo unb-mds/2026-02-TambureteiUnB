@@ -1,5 +1,7 @@
 # 🏛️ Arquitetura de Software e Decisões Técnicas
 
+Este documento distingue a arquitetura executável atual das funcionalidades planejadas. A referência operacional de camadas é `specs/backend-architecture-spec.md`; sessões síncronas e moderação por entidade seguem a implementação atual. Fluxos de funcionalidades futuras são conceituais e devem ser implementados passando por serviços.
+
 Este documento descreve a especificação arquitetural do **Tamburetei UnB**, estabelecendo a estrutura macro e microarquitetural do sistema, a decomposição de componentes, as responsabilidades das camadas, os fluxos de comunicação integrados, a modelagem de dados e as Decisões de Arquitetura (ADRs).
 
 O projeto é desenvolvido no escopo da disciplina Métodos de Desenvolvimento de Software (MDS 2026/2 — FCTE/UnB), sob a organização OpenDevUnB, priorizando simplicidade, alta testabilidade, conformidade com a LGPD (*Privacy by Design*) e reprodutibilidade integral em contêineres Docker.
@@ -30,7 +32,7 @@ graph TD
         Core["Core (Segurança, JWT, Configurações)"]
         Services["Services (Orquestração de Casos de Uso)"]
         Domain["Domain (Regras de Negócio Puras & Cálculos)"]
-        Repos["Repositories (SQLAlchemy 2.0 Assíncrono)"]
+        Repos["Repositories (SQLAlchemy 2.0 Síncrono)"]
     end
 
     subgraph Armazenamento["Persistência e Arquivos"]
@@ -57,7 +59,7 @@ graph TD
     Services --> Repos
     Services -->|Gravação física de arquivos| Storage
 
-    Repos -->|SQL assíncrono via asyncpg| DB
+    Repos -->|SQL síncrono via psycopg2| DB
     ETL -->|Carga de métricas históricas| DB
 ```
 
@@ -112,7 +114,7 @@ backend/app/
 ├── core/            # Configurações de ambiente (.env), segurança e tokens JWT
 ├── domain/          # Lógica de negócio pura (cálculos, quórum, moderação)
 ├── services/        # Casos de uso e orquestração entre API e repositórios
-├── repositories/    # Consultas SQL e persistência assíncrona via SQLAlchemy
+├── repositories/    # Consultas SQL e persistência síncrona via SQLAlchemy
 ├── models/          # Entidades relacionais declarativas mapeadas no PostgreSQL 17
 └── pipeline/        # Ingestão ETL: extração DPO/INEP, normalização e carga
 ```
@@ -125,7 +127,7 @@ backend/app/
 | **`core/`** | - Carregar configurações de ambiente (`.env`).<br>- Gerenciar ciclo de vida do JWT (emissão, decodificação, expiração).<br>- Prover dependências RBAC (`get_current_user`, `require_role`).<br>- Criptografia de senhas com algoritmo bcrypt. | Conter lógica específica de funcionalidades de disciplinas ou comentários. |
 | **`domain/`** | - Cálculo da taxa de evasão institucional ($RN08$).<br>- Cálculo de taxas de aprovação, reprovação e trancamento.<br>- Motor de consenso e regras de quórum para doações colaborativas.<br>- Lógica de determinação de badges de dificuldade.<br>- Validações de conduta ética ($RN04, RN05$). | Importar módulos de banco de dados (`SQLAlchemy`), bibliotecas de rede ou dependências de frameworks web (`FastAPI`). |
 | **`services/`** | - Orquestrar casos de uso e transações de negócio.<br>- Integrar chamadas entre repositórios e regras de domínio.<br>- Gerenciar o armazenamento físico de arquivos multipart recebidos.<br>- Acionar regras de moderação reativa quando conteúdos atingem limite de denúncias. | Conter detalhes de sintaxe SQL ou renderização de respostas HTTP diretas. |
-| **`repositories/`** | - Executar consultas SQL assíncronas utilizando SQLAlchemy 2.0.<br>- Aplicar estratégias de carregamento (`selectinload` / `joinedload`) para prevenir *queries N+1*.<br>- Consultar e gerenciar a atualização de Views Materializadas.<br>- Garantir que as buscas indexadas respondam em menos de 300 ms. | Aplicar regras de validação de negócios que não sejam restrições de integridade relacional. |
+| **`repositories/`** | - Executar consultas SQL síncronas utilizando SQLAlchemy 2.0.<br>- Aplicar estratégias de carregamento (`selectinload` / `joinedload`) para prevenir *queries N+1*.<br>- Consultar e gerenciar a atualização de Views Materializadas.<br>- Garantir que as buscas indexadas respondam em menos de 300 ms. | Aplicar regras de validação de negócios que não sejam restrições de integridade relacional. |
 | **`models/`** | - Mapear entidades do banco de dados no PostgreSQL 17.<br>- Definir chaves primárias (UUID / SERIAL), tipos de dados, chaves estrangeiras e índices.<br>- Declarar constraints de integridade (`CHECK`, `UNIQUE`, `ON DELETE CASCADE/SET NULL`). | Conter métodos com regras de negócio ou chamadas de I/O. |
 | **`pipeline/`** | - Executar rotinas ETL de ingestão dos dados abertos (DPO, INEP, LAI).<br>- Normalizar dados históricos e aplicar a política de baixa amostragem ($RN07$: consolidar turmas com $< 5$ alunos). | Inserir dados sem passar pela validação de integridade do esquema. |
 
@@ -145,7 +147,7 @@ O **PostgreSQL 17**, executado em contêiner Docker oficial, atua como o único 
 
 Para atender ao compartilhamento colaborativo de materiais acadêmicos (PDFs de provas antigas, resumos e imagens conceituais):
 * Os arquivos enviados via requisições `multipart/form-data` são validados quanto ao tipo MIME (PDF, PNG, JPG) e tamanho máximo (5 MB).
-* O binário é gravado em um volume Docker dedicado (`storage_data`), enquanto o banco de dados armazena apenas o caminho relativo, metadados e estado de curadoria.
+* O binário é gravado em um volume Docker dedicado (`materiais_data`), enquanto o banco de dados armazena apenas o caminho relativo, metadados e estado de curadoria.
 * O download é protegido pelo backend e servido de forma controlada através de streaming com `FileResponse`, assegurando que materiais não autorizados ou sob moderação não fiquem expostos publicamente.
 
 ---
@@ -157,7 +159,7 @@ Para atender ao compartilhamento colaborativo de materiais acadêmicos (PDFs de 
 * **Protocolo de Aplicação:** HTTPS com arquitetura RESTful stateless sobre JSON (`application/json`).
 * **Submissão de Binários:** Requisições `multipart/form-data` para envio simultâneo de arquivos e metadados.
 * **Autenticação e Sessão:** O cliente web inclui o token JWT no cabeçalho `Authorization: Bearer <token>` para acessar rotas protegidas. O backend valida a assinatura, expiração e perfil do usuário a cada requisição via dependência de injeção FastAPI (`get_current_user` / `require_role`).
-* **Persistência Assíncrona:** A comunicação entre o backend FastAPI e o PostgreSQL 17 utiliza o driver assíncrono de alta performance `asyncpg` intermediado pelo SQLAlchemy 2.0 em pool de conexões reutilizáveis.
+* **Persistência síncrona:** A implementação atual usa `Session` do SQLAlchemy 2.0 e psycopg2. Rotas com acesso bloqueante ao banco são funções `def`, executadas pelo FastAPI fora do event loop. Async é uma evolução futura, não uma exigência da implementação atual.
 
 ---
 
@@ -283,55 +285,34 @@ sequenceDiagram
 
 #### Fluxo 4: Submissão Multipart, Moderação e Download Seguro de Materiais
 
-Apresenta o ciclo de vida completo de um material de estudo: envio, validação física, curadoria do moderador e disponibilização de download autenticado.
+Fluxo implementado na Feature 5.2. Arquivos são registros em `materiais`, inicialmente ativos. A curadoria prévia de `conteudos` é outro fluxo; ações de denúncia e alteração de estado de arquivos pertencem à Feature 5.3, planejada.
 
 ```mermaid
 sequenceDiagram
-    autonumber
     actor E as Estudante
-    actor M as Moderador
-    participant FE as Frontend
-    participant API as Backend (api/materiais & api/moderacao)
-    participant Storage as Volume de Storage (Docker)
-    participant Repos as Repositório (Conteudos)
+    participant API as Router de materiais
+    participant S as MaterialService
+    participant Storage as Armazenamento privado
+    participant R as MaterialRepository
     participant DB as PostgreSQL 17
-
-    E->>FE: Envia formulário com arquivo PDF (ex.: prova anterior, 3 MB)
-    FE->>API: POST /cadeiras/{id}/materiais (multipart/form-data) [Bearer JWT]
-    API->>API: Valida extensão (.pdf), tamanho (< 5MB) e sanitiza nome
-    API->>Storage: Salva arquivo físico em /storage/materiais/{uuid}.pdf
-    Storage-->>API: Caminho relativo do arquivo
-    API->>Repos: criar_conteudo(..., caminho, status_curadoria="PENDENTE")
-    Repos->>DB: INSERT INTO conteudos (...) VALUES (..., 'PENDENTE')
-    DB-->>Repos: Registro persistido com ID
-    API-->>FE: HTTP 201 Created { id, titulo, status: "PENDENTE" }
-    FE-->>E: Notifica que o material aguarda aprovação da moderação
-
-    Note over M, DB: Fluxo de Curadoria pelo Moderador
-    M->>FE: Acessa fila de materiais pendentes
-    FE->>API: GET /moderacao/materiais?status=PENDENTE [Bearer JWT]
-    API->>Repos: listar_materiais(status="PENDENTE")
-    Repos->>DB: SELECT * FROM conteudos WHERE status_curadoria = 'PENDENTE'
-    DB-->>Repos: Lista de materiais
-    Repos-->>API: Retorna materiais
-    API-->>FE: HTTP 200 OK [ { id, titulo, caminho_arquivo, ... } ]
-    M->>FE: Clica em "Aprovar Material"
-    FE->>API: PATCH /moderacao/materiais/{id} { status_curadoria: "APROVADO" }
-    API->>Repos: atualizar_status(id, "APROVADO")
-    Repos->>DB: UPDATE conteudos SET status_curadoria = 'APROVADO' WHERE id = ?
-    DB-->>Repos: Sucesso
-    API-->>FE: HTTP 200 OK { status: "APROVADO" }
-
-    Note over E, Storage: Download Seguro por Aluno Autenticado
-    E->>FE: Clica no botão de Download do material aprovado
-    FE->>API: GET /materiais/{id}/download [Bearer JWT]
-    API->>Repos: buscar_material_por_id(id)
-    Repos->>DB: SELECT * FROM conteudos WHERE id = ?
-    DB-->>Repos: Conteúdo encontrado (status: APROVADO, caminho_arquivo)
-    API->>Storage: Lê fluxo binário do arquivo
-    Storage-->>API: Stream do arquivo binário
-    API-->>FE: FileResponse(streaming_content, media_type="application/pdf")
-    FE-->>E: Inicia download no navegador do usuário
+    E->>API: POST /cadeiras/{id}/materiais (JWT, multipart)
+    API->>S: Dados validados e estudante autorizado
+    S->>Storage: Validar formato e tamanho; salvar com UUID
+    Storage-->>S: Chave relativa, formato e tamanho
+    S->>R: Adicionar Material com estado ativo
+    R->>DB: INSERT e flush
+    S->>DB: Commit da transação
+    S-->>API: Metadados públicos
+    API-->>E: HTTP 201
+    Note over S,Storage: Falhas de persistência revertem a transação e removem o arquivo
+    E->>API: GET /materiais/{id}/download (JWT)
+    API->>S: Solicitar material
+    S->>R: Buscar por ID
+    R->>DB: SELECT materiais
+    S->>S: Verificar estado de moderação
+    S->>Storage: Resolver caminho privado
+    S-->>API: Material e caminho validado
+    API-->>E: FileResponse como anexo
 ```
 
 ---
@@ -422,7 +403,11 @@ erDiagram
 
 ---
 
-### 4.2. Especificação Canônica das Tabelas (PostgreSQL 17)
+### 4.2. Especificação das Tabelas (PostgreSQL 17)
+
+Esta seção inclui o modelo planejado das histórias futuras. A fonte do schema executável são as migrações em `backend/alembic/versions/`; tabelas como `denuncias` não são entregues pela Feature 5.2. Arquivos físicos usam `materiais`, não colunas em `conteudos`.
+
+* **`materiais` (implementado)**: `id`, `usuario_id` (FK opcional), `disciplina_id` (FK obrigatória), `titulo`, `caminho_arquivo` único, `formato`, `tamanho_bytes`, `status_moderacao` com default `ativo` e `created_at`. Ver guia da Feature 5.2 para constraints e respostas HTTP.
 
 #### Gestão de Acesso e Governança
 * **`usuarios`**:
@@ -455,7 +440,7 @@ erDiagram
 
 #### Crowdsourcing e Interações da Comunidade
 * **`situacoes_disciplinas`**: `id` (`BIGSERIAL`, PK), `usuario_id` (`UUID`, FK $\rightarrow$ `usuarios.id` ON DELETE CASCADE), `disciplina_id` (`INT`, FK $\rightarrow$ `disciplinas.id` ON DELETE CASCADE), `situacao` (`VARCHAR(20)`, CHECK `situacao IN ('APROVADO', 'REPROVADO_NOTA', 'REPROVADO_FALTA', 'TRANCOU')`), `updated_at` (`TIMESTAMPTZ`). Constraint: `UNIQUE(usuario_id, disciplina_id)` ($RN02$).
-* **`conteudos`**: `id` (`BIGSERIAL`, PK), `disciplina_id` (`INT`, FK $\rightarrow$ `disciplinas.id` ON DELETE CASCADE), `usuario_id` (`UUID`, FK $\rightarrow$ `usuarios.id` ON DELETE SET NULL), `titulo` (`VARCHAR(200)`), `descricao` (`TEXT`), `tipo` (`VARCHAR(30)`, CHECK `tipo IN ('LINK_UTIL', 'RESUMO', 'PROVA_ANTIGA', 'DICA')`), `url_origem` (`TEXT` nullable), `caminho_arquivo` (`TEXT` nullable), `formato` (`VARCHAR(30)` nullable), `semestre` (`VARCHAR(10)`), `status_curadoria` (`VARCHAR(20)`, default `'PENDENTE'`, CHECK `status_curadoria IN ('PENDENTE', 'APROVADO', 'RECUSADO')`), `created_at` (`TIMESTAMPTZ`).
+* **`conteudos`**: `id` (`BIGSERIAL`, PK), `disciplina_id` (`INT`, FK $\rightarrow$ `disciplinas.id` ON DELETE CASCADE), `usuario_id` (`UUID`, FK $\rightarrow$ `usuarios.id` ON DELETE SET NULL), `titulo` (`VARCHAR(200)`), `descricao` (`TEXT`), `tipo` (`VARCHAR(30)`, CHECK `tipo IN ('LINK_UTIL', 'RESUMO', 'PROVA_ANTIGA', 'DICA')`), `url_origem` (`TEXT` nullable), `semestre` (`VARCHAR(10)`), `status_curadoria` (`VARCHAR(20)`, default `'PENDENTE'`, CHECK `status_curadoria IN ('PENDENTE', 'APROVADO', 'RECUSADO')`), `created_at` (`TIMESTAMPTZ`).
 * **`comentarios`**: `id` (`BIGSERIAL`, PK), `disciplina_id` (`INT` nullable, FK $\rightarrow$ `disciplinas.id` ON DELETE CASCADE), `turma_id` (`INT` nullable, FK $\rightarrow$ `turmas.id` ON DELETE CASCADE), `usuario_id` (`UUID`, FK $\rightarrow$ `usuarios.id` ON DELETE SET NULL), `autor_alias` (`VARCHAR(50)`, default `'Estudante Anônimo'`), `topico_dificuldade` (`VARCHAR(150)`), `conteudo` (`TEXT`), `parent_id` (`BIGINT` nullable, FK $\rightarrow$ `comentarios.id` ON DELETE CASCADE), `status_moderacao` (`VARCHAR(20)`, default `'PUBLICADO'`, CHECK `status_moderacao IN ('PUBLICADO', 'PENDENTE', 'OCULTO')`), `created_at` (`TIMESTAMPTZ`). Constraint CHECK: `(disciplina_id IS NOT NULL AND turma_id IS NULL) OR (disciplina_id IS NULL AND turma_id IS NOT NULL)`.
 * **`votos_uteis`**: `id` (`BIGSERIAL`, PK), `usuario_id` (`UUID`, FK $\rightarrow$ `usuarios.id` ON DELETE CASCADE), `target_type` (`VARCHAR(20)`, CHECK `target_type IN ('CONTEUDO', 'COMENTARIO')`), `target_id` (`BIGINT`), `created_at` (`TIMESTAMPTZ`). Constraint: `UNIQUE(usuario_id, target_type, target_id)` ($RN03$).
 * **`denuncias`**: `id` (`BIGSERIAL`, PK), `usuario_id` (`UUID`, FK $\rightarrow$ `usuarios.id` ON DELETE CASCADE), `comentario_id` (`BIGINT` nullable, FK $\rightarrow$ `comentarios.id` ON DELETE CASCADE), `material_id` (`BIGINT` nullable, FK $\rightarrow$ `conteudos.id` ON DELETE CASCADE), `motivo` (`TEXT`), `status` (`VARCHAR(20)`, default `'PENDENTE'`), `created_at` (`TIMESTAMPTZ`). Constraint CHECK: `(comentario_id IS NOT NULL AND material_id IS NULL) OR (comentario_id IS NULL AND material_id IS NOT NULL)`.
@@ -472,7 +457,7 @@ Esta matriz demonstra o mapeamento explícito entre as histórias de usuário pr
 | **Épico 2: Gestão Curricular e Catálogo** | - Backend: US 2.1.1, 2.2.1, 4.1.1, 4.1.2, 4.2.1, 6.1.1<br>- Frontend: US 2.1.1, 2.1.2, 3.1.1<br>- Database: US 2.1.1, 2.1.2 | `/cadeiras`, `/cadeiras/[slug]`, cards de matérias, barra de busca com *debounce* | `api/catalogo.py`, `services/catalogo_service.py`, `domain/badge_service.py`, `repositories/disciplinas_repo.py` | Tabelas `cursos`, `disciplinas`, `cursos_disciplinas`, `professores`, `turmas`, índices em `slug` e `codigo` |
 | **Épico 3: Séries Históricas e Doações SIGAA** | - Backend: US 3.1.1, 3.2.1, 3.2.2, 3.3.1<br>- Frontend: US 3.1.2, 4.1.1<br>- Database: US 3.1.1, 4.1.1 | Aba de estatísticas em `/cadeiras/[slug]`, gráficos com Recharts, filtros temporais | `api/turmas.py`, `domain/quorum_consensus.py`, `services/doacoes_service.py`, `repositories/metricas_repo.py` | Tabelas `metricas_academicas`, `doacoes_estatisticas`, `estatisticas_consolidadas`, índice composto `(disciplina_id, ano)` |
 | **Épico 4: Crowdsourcing ("Já cursei")** | - Backend: RF06, RN02<br>- Frontend: US 4.1.1<br>- Database: US 4.1.1 | Componente de votação no topo de `/cadeiras/[slug]` | `api/crowdsourcing.py`, `services/situacoes_service.py`, `repositories/situacoes_repo.py` | Tabela `situacoes_disciplinas` com constraint `UNIQUE(usuario_id, disciplina_id)` |
-| **Épico 5: Conteúdos, Upvotes e Curadoria** | - Backend: US 5.2.1, 5.2.2, 5.2.3, 5.3.2<br>- Frontend: US 4.2.1, 4.2.2, 5.2.1<br>- Database: US 5.1.1, 5.1.3 | Abas de resumos/provas, botão de upvote, modal multipart, `/moderacao` | `api/materiais.py`, `api/moderacao.py`, `services/storage_service.py`, `FileResponse` | Tabelas `conteudos`, `votos_uteis`, volume Docker `/storage_data` |
+| **Épico 5: Conteúdos, Upvotes e Curadoria** | - Backend: US 5.2.1, 5.2.2, 5.2.3, 5.3.2<br>- Frontend: US 4.2.1, 4.2.2, 5.2.1<br>- Database: US 5.1.1, 5.1.3 | Abas de resumos/provas, botão de upvote, modal multipart, `/moderacao` | `api/materiais.py`, `api/moderacao.py`, `services/storage_service.py`, `FileResponse` | Tabelas `materiais` (arquivos), `conteudos` (curadoria), `votos_uteis`, volume Docker `/app/storage/materiais` |
 | **Épico 6: Comunidade, Threads e Moderação** | - Backend: US 5.1.1, 5.1.2, 5.1.3, 5.3.1, 5.3.2<br>- Frontend: US 5.1.1<br>- Database: US 5.1.2 | Aba *Dificuldades & Dicas*, seção de comentários aninhados sob *alias* | `api/comentarios.py`, `domain/moderacao.py`, `repositories/comentarios_repo.py` | Tabelas `comentarios` (auto-relacionamento `parent_id`) e `denuncias` |
 | **Épico 7: Dashboard Institucional e Evasão** | - Backend: US 6.2.1, 6.2.2, 6.2.3<br>- Frontend: US 6.1.1<br>- Database: RN08 | Página inicial (`/`), cards de indicadores globais, download CSV/JSON | `api/dashboard.py`, `domain/evasao.py`, `repositories/dashboard_repo.py` | View Materializada `vm_evasao_campus`, agregação `MetricaCurso` |
 
@@ -496,7 +481,7 @@ Esta matriz demonstra o mapeamento explícito entre as histórias de usuário pr
 * **Status:** Aprovado / Ativo.
 * **Contexto:** Necessidade de um SGBD relacional maduro, compatível com transações ACID, suporte nativo a UUID v4 e recursos avançados de compressão textual.
 * **Decisão:** Adotar o contêiner oficial do PostgreSQL 17 orquestrado via Docker Compose.
-* **Justificativa:** Estabilidade a longo prazo, tipagem estrita, compressão TOAST nativa para ementas longas e suporte assíncrono integral via `asyncpg`.
+* **Justificativa:** Estabilidade a longo prazo, tipagem estrita, compressão TOAST nativa para ementas longas e integração com SQLAlchemy 2.0 e psycopg2 na implementação atual.
 
 ### ADR 04: Separação Estrita em Camadas (Clean Architecture) com Domínio Puro
 * **Status:** Aprovado / Ativo.
@@ -513,7 +498,7 @@ Esta matriz demonstra o mapeamento explícito entre as histórias de usuário pr
 ### ADR 06: Armazenamento Local Seguro de Arquivos com Streaming Controlado
 * **Status:** Aprovado / Ativo.
 * **Contexto:** Necessidade de disponibilizar download de enunciados de provas públicas antigas e resumos em PDF/PNG/JPG sem depender de serviços externos de nuvem pagos (como AWS S3).
-* **Decisão:** Armazenar os binários em volume Docker dedicado (`storage_data`), validando tipo MIME e tamanho máximo (5 MB), e disponibilizar downloads exclusivamente através do endpoint autenticado da API com `FileResponse`.
+* **Decisão:** Armazenar os binários em volume Docker dedicado (`materiais_data`), validando tipo MIME e tamanho máximo (5 MB), e disponibilizar downloads exclusivamente através do endpoint autenticado da API com `FileResponse`.
 * **Justificativa:** Mantém a aplicação 100% autossuficiente e reprodutível localmente via Docker, protegendo arquivos sob curadoria ou denúncia contra acessos públicos diretos.
 
 ### ADR 07: Motor de Consenso e Quórum Colaborativo para Doações do SIGAA

@@ -164,7 +164,7 @@ class TurmaCreate(BaseModel):
 - Todo novo router ou schema **deve** ser acompanhado de testes unitários com `pytest`.
 - A suíte de testes deve rodar 100% verde tanto localmente quanto dentro do contêiner Docker:
   ```powershell
-  docker exec 2026-02-tambureteiunb-backend-1 pytest -v
+  docker compose exec -e TEST_DATABASE_URL="$TEST_DATABASE_URL" backend pytest -v
   ```
 
 ---
@@ -179,3 +179,17 @@ class TurmaCreate(BaseModel):
 | Montar query SQL com filtros ou relacionamentos | `app/repositories/` | Não fazer query no service ou router |
 | Declarar colunas e chaves estrangeiras | `app/models/` | Não criar tabelas sem migration do Alembic |
 | Testar regras de validação ou serviços | `backend/tests/` | Não subir PR sem testes correspondentes |
+
+
+## 4. Padrão operacional atual
+
+- **Persistência:** `Session` síncrona do SQLAlchemy 2.0, driver psycopg2 e rotas `def` para operações bloqueantes. Não misturar `AsyncSession` em uma única camada sem migrar o fluxo completo.
+- **Domínio:** regras puras em `app/domain/` não dependem de HTTP ou ORM. Serviços podem traduzir falhas em `HTTPException`, conforme os exemplos desta spec.
+- **Transações:** consultas ficam nos repositórios. `BaseRepository.create` conclui operações simples. Materiais usam `adicionar` com flush; o serviço coordena commit/rollback e remove o arquivo quando a persistência falha. Não antecipar commit nesse repositório.
+- **Utilitários comuns:** transformação textual sem regra específica do ETL fica em `core/texto.py`; serviços HTTP não devem importar o pipeline.
+- **Moderação:** `conteudos` usa curadoria prévia (`PENDENTE`, `APROVADO`, `RECUSADO`). `materiais` usa o contrato das US 5.2.1–5.2.3: estado inicial `ativo`, listagem pública apenas de ativos e download para estudantes autenticados. A Feature 5.3 acrescentará as ações administrativas; não está implementada nesta entrega.
+- **Configuração:** segredos vêm de ambiente ou `.env`. `SECRET_KEY` tem no mínimo 32 caracteres. Uploads são privados e ficam fora do Git e de rotas estáticas.
+- **Schemas:** regras explícitas de formato e tamanho usam mensagens em português. A tradução dos erros estruturais nativos (tipo incorreto, campo ausente, limites de query) continua como melhoria pendente; não declarar tradução integral sem testes desses casos.
+- **Testes:** integração exige PostgreSQL 17 exclusivo com `TEST_DATABASE_URL` e nome terminado em `_test`. Testes unitários não dependem de banco. Consulte `docs/desenvolvimento.md` para comandos. A passagem local não comprova execução Docker ou Mutmut.
+
+A skill canônica de desenvolvimento é `skills/tamburetei-dev/SKILL.md`; outros pontos de entrada devem referenciá-la em vez de duplicar regras.
