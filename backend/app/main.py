@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import auth, cursos, disciplinas, turmas, professores, catalogo
+from app.api.routers import auth, cursos, disciplinas, turmas, professores, catalogo, materiais
 
 from app.core.config import settings
 
@@ -12,7 +12,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS if hasattr(settings, "BACKEND_CORS_ORIGINS") else ["*"],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,6 +22,10 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(cursos.router)
 app.include_router(disciplinas.router)
+app.include_router(turmas.router)
+app.include_router(professores.router)
+app.include_router(catalogo.router)
+app.include_router(materiais.router)
 
 @app.get("/")
 def root():
