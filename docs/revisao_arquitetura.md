@@ -53,4 +53,4 @@ A suíte usa PostgreSQL 17 dedicado, com suporte a comparação de caracteres ac
 
 A cobertura informada para materiais se refere aos módulos selecionados, não a todo o backend. Os testes locais não substituem Docker Compose, Mutmut em Linux nem a coleta real no SIGAA. Esses itens não devem ser declarados aprovados sem execução correspondente. O projeto ainda não possui execução SonarQube neste workflow.
 
-A implementação de cursos foi separada na PR #51, com dois testes e CI aprovados. As demais alterações são organizadas em commits locais na branch `feat/alinhamento-arquitetura`; publicação e issues dependem da revisão do responsável.
+A implementação de cursos foi separada na PR #51, com dois testes e CI aprovados. As demais alterações são organizadas em commits locais na branch `feat/revisao-backend`, acompanhados pelas issues #52 a #59; o envio dos commits depende da revisão e autorização do responsável.

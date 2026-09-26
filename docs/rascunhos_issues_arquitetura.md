@@ -1,6 +1,20 @@
-# Rascunhos de issues — revisão de arquitetura
+# Acompanhamento de issues — revisão de arquitetura
 
-**Não publicados.** Revisar títulos, conteúdo, labels e milestone antes de criar no GitHub. Milestone proposta: **Sprint 4**. As marcações abaixo descrevem a implementação local; merge e validações remotas não são presumidos. Cursos têm PR própria (#51).
+As issues R01–R09 foram publicadas na **Sprint 4**. As alterações R01–R08 estão em commits locais na branch `feat/revisao-backend`, aguardando revisão e autorização de envio. Cursos (R09) estão publicados na PR #51. As propostas P01 e P02 continuam sem implementação e sem issues publicadas. Nenhum merge desta revisão foi realizado.
+
+## Rastreabilidade
+
+| Escopo | Issue | Commits da implementação |
+| --- | --- | --- |
+| R01 — Migrações e testes | [#52](https://github.com/unb-mds/2026-02-TambureteiUnB/issues/52) | `362ba55` |
+| R02 — Configuração | [#53](https://github.com/unb-mds/2026-02-TambureteiUnB/issues/53) | `35959f6` |
+| R03 — Endpoints | [#54](https://github.com/unb-mds/2026-02-TambureteiUnB/issues/54) | `a223669` |
+| R04 — Materiais | [#55](https://github.com/unb-mds/2026-02-TambureteiUnB/issues/55) | `42eda02` |
+| R05 — Disciplinas | [#56](https://github.com/unb-mds/2026-02-TambureteiUnB/issues/56) | `b3cbeb5` |
+| R06 — Pipeline e containers | [#57](https://github.com/unb-mds/2026-02-TambureteiUnB/issues/57) | `027a4fd`, `0b0ff9c`, `7cf435e` |
+| R07 — Dependências | [#58](https://github.com/unb-mds/2026-02-TambureteiUnB/issues/58) | `6673125` |
+| R08 — Documentação | [#59](https://github.com/unb-mds/2026-02-TambureteiUnB/issues/59) | `d5d53df`, `3497352`, `ee68bbe`, `f30a634` |
+| R09 — Cursos (PR #51) | [#60](https://github.com/unb-mds/2026-02-TambureteiUnB/issues/60) | `cd5e760`, `43ca228`, `04565de`, `660f457`, `6d53b77` |
 
 ## R01 — migrações e isolamento dos testes
 
@@ -18,7 +32,8 @@ Revisão 007 que une as duas linhas; fixtures com savepoints, uploads temporári
 
 - [x] Alterações preparadas e verificadas localmente.
 - [ ] Revisar: Upgrade a partir de 006 e 002_materiais; testes sem usar a base de desenvolvimento.
-- [ ] Aprovar publicação e relacionar os commits/PR.
+- [x] Publicar a issue e registrar os commits relacionados.
+- [ ] Revisar e aprovar a integração pela PR.
 - [ ] Concluir revisão e integração antes de encerrar a issue.
 
 ## R02 — configuração segura do backend
@@ -37,7 +52,8 @@ URL construída pelo SQLAlchemy; segredos obrigatórios; CORS local; Pydantic v2
 
 - [x] Alterações preparadas e verificadas localmente.
 - [ ] Revisar: Testes de URL e chave obrigatória; nenhum segredo fixo no código da aplicação.
-- [ ] Aprovar publicação e relacionar os commits/PR.
+- [x] Publicar a issue e registrar os commits relacionados.
+- [ ] Revisar e aprovar a integração pela PR.
 - [ ] Concluir revisão e integração antes de encerrar a issue.
 
 ## R03 — registro dos endpoints da aplicação
@@ -56,7 +72,8 @@ Registro dos quatro roteadores em app/main.py.
 
 - [x] Alterações preparadas e verificadas localmente.
 - [ ] Revisar: Rotas acessíveis e cobertas pela suíte de integração.
-- [ ] Aprovar publicação e relacionar os commits/PR.
+- [x] Publicar a issue e registrar os commits relacionados.
+- [ ] Revisar e aprovar a integração pela PR.
 - [ ] Concluir revisão e integração antes de encerrar a issue.
 
 ## R04 — validação e persistência de materiais
@@ -75,7 +92,8 @@ Título normalizado em schema com erro em português; MaterialRepository segue B
 
 - [x] Alterações preparadas e verificadas localmente.
 - [ ] Revisar: HTTP 422 para título inválido; compensação de arquivo/banco preservada.
-- [ ] Aprovar publicação e relacionar os commits/PR.
+- [x] Publicar a issue e registrar os commits relacionados.
+- [ ] Revisar e aprovar a integração pela PR.
 - [ ] Concluir revisão e integração antes de encerrar a issue.
 
 ## R05 — utilitários compartilhados e consultas de disciplinas
@@ -94,7 +112,8 @@ Slug em core/texto.py; resolução de códigos em lote; carregamento antecipado 
 
 - [x] Alterações preparadas e verificadas localmente.
 - [ ] Revisar: Testes de catálogo e pipeline aprovados; serviços independentes de app.pipeline.
-- [ ] Aprovar publicação e relacionar os commits/PR.
+- [x] Publicar a issue e registrar os commits relacionados.
+- [ ] Revisar e aprovar a integração pela PR.
 - [ ] Concluir revisão e integração antes de encerrar a issue.
 
 ## R06 — execução confiável do pipeline e dos containers
@@ -113,7 +132,8 @@ ETL propaga falhas de Alembic; entrypoint executa migrações uma vez; Compose e
 
 - [x] Alterações preparadas e verificadas localmente.
 - [ ] Revisar: Teste de propagação de erro aprovado; execução Docker e Mutmut deve ser validada após aprovação de publicação.
-- [ ] Aprovar publicação e relacionar os commits/PR.
+- [x] Publicar a issue e registrar os commits relacionados.
+- [ ] Revisar e aprovar a integração pela PR.
 - [ ] Concluir revisão e integração antes de encerrar a issue.
 
 ## R07 — dependências e compatibilidade do backend
@@ -132,7 +152,8 @@ bcrypt direto em lugar de passlib; SQLAlchemy limitado à série 2.0; configura�
 
 - [x] Alterações preparadas e verificadas localmente.
 - [ ] Revisar: Suíte local aprovada; CI deve instalar as mesmas famílias de dependências.
-- [ ] Aprovar publicação e relacionar os commits/PR.
+- [x] Publicar a issue e registrar os commits relacionados.
+- [ ] Revisar e aprovar a integração pela PR.
 - [ ] Concluir revisão e integração antes de encerrar a issue.
 
 ## R08 — documentação e fonte canônica de arquitetura
@@ -151,7 +172,8 @@ Sessões síncronas documentadas; conteúdos com curadoria prévia e arquivos co
 
 - [x] Alterações preparadas e verificadas localmente.
 - [ ] Revisar: Documentação compila em modo estrito e não impõe regras conflitantes para a mesma entidade.
-- [ ] Aprovar publicação e relacionar os commits/PR.
+- [x] Publicar a issue e registrar os commits relacionados.
+- [ ] Revisar e aprovar a integração pela PR.
 - [ ] Concluir revisão e integração antes de encerrar a issue.
 
 ## R09 — catálogo de cursos integrado ao banco
@@ -170,7 +192,8 @@ Implementação isolada na PR #51, branch feat/catalogo-cursos, com serviço, re
 
 - [x] Alterações preparadas e verificadas localmente.
 - [ ] Revisar: Lista e detalhe reais, 404 para inexistente, metadados ausentes como null; dois testes com 100% de cobertura dos módulos de cursos e CI aprovado.
-- [ ] Aprovar publicação e relacionar os commits/PR.
+- [x] Publicar a issue e registrar os commits relacionados.
+- [ ] Revisar e aprovar a integração pela PR.
 - [ ] Concluir revisão e integração antes de encerrar a issue.
 
 ## P01 — Limite de senha bcrypt em bytes UTF-8

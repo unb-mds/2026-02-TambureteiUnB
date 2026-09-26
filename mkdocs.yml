@@ -33,7 +33,7 @@ nav:
   - Histórias de Usuário do Backend: historias_usuario_backend.md
   - Feature 5.2 — Materiais: feature_5_2_materiais.md
   - Revisão de arquitetura: revisao_arquitetura.md
-  - Rascunhos de issues: rascunhos_issues_arquitetura.md
+  - Acompanhamento de issues: rascunhos_issues_arquitetura.md
   - Histórias de Usuário do Frontend: historias_usuario_frontend.md
   - Histórias de Usuário do Banco de Dados: historias_usuario_database.md
   - Arquitetura & Banco de Dados: historias_usuario_arquitetura.md
