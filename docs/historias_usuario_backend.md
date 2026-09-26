@@ -434,11 +434,12 @@ Eu, como usuário (visitante ou autenticado), desejo acessar um endpoint único 
 | `cursos_disciplinas` | Organização curricular por curso | Cada associação referencia um curso e uma disciplina. |
 | `metricas_academicas` | Indicadores históricos agregados | Cada registro referencia uma disciplina em um ano e semestre. |
 | `situacoes_disciplinas` | Situação atual autodeclarada | Cada registro referencia um usuário e uma disciplina. |
-| `conteudos` | Materiais e seu estado de curadoria | Cada material referencia uma disciplina e pode manter referência ao autor. |
+| `conteudos` | Links e resumos com curadoria prévia | Cada material referencia uma disciplina e pode manter referência ao autor. |
+| `materiais` | Metadados de arquivos e moderação reativa | Cada arquivo referencia uma disciplina e pode manter referência ao autor. |
 | `comentarios` | Discussões sob pseudônimo | Cada comentário referencia usuário e disciplina e pode responder a outro comentário. |
 | `votos_uteis` | Relevância das contribuições | Cada voto referencia um usuário e aponta logicamente para conteúdo ou comentário. |
 
-Histórias não correspondem necessariamente a tabelas individuais: a HU02 utiliza três entidades, enquanto consulta, submissão e curadoria de materiais compartilham `conteudos`.
+Histórias não correspondem necessariamente a tabelas individuais. Conteúdos com curadoria usam `conteudos`; upload, listagem e download de arquivos da Feature 5.2 usam `materiais`, com vínculos a `usuarios` e `disciplinas`.
 
 ## 6. Pendências para implementação futura
 

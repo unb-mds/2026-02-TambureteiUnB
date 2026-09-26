@@ -40,7 +40,7 @@ Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, de
 ### Módulo 4: Colaboração e Curadoria
 * **[RF13] Submissão de Materiais:** O sistema deve fornecer formulário para alunos autenticados enviarem novos links úteis, resumos ou enunciados de provas públicas.
 * **[RF14] Voto Útil (Upvotes):** O sistema deve permitir que usuários votem em dicas, resumos e comentários úteis, servindo como critério de ordenação dos materiais mais relevantes.
-* **[RF15] Fila de Moderação:** O sistema deve fornecer aos moderadores uma interface administrativa para aprovar ou rejeitar materiais submetidos e moderar relatos sinalizados.
+* **[RF15] Fila de Moderação:** O sistema deve fornecer aos moderadores uma interface administrativa para aprovar ou rejeitar registros de `conteudos` e moderar relatos e arquivos de `materiais` sinalizados, conforme a RN06.
 
 ---
 

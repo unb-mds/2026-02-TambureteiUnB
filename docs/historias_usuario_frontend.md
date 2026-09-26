@@ -189,6 +189,8 @@ Eu, como estudante autenticado, desejo publicar relatos de dificuldades e respon
 
 ### Feature 5.2: Painel de Moderação (Curadoria)
 
+Este painel é planejado para `conteudos` com curadoria prévia. A numeração é específica de cada documento: a Feature 5.2 do backend trata de arquivos em `materiais`, inicialmente ativos e sujeitos à moderação reativa da Feature 5.3. O painel abaixo não é pré-condição para publicar esses arquivos.
+
 #### User Story 5.2.1: Painel administrativo para curadoria de materiais pendentes
 Depende de: US 1.1.2
 

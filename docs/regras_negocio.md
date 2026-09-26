@@ -28,8 +28,9 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 * São aceitos apenas enunciados de provas públicas de semestres anteriores e materiais conceituais de estudo.
 
 ### [RN06] Curadoria de Submissões Externas
-* Todo material submetido por estudantes (links, resumos e arquivos) é gravado inicialmente com `status_curadoria = PENDENTE`.
-* O recurso só é exibido publicamente após aprovação formal de um moderador da plataforma.
+* **Conteúdos (`conteudos`):** links e resumos usam `status_curadoria = PENDENTE` e são exibidos após aprovação.
+* **Arquivos (`materiais`, Feature 5.2):** PDF, PNG e JPG iniciam com `status_moderacao = ativo`, conforme a US 5.2.1, e seguem moderação reativa. A listagem pública retorna apenas ativos; download exige estudante autenticado.
+* Estados `em_analise` e `bloqueado` impedem download; `excluido` não é disponibilizado. Endpoints de denúncia e alteração administrativa pertencem à Feature 5.3, ainda não implementada pela entrega 5.2.
 
 ### [RN07] Tratamento de Dados Históricos com Baixa Amostragem (LGPD / DPO)
 * Agregações históricas oriundas de microdados públicos do DPO/INEP com **menos de 5 estudantes** em uma turma devem ser consolidadas no acumulado geral da matéria para inviabilizar qualquer identificação indireta de notas.

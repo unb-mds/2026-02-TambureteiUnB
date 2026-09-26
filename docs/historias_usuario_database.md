@@ -110,13 +110,13 @@ Depende de: US 1.1.1, US 2.1.1
 Eu, como Engenheiro de Banco de Dados, desejo modelar a tabela `conteudos`, a fim de persistir materiais de estudo e registrar seu ciclo de aprovação na moderação.
 
 **Nessa issue deve ser feito:**
-- Criar tabela `conteudos`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `titulo` (VARCHAR 200), `descricao` (TEXT), `tipo` (VARCHAR 30), `url_origem` (TEXT nullable), `caminho_arquivo` (TEXT nullable), `formato` (VARCHAR 30 nullable), `semestre` (VARCHAR 10), `status_curadoria` (VARCHAR 20) e carimbos de data
+- Criar tabela `conteudos`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `titulo` (VARCHAR 200), `descricao` (TEXT), `tipo` (VARCHAR 30), `url_origem` (TEXT nullable), `semestre` (VARCHAR 10), `status_curadoria` (VARCHAR 20) e carimbos de data
 - Adicionar constraint CHECK para os tipos aceitos: `'LINK_UTIL'`, `'RESUMO'`, `'PROVA_ANTIGA'`, `'DICA'`
 - Adicionar constraint CHECK para os status de curadoria: `'PENDENTE'`, `'APROVADO'`, `'RECUSADO'`, com default `'PENDENTE'`
 - Criar índice composto em `(disciplina_id, tipo, status_curadoria)` para agilizar a listagem de materiais públicos
 
 **Critérios de aceitação:**
-- Toda nova submissão deve nascer obrigatoriamente com o status `PENDENTE`
+- Toda nova submissão em `conteudos` deve nascer com o status `PENDENTE`; arquivos em `materiais` seguem a US 5.2 do backend
 - Preservar os materiais na base mesmo se o autor excluir a conta, tornando `usuario_id` nulo (`ON DELETE SET NULL`)
 - Permitir filtragem imediata apenas de materiais aprovados nas consultas públicas
 
@@ -170,3 +170,6 @@ Eu, como Engenheiro de Banco de Dados, desejo versionar o esquema em migrações
 - Subir o contêiner do PostgreSQL 17 com todas as 9 tabelas e dados de teste criados automaticamente
 - Executar `alembic upgrade head` sem erros de sintaxe ou conflito de tipos
 - Possibilitar reverter todo o esquema de forma limpa via `alembic downgrade base`
+## Arquivos de apoio — Feature 5.2 do backend
+
+Os binários ficam no volume privado `materiais_data`. A tabela `materiais` armazena `id`, `usuario_id` (FK opcional), `disciplina_id` (FK obrigatória), `titulo`, `caminho_arquivo` (chave única), `formato`, `tamanho_bytes`, `status_moderacao` e `created_at`. O estado inicial é `ativo`. Esta entidade não substitui `conteudos` nem herda sua fila de curadoria. Consulte [os contratos da Feature 5.2](feature_5_2_materiais.md).
