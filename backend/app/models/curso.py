@@ -29,6 +29,7 @@ class CursoDisciplina(Base):
     disciplina_id = Column(Integer, ForeignKey("disciplinas.id", ondelete="CASCADE"), nullable=False, index=True)
     periodo_sugerido = Column(Integer, nullable=True) # 1, 2, 3...
     is_obrigatoria = Column(Boolean, default=True, nullable=False)
+    natureza = Column(String(50), default="Obrigatoria", nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     curso = relationship("Curso", back_populates="curso_disciplinas")
