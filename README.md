@@ -61,6 +61,8 @@ Projeto desenvolvido colaborativamente para a disciplina de **Métodos de Desenv
 cp .env.example .env
 ```
 
+Antes de iniciar, defina no `.env` uma senha própria para `POSTGRES_PASSWORD` e uma `SECRET_KEY` aleatória de pelo menos 32 caracteres. A API não possui chave JWT padrão.
+
 ### 2. Iniciar os serviços
 ```bash
 docker compose up -d --build
