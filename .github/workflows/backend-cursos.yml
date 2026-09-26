@@ -1,0 +1,51 @@
+name: Backend - Cursos
+
+on:
+  push:
+    branches: ["feat/catalogo-cursos"]
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-cursos.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  cursos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cursos_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cursos_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cursos_test
+      SECRET_KEY: chave-exclusiva-de-testes-nao-usar-em-producao
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar dependências
+        run: python -m pip install -r requirements.txt 'pytest==8.4.2' 'bandit>=1.8,<2'
+      - name: Validar cursos com PostgreSQL e cobertura
+        run: >-
+          python -m pytest tests/integration/cursos -q
+          --cov=app.api.routers.cursos --cov=app.api.schemas.curso
+          --cov=app.services.curso_service --cov=app.repositories.curso_repo
+          --cov-report=term-missing --cov-fail-under=90
+      - name: Analisar segurança dos módulos de cursos
+        run: >-
+          python -m bandit -ll app/api/routers/cursos.py app/api/schemas/curso.py
+          app/services/curso_service.py app/repositories/curso_repo.py
