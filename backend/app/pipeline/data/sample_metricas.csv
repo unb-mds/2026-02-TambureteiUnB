@@ -1,0 +1,5 @@
+codigo_disciplina,nome_disciplina,ano,semestre,matriculados,aprovados,reprovados_nota,reprovados_falta,trancamentos
+FGA0030,Estruturas de Dados 2,2024,1,45,35,5,3,2
+FGA0030,Estruturas de Dados 2,2024,2,3,2,1,0,0
+MAT0025,Cálculo 1,2024,1,80,50,15,10,5
+CIC0004,Algoritmos e Programação de Computadores,2024,1,60,45,8,4,3

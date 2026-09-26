@@ -1,4 +1,4 @@
-﻿-- =====================================================================
+-- =====================================================================
 -- PROJETO TAMBURETEI UnB - ESQUEMA RELACIONAL OFICIAL (PostgreSQL 17)
 -- Baseado no PROJECT_CONTEXT.md e na documentação técnica (MDS 2026/2)
 -- =====================================================================
@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS turmas (
     disciplina_id INT NOT NULL REFERENCES disciplinas(id) ON DELETE CASCADE,
     codigo_turma VARCHAR(10) NOT NULL, -- Ex: '01', '02', 'A'
     semestre VARCHAR(10) NOT NULL,     -- Ex: '2026.1'
-    horario VARCHAR(50),               -- Ex: '35M12' (manhã) ou '35T23' (tarde)
-    local VARCHAR(100),                -- Ex: 'UED - Sala 102'
+    horario VARCHAR(255),              -- Ex: '35M12' (manhã) ou '35T23' (tarde)
+    local VARCHAR(255),                -- Ex: 'UED - Sala 102'
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_disciplina_turma_semestre UNIQUE (disciplina_id, codigo_turma, semestre)
 );
@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS votos_uteis (
 CREATE INDEX IF NOT EXISTS idx_cursos_slug ON cursos(slug);
 CREATE INDEX IF NOT EXISTS idx_disciplinas_slug ON disciplinas(slug);
 CREATE INDEX IF NOT EXISTS idx_disciplinas_codigo ON disciplinas(codigo);
+CREATE INDEX IF NOT EXISTS idx_disciplinas_nome ON disciplinas(nome);
+CREATE INDEX IF NOT EXISTS idx_disciplinas_departamento ON disciplinas(departamento);
 CREATE INDEX IF NOT EXISTS idx_cursos_disciplinas_curso ON cursos_disciplinas(curso_id);
 CREATE INDEX IF NOT EXISTS idx_cursos_disciplinas_disciplina ON cursos_disciplinas(disciplina_id);
 
@@ -184,88 +186,6 @@ CREATE INDEX IF NOT EXISTS idx_comentarios_turma ON comentarios(turma_id);
 CREATE INDEX IF NOT EXISTS idx_comentarios_parent ON comentarios(parent_id);
 CREATE INDEX IF NOT EXISTS idx_votos_target ON votos_uteis(target_type, target_id);
 
--- =====================================================================
--- 10. DADOS INICIAIS DE TESTE (SEEDS - UnB / FCTE Gama)
--- =====================================================================
-INSERT INTO cursos (codigo_mec, nome, campus, grau, turno, slug) VALUES 
-('118928', 'Engenharia de Software', 'FCTE - Gama', 'Bacharelado', 'Diurno', 'engenharia-de-software'),
-('118924', 'Engenharia Aeroespacial', 'FCTE - Gama', 'Bacharelado', 'Diurno', 'engenharia-aeroespacial'),
-('118925', 'Engenharia Automotiva', 'FCTE - Gama', 'Bacharelado', 'Diurno', 'engenharia-automotiva')
-ON CONFLICT (slug) DO NOTHING;
-
-INSERT INTO disciplinas (codigo, slug, nome, departamento, creditos, carga_horaria, ementa) VALUES 
-('FGA0168', 'metodos-de-desenvolvimento-de-software', 'Métodos de Desenvolvimento de Software', 'FGA/FCTE', 4, 60, 'Processos e metodologias ágeis de desenvolvimento de software, engenharia de requisitos, testes automatizados, integração contínua e arquitetura em camadas.'),
-('MAT0025', 'calculo-1', 'Cálculo 1', 'MAT', 6, 90, 'Funções de uma variável real, limites, continuidade, derivadas e suas aplicações, integrais e teorema fundamental do cálculo.'),
-('FGA0158', 'algoritmos-e-programacao-de-computadores', 'Algoritmos e Programação de Computadores', 'FGA/FCTE', 6, 90, 'Fundamentos de programação, estruturas de controle, tipos estruturados, ponteiros, alocação dinâmica e modularização.'),
-('FGA0147', 'estrutura-de-dados-1', 'Estruturas de Dados 1', 'FGA/FCTE', 4, 60, 'Tipos abstratos de dados, listas, filas, pilhas, árvores binárias, algoritmos de ordenação e busca assintótica.')
-ON CONFLICT (slug) DO NOTHING;
-
--- Associação das matérias à matriz de Engenharia de Software
-INSERT INTO cursos_disciplinas (curso_id, disciplina_id, periodo_sugerido, is_obrigatoria)
-SELECT c.id, d.id, 1, TRUE 
-FROM cursos c, disciplinas d 
-WHERE c.slug = 'engenharia-de-software' AND d.slug IN ('calculo-1', 'algoritmos-e-programacao-de-computadores')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO cursos_disciplinas (curso_id, disciplina_id, periodo_sugerido, is_obrigatoria)
-SELECT c.id, d.id, 2, TRUE 
-FROM cursos c, disciplinas d 
-WHERE c.slug = 'engenharia-de-software' AND d.slug = 'estrutura-de-dados-1'
-ON CONFLICT DO NOTHING;
-
-INSERT INTO cursos_disciplinas (curso_id, disciplina_id, periodo_sugerido, is_obrigatoria)
-SELECT c.id, d.id, 3, TRUE 
-FROM cursos c, disciplinas d 
-WHERE c.slug = 'engenharia-de-software' AND d.slug = 'metodos-de-desenvolvimento-de-software'
-ON CONFLICT DO NOTHING;
-
--- Professores de exemplo
-INSERT INTO professores (nome, departamento) VALUES 
-('Carla Rocha', 'FGA/FCTE'),
-('Hilmer Neri', 'FGA/FCTE'),
-('Edson Alves', 'FGA/FCTE'),
-('Luiz Leduino', 'MAT')
-ON CONFLICT DO NOTHING;
-
--- Turmas de exemplo (demonstrando oferta matutina vs vespertina e co-docência)
-INSERT INTO turmas (disciplina_id, codigo_turma, semestre, horario, local)
-SELECT id, '01', '2026.1', '35T23', 'UED - Sala 102'
-FROM disciplinas WHERE slug = 'metodos-de-desenvolvimento-de-software'
-ON CONFLICT DO NOTHING;
-
-INSERT INTO turmas (disciplina_id, codigo_turma, semestre, horario, local)
-SELECT id, '01', '2026.1', '35M12', 'UED - Lab 01'
-FROM disciplinas WHERE slug = 'algoritmos-e-programacao-de-computadores'
-ON CONFLICT DO NOTHING;
-
-INSERT INTO turmas (disciplina_id, codigo_turma, semestre, horario, local)
-SELECT id, '02', '2026.1', '35T45', 'UED - Lab 02'
-FROM disciplinas WHERE slug = 'algoritmos-e-programacao-de-computadores'
-ON CONFLICT DO NOTHING;
-
--- Associação N:N de Professores às Turmas
--- MDS com co-docência (Carla Rocha e Hilmer Neri dividindo a Turma 01):
-INSERT INTO turmas_professores (turma_id, professor_id)
-SELECT t.id, p.id
-FROM turmas t
-JOIN disciplinas d ON d.id = t.disciplina_id
-CROSS JOIN professores p
-WHERE d.slug = 'metodos-de-desenvolvimento-de-software'
-  AND t.codigo_turma = '01'
-  AND p.nome IN ('Carla Rocha', 'Hilmer Neri')
-ON CONFLICT DO NOTHING;
-
--- APC Turma 01 ministrada por Edson Alves:
-INSERT INTO turmas_professores (turma_id, professor_id)
-SELECT t.id, p.id
-FROM turmas t
-JOIN disciplinas d ON d.id = t.disciplina_id
-CROSS JOIN professores p
-WHERE d.slug = 'algoritmos-e-programacao-de-computadores'
-  AND t.codigo_turma = '01'
-  AND p.nome = 'Edson Alves'
-ON CONFLICT DO NOTHING;
-
 -- Métricas históricas agregadas de exemplo
 INSERT INTO metricas_academicas (disciplina_id, ano, semestre, matriculados, aprovados, reprovados_nota, reprovados_falta, trancamentos, taxa_aprovacao)
 SELECT id, 2024, 1, 85, 55, 18, 5, 7, 64.71
@@ -276,3 +196,13 @@ INSERT INTO metricas_academicas (disciplina_id, ano, semestre, matriculados, apr
 SELECT id, 2024, 1, 60, 48, 6, 2, 4, 80.00
 FROM disciplinas WHERE slug = 'algoritmos-e-programacao-de-computadores'
 ON CONFLICT DO NOTHING;
+
+-- =====================================================================
+-- 8. CONTROLE DE VERSÃO DE MIGRAÇÕES (ALEMBIC)
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS alembic_version (
+    version_num VARCHAR(32) NOT NULL,
+    CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+);
+INSERT INTO alembic_version (version_num) VALUES ('001') ON CONFLICT DO NOTHING;
+

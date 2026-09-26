@@ -1,5 +1,4 @@
 .env
-.env
 .env.local
 *.env
 !.env.example
@@ -8,9 +7,12 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-backend/storage/
 .pytest_cache/
 .coverage
-coverage.xml
 htmlcov/
-backend/mutants/
+
+# Dados locais do pipeline ETL (preserva apenas .gitkeep)
+backend/app/pipeline/data/raw/*
+!backend/app/pipeline/data/raw/.gitkeep
+backend/app/pipeline/data/processed/*
+!backend/app/pipeline/data/processed/.gitkeep

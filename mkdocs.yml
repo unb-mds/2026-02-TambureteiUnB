@@ -35,5 +35,7 @@ nav:
   - Histórias de Usuário do Frontend: historias_usuario_frontend.md
   - Histórias de Usuário do Banco de Dados: historias_usuario_database.md
   - Arquitetura & Banco de Dados: historias_usuario_arquitetura.md
+  - Pipeline de Dados & ETL: pipeline_etl.md
+  - Como Popular o Banco de Dados: popular_banco_de_dados.md
   - Regras de Negócio & Governança: regras_negocio.md
   - Guia de Desenvolvimento: desenvolvimento.md

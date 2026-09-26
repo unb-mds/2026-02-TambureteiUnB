@@ -1,96 +1,122 @@
-"""Testes isolados: SQLite local ou PostgreSQL dedicado via TEST_DATABASE_URL."""
-
-import os
-from datetime import datetime, timezone
-from unittest.mock import patch
-
 import pytest
-from alembic import command
-from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
-from sqlalchemy.engine import make_url
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-from app.core.config import Settings, settings
+from app.main import app
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_access_token, get_password_hash
-from app.main import app
-from app.models import Disciplina, Usuario
+from app.models.usuario import Usuario
+from app.models.professor import Professor
+from app.models.disciplina import Disciplina
+
+engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-@pytest.fixture(scope="session")
-def engine(tmp_path_factory):
-    url = os.getenv("TEST_DATABASE_URL")
-    if url and not (make_url(url).database or "").endswith("_test"):
-        raise ValueError("TEST_DATABASE_URL deve apontar para um banco dedicado com sufixo _test.")
-    url = url or f"sqlite:///{tmp_path_factory.mktemp('db') / 'materiais.db'}"
-    sqlite = make_url(url).get_backend_name() == "sqlite"
-    engine = create_engine(url, connect_args={"check_same_thread": False} if sqlite else {})
-    if sqlite:
-        @event.listens_for(engine, "connect")
-        def configurar_sqlite(connection, _):
-            connection.isolation_level = None
-            connection.execute("PRAGMA foreign_keys=ON")
-            connection.create_function("now", 0, lambda: datetime.now(timezone.utc).isoformat())
+@pytest.fixture()
+def db():
+    """Sessão de teste: tudo roda numa transação que é desfeita no final."""
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
 
-        @event.listens_for(engine, "begin")
-        def iniciar_transacao(connection):
-            connection.exec_driver_sql("BEGIN")
+    yield session
 
-    # Cria o esquema pelas migrações reais, nunca por Base.metadata.create_all().
-    with patch.object(Settings, "SQLALCHEMY_DATABASE_URI", property(lambda _: url)):
-        command.upgrade(Config("alembic.ini"), "head")
-    yield engine
-    engine.dispose()
+    session.close()
+    transaction.rollback()
+    connection.close()
 
 
-@pytest.fixture
-def db(engine):
-    with engine.connect() as connection:
-        transaction = connection.begin()
-        session = Session(bind=connection, join_transaction_mode="create_savepoint")
-        try:
-            yield session
-        finally:
-            session.close()
-            transaction.rollback()
+@pytest.fixture()
+def client(db):
+    """TestClient usando a MESMA sessão de teste (via dependency override)."""
 
-
-@pytest.fixture
-def client(db, tmp_path, monkeypatch):
-    monkeypatch.setattr(settings, "MATERIALS_DIR", tmp_path / "uploads")
-
-    def database_override():
+    def override_get_db():
         yield db
 
-    app.dependency_overrides[get_db] = database_override
-    with TestClient(app) as client:
-        yield client
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
+        yield c
     app.dependency_overrides.clear()
 
 
-@pytest.fixture(scope="session")
-def password_hash():
-    return get_password_hash("SenhaDeTeste123!")
+@pytest.fixture()
+def disciplina(db):
+    d = Disciplina(
+        slug="fga0168-teste",
+        nome="Métodos de Desenvolvimento de Software",
+        codigo="FGA0168",
+        departamento="FCTE",
+    )
+    db.add(d)
+    db.commit()
+    db.refresh(d)
+    return d
 
 
-@pytest.fixture
-def usuario(db, password_hash):
-    user = Usuario(nome="Aluno Teste", email="aluno@example.com", password_hash=password_hash)
+@pytest.fixture()
+def professor_1(db):
+    p = Professor(nome="Professor Teste 1", departamento="FGA/FCTE")
+    db.add(p)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+@pytest.fixture()
+def professor_2(db):
+    p = Professor(nome="Professor Teste 2", departamento="FGA/FCTE")
+    db.add(p)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+@pytest.fixture()
+def admin_user(db):
+    user = Usuario(
+        nome="Admin Teste",
+        email="admin.teste@unb.br",
+        password_hash=get_password_hash("SenhaForte123!"),
+        role="ADMIN",
+    )
     db.add(user)
     db.commit()
+    db.refresh(user)
     return user
 
 
-@pytest.fixture
-def headers(usuario):
-    return {"Authorization": "Bearer " + create_access_token({"sub": usuario.email, "role": usuario.role})}
+@pytest.fixture()
+def admin_token(admin_user):
+    return create_access_token(data={"sub": admin_user.email, "role": admin_user.role})
 
 
-@pytest.fixture
-def disciplina(db):
-    disciplina = Disciplina(codigo="MAT1", nome="Cálculo", slug="calculo")
-    db.add(disciplina)
+@pytest.fixture()
+def admin_headers(admin_token):
+    return {"Authorization": f"Bearer {admin_token}"}
+
+
+@pytest.fixture()
+def student_user(db):
+    user = Usuario(
+        nome="Aluno Teste",
+        email="aluno.teste@unb.br",
+        password_hash=get_password_hash("SenhaForte123!"),
+        role="STUDENT",
+    )
+    db.add(user)
     db.commit()
-    return disciplina
+    db.refresh(user)
+    return user
+
+
+@pytest.fixture()
+def student_token(student_user):
+    return create_access_token(data={"sub": student_user.email, "role": student_user.role})
+
+
+@pytest.fixture()
+def student_headers(student_token):
+    return {"Authorization": f"Bearer {student_token}"}
