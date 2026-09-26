@@ -381,7 +381,7 @@ class TestSIGAAExtractor:
 
     def test_extract_from_sample_csv(self):
         from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
-        sample_file = Path(__file__).resolve().parent.parent / "app" / "pipeline" / "data" / "sample_turmas.csv"
+        sample_file = Path(__file__).resolve().parent.parent.parent / "app" / "pipeline" / "data" / "sample_turmas.csv"
         extractor = SIGAAExtractor()
         data = extractor.extract_from_file(sample_file, semestre="2026.1")
         assert len(data["turmas"]) == 4
