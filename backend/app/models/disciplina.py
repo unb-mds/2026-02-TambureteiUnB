@@ -9,10 +9,13 @@ class Disciplina(Base):
     codigo = Column(String(30), index=True, nullable=True)
     slug = Column(String(150), unique=True, index=True, nullable=False)
     nome = Column(String(150), nullable=False, index=True)
-    departamento = Column(String(100), nullable=True, index=True)
+    departamento = Column(String(255), nullable=True, index=True)
     creditos = Column(Integer, nullable=True)
     carga_horaria = Column(Integer, nullable=True)
     ementa = Column(Text, nullable=True)
+    pre_requisitos = Column(Text, nullable=True)
+    co_requisitos = Column(Text, nullable=True)
+    equivalencias = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relacionamentos
