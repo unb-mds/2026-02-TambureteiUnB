@@ -86,13 +86,19 @@ docker compose exec backend alembic revision --autogenerate -m "descricao_da_mud
 ---
 
 ## 🧪 Como Rodar os Testes
-
+ 
 ```bash
-# Executar todos os testes
+# Executar a suíte completa de testes
 docker compose exec backend pytest -v
 
-# Executar testes unitários do domínio com cobertura
-docker compose exec backend pytest tests/unit -v --cov=app/domain
+# Executar apenas testes unitários
+docker compose exec backend pytest tests/unit -v
+
+# Executar apenas testes de integração
+docker compose exec backend pytest tests/integration -v
+
+# Executar testes com relatório de cobertura
+docker compose exec backend pytest --cov=app --cov-report=term-missing
 ```
 
 ---
