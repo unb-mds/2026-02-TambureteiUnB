@@ -4,10 +4,11 @@ from typing import BinaryIO
 from uuid import UUID
 
 from fastapi import HTTPException
+from pydantic_core import PydanticCustomError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.api.schemas.material import MaterialPage, MaterialResponse
+from app.api.schemas.material import MaterialPage, MaterialResponse, validar_titulo
 from app.domain.materiais import ArquivoMuitoGrande, ArquivoVazio, FormatoNaoSuportado
 from app.models.material import Material
 from app.repositories.disciplina_repo import disciplina_repo
@@ -30,9 +31,10 @@ class MaterialService:
         arquivo: BinaryIO, nome: str, tipo_mime: str,
     ) -> MaterialResponse:
         self.verificar_disciplina(db, disciplina_id)
-        titulo = titulo.strip()
-        if not 1 <= len(titulo) <= 200:
-            raise HTTPException(422, "O título deve conter entre 1 e 200 caracteres.")
+        try:
+            titulo = validar_titulo(titulo)
+        except PydanticCustomError as exc:
+            raise HTTPException(422, str(exc)) from exc
         try:
             chave, formato, tamanho = self.armazenamento.salvar(arquivo, nome, tipo_mime)
         except FormatoNaoSuportado as exc:

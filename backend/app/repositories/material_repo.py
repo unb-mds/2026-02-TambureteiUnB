@@ -2,9 +2,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.material import Material
+from app.repositories.base import BaseRepository
 
 
-class MaterialRepository:
+class MaterialRepository(BaseRepository[Material]):
+    def __init__(self) -> None:
+        super().__init__(Material)
+
     def get_by_id(self, db: Session, material_id: int) -> Material | None:
         return db.get(Material, material_id)
 

@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_role
-from app.api.schemas.material import MaterialPage, MaterialResponse
+from app.api.schemas.material import MaterialPage, MaterialResponse, TituloMaterial
 from app.core.config import settings
 from app.core.database import get_db
 from app.domain.materiais import TIPOS_MIME
@@ -23,7 +23,7 @@ def get_material_service() -> MaterialService:
 @router.post("/cadeiras/{id}/materiais", response_model=MaterialResponse, status_code=201)
 def enviar_material(
     id: Annotated[int, Path(gt=0)],
-    titulo: Annotated[str, Form(min_length=1, max_length=200)],
+    titulo: Annotated[TituloMaterial, Form()],
     arquivo: Annotated[UploadFile, File(description="PDF, PNG ou JPG; máximo padrão de 5 MiB.")],
     usuario: Annotated[Usuario, Depends(require_role("STUDENT"))],
     db: Annotated[Session, Depends(get_db)],

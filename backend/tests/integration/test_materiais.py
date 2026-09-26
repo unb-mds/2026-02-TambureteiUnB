@@ -115,7 +115,9 @@ def test_limite_de_5mib(client, db, disciplina, headers):
 
 @pytest.mark.parametrize("titulo", ["   ", "x" * 201])
 def test_titulo_invalido(client, disciplina, headers, titulo):
-    assert upload(client, disciplina.id, headers, titulo=titulo).status_code == 422
+    response = upload(client, disciplina.id, headers, titulo=titulo)
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "O título deve conter entre 1 e 200 caracteres."
     assert not list(settings.MATERIALS_DIR.glob("*"))
 
 
