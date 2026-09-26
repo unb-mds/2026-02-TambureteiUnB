@@ -21,7 +21,7 @@ docker compose up -d --build
 Serviços disponibilizados:
 * **API FastAPI (Swagger Docs):** [http://localhost:8000/docs](http://localhost:8000/docs)
 * **OpenAPI JSON:** [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
-* **Adminer (Interface do Banco de Dados):** [http://localhost:8080](http://localhost:8080)
+* **Adminer (Interface do Banco de Dados):** [http://localhost:8085](http://localhost:8085)
 * **PostgreSQL 17:** `localhost:5432`
 
 ---

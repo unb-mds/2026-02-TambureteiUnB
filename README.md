@@ -68,7 +68,7 @@ docker compose up -d --build
 
 Serviços acessíveis:
 * **API FastAPI (Swagger UI):** [http://localhost:8000/docs](http://localhost:8000/docs)
-* **Adminer (Painel DB):** [http://localhost:8080](http://localhost:8080)
+* **Adminer (Painel DB):** [http://localhost:8085](http://localhost:8085)
 * **PostgreSQL:** `localhost:5432`
 
 ---
