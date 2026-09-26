@@ -79,7 +79,7 @@ jobs:
       - name: Verificar API e migração aplicada
         run: |
           curl --fail --retry 30 --retry-delay 2 --retry-all-errors http://localhost:8000/health
-          docker compose --env-file .env.example -p materiais-ci exec -T backend alembic current | grep 002_materiais
+          docker compose --env-file .env.example -p materiais-ci exec -T backend alembic current | grep 007_merge_materiais_pipeline
           docker compose --env-file .env.example -p materiais-ci exec -T backend python -c "from app.core.database import SessionLocal; from app.models import Material; s=SessionLocal(); print('Materiais:', s.query(Material).count()); s.close()"
       - name: Logs do ambiente
         if: failure()
