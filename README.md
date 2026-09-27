@@ -68,7 +68,7 @@ docker compose up -d --build
 
 Serviços acessíveis:
 * **API FastAPI (Swagger UI):** [http://localhost:8000/docs](http://localhost:8000/docs)
-* **Adminer (Painel DB):** [http://localhost:8085](http://localhost:8085)
+* **Adminer (Painel DB):** [http://localhost:8080](http://localhost:8080)
 * **PostgreSQL:** `localhost:5432`
 
 ---
@@ -86,19 +86,13 @@ docker compose exec backend alembic revision --autogenerate -m "descricao_da_mud
 ---
 
 ## 🧪 Como Rodar os Testes
- 
+
 ```bash
-# Executar a suíte completa de testes
+# Executar todos os testes
 docker compose exec backend pytest -v
 
-# Executar apenas testes unitários
-docker compose exec backend pytest tests/unit -v
-
-# Executar apenas testes de integração
-docker compose exec backend pytest tests/integration -v
-
-# Executar testes com relatório de cobertura
-docker compose exec backend pytest --cov=app --cov-report=term-missing
+# Executar testes unitários do domínio com cobertura
+docker compose exec backend pytest tests/unit -v --cov=app/domain
 ```
 
 ---
