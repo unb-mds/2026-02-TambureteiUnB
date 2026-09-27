@@ -50,7 +50,7 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
         codigo: Optional[str] = None,
         departamento: Optional[str] = None,
         skip: int = 0,
-        limit: int = 20,
+        limit: Optional[int] = None,
     ) -> Tuple[List[Disciplina], int]:
         query = db.query(Disciplina)
         if nome:
@@ -60,7 +60,10 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
         if departamento:
             query = query.filter(Disciplina.departamento.ilike(f"%{departamento}%"))
         total = query.count()
-        items = query.order_by(Disciplina.nome).offset(skip).limit(limit).all()
+        query = query.order_by(Disciplina.nome).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        items = query.all()
         return items, total
 
 disciplina_repo = DisciplinaRepository()
