@@ -46,7 +46,7 @@ class DisciplinaService:
         nome: Optional[str] = None,
         codigo: Optional[str] = None,
         departamento: Optional[str] = None,
-        limit: int = 50,
+        limit: Optional[int] = None,
     ) -> List[Disciplina]:
         items, _ = disciplina_repo.search_paginated(
             db,
