@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import Button from "@/components/Button";
 import COURSES, { CampusFilter, CAMPUS_LIST, Course } from "@/mocks/courses";
 
@@ -198,22 +200,19 @@ export default function CursosPage() {
                     <span>{course.total_disciplinas || 45} disciplinas</span>
                   </div>
 
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      alert(
-                        `Em breve: hub com grade e métricas analíticas de ${course.nome}!`
-                      );
-                    }}
-                    rightIcon={
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    }
-                  >
-                    Ver disciplinas
-                  </Button>
+                  <Link href={`/cursos/${course.slug}`}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      rightIcon={
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      }
+                    >
+                      Ver disciplinas
+                    </Button>
+                  </Link>
                 </div>
               </div>
             ))}
@@ -250,6 +249,8 @@ export default function CursosPage() {
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   );
 }
