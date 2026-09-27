@@ -1,22 +1,25 @@
 "use client";
 
-import React, { useState, useMemo, Suspense } from "react";
+import React, { useState, useMemo, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
+import api from "@/services/api";
 import {
-  DISCIPLINES,
   GLOBAL_CAMPUSES,
   GLOBAL_AREAS,
   GLOBAL_DEPARTMENTS,
-} from "@/mocks/disciplines";
-import { Discipline } from "@/types/disciplina";
+  Discipline,
+} from "@/types/disciplina";
 
 function DisciplinasContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
+
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [query, setQuery] = useState(initialQuery);
   const [appliedQuery, setAppliedQuery] = useState(initialQuery);
@@ -25,10 +28,33 @@ function DisciplinasContent() {
   const [area, setArea] = useState("Todas");
   const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
 
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDisciplines() {
+      try {
+        setLoading(true);
+        const data = await api.getDisciplines();
+        if (isMounted) {
+          setDisciplines(data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar catálogo de disciplinas:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadDisciplines();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const filteredResults: Discipline[] = useMemo(() => {
     const normalizedQuery = appliedQuery.trim().toLocaleLowerCase("pt-BR");
 
-    return DISCIPLINES.filter((discipline) => {
+    return disciplines.filter((discipline) => {
       const searchable = `${discipline.name} ${discipline.code} ${discipline.departmentName} ${discipline.department}`.toLocaleLowerCase("pt-BR");
       const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
       const matchesCampus =
@@ -45,7 +71,7 @@ function DisciplinasContent() {
       if (sort === "Mais materiais") return b.resources - a.resources;
       return b.popularity - a.popularity;
     });
-  }, [appliedQuery, campus, department, area, sort]);
+  }, [disciplines, appliedQuery, campus, department, area, sort]);
 
   const executeSearch = () => {
     setAppliedQuery(query);
@@ -244,11 +270,30 @@ function DisciplinasContent() {
           </div>
 
           {/* Grade de Disciplinas */}
-          {filteredResults.length > 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl border border-[#E8E6F8] p-6 shadow-xs animate-pulse flex flex-col justify-between h-56"
+                >
+                  <div>
+                    <div className="h-4 bg-gray-200 rounded-md w-1/4 mb-4" />
+                    <div className="h-6 bg-gray-200 rounded-md w-3/4 mb-2" />
+                    <div className="h-4 bg-gray-100 rounded-md w-1/2" />
+                  </div>
+                  <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                    <div className="h-4 bg-gray-200 rounded-md w-1/3" />
+                    <div className="h-8 bg-gray-200 rounded-xl w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredResults.length > 0 ? (
             <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredResults.map((discipline) => (
                 <article
-                  key={discipline.code}
+                  key={discipline.slug || discipline.code}
                   className="group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#E8E6F8] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all"
                 >
                   <div>

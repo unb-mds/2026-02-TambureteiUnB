@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
+import api from "@/services/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -48,12 +49,13 @@ export default function LoginPage() {
     setErrors({});
 
     try {
-      // Simulação de autenticação
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await api.login({ email: email.trim(), senha: password });
       router.push("/cursos");
-    } catch {
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Não foi possível autenticar. Verifique seus dados e tente novamente.";
       setErrors({
-        general: "Não foi possível autenticar. Verifique seus dados e tente novamente.",
+        general: errorMsg,
       });
     } finally {
       setIsLoading(false);

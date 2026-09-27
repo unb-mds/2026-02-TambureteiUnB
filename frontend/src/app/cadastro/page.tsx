@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
+import api from "@/services/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -52,8 +53,16 @@ export default function RegisterPage() {
 
     if (!password) {
       newErrors.password = "A senha é obrigatória.";
-    } else if (password.length < 6) {
-      newErrors.password = "A senha deve ter no mínimo 6 caracteres.";
+    } else if (password.length < 8) {
+      newErrors.password = "A senha deve ter no mínimo 8 caracteres.";
+    } else if (!/[A-Z]/.test(password)) {
+      newErrors.password = "A senha deve conter pelo menos uma letra maiúscula.";
+    } else if (!/[a-z]/.test(password)) {
+      newErrors.password = "A senha deve conter pelo menos uma letra minúscula.";
+    } else if (!/[0-9]/.test(password)) {
+      newErrors.password = "A senha deve conter pelo menos um número.";
+    } else if (!/[!@#$%^&*(),.?":{}|<>\-_=+]/.test(password)) {
+      newErrors.password = "A senha deve conter pelo menos um caractere especial (!@#$%^&*).";
     }
 
     if (password && confirmPassword !== password) {
@@ -73,16 +82,21 @@ export default function RegisterPage() {
     setErrors({});
 
     try {
-      // Simulação de cadastro
-      await new Promise((resolve) => setTimeout(resolve, 900));
+      await api.register({
+        nome: nome.trim(),
+        email: email.trim().toLowerCase(),
+        senha: password,
+      });
       setIsSuccess(true);
 
       setTimeout(() => {
         router.push("/login");
       }, 1500);
-    } catch {
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Não foi possível concluir o cadastro. Tente novamente.";
       setErrors({
-        general: "Não foi possível concluir o cadastro. Tente novamente.",
+        general: errorMsg,
       });
     } finally {
       setIsLoading(false);
