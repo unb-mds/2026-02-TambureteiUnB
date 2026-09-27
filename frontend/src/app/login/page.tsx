@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
-import api from "@/services/api";
+import { login } from "@/services/authService";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,7 +49,7 @@ export default function LoginPage() {
     setErrors({});
 
     try {
-      await api.login({ email: email.trim(), senha: password });
+      await login({ email: email.trim(), senha: password });
       router.push("/cursos");
     } catch (err: unknown) {
       const errorMsg =

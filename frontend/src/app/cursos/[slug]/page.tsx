@@ -6,7 +6,8 @@ import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
-import api from "@/services/api";
+import { getCourseBySlug } from "@/services/courseService";
+import { getDisciplines } from "@/services/disciplineService";
 import { CourseDetail } from "@/types/curso";
 import { Discipline, SEMESTER_FILTERS } from "@/types/disciplina";
 
@@ -29,8 +30,8 @@ export default function CourseDisciplinesPage() {
       try {
         setLoading(true);
         const [courseData, discData] = await Promise.all([
-          api.getCourseBySlug(slug).catch(() => null),
-          api.getDisciplines().catch(() => []),
+          getCourseBySlug(slug).catch(() => null),
+          getDisciplines().catch(() => []),
         ]);
         if (isMounted) {
           setCourse(courseData);
