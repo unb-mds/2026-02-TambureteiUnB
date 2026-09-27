@@ -133,6 +133,8 @@ class DisciplinaService:
             pre_requisitos_itens=pre_req_itens,
             equivalencias_itens=equiv_itens,
             cursos=cursos_info,
+            metrica_consolidada=disciplina.metrica_consolidada,
+            metricas=disciplina.metricas or [],
         )
 
 
