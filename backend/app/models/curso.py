@@ -12,10 +12,22 @@ class Curso(Base):
     grau = Column(String(50), default="Bacharelado", nullable=True)
     turno = Column(String(50), default="Diurno", nullable=True)
     slug = Column(String(150), unique=True, index=True, nullable=False)
+    modalidade = Column(String(50), nullable=True)
+    area_geral = Column(String(100), nullable=True)
+    area_especifica = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relacionamentos
     curso_disciplinas = relationship("CursoDisciplina", back_populates="curso", cascade="all, delete-orphan")
+    metricas = relationship("MetricaCurso", back_populates="curso", cascade="all, delete-orphan")
+
+    @property
+    def metricas_2024(self):
+        if self.metricas:
+            for m in self.metricas:
+                if m.ano == 2024:
+                    return m
+        return None
 
     def __repr__(self):
         return f"<Curso(id={self.id}, nome='{self.nome}', slug='{self.slug}')>"
