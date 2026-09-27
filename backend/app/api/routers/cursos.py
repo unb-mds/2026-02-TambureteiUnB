@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from typing import Optional
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.schemas.curso import CursoResumo, CursoResponse
@@ -9,8 +10,12 @@ router = APIRouter(prefix="/cursos", tags=["Cursos"])
 
 
 @router.get("", response_model=list[CursoResumo])
-def listar_cursos(db: Session = Depends(get_db)):
-    return curso_service.listar(db)
+def listar_cursos(
+    q: Optional[str] = Query(None, description="Busca por nome do curso"),
+    campus: Optional[str] = Query(None, description="Filtro por campus"),
+    db: Session = Depends(get_db),
+):
+    return curso_service.listar(db, q=q, campus=campus)
 
 
 @router.get("/{slug}", response_model=CursoResponse)
