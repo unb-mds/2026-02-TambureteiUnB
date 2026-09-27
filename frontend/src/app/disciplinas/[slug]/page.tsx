@@ -1,26 +1,68 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
-import { getDisciplineBySlug, DEFAULT_HISTORICAL_PERFORMANCE } from "@/mocks/disciplines";
+import api from "@/services/api";
+import { Discipline, DEFAULT_HISTORICAL_PERFORMANCE } from "@/types/disciplina";
 
 export default function DisciplineDetailPage() {
   const params = useParams();
   const slug = typeof params?.slug === "string" ? params.slug : Array.isArray(params?.slug) ? params.slug[0] : "";
 
+  const [discipline, setDiscipline] = useState<Discipline | null>(null);
+  const [loading, setLoading] = useState(true);
+
   const [period, setPeriod] = useState("Todos os semestres (2020 a 2025)");
   const [completed, setCompleted] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
 
-  // Busca detalhes da disciplina a partir do slug
-  const discipline = useMemo(() => {
-    if (!slug) return undefined;
-    return getDisciplineBySlug(slug);
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDiscipline() {
+      if (!slug) return;
+      try {
+        setLoading(true);
+        const data = await api.getDisciplineBySlug(slug);
+        if (isMounted) {
+          setDiscipline(data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar detalhes da disciplina da API:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadDiscipline();
+    return () => {
+      isMounted = false;
+    };
   }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F7F7FA] flex flex-col font-sans">
+        <Navbar />
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
+          <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
+          <div className="h-32 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-28 bg-white border border-[#EDE9FD] rounded-2xl" />
+            ))}
+          </div>
+          <div className="h-64 bg-white border border-[#EDE9FD] rounded-2xl mb-8" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!discipline) {
     return (

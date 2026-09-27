@@ -1,44 +1,83 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
-import COURSES, { Course } from "@/mocks/courses";
-import {
-  DISCIPLINES,
-  SEMESTER_FILTERS,
-} from "@/mocks/disciplines";
-import { Discipline } from "@/types/disciplina";
+import api from "@/services/api";
+import { CourseDetail } from "@/types/curso";
+import { Discipline, SEMESTER_FILTERS } from "@/types/disciplina";
 
 export default function CourseDisciplinesPage() {
   const params = useParams();
   const slug = typeof params?.slug === "string" ? params.slug : Array.isArray(params?.slug) ? params.slug[0] : "";
 
+  const [course, setCourse] = useState<CourseDetail | null>(null);
+  const [allDisciplines, setAllDisciplines] = useState<Discipline[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [disciplineQuery, setDisciplineQuery] = useState("");
   const [semester, setSemester] = useState("Todos");
   const [department, setDepartment] = useState("Todos os departamentos");
 
-  // Localiza o curso pelo slug ou id
-  const course: Course | undefined = useMemo(() => {
-    if (!slug) return undefined;
-    const cleanSlug = slug.toLowerCase();
-    return (
-      COURSES.find((c) => c.slug.toLowerCase() === cleanSlug || c.id.toLowerCase() === cleanSlug) ||
-      // Fallback para caso comum de engenharia de software
-      (cleanSlug.includes("software") ? COURSES.find((c) => c.slug.includes("software")) : undefined)
-    );
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      if (!slug) return;
+      try {
+        setLoading(true);
+        const [courseData, discData] = await Promise.all([
+          api.getCourseBySlug(slug).catch(() => null),
+          api.getDisciplines().catch(() => []),
+        ]);
+        if (isMounted) {
+          setCourse(courseData);
+          setAllDisciplines(discData);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar dados do curso da API:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadData();
+    return () => {
+      isMounted = false;
+    };
   }, [slug]);
 
   // Lista de disciplinas do curso
   const courseDisciplines: Discipline[] = useMemo(() => {
     if (!course) return [];
-    const courseNameLower = course.nome.toLowerCase();
 
-    return DISCIPLINES.filter((d) => {
-      // 1. Vinculação explícita nos mocks
+    // Se o curso possui disciplinas cadastradas na grade:
+    if (course.disciplinas && course.disciplinas.length > 0) {
+      return course.disciplinas.map((cd) => ({
+        code: cd.codigo || "",
+        name: cd.nome,
+        slug: cd.slug,
+        department: cd.departamento || "Geral",
+        departmentName: cd.departamento ? `Departamento de ${cd.departamento}` : "Departamento Acadêmico",
+        campus: course.campus || "Darcy Ribeiro",
+        campusFilter: course.campus || "Darcy Ribeiro",
+        area: "Tecnologia",
+        credits: `${cd.creditos || 4} créditos • ${cd.carga_horaria || (cd.creditos ? cd.creditos * 15 : 60)}h`,
+        hours: cd.carga_horaria || (cd.creditos ? cd.creditos * 15 : 60),
+        approval: 76.5,
+        resources: 14,
+        popularity: 85,
+        semester: cd.periodo_sugerido ? `${cd.periodo_sugerido}º Semestre` : "Optativas",
+        type: cd.is_obrigatoria ? "Obrigatória" : "Optativa",
+      }));
+    }
+
+    // Fallback associando disciplinas gerais pelo campus ou departamento do curso
+    const courseNameLower = course.nome.toLowerCase();
+    return allDisciplines.filter((d) => {
       const hasCourseLink = d.courses?.some(
         (c) =>
           c.slug.toLowerCase() === course.slug.toLowerCase() ||
@@ -46,20 +85,15 @@ export default function CourseDisciplinesPage() {
       );
       if (hasCourseLink) return true;
 
-      // 2. Se for Engenharia de Software, exibe matérias de FGA, MAT e CIC
       if (courseNameLower.includes("software")) {
         return d.campus === "FGA" || d.department === "MAT" || d.department === "CIC";
       }
-
-      // 3. Se for Ciência da Computação, exibe matérias de CIC, MAT e IF
       if (courseNameLower.includes("computação") || courseNameLower.includes("computacao")) {
         return d.department === "CIC" || d.department === "MAT" || d.department === "IF";
       }
-
-      // 4. Fallback pelo campus do curso
       return d.campus === course.campus;
     });
-  }, [course]);
+  }, [course, allDisciplines]);
 
   // Departamentos disponíveis para filtro
   const departmentsList = useMemo(() => {
@@ -88,6 +122,25 @@ export default function CourseDisciplinesPage() {
       return matchesQuery && matchesSemester && matchesDepartment;
     });
   }, [courseDisciplines, disciplineQuery, semester, department]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F7F7FA] flex flex-col font-sans">
+        <Navbar />
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
+          <div className="h-8 bg-gray-200 rounded w-1/2 mb-4" />
+          <div className="h-28 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-48 bg-white border border-[#EDE9FD] rounded-2xl p-6" />
+            ))}
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!course) {
     return (
