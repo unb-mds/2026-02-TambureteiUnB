@@ -5,14 +5,18 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Button from "@/components/Button";
+import Pagination from "@/components/Pagination";
 import { getCourses } from "@/services/courseService";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
+
+const ITEMS_PER_PAGE = 25;
 
 export default function CursosPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     let isMounted = true;
@@ -54,6 +58,31 @@ export default function CursosPage() {
       return matchCampus && matchQuery;
     });
   }, [courses, searchQuery, selectedCampus]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setCurrentPage(1);
+  };
+
+  const handleCampusChange = (campus: CampusFilter) => {
+    setSelectedCampus(campus);
+    setCurrentPage(1);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / ITEMS_PER_PAGE));
+  const activePage = Math.min(currentPage, totalPages);
+
+  const paginatedCourses = useMemo(() => {
+    const start = (activePage - 1) * ITEMS_PER_PAGE;
+    return filteredCourses.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredCourses, activePage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 200, behavior: "smooth" });
+    }
+  };
 
   const campusBadgeColor = (campus: string) => {
     switch (campus) {
@@ -110,14 +139,14 @@ export default function CursosPage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Buscar curso por nome ou departamento..."
               className="w-full pl-10 pr-4 py-2.5 bg-[#F7F7FA] border border-[#E8E6F8] rounded-xl text-sm text-[#202124] placeholder-gray-400 focus:bg-white focus:border-[#5B4BDB] focus:ring-4 focus:ring-[#5B4BDB]/15 transition-all outline-none"
             />
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => handleSearchChange("")}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                 aria-label="Limpar busca"
               >
@@ -136,7 +165,7 @@ export default function CursosPage() {
                 <button
                   key={campus}
                   type="button"
-                  onClick={() => setSelectedCampus(campus)}
+                  onClick={() => handleCampusChange(campus)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                     active
                       ? "bg-[#5B4BDB] text-white shadow-xs"
@@ -196,73 +225,84 @@ export default function CursosPage() {
             ))}
           </div>
         ) : filteredCourses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses.map((course: Course) => (
-              <div
-                key={course.slug || course.id}
-                className="group bg-white rounded-2xl border border-[#E8E6F8] p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  {/* Badges superiores: Campus e Grau */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${campusBadgeColor(
-                        course.campus
-                      )}`}
-                    >
-                      {course.campus}
-                    </span>
-                    <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
-                      {course.grau} • {course.turno}
-                    </span>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedCourses.map((course: Course) => (
+                <div
+                  key={course.slug || course.id}
+                  className="group bg-white rounded-2xl border border-[#E8E6F8] p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Badges superiores: Campus e Grau */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${campusBadgeColor(
+                          course.campus
+                        )}`}
+                      >
+                        {course.campus}
+                      </span>
+                      <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                        {course.grau} • {course.turno}
+                      </span>
+                    </div>
+
+                    {/* Nome do Curso */}
+                    <h2 className="text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
+                      {course.nome}
+                    </h2>
+
+                    {/* Departamento / Faculdade */}
+                    {course.departamento && (
+                      <p className="text-xs text-gray-500 font-medium mt-1">
+                        {course.departamento}
+                      </p>
+                    )}
+
+                    {/* Descrição resumida */}
+                    {course.descricao && (
+                      <p className="text-xs text-gray-600 mt-3 line-clamp-2 leading-relaxed">
+                        {course.descricao}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Nome do Curso */}
-                  <h2 className="text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
-                    {course.nome}
-                  </h2>
+                  {/* Rodapé do Card com Métricas e Botão */}
+                  <div className="mt-5 pt-4 border-t border-[#F7F7FA] flex items-center justify-between gap-3">
+                    <div className="text-[11px] text-gray-500 flex flex-col">
+                      <span className="font-semibold text-gray-700">
+                        {course.semestres ? `${course.semestres} semestres` : "Fluxo padrão"}
+                      </span>
+                      <span>{course.total_disciplinas || 45} disciplinas</span>
+                    </div>
 
-                  {/* Departamento / Faculdade */}
-                  {course.departamento && (
-                    <p className="text-xs text-gray-500 font-medium mt-1">
-                      {course.departamento}
-                    </p>
-                  )}
-
-                  {/* Descrição resumida */}
-                  {course.descricao && (
-                    <p className="text-xs text-gray-600 mt-3 line-clamp-2 leading-relaxed">
-                      {course.descricao}
-                    </p>
-                  )}
-                </div>
-
-                {/* Rodapé do Card com Métricas e Botão */}
-                <div className="mt-5 pt-4 border-t border-[#F7F7FA] flex items-center justify-between gap-3">
-                  <div className="text-[11px] text-gray-500 flex flex-col">
-                    <span className="font-semibold text-gray-700">
-                      {course.semestres ? `${course.semestres} semestres` : "Fluxo padrão"}
-                    </span>
-                    <span>{course.total_disciplinas || 45} disciplinas</span>
+                    <Link href={`/cursos/${course.slug}`}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        rightIcon={
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        }
+                      >
+                        Ver disciplinas
+                      </Button>
+                    </Link>
                   </div>
-
-                  <Link href={`/cursos/${course.slug}`}>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      rightIcon={
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      }
-                    >
-                      Ver disciplinas
-                    </Button>
-                  </Link>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            <Pagination
+              currentPage={activePage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              totalItems={filteredCourses.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              itemName="cursos"
+            />
+          </>
         ) : (
           /* Estado Vazio */
           <div className="bg-white rounded-3xl border border-[#E8E6F8] p-12 text-center max-w-md mx-auto">
@@ -286,8 +326,8 @@ export default function CursosPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                setSearchQuery("");
-                setSelectedCampus("Todos");
+                handleSearchChange("");
+                handleCampusChange("Todos");
               }}
             >
               Limpar filtros

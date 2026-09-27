@@ -15,6 +15,7 @@ export async function getDisciplines(filters?: {
   q?: string;
   codigo?: string;
   departamento?: string;
+  limit?: number;
 }): Promise<Discipline[]> {
   const params = new URLSearchParams();
   if (filters?.q) params.set("q", filters.q);
@@ -22,6 +23,7 @@ export async function getDisciplines(filters?: {
   if (filters?.departamento && filters.departamento !== "Todos os Departamentos") {
     params.set("departamento", filters.departamento);
   }
+  if (filters?.limit) params.set("limit", String(filters.limit));
 
   const queryStr = params.toString() ? `?${params.toString()}` : "";
   const items = await request<BackendDisciplinaResumo[]>(`/cadeiras${queryStr}`);
