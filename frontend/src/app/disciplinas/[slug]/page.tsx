@@ -195,7 +195,7 @@ export default function DisciplineDetailPage() {
           {/* Banner de cabeçalho da disciplina */}
           <section className="mb-6 rounded-3xl bg-white px-6 sm:px-8 py-8 border border-[#E8E6F8] shadow-xs">
             <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
-              <div className="max-w-4xl">
+              <div className="flex-1 min-w-0">
                 {/* Badges de Identificação */}
                 <div className="mb-4 flex flex-wrap gap-2">
                   <span className="rounded-lg bg-[#EDE9FD] px-3 py-1.5 text-xs font-bold text-[#5B4BDB]">
@@ -214,7 +214,7 @@ export default function DisciplineDetailPage() {
                   )}
                 </div>
 
-                <h1 className="text-2xl sm:text-4xl font-extrabold text-[#202124] tracking-tight leading-tight">
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-[#202124] tracking-tight leading-tight break-words">
                   {discipline.name}
                 </h1>
                 <p className="mt-3 max-w-3xl text-xs sm:text-sm text-gray-600 leading-relaxed">
@@ -223,12 +223,12 @@ export default function DisciplineDetailPage() {
               </div>
 
               {/* Botões de Ação */}
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto pt-2">
+              <div className="flex flex-wrap sm:flex-nowrap lg:flex-wrap xl:flex-nowrap items-center gap-3 w-full lg:w-auto shrink-0 pt-2 lg:pt-1">
                 <button
                   type="button"
                   onClick={() => setCompleted(!completed)}
                   aria-pressed={completed}
-                  className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-5 py-3 text-xs sm:text-sm font-semibold transition-all ${
+                  className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
                     completed
                       ? "bg-[#E9F9F3] text-[#067A59] border border-[#A7E6CF]"
                       : "bg-[#EDE9FD] text-[#5B4BDB] border border-[#D8D1FA] hover:bg-[#5B4BDB]/15"
@@ -254,7 +254,7 @@ export default function DisciplineDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowMaterialModal(true)}
-                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-[#5B4BDB] px-5 py-3 text-xs sm:text-sm font-bold text-white transition-all hover:brightness-110 shadow-xs active:scale-95"
+                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-[#5B4BDB] px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-all hover:brightness-110 shadow-xs active:scale-95"
                 >
                   <span className="text-base leading-none">+</span>
                   Adicionar material
