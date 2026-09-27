@@ -166,3 +166,41 @@ class ETLRunner:
             "metricas_consolidadas": len(consolidadas),
             "loaded": load_stats,
         }
+
+    def run_metricas_cursos_pipeline(
+        self,
+        input_file: Optional[str] = None,
+        dry_run: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Executa o pipeline de métricas anuais e metadados dos cursos de graduação (DPO).
+        """
+        import csv
+        from pathlib import Path
+
+        logger.info("=== Iniciando Ingestão de Métricas de Cursos DPO ===")
+        default_file = Path(__file__).resolve().parent / "data" / "sample_metricas_cursos.csv"
+        file_path = Path(input_file) if input_file else default_file
+
+        if not file_path.is_file():
+            raise FileNotFoundError(f"Arquivo de métricas de cursos não encontrado: {file_path}")
+
+        records = []
+        with open(file_path, mode="r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                records.append(dict(row))
+
+        payload = {"metricas_cursos": records}
+        load_stats = {}
+        if not dry_run:
+            self.db_loader.ensure_schema_up_to_date()
+            load_stats = self.db_loader.load(payload)
+
+        logger.info(f"=== Métricas de Cursos finalizadas: {len(records)} processadas ===")
+        return {
+            "status": "success",
+            "metricas_cursos_processadas": len(records),
+            "loaded": load_stats,
+        }
+
