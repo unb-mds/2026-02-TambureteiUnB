@@ -11,7 +11,7 @@ def main():
 
     parser.add_argument(
         "--source",
-        choices=["sigaa", "metricas", "all"],
+        choices=["sigaa", "metricas", "metricas-cursos", "all"],
         default="sigaa",
         help="Fonte de dados para processamento (padrão: sigaa)",
     )
@@ -38,7 +38,11 @@ def main():
     )
     parser.add_argument(
         "--input-metricas",
-        help="Caminho opcional para arquivo local bruto de métricas históricas do DPO/INEP (CSV/JSON)",
+        help="Caminho opcional para arquivo local bruto de métricas históricas de disciplinas do DPO/INEP (CSV/JSON)",
+    )
+    parser.add_argument(
+        "--input-metricas-cursos",
+        help="Caminho opcional para arquivo local bruto de métricas de cursos do DPO (CSV/JSON)",
     )
     parser.add_argument(
         "--departamento",
@@ -122,6 +126,16 @@ def main():
                 input_file=metricas_input,
                 dry_run=args.dry_run,
                 export=export,
+            )
+
+        if args.source in ("metricas-cursos", "all"):
+            cursos_input = args.input_metricas_cursos
+            if not cursos_input and args.source == "metricas-cursos":
+                cursos_input = args.input_file
+
+            runner.run_metricas_cursos_pipeline(
+                input_file=cursos_input,
+                dry_run=args.dry_run,
             )
 
         print("\nPipeline executado com sucesso.")

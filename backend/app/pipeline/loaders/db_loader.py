@@ -6,7 +6,7 @@ from app.models.curso import Curso, CursoDisciplina
 from app.models.disciplina import Disciplina
 from app.models.professor import Professor
 from app.models.turma import Turma
-from app.models.metrica import MetricaAcademica, MetricaConsolidada
+from app.models.metrica import MetricaAcademica, MetricaConsolidada, MetricaCurso
 from app.pipeline.loaders.base import BaseLoader
 from app.pipeline.schemas.sigaa import (
     SIGAADisciplinaClean,
@@ -62,6 +62,7 @@ class DatabaseLoader(BaseLoader):
             "turmas_carregadas": 0,
             "metricas_carregadas": 0,
             "metricas_consolidadas_carregadas": 0,
+            "metricas_cursos_carregadas": 0,
         }
 
         db = self._get_session()
@@ -92,6 +93,9 @@ class DatabaseLoader(BaseLoader):
 
             if "metricas_consolidadas" in data:
                 stats["metricas_consolidadas_carregadas"] = self.load_metricas_consolidadas(db, data["metricas_consolidadas"])
+
+            if "metricas_cursos" in data and data["metricas_cursos"]:
+                stats["metricas_cursos_carregadas"] = self.load_metricas_cursos(db, data["metricas_cursos"])
 
             db.commit()
             self.logger.info(f"Carga no banco concluída com sucesso: {stats}")
@@ -534,3 +538,94 @@ class DatabaseLoader(BaseLoader):
 
         db.flush()
         return count
+
+    def load_metricas_cursos(
+        self,
+        db: Session,
+        metricas_cursos: List[Dict[str, Any]],
+    ) -> int:
+        """
+        Insere ou atualiza métricas anuais dos cursos de graduação (DPO).
+        Atualiza também os metadados do curso (modalidade, area_geral, area_especifica) quando presentes.
+        """
+        if not metricas_cursos:
+            return 0
+
+        cursos_by_slug: Dict[str, Curso] = {c.slug: c for c in db.query(Curso).all()}
+        cursos_by_nome: Dict[str, Curso] = {c.nome.strip().lower(): c for c in db.query(Curso).all()}
+
+        count = 0
+        for item in metricas_cursos:
+            slug = item.get("curso_slug") or item.get("slug")
+            nome = item.get("curso_nome") or item.get("nome")
+            curso: Optional[Curso] = None
+
+            if slug and slug in cursos_by_slug:
+                curso = cursos_by_slug[slug]
+            elif nome and nome.strip().lower() in cursos_by_nome:
+                curso = cursos_by_nome[nome.strip().lower()]
+
+            if not curso:
+                self.logger.warning(f"Curso '{slug or nome}' não localizado para associar métricas anuais.")
+                continue
+
+            # Atualiza metadados do curso se fornecidos
+            if item.get("modalidade"):
+                curso.modalidade = item["modalidade"]
+            if item.get("area_geral"):
+                curso.area_geral = item["area_geral"]
+            if item.get("area_especifica"):
+                curso.area_especifica = item["area_especifica"]
+
+            ano = int(item.get("ano", 2024))
+            existing = db.query(MetricaCurso).filter(
+                MetricaCurso.curso_id == curso.id,
+                MetricaCurso.ano == ano
+            ).first()
+
+            vagas = int(item.get("vagas_totais", 0))
+            inscritos = int(item.get("inscritos_total", 0))
+            ingressantes = int(item.get("ingressantes", 0))
+            matriculados = int(item.get("matriculados", 0))
+            concluintes = int(item.get("concluintes", 0))
+            trancados = int(item.get("trancados", 0))
+            desvinculados = int(item.get("desvinculados", 0))
+
+            taxa_sucesso = None
+            if ingressantes > 0:
+                taxa_sucesso = round((concluintes / ingressantes) * 100, 2)
+
+            taxa_evasao = None
+            if matriculados > 0:
+                taxa_evasao = round((desvinculados / matriculados) * 100, 2)
+
+            if existing:
+                existing.vagas_totais = vagas
+                existing.inscritos_total = inscritos
+                existing.ingressantes = ingressantes
+                existing.matriculados = matriculados
+                existing.concluintes = concluintes
+                existing.trancados = trancados
+                existing.desvinculados = desvinculados
+                existing.taxa_sucesso = taxa_sucesso
+                existing.taxa_evasao = taxa_evasao
+            else:
+                nova = MetricaCurso(
+                    curso_id=curso.id,
+                    ano=ano,
+                    vagas_totais=vagas,
+                    inscritos_total=inscritos,
+                    ingressantes=ingressantes,
+                    matriculados=matriculados,
+                    concluintes=concluintes,
+                    trancados=trancados,
+                    desvinculados=desvinculados,
+                    taxa_sucesso=taxa_sucesso,
+                    taxa_evasao=taxa_evasao,
+                )
+                db.add(nova)
+            count += 1
+
+        db.flush()
+        return count
+

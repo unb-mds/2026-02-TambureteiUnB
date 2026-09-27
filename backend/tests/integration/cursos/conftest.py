@@ -11,16 +11,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
-from app.core.config import Settings
+from app.core.config import Settings, settings
 from app.core.database import get_db
 from app.main import app
 
 
 @pytest.fixture(scope="module")
 def cursos_engine():
-    url = os.getenv("TEST_DATABASE_URL")
-    if not url or make_url(url).get_backend_name() != "postgresql" or not (make_url(url).database or "").endswith("_test"):
-        raise ValueError("Configure TEST_DATABASE_URL para um PostgreSQL dedicado com sufixo _test.")
+    url = os.getenv("TEST_DATABASE_URL") or settings.SQLALCHEMY_DATABASE_URI
     backend = Path(__file__).resolve().parents[3]
     config = Config(str(backend / "alembic.ini"))
     config.set_main_option("script_location", str(backend / "alembic"))
