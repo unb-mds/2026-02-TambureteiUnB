@@ -71,12 +71,17 @@ Na raiz do diretório `backend/`:
   python -m app.pipeline.cli --source sigaa --input-file app/pipeline/data/raw/turmas_2026_1.csv
   ```
 
-* **Executar pipeline de métricas históricas (DPO/INEP):**
+* **Executar pipeline de métricas históricas de disciplinas (DPO/INEP):**
   ```bash
   python -m app.pipeline.cli --source metricas --ano-inicio 2021 --ano-fim 2026
   ```
 
-* **Executar todas as fontes integradas:**
+* **Executar pipeline de métricas de fluxo de cursos de graduação (DPO):**
+  ```bash
+  python -m app.pipeline.cli --source metricas-cursos
+  ```
+
+* **Executar todas as fontes integradas (SIGAA + Métricas de Matérias + Métricas de Cursos):**
   ```bash
   python -m app.pipeline.cli --source all
   ```
@@ -96,5 +101,5 @@ docker compose exec backend python -m app.pipeline.cli --source sigaa --dry-run
 A suíte de testes unitários do pipeline valida todos os contratos, regras de transformação e a política de proteção LGPD:
 
 ```bash
-docker compose exec backend pytest tests/test_pipeline.py -v
+docker compose exec backend pytest tests/unit/test_pipeline.py -v
 ```

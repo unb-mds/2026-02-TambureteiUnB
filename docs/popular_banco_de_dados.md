@@ -56,15 +56,24 @@ docker compose exec backend python -m app.pipeline.cli --source sigaa --semestre
 
 ---
 
-## 📈 3. Populando Métricas Históricas de Aprovação (DPO / INEP)
+## 📈 3. Populando Métricas Históricas de Desempenho e Fluxo (DPO / INEP)
 
+### Métricas de Disciplinas (Aprovação, Reprovação e Trancamento):
 Para carregar as séries históricas de aprovação, reprovação por nota, reprovação por falta e trancamentos:
 
 ```bash
 docker compose exec backend python -m app.pipeline.cli --source metricas
 ```
 
-Ou se quiser rodar **SIGAA + Métricas** em um único comando:
+### Métricas de Cursos (Fluxo Estudantil, Vagas e Evasão):
+Para carregar as estatísticas anuais consolidadas por curso (vagas, ingressantes, matriculados, concluintes, trancamentos e taxas de sucesso/evasão):
+
+```bash
+docker compose exec backend python -m app.pipeline.cli --source metricas-cursos
+```
+
+### Ingestão Completa em um Único Comando (SIGAA + Métricas de Matérias + Métricas de Cursos):
+Para rodar todas as fontes integradas:
 ```bash
 docker compose exec backend python -m app.pipeline.cli --source all --departamento 673 --semestre 2026.2
 ```
@@ -93,9 +102,9 @@ from sqlalchemy import text
 
 tables = [
     'comentarios', 'votos_uteis', 'conteudos', 'situacoes_disciplinas',
-    'metricas_academicas', 'metricas_consolidadas', 'turmas_professores',
-    'cursos_disciplinas', 'turmas', 'professores', 'disciplinas',
-    'cursos', 'usuarios'
+    'metricas_academicas', 'metricas_consolidadas', 'metricas_cursos',
+    'turmas_professores', 'cursos_disciplinas', 'turmas', 'professores',
+    'disciplinas', 'cursos', 'usuarios'
 ]
 
 with engine.begin() as conn:
@@ -128,15 +137,27 @@ LIMIT 10;
 "
 ```
 
+E para conferir as métricas dos cursos:
+```bash
+docker compose exec db psql -U postgres -d tamburetei -c "
+SELECT c.nome, m.ano, m.matriculados, m.taxa_sucesso, m.taxa_evasao 
+FROM metricas_cursos m 
+JOIN cursos c ON m.curso_id = c.id 
+LIMIT 5;
+"
+```
+
 ### 2. Pela Interface do Swagger da API:
 Abra no navegador: **[http://localhost:8000/docs](http://localhost:8000/docs)**  
-- Teste a rota `GET /cadeiras` para listar o catálogo.
-- Teste a rota `GET /cadeiras/metodos-de-desenvolvimento-de-software` ou `/cadeiras/engenharia-e-ambiente` para ver detalhes, pré-requisitos clicáveis e cursos vinculados.
+- Teste a rota `GET /cadeiras` para listar o catálogo completo de disciplinas.
+- Teste a rota `GET /cursos` para conferir os cursos carregados e suas matrizes.
+- Teste a rota `GET /cadeiras/{slug}` para ver detalhes, pré-requisitos clicáveis e cursos vinculados.
 
 ### 3. Pelo Adminer (Interface Visual do Banco):
-Abra no navegador: **[http://localhost:8080](http://localhost:8080)** (ou porta 8085, conforme `.env`)
+Abra no navegador: **[http://localhost:8085](http://localhost:8085)** (porta padrão mapeada no `docker-compose.yml`)
 - **Sistema:** PostgreSQL
 - **Servidor:** `db`
 - **Usuário:** `postgres`
 - **Senha:** `postgres` (ou a definida no seu `.env`)
 - **Base de dados:** `tamburetei`
+

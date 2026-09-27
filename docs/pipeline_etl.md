@@ -117,7 +117,7 @@ Com os contêineres em execução (`docker compose up -d`):
 
 1. **Executar testes automatizados com cobertura:**
    ```bash
-   docker compose exec backend pytest tests/test_pipeline.py -v
+   docker compose exec backend pytest tests/unit/test_pipeline.py -v
    ```
 
 2. **Processar dados de turmas do SIGAA (Dry-Run):**
