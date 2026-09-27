@@ -55,3 +55,38 @@ class MetricaConsolidada(Base):
     def __repr__(self):
         return f"<MetricaConsolidada(disciplina_id={self.disciplina_id}, matriculados={self.matriculados}, taxa={self.taxa_aprovacao_acumulada})>"
 
+
+class MetricaCurso(Base):
+    """
+    Estatísticas anuais consolidadas por curso de graduação (DPO / Anuário Estatístico / INEP).
+    
+    Indicadores de fluxo estudantil: vagas, inscritos, ingressantes, matriculados,
+    concluintes (formados), trancamentos e desvinculados (evasão).
+    """
+    __tablename__ = "metricas_cursos"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    curso_id = Column(Integer, ForeignKey("cursos.id", ondelete="CASCADE"), nullable=False, index=True)
+    ano = Column(Integer, nullable=False, index=True)
+    vagas_totais = Column(Integer, default=0, nullable=False)
+    inscritos_total = Column(Integer, default=0, nullable=False)
+    ingressantes = Column(Integer, default=0, nullable=False)
+    matriculados = Column(Integer, default=0, nullable=False)
+    concluintes = Column(Integer, default=0, nullable=False)
+    trancados = Column(Integer, default=0, nullable=False)
+    desvinculados = Column(Integer, default=0, nullable=False)
+    taxa_sucesso = Column(Numeric(5, 2), nullable=True)  # % concluintes / ingressantes
+    taxa_evasao = Column(Numeric(5, 2), nullable=True)   # % desvinculados / matriculados
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    curso = relationship("Curso", back_populates="metricas")
+
+    __table_args__ = (
+        UniqueConstraint("curso_id", "ano", name="uq_curso_ano"),
+    )
+
+    def __repr__(self):
+        return f"<MetricaCurso(curso_id={self.curso_id}, ano={self.ano}, matriculados={self.matriculados})>"
+
+
