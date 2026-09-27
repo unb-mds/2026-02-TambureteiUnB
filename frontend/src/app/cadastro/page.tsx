@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
-import api from "@/services/api";
+import { register } from "@/services/authService";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -82,7 +82,7 @@ export default function RegisterPage() {
     setErrors({});
 
     try {
-      await api.register({
+      await register({
         nome: nome.trim(),
         email: email.trim().toLowerCase(),
         senha: password,

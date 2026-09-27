@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
-import api from "@/services/api";
+import { getDisciplineBySlug } from "@/services/disciplineService";
 import { Discipline, DEFAULT_HISTORICAL_PERFORMANCE } from "@/types/disciplina";
 
 export default function DisciplineDetailPage() {
@@ -26,7 +26,7 @@ export default function DisciplineDetailPage() {
       if (!slug) return;
       try {
         setLoading(true);
-        const data = await api.getDisciplineBySlug(slug);
+        const data = await getDisciplineBySlug(slug);
         if (isMounted) {
           setDiscipline(data);
         }

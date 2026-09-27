@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GuestBanner from "@/components/GuestBanner";
 import Button from "@/components/Button";
-import api from "@/services/api";
+import { getCourses } from "@/services/courseService";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
 
 export default function HomePage() {
@@ -20,7 +20,7 @@ export default function HomePage() {
     async function loadCourses() {
       try {
         setLoading(true);
-        const data = await api.getCourses();
+        const data = await getCourses();
         if (isMounted) {
           setCourses(data);
         }

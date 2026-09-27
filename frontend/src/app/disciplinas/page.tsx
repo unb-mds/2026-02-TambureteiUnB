@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
-import api from "@/services/api";
+import { getDisciplines } from "@/services/disciplineService";
 import {
   GLOBAL_CAMPUSES,
   GLOBAL_AREAS,
@@ -33,7 +33,7 @@ function DisciplinasContent() {
     async function loadDisciplines() {
       try {
         setLoading(true);
-        const data = await api.getDisciplines();
+        const data = await getDisciplines();
         if (isMounted) {
           setDisciplines(data);
         }
