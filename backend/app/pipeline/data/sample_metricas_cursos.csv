@@ -1,0 +1,7 @@
+curso_slug,curso_nome,ano,vagas_totais,inscritos_total,ingressantes,matriculados,concluintes,trancados,desvinculados,modalidade,area_geral,area_especifica
+engenharia-de-software,Engenharia de Software,2024,120,890,118,485,58,24,12,Presencial,Ciências Exatas e Tecnológicas,Engenharia de Software e Computação
+engenharia-aeroespacial,Engenharia Aeroespacial,2024,100,720,95,390,42,18,10,Presencial,Ciências Exatas e Tecnológicas,Engenharia Aeroespacial
+engenharia-automotiva,Engenharia Automotiva,2024,100,510,88,340,35,22,15,Presencial,Ciências Exatas e Tecnológicas,Engenharia Automotiva e Transportes
+engenharia-eletronica,Engenharia Eletrônica,2024,100,540,90,360,38,20,11,Presencial,Ciências Exatas e Tecnológicas,Engenharia Eletrônica e Telecomunicações
+engenharia-de-energia,Engenharia de Energia,2024,100,480,85,320,32,19,14,Presencial,Ciências Exatas e Tecnológicas,Engenharia de Energia e Sustentabilidade
+engenharia-abi,Engenharia - ABI,2024,520,3140,510,1895,0,85,60,Presencial,Ciências Exatas e Tecnológicas,Engenharia Geral
