@@ -29,6 +29,7 @@ extra_javascript:
 
 nav:
   - Documento de Visão: index.md
+  - Arquitetura Geral do Sistema: arquitetura.md
   - Requisitos do Sistema: requisitos.md
   - Histórias de Usuário do Backend: historias_usuario_backend.md
   - Histórias de Usuário do Frontend: historias_usuario_frontend.md

@@ -46,7 +46,7 @@ class DisciplinaService:
         nome: Optional[str] = None,
         codigo: Optional[str] = None,
         departamento: Optional[str] = None,
-        limit: int = 50,
+        limit: Optional[int] = None,
     ) -> List[Disciplina]:
         items, _ = disciplina_repo.search_paginated(
             db,
@@ -133,6 +133,8 @@ class DisciplinaService:
             pre_requisitos_itens=pre_req_itens,
             equivalencias_itens=equiv_itens,
             cursos=cursos_info,
+            metrica_consolidada=disciplina.metrica_consolidada,
+            metricas=disciplina.metricas or [],
         )
 
 

@@ -1,26 +1,68 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
-import { getDisciplineBySlug, DEFAULT_HISTORICAL_PERFORMANCE } from "@/mocks/disciplines";
+import { getDisciplineBySlug } from "@/services/disciplineService";
+import { Discipline, DEFAULT_HISTORICAL_PERFORMANCE } from "@/types/disciplina";
 
 export default function DisciplineDetailPage() {
   const params = useParams();
   const slug = typeof params?.slug === "string" ? params.slug : Array.isArray(params?.slug) ? params.slug[0] : "";
 
+  const [discipline, setDiscipline] = useState<Discipline | null>(null);
+  const [loading, setLoading] = useState(true);
+
   const [period, setPeriod] = useState("Todos os semestres (2020 a 2025)");
   const [completed, setCompleted] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
 
-  // Busca detalhes da disciplina a partir do slug
-  const discipline = useMemo(() => {
-    if (!slug) return undefined;
-    return getDisciplineBySlug(slug);
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDiscipline() {
+      if (!slug) return;
+      try {
+        setLoading(true);
+        const data = await getDisciplineBySlug(slug);
+        if (isMounted) {
+          setDiscipline(data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar detalhes da disciplina da API:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadDiscipline();
+    return () => {
+      isMounted = false;
+    };
   }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F7F7FA] flex flex-col font-sans">
+        <Navbar />
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
+          <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
+          <div className="h-32 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-28 bg-white border border-[#EDE9FD] rounded-2xl" />
+            ))}
+          </div>
+          <div className="h-64 bg-white border border-[#EDE9FD] rounded-2xl mb-8" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!discipline) {
     return (
@@ -153,7 +195,7 @@ export default function DisciplineDetailPage() {
           {/* Banner de cabeçalho da disciplina */}
           <section className="mb-6 rounded-3xl bg-white px-6 sm:px-8 py-8 border border-[#E8E6F8] shadow-xs">
             <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
-              <div className="max-w-4xl">
+              <div className="flex-1 min-w-0">
                 {/* Badges de Identificação */}
                 <div className="mb-4 flex flex-wrap gap-2">
                   <span className="rounded-lg bg-[#EDE9FD] px-3 py-1.5 text-xs font-bold text-[#5B4BDB]">
@@ -172,7 +214,7 @@ export default function DisciplineDetailPage() {
                   )}
                 </div>
 
-                <h1 className="text-2xl sm:text-4xl font-extrabold text-[#202124] tracking-tight leading-tight">
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-[#202124] tracking-tight leading-tight break-words">
                   {discipline.name}
                 </h1>
                 <p className="mt-3 max-w-3xl text-xs sm:text-sm text-gray-600 leading-relaxed">
@@ -181,12 +223,12 @@ export default function DisciplineDetailPage() {
               </div>
 
               {/* Botões de Ação */}
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto pt-2">
+              <div className="flex flex-wrap sm:flex-nowrap lg:flex-wrap xl:flex-nowrap items-center gap-3 w-full lg:w-auto shrink-0 pt-2 lg:pt-1">
                 <button
                   type="button"
                   onClick={() => setCompleted(!completed)}
                   aria-pressed={completed}
-                  className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-5 py-3 text-xs sm:text-sm font-semibold transition-all ${
+                  className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
                     completed
                       ? "bg-[#E9F9F3] text-[#067A59] border border-[#A7E6CF]"
                       : "bg-[#EDE9FD] text-[#5B4BDB] border border-[#D8D1FA] hover:bg-[#5B4BDB]/15"
@@ -212,7 +254,7 @@ export default function DisciplineDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowMaterialModal(true)}
-                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-[#5B4BDB] px-5 py-3 text-xs sm:text-sm font-bold text-white transition-all hover:brightness-110 shadow-xs active:scale-95"
+                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-[#5B4BDB] px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-all hover:brightness-110 shadow-xs active:scale-95"
                 >
                   <span className="text-base leading-none">+</span>
                   Adicionar material

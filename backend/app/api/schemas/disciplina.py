@@ -22,6 +22,32 @@ class CursoDisciplinaInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class MetricaConsolidadaSchema(BaseModel):
+    matriculados: int = 0
+    aprovados: int = 0
+    reprovados_nota: int = 0
+    reprovados_falta: int = 0
+    trancamentos: int = 0
+    taxa_aprovacao_acumulada: Optional[float] = None
+    total_turmas_suprimidas: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MetricaAcademicaSchema(BaseModel):
+    ano: int
+    semestre: int
+    matriculados: int = 0
+    aprovados: int = 0
+    reprovados_nota: int = 0
+    reprovados_falta: int = 0
+    trancamentos: int = 0
+    taxa_aprovacao: Optional[float] = None
+    amostragem_suprimida_lgpd: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class DisciplinaResponse(DisciplinaResumo):
     carga_horaria: Optional[int] = None
     ementa: Optional[str] = None
@@ -31,6 +57,8 @@ class DisciplinaResponse(DisciplinaResumo):
     pre_requisitos_itens: List[DisciplinaResumo] = Field(default_factory=list)
     equivalencias_itens: List[DisciplinaResumo] = Field(default_factory=list)
     cursos: List[CursoDisciplinaInfo] = Field(default_factory=list)
+    metrica_consolidada: Optional[MetricaConsolidadaSchema] = None
+    metricas: List[MetricaAcademicaSchema] = Field(default_factory=list)
 
 
 class DisciplinaListaPaginada(BaseModel):

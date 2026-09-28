@@ -22,12 +22,48 @@ class Curso(Base):
     metricas = relationship("MetricaCurso", back_populates="curso", cascade="all, delete-orphan")
 
     @property
+    def total_disciplinas(self) -> int:
+        return len(self.curso_disciplinas) if self.curso_disciplinas else 0
+
+    @property
+    def metricas_recentes(self):
+        if self.metricas:
+            return sorted(self.metricas, key=lambda m: m.ano, reverse=True)[0]
+        return None
+
+    @property
     def metricas_2024(self):
         if self.metricas:
             for m in self.metricas:
                 if m.ano == 2024:
                     return m
         return None
+
+    @property
+    def disciplinas(self):
+        items = []
+        if self.curso_disciplinas:
+            ordenadas = sorted(
+                self.curso_disciplinas,
+                key=lambda x: (
+                    x.periodo_sugerido if x.periodo_sugerido is not None else 99,
+                    x.disciplina.nome if x.disciplina else "",
+                ),
+            )
+            for cd in ordenadas:
+                if cd.disciplina:
+                    items.append({
+                        "codigo": cd.disciplina.codigo,
+                        "nome": cd.disciplina.nome,
+                        "slug": cd.disciplina.slug,
+                        "departamento": cd.disciplina.departamento,
+                        "creditos": cd.disciplina.creditos,
+                        "carga_horaria": cd.disciplina.carga_horaria,
+                        "periodo_sugerido": cd.periodo_sugerido,
+                        "is_obrigatoria": cd.is_obrigatoria,
+                        "natureza": cd.natureza or ("Obrigatoria" if cd.is_obrigatoria else "Optativa"),
+                    })
+        return items
 
     def __repr__(self):
         return f"<Curso(id={self.id}, nome='{self.nome}', slug='{self.slug}')>"

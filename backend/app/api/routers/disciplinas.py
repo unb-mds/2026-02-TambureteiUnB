@@ -16,6 +16,7 @@ def listar_disciplinas(
     q: Optional[str] = Query(None, description="Busca por nome da disciplina"),
     codigo: Optional[str] = Query(None, description="Busca por código da disciplina"),
     departamento: Optional[str] = Query(None, description="Filtro por departamento"),
+    limit: Optional[int] = Query(None, description="Limite de itens a retornar (padrão: todos)"),
     db: Session = Depends(get_db),
 ):
     """
@@ -27,6 +28,7 @@ def listar_disciplinas(
         nome=q,
         codigo=codigo,
         departamento=departamento,
+        limit=limit,
     )
 
 

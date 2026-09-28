@@ -1,32 +1,88 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Button from "@/components/Button";
-import COURSES, { CampusFilter, CAMPUS_LIST, Course } from "@/mocks/courses";
+import Pagination from "@/components/Pagination";
+import { getCourses } from "@/services/courseService";
+import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
+
+const ITEMS_PER_PAGE = 25;
 
 export default function CursosPage() {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCourses() {
+      try {
+        setLoading(true);
+        const data = await getCourses();
+        if (isMounted) {
+          setCourses(data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar catálogo de cursos da API:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadCourses();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Filtro e busca em tempo real
   const filteredCourses = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return COURSES.filter((course) => {
+    return courses.filter((course) => {
       const matchCampus =
-        selectedCampus === "Todos" || course.campus === selectedCampus;
+        selectedCampus === "Todos" ||
+        (course.campus && course.campus.toLowerCase().includes(selectedCampus.toLowerCase()));
 
       const matchQuery =
         !query ||
         course.nome.toLowerCase().includes(query) ||
         (course.departamento && course.departamento.toLowerCase().includes(query)) ||
-        course.campus.toLowerCase().includes(query);
+        (course.campus && course.campus.toLowerCase().includes(query));
 
       return matchCampus && matchQuery;
     });
-  }, [searchQuery, selectedCampus]);
+  }, [courses, searchQuery, selectedCampus]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setCurrentPage(1);
+  };
+
+  const handleCampusChange = (campus: CampusFilter) => {
+    setSelectedCampus(campus);
+    setCurrentPage(1);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / ITEMS_PER_PAGE));
+  const activePage = Math.min(currentPage, totalPages);
+
+  const paginatedCourses = useMemo(() => {
+    const start = (activePage - 1) * ITEMS_PER_PAGE;
+    return filteredCourses.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredCourses, activePage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 200, behavior: "smooth" });
+    }
+  };
 
   const campusBadgeColor = (campus: string) => {
     switch (campus) {
@@ -83,14 +139,14 @@ export default function CursosPage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Buscar curso por nome ou departamento..."
               className="w-full pl-10 pr-4 py-2.5 bg-[#F7F7FA] border border-[#E8E6F8] rounded-xl text-sm text-[#202124] placeholder-gray-400 focus:bg-white focus:border-[#5B4BDB] focus:ring-4 focus:ring-[#5B4BDB]/15 transition-all outline-none"
             />
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => handleSearchChange("")}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                 aria-label="Limpar busca"
               >
@@ -109,7 +165,7 @@ export default function CursosPage() {
                 <button
                   key={campus}
                   type="button"
-                  onClick={() => setSelectedCampus(campus)}
+                  onClick={() => handleCampusChange(campus)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                     active
                       ? "bg-[#5B4BDB] text-white shadow-xs"
@@ -149,74 +205,153 @@ export default function CursosPage() {
         </div>
 
         {/* Grade de Cards de Cursos */}
-        {filteredCourses.length > 0 ? (
+        {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses.map((course: Course) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
-                key={course.id}
-                className="group bg-white rounded-2xl border border-[#E8E6F8] p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 transition-all flex flex-col justify-between"
+                key={i}
+                className="bg-white rounded-2xl border border-[#E8E6F8] p-6 shadow-xs animate-pulse flex flex-col justify-between h-56"
               >
                 <div>
-                  {/* Badges superiores: Campus e Grau */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${campusBadgeColor(
-                        course.campus
-                      )}`}
-                    >
-                      {course.campus}
-                    </span>
-                    <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
-                      {course.grau} • {course.turno}
-                    </span>
-                  </div>
-
-                  {/* Nome do Curso */}
-                  <h2 className="text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
-                    {course.nome}
-                  </h2>
-
-                  {/* Departamento / Faculdade */}
-                  {course.departamento && (
-                    <p className="text-xs text-gray-500 font-medium mt-1">
-                      {course.departamento}
-                    </p>
-                  )}
-
-                  {/* Descrição resumida */}
-                  {course.descricao && (
-                    <p className="text-xs text-gray-600 mt-3 line-clamp-2 leading-relaxed">
-                      {course.descricao}
-                    </p>
-                  )}
+                  <div className="h-4 bg-gray-200 rounded-md w-1/3 mb-4" />
+                  <div className="h-6 bg-gray-200 rounded-md w-3/4 mb-2" />
+                  <div className="h-4 bg-gray-100 rounded-md w-1/2" />
                 </div>
-
-                {/* Rodapé do Card com Métricas e Botão */}
-                <div className="mt-5 pt-4 border-t border-[#F7F7FA] flex items-center justify-between gap-3">
-                  <div className="text-[11px] text-gray-500 flex flex-col">
-                    <span className="font-semibold text-gray-700">
-                      {course.semestres ? `${course.semestres} semestres` : "Fluxo padrão"}
-                    </span>
-                    <span>{course.total_disciplinas || 45} disciplinas</span>
-                  </div>
-
-                  <Link href={`/cursos/${course.slug}`}>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      rightIcon={
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      }
-                    >
-                      Ver disciplinas
-                    </Button>
-                  </Link>
+                <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                  <div className="h-4 bg-gray-200 rounded-md w-1/4" />
+                  <div className="h-8 bg-gray-200 rounded-xl w-24" />
                 </div>
               </div>
             ))}
           </div>
+        ) : filteredCourses.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedCourses.map((course: Course) => (
+                <div
+                  key={course.slug || course.id}
+                  className="group bg-white rounded-2xl border border-[#E8E6F8] p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Badges superiores: Campus e Grau */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${campusBadgeColor(
+                          course.campus
+                        )}`}
+                      >
+                        {course.campus}
+                      </span>
+                      <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                        {course.grau} • {course.turno}
+                      </span>
+                    </div>
+
+                    {/* Nome do Curso */}
+                    <h2 className="text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
+                      {course.nome}
+                    </h2>
+
+                    {/* Departamento / Faculdade */}
+                    {course.departamento && (
+                      <p className="text-xs text-gray-500 font-medium mt-1">
+                        {course.departamento}
+                      </p>
+                    )}
+
+                    {/* Descrição resumida */}
+                    {course.descricao && (
+                      <p className="text-xs text-gray-600 mt-3 line-clamp-2 leading-relaxed">
+                        {course.descricao}
+                      </p>
+                    )}
+
+                    {/* Indicadores DPO reais do Curso */}
+                    {(() => {
+                      const m = course.metricas_recentes || course.metricas_2024;
+                      if (!m) return null;
+
+                      return (
+                        <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-[#F8F7FD] rounded-xl p-2.5 flex flex-col justify-between border border-[#EDE9FD]/70">
+                              <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
+                                Matriculados
+                              </span>
+                              <span className="text-sm font-extrabold text-[#202124] mt-0.5">
+                                {m.matriculados.toLocaleString("pt-BR")}{" "}
+                                <span className="text-[10px] font-normal text-gray-500">alunos</span>
+                              </span>
+                            </div>
+
+                            <div className="bg-[#EAF8EF] rounded-xl p-2.5 flex flex-col justify-between border border-[#D1F0DC]">
+                              <span className="text-[10px] uppercase font-bold tracking-wider text-[#287A45]">
+                                Taxa de Sucesso
+                              </span>
+                              <span className="text-sm font-extrabold text-[#1B6634] mt-0.5 flex items-center gap-1">
+                                {m.taxa_sucesso !== null && m.taxa_sucesso !== undefined
+                                  ? `${m.taxa_sucesso}%`
+                                  : `${m.concluintes} formados`}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] text-gray-500 px-1 pt-2.5">
+                            <span className="flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#5B4BDB]" />
+                              Ingressantes: <strong className="font-semibold text-gray-700">{m.ingressantes}</strong> / {m.vagas_totais} vagas
+                            </span>
+                            {m.taxa_evasao !== null && m.taxa_evasao !== undefined && (
+                              <span className="font-semibold text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                                {m.taxa_evasao}% evasão
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Rodapé do Card com Métricas e Botão */}
+                  <div className="mt-5 pt-4 border-t border-[#F7F7FA] flex items-center justify-between gap-3">
+                    <div className="text-[11px] text-gray-500 flex flex-col">
+                      <span className="font-semibold text-gray-700">
+                        {course.semestres ? `${course.semestres} semestres` : "Fluxo sugerido"}
+                      </span>
+                      <span>
+                        {course.total_disciplinas !== undefined
+                          ? `${course.total_disciplinas} disciplinas na grade`
+                          : "Grade curricular"}
+                      </span>
+                    </div>
+
+                    <Link href={`/cursos/${course.slug}`}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        rightIcon={
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        }
+                      >
+                        Ver disciplinas
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Pagination
+              currentPage={activePage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              totalItems={filteredCourses.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              itemName="cursos"
+            />
+          </>
         ) : (
           /* Estado Vazio */
           <div className="bg-white rounded-3xl border border-[#E8E6F8] p-12 text-center max-w-md mx-auto">
@@ -240,8 +375,8 @@ export default function CursosPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                setSearchQuery("");
-                setSelectedCampus("Todos");
+                handleSearchChange("");
+                handleCampusChange("Todos");
               }}
             >
               Limpar filtros

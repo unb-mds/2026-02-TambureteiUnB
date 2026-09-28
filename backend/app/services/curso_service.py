@@ -6,8 +6,8 @@ from app.repositories.curso_repo import curso_repo
 
 
 class CursoService:
-    def listar(self, db: Session) -> list[Curso]:
-        return curso_repo.listar(db)
+    def listar(self, db: Session, q: str | None = None, campus: str | None = None) -> list[Curso]:
+        return curso_repo.listar(db, q=q, campus=campus)
 
     def obter_por_slug(self, db: Session, slug: str) -> Curso:
         curso = curso_repo.get_by_slug(db, slug)

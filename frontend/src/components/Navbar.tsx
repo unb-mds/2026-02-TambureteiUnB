@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Button from "./Button";
 import StoolIllustration from "./StoolIllustration";
+import { authService } from "@/services/authService";
+import { UserResponse } from "@/types/auth";
 
 export interface NavbarProps {
   className?: string;
@@ -12,13 +14,116 @@ export interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<UserResponse | null>(null);
+
   const pathname = usePathname();
+  const router = useRouter();
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => {
     if (!pathname) return false;
     if (path === "/" && pathname === "/") return true;
     if (path !== "/" && pathname.startsWith(path)) return true;
     return false;
+  };
+
+  useEffect(() => {
+    const syncAuth = () => {
+      const hasToken = authService.isAuthenticated();
+      setIsLoggedIn(hasToken);
+
+      if (hasToken) {
+        const cached = authService.getStoredUser();
+        if (cached) setUser(cached);
+
+        authService
+          .getCurrentUser()
+          .then((currentUser) => {
+            if (currentUser) {
+              setUser(currentUser);
+            } else if (!authService.isAuthenticated()) {
+              setIsLoggedIn(false);
+              setUser(null);
+            }
+          })
+          .catch(() => {
+            // Mantém usuário em cache se houver falha de rede
+          });
+      } else {
+        setUser(null);
+      }
+    };
+
+    syncAuth();
+
+    window.addEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
+    window.addEventListener("storage", syncAuth);
+
+    return () => {
+      window.removeEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
+      window.removeEventListener("storage", syncAuth);
+    };
+  }, []);
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    if (userMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [userMenuOpen]);
+
+  const handleLogout = () => {
+    authService.logout();
+    setIsLoggedIn(false);
+    setUser(null);
+    setUserMenuOpen(false);
+    setMobileMenuOpen(false);
+    router.push("/");
+    router.refresh();
+  };
+
+  const getInitials = (name?: string, email?: string) => {
+    if (name && name.trim()) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+      }
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    if (email) {
+      return email.slice(0, 2).toUpperCase();
+    }
+    return "TU";
+  };
+
+  const getShortName = (name?: string, email?: string) => {
+    if (name && name.trim()) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+      }
+      return parts[0];
+    }
+    if (email) {
+      return email.split("@")[0];
+    }
+    return "Estudante";
+  };
+
+  const getRoleLabel = (role?: string) => {
+    if (role === "ADMIN") return "Administrador";
+    if (role === "MODERATOR") return "Moderador";
+    return "Estudante";
   };
 
   return (
@@ -84,18 +189,122 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
           </Link>
         </nav>
 
-        {/* Botões de Autenticação (Desktop) */}
+        {/* Canto Superior Direito: Perfil (Figma) se logado, ou Botões se deslogado */}
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/login">
-            <Button variant="ghost" size="sm" className="font-semibold text-gray-700 hover:text-[#5B4BDB]">
-              Entrar
-            </Button>
-          </Link>
-          <Link href="/cadastro">
-            <Button variant="primary" size="sm" className="shadow-sm">
-              Cadastrar
-            </Button>
-          </Link>
+          {isLoggedIn ? (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 rounded-2xl px-2.5 py-1.5 transition-all hover:bg-purple-50/80 border border-transparent hover:border-[#EDE9FD] focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]/30"
+                aria-expanded={userMenuOpen}
+                aria-label={`Abrir menu de ${user?.nome || "usuário"}`}
+              >
+                {/* Avatar circular com iniciais no padrão Figma */}
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs select-none"
+                  style={{ background: "#5B4BDB", fontFamily: "Poppins, sans-serif" }}
+                >
+                  {getInitials(user?.nome, user?.email)}
+                </span>
+
+                {/* Nome e Papel (Figma) */}
+                <span className="text-left hidden lg:block">
+                  <span className="block text-xs font-semibold text-[#202124] leading-tight">
+                    {getShortName(user?.nome, user?.email)}
+                  </span>
+                  <span className="block text-[11px] text-[#6B7280] font-medium leading-tight">
+                    {getRoleLabel(user?.role)}
+                  </span>
+                </span>
+
+                {/* Seta Chevron */}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  aria-hidden="true"
+                  className={`transition-transform duration-200 text-[#6B7280] ${
+                    userMenuOpen ? "rotate-180 text-[#5B4BDB]" : ""
+                  }`}
+                >
+                  <path
+                    d="M3.5 5.5L7 9l3.5-3.5"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+
+              {/* Menu Suspenso (Dropdown) */}
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-[#EDE9FD] bg-white p-2 shadow-xl animate-in fade-in zoom-in-95 duration-100 z-50">
+                  {/* Informações do Usuário */}
+                  <div className="px-3 py-2.5 border-b border-gray-100">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs"
+                        style={{ background: "#5B4BDB", fontFamily: "Poppins, sans-serif" }}
+                      >
+                        {getInitials(user?.nome, user?.email)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-[#202124] truncate">
+                          {user?.nome || "Discente da UnB"}
+                        </p>
+                        <p className="text-[11px] text-gray-500 truncate">
+                          {user?.email || ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2 inline-flex items-center rounded-md bg-[#5B4BDB]/10 px-2 py-0.5 text-[10px] font-bold text-[#5B4BDB] tracking-wide uppercase">
+                      {getRoleLabel(user?.role)}
+                    </div>
+                  </div>
+
+                  {/* Ação de Logout */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left"
+                    >
+                      <svg
+                        className="w-4 h-4 text-red-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        />
+                      </svg>
+                      <span>Sair da conta</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm" className="font-semibold text-gray-700 hover:text-[#5B4BDB]">
+                  Entrar
+                </Button>
+              </Link>
+              <Link href="/cadastro">
+                <Button variant="primary" size="sm" className="shadow-sm">
+                  Cadastrar
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Botão Mobile Hamburger */}
@@ -141,7 +350,7 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
               className={`px-3 py-2.5 rounded-xl text-base font-medium ${
                 isActive("/cursos")
                   ? "bg-[#5B4BDB]/10 text-[#5B4BDB]"
-                  : "text-gray-700 hover:bg-gray-50"
+                : "text-gray-700 hover:bg-gray-50"
               }`}
             >
               Cursos
@@ -160,16 +369,48 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
           </div>
 
           <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full">
-              <Button variant="outline" fullWidth size="md">
-                Entrar
-              </Button>
-            </Link>
-            <Link href="/cadastro" onClick={() => setMobileMenuOpen(false)} className="w-full">
-              <Button variant="primary" fullWidth size="md">
-                Cadastrar
-              </Button>
-            </Link>
+            {isLoggedIn ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3 rounded-2xl bg-[#F7F7FA] p-3 border border-[#E8E6F8]">
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs"
+                    style={{ background: "#5B4BDB", fontFamily: "Poppins, sans-serif" }}
+                  >
+                    {getInitials(user?.nome, user?.email)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-[#202124] truncate">
+                      {user?.nome || "Discente da UnB"}
+                    </p>
+                    <p className="text-[11px] text-gray-500 truncate">
+                      {user?.email || ""}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  fullWidth
+                  size="md"
+                  onClick={handleLogout}
+                  className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 font-semibold"
+                >
+                  Sair da conta
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full">
+                  <Button variant="outline" fullWidth size="md">
+                    Entrar
+                  </Button>
+                </Link>
+                <Link href="/cadastro" onClick={() => setMobileMenuOpen(false)} className="w-full">
+                  <Button variant="primary" fullWidth size="md">
+                    Cadastrar
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
+import { login } from "@/services/authService";
+import { ApiError } from "@/services/httpClient";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,7 +26,7 @@ export default function LoginPage() {
     const newErrors: { email?: string; password?: string } = {};
 
     if (!email.trim()) {
-      newErrors.email = "Informe seu e-mail institucional ou cadastrado.";
+      newErrors.email = "Informe seu e-mail.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       newErrors.email = "Formato de e-mail inválido.";
     }
@@ -48,12 +50,39 @@ export default function LoginPage() {
     setErrors({});
 
     try {
-      // Simulação de autenticação
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await login({ email: email.trim().toLowerCase(), senha: password });
       router.push("/cursos");
-    } catch {
+    } catch (err: unknown) {
+      let errorMsg = "Não foi possível autenticar. Verifique seus dados e tente novamente.";
+      const fieldErrors: { email?: string; password?: string; general?: string } = {};
+
+      if (err instanceof ApiError) {
+        errorMsg = err.message;
+        if (err.data && typeof err.data === "object" && "detail" in err.data) {
+          const detail = (err.data as { detail: unknown }).detail;
+          if (Array.isArray(detail)) {
+            detail.forEach((item: unknown) => {
+              if (item && typeof item === "object") {
+                const loc = (item as { loc?: unknown[] }).loc;
+                const field = Array.isArray(loc) ? loc[loc.length - 1] : "";
+                const rawMsg = (item as { msg?: unknown }).msg;
+                const cleanMsg = typeof rawMsg === "string" ? rawMsg.replace(/^Value error,\s*/i, "") : "";
+                if (field === "email" && cleanMsg) {
+                  fieldErrors.email = cleanMsg;
+                } else if ((field === "senha" || field === "password") && cleanMsg) {
+                  fieldErrors.password = cleanMsg;
+                }
+              }
+            });
+          }
+        }
+      } else if (err instanceof Error) {
+        errorMsg = err.message;
+      }
+
       setErrors({
-        general: "Não foi possível autenticar. Verifique seus dados e tente novamente.",
+        ...fieldErrors,
+        general: errorMsg,
       });
     } finally {
       setIsLoading(false);
@@ -166,7 +195,7 @@ export default function LoginPage() {
                 setEmail(e.target.value);
                 if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
               }}
-              placeholder="seu.nome@aluno.unb.br"
+              placeholder="seu.email@exemplo.com"
               error={errors.email}
               leftIcon={
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

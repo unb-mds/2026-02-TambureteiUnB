@@ -1,22 +1,28 @@
 "use client";
 
-import React, { useState, useMemo, Suspense } from "react";
+import React, { useState, useMemo, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
+import Pagination from "@/components/Pagination";
+import { getDisciplines } from "@/services/disciplineService";
 import {
-  DISCIPLINES,
   GLOBAL_CAMPUSES,
   GLOBAL_AREAS,
   GLOBAL_DEPARTMENTS,
-} from "@/mocks/disciplines";
-import { Discipline } from "@/types/disciplina";
+  Discipline,
+} from "@/types/disciplina";
+
+const ITEMS_PER_PAGE = 25;
 
 function DisciplinasContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
+
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [query, setQuery] = useState(initialQuery);
   const [appliedQuery, setAppliedQuery] = useState(initialQuery);
@@ -24,11 +30,35 @@ function DisciplinasContent() {
   const [department, setDepartment] = useState("Todos os Departamentos");
   const [area, setArea] = useState("Todas");
   const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDisciplines() {
+      try {
+        setLoading(true);
+        const data = await getDisciplines();
+        if (isMounted) {
+          setDisciplines(data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar catálogo de disciplinas:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadDisciplines();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredResults: Discipline[] = useMemo(() => {
     const normalizedQuery = appliedQuery.trim().toLocaleLowerCase("pt-BR");
 
-    return DISCIPLINES.filter((discipline) => {
+    return disciplines.filter((discipline) => {
       const searchable = `${discipline.name} ${discipline.code} ${discipline.departmentName} ${discipline.department}`.toLocaleLowerCase("pt-BR");
       const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
       const matchesCampus =
@@ -45,10 +75,56 @@ function DisciplinasContent() {
       if (sort === "Mais materiais") return b.resources - a.resources;
       return b.popularity - a.popularity;
     });
-  }, [appliedQuery, campus, department, area, sort]);
+  }, [disciplines, appliedQuery, campus, department, area, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredResults.length / ITEMS_PER_PAGE));
+  const activePage = Math.min(currentPage, totalPages);
+
+  const paginatedResults = useMemo(() => {
+    const start = (activePage - 1) * ITEMS_PER_PAGE;
+    return filteredResults.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredResults, activePage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 320, behavior: "smooth" });
+    }
+  };
+
+  const handleCampusChange = (newCampus: string) => {
+    setCampus(newCampus);
+    setCurrentPage(1);
+  };
+
+  const handleDepartmentChange = (newDept: string) => {
+    setDepartment(newDept);
+    setCurrentPage(1);
+  };
+
+  const handleAreaChange = (newArea: string) => {
+    setArea(newArea);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (newSort: "Mais populares" | "Menor taxa de aprovação" | "Mais materiais") => {
+    setSort(newSort);
+    setCurrentPage(1);
+  };
 
   const executeSearch = () => {
     setAppliedQuery(query);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setQuery("");
+    setAppliedQuery("");
+    setCampus("Todos os Campi");
+    setDepartment("Todos os Departamentos");
+    setArea("Todas");
+    setSort("Mais populares");
+    setCurrentPage(1);
   };
 
   return (
@@ -122,7 +198,7 @@ function DisciplinasContent() {
                       <button
                         type="button"
                         key={item}
-                        onClick={() => setCampus(item)}
+                        onClick={() => handleCampusChange(item)}
                         aria-pressed={selected}
                         className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
                           selected
@@ -144,7 +220,7 @@ function DisciplinasContent() {
                 <div className="relative">
                   <select
                     value={department}
-                    onChange={(event) => setDepartment(event.target.value)}
+                    onChange={(event) => handleDepartmentChange(event.target.value)}
                     className="w-full appearance-none rounded-xl bg-[#F7F7FA] border border-[#E1DFEA] px-4 py-2.5 pr-10 text-xs font-medium text-[#202124] outline-none focus:border-[#5B4BDB]"
                   >
                     {GLOBAL_DEPARTMENTS.map((item) => (
@@ -182,7 +258,7 @@ function DisciplinasContent() {
                   <button
                     type="button"
                     key={item}
-                    onClick={() => setArea(item)}
+                    onClick={() => handleAreaChange(item)}
                     aria-pressed={selected}
                     className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-all ${
                       selected
@@ -215,7 +291,7 @@ function DisciplinasContent() {
                 <select
                   value={sort}
                   onChange={(event) =>
-                    setSort(event.target.value as "Mais populares" | "Menor taxa de aprovação" | "Mais materiais")
+                    handleSortChange(event.target.value as "Mais populares" | "Menor taxa de aprovação" | "Mais materiais")
                   }
                   className="w-full appearance-none rounded-xl bg-white border border-[#E1DFEA] px-3.5 py-2 pr-8 text-xs font-semibold text-[#202124] outline-none focus:border-[#5B4BDB]"
                 >
@@ -244,68 +320,98 @@ function DisciplinasContent() {
           </div>
 
           {/* Grade de Disciplinas */}
-          {filteredResults.length > 0 ? (
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredResults.map((discipline) => (
-                <article
-                  key={discipline.code}
-                  className="group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#E8E6F8] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all"
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl border border-[#E8E6F8] p-6 shadow-xs animate-pulse flex flex-col justify-between h-56"
                 >
                   <div>
-                    <div className="mb-4 flex items-center justify-between gap-2">
-                      <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
-                        {discipline.code}
-                      </span>
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          discipline.approval >= 70
-                            ? "bg-[#E9F9F3] text-[#067A59]"
-                            : "bg-[#FFF7E8] text-[#925600]"
-                        }`}
-                      >
-                        {discipline.approval}% de aprovação
-                      </span>
-                    </div>
-
-                    <h2 className="text-base sm:text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
-                      {discipline.name}
-                    </h2>
-
-                    <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-                      {discipline.departmentName} <span className="mx-1 text-[#C4C1D8]">•</span> {discipline.campus}
-                    </p>
-
-                    <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-700">
-                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-[#7C6CF0]">
-                        <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
-                        <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                      </svg>
-                      {discipline.credits}
-                    </div>
-
-                    <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-[#7C6CF0]">
-                        <path d="M3 2.5h7.5A2.5 2.5 0 0 1 13 5v8.5H5.5A2.5 2.5 0 0 1 3 11V2.5Z" stroke="currentColor" strokeWidth="1.3" />
-                        <path d="M3 11a2.5 2.5 0 0 1 2.5-2.5H13" stroke="currentColor" strokeWidth="1.3" />
-                      </svg>
-                      <span>
-                        <strong className="text-gray-800">{discipline.resources}</strong> materiais e relatos
-                      </span>
-                    </div>
+                    <div className="h-4 bg-gray-200 rounded-md w-1/4 mb-4" />
+                    <div className="h-6 bg-gray-200 rounded-md w-3/4 mb-2" />
+                    <div className="h-4 bg-gray-100 rounded-md w-1/2" />
                   </div>
-
-                  <div className="mt-6 border-t border-[#EDE9FD] pt-4">
-                    <Link
-                      href={`/disciplinas/${discipline.slug}`}
-                      className="flex w-full items-center justify-between text-xs sm:text-sm font-bold text-[#5B4BDB] group-hover:translate-x-0.5 transition-all"
-                    >
-                      <span>Acessar disciplina</span>
-                      <span aria-hidden="true">→</span>
-                    </Link>
+                  <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                    <div className="h-4 bg-gray-200 rounded-md w-1/3" />
+                    <div className="h-8 bg-gray-200 rounded-xl w-24" />
                   </div>
-                </article>
+                </div>
               ))}
-            </section>
+            </div>
+          ) : filteredResults.length > 0 ? (
+            <>
+              <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedResults.map((discipline) => (
+                  <article
+                    key={discipline.slug || discipline.code}
+                    className="group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#E8E6F8] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all"
+                  >
+                    <div>
+                      <div className="mb-4 flex items-center justify-between gap-2">
+                        <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
+                          {discipline.code}
+                        </span>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            discipline.approval >= 70
+                              ? "bg-[#E9F9F3] text-[#067A59]"
+                              : "bg-[#FFF7E8] text-[#925600]"
+                          }`}
+                        >
+                          {discipline.approval}% de aprovação
+                        </span>
+                      </div>
+
+                      <h2 className="text-base sm:text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
+                        {discipline.name}
+                      </h2>
+
+                      <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+                        {discipline.departmentName} <span className="mx-1 text-[#C4C1D8]">•</span> {discipline.campus}
+                      </p>
+
+                      <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-700">
+                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-[#7C6CF0]">
+                          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
+                          <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        </svg>
+                        {discipline.credits}
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-[#7C6CF0]">
+                          <path d="M3 2.5h7.5A2.5 2.5 0 0 1 13 5v8.5H5.5A2.5 2.5 0 0 1 3 11V2.5Z" stroke="currentColor" strokeWidth="1.3" />
+                          <path d="M3 11a2.5 2.5 0 0 1 2.5-2.5H13" stroke="currentColor" strokeWidth="1.3" />
+                        </svg>
+                        <span>
+                          <strong className="text-gray-800">{discipline.resources}</strong> materiais e relatos
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 border-t border-[#EDE9FD] pt-4">
+                      <Link
+                        href={`/disciplinas/${discipline.slug}`}
+                        className="flex w-full items-center justify-between text-xs sm:text-sm font-bold text-[#5B4BDB] group-hover:translate-x-0.5 transition-all"
+                      >
+                        <span>Acessar disciplina</span>
+                        <span aria-hidden="true">→</span>
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </section>
+
+              <Pagination
+                currentPage={activePage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                totalItems={filteredResults.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                itemName="disciplinas"
+              />
+            </>
           ) : (
             <section className="flex flex-col items-center rounded-3xl bg-white border border-[#E8E6F8] px-8 py-16 text-center max-w-md mx-auto">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EDE9FD]">
@@ -317,13 +423,7 @@ function DisciplinasContent() {
               </p>
               <button
                 type="button"
-                onClick={() => {
-                  setQuery("");
-                  setAppliedQuery("");
-                  setCampus("Todos os Campi");
-                  setDepartment("Todos os Departamentos");
-                  setArea("Todas");
-                }}
+                onClick={handleResetFilters}
                 className="mt-5 rounded-xl bg-[#5B4BDB] px-5 py-2.5 text-xs font-semibold text-white hover:brightness-110"
               >
                 Redefinir filtros
