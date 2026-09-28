@@ -1,6 +1,7 @@
 from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session, joinedload
 from app.models.disciplina import Disciplina
+from app.models.curso import CursoDisciplina
 from app.repositories.base import BaseRepository
 
 class DisciplinaRepository(BaseRepository[Disciplina]):
@@ -8,7 +9,16 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
         super().__init__(Disciplina)
 
     def get_by_slug(self, db: Session, slug: str) -> Optional[Disciplina]:
-        return db.query(Disciplina).filter(Disciplina.slug == slug).first()
+        return (
+            db.query(Disciplina)
+            .options(
+                joinedload(Disciplina.cursos_disciplinas).joinedload(CursoDisciplina.curso),
+                joinedload(Disciplina.metricas),
+                joinedload(Disciplina.metrica_consolidada),
+            )
+            .filter(Disciplina.slug == slug)
+            .first()
+        )
 
     def get_by_codigo(self, db: Session, codigo: str) -> Optional[Disciplina]:
         return db.query(Disciplina).filter(Disciplina.codigo == codigo).first()
@@ -40,7 +50,7 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
         codigo: Optional[str] = None,
         departamento: Optional[str] = None,
         skip: int = 0,
-        limit: int = 20,
+        limit: Optional[int] = None,
     ) -> Tuple[List[Disciplina], int]:
         query = db.query(Disciplina)
         if nome:
@@ -50,7 +60,10 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
         if departamento:
             query = query.filter(Disciplina.departamento.ilike(f"%{departamento}%"))
         total = query.count()
-        items = query.order_by(Disciplina.nome).offset(skip).limit(limit).all()
+        query = query.order_by(Disciplina.nome).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        items = query.all()
         return items, total
 
 disciplina_repo = DisciplinaRepository()

@@ -1,33 +1,60 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GuestBanner from "@/components/GuestBanner";
 import Button from "@/components/Button";
-import COURSES, { CampusFilter, CAMPUS_LIST, Course } from "@/mocks/courses";
+import { getCourses } from "@/services/courseService";
+import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
 
 export default function HomePage() {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCourses() {
+      try {
+        setLoading(true);
+        const data = await getCourses();
+        if (isMounted) {
+          setCourses(data);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar cursos da API:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadCourses();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Filtro e busca em tempo real do catálogo na Landing Page
   const filteredCourses = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return COURSES.filter((course) => {
+    return courses.filter((course) => {
       const matchCampus =
-        selectedCampus === "Todos" || course.campus === selectedCampus;
+        selectedCampus === "Todos" ||
+        (course.campus && course.campus.toLowerCase().includes(selectedCampus.toLowerCase()));
 
       const matchQuery =
         !query ||
         course.nome.toLowerCase().includes(query) ||
         (course.departamento && course.departamento.toLowerCase().includes(query)) ||
-        course.campus.toLowerCase().includes(query);
+        (course.campus && course.campus.toLowerCase().includes(query));
 
       return matchCampus && matchQuery;
     });
-  }, [searchQuery, selectedCampus]);
+  }, [courses, searchQuery, selectedCampus]);
 
   const campusBadgeColor = (campus: string) => {
     switch (campus) {
@@ -189,11 +216,30 @@ export default function HomePage() {
           </div>
 
           {/* Grade de Cards de Cursos */}
-          {filteredCourses.length > 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl border border-[#E8E6F8] p-6 shadow-xs animate-pulse flex flex-col justify-between h-56"
+                >
+                  <div>
+                    <div className="h-4 bg-gray-200 rounded-md w-1/3 mb-4" />
+                    <div className="h-6 bg-gray-200 rounded-md w-3/4 mb-2" />
+                    <div className="h-4 bg-gray-100 rounded-md w-1/2" />
+                  </div>
+                  <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                    <div className="h-4 bg-gray-200 rounded-md w-1/4" />
+                    <div className="h-8 bg-gray-200 rounded-xl w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCourses.map((course: Course) => (
                 <div
-                  key={course.id}
+                  key={course.slug || course.id}
                   className="group bg-white rounded-2xl border border-[#E8E6F8] p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 transition-all flex flex-col justify-between"
                 >
                   <div>

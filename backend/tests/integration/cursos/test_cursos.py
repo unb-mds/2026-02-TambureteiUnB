@@ -1,4 +1,5 @@
-from app.models.curso import Curso
+from app.models.curso import Curso, CursoDisciplina
+from app.models.disciplina import Disciplina
 from app.models.metrica import MetricaCurso
 
 
@@ -70,4 +71,58 @@ def test_curso_retorna_metadados_e_metricas_2024(client, db):
     assert data["metricas_2024"]["concluintes"] == 62
     assert data["metricas_2024"]["trancados"] == 28
     assert data["metricas_2024"]["desvinculados"] == 14
+
+
+def test_curso_resumo_retorna_metricas_e_total_disciplinas(client, db):
+    db.query(Curso).delete()
+    db.query(Disciplina).delete()
+
+    curso = Curso(
+        nome="Engenharia de Software",
+        slug="engenharia-de-software",
+        campus="FGA",
+        grau="Bacharelado",
+        turno="Diurno",
+    )
+    db.add(curso)
+    db.flush()
+
+    d1 = Disciplina(codigo="FGA0158", slug="requisitos", nome="Requisitos de Software", creditos=4)
+    d2 = Disciplina(codigo="FGA0138", slug="mds", nome="Métodos de Desenvolvimento de Software", creditos=4)
+    db.add_all([d1, d2])
+    db.flush()
+
+    db.add_all([
+        CursoDisciplina(curso_id=curso.id, disciplina_id=d1.id, periodo_sugerido=3, is_obrigatoria=True),
+        CursoDisciplina(curso_id=curso.id, disciplina_id=d2.id, periodo_sugerido=4, is_obrigatoria=True),
+    ])
+
+    metrica = MetricaCurso(
+        curso_id=curso.id,
+        ano=2024,
+        vagas_totais=120,
+        inscritos_total=890,
+        ingressantes=118,
+        matriculados=485,
+        concluintes=58,
+        trancados=24,
+        desvinculados=12,
+        taxa_sucesso=49.15,
+        taxa_evasao=2.47,
+    )
+    db.add(metrica)
+    db.commit()
+
+    response = client.get("/cursos")
+    assert response.status_code == 200
+    cursos = response.json()
+    assert len(cursos) == 1
+    c = cursos[0]
+    assert c["nome"] == "Engenharia de Software"
+    assert c["total_disciplinas"] == 2
+    assert c["metricas_2024"] is not None
+    assert c["metricas_2024"]["matriculados"] == 485
+    assert c["metricas_2024"]["taxa_sucesso"] == 49.15
+    assert c["metricas_2024"]["taxa_evasao"] == 2.47
+
 
