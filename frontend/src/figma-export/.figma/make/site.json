@@ -1,0 +1,10 @@
+{
+  "description": "A student-focused academic platform offering course search, resources, and peer experiences to support learning at the University of Brasília.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
