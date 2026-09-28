@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import { register } from "@/services/authService";
+import { ApiError } from "@/services/httpClient";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -42,13 +43,10 @@ export default function RegisterPage() {
 
     const emailTrimmed = email.trim().toLowerCase();
     if (!emailTrimmed) {
-      newErrors.email = "O e-mail institucional é obrigatório.";
-    } else if (
-      !emailTrimmed.endsWith("@aluno.unb.br") &&
-      !emailTrimmed.endsWith("@unb.br")
-    ) {
+      newErrors.email = "O e-mail é obrigatório.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
       newErrors.email =
-        "Utilize o e-mail institucional da UnB (exemplo: usuario@aluno.unb.br).";
+        "Informe um endereço de e-mail válido (ex: seu.email@exemplo.com).";
     }
 
     if (!password) {
@@ -93,9 +91,47 @@ export default function RegisterPage() {
         router.push("/login");
       }, 1500);
     } catch (err: unknown) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Não foi possível concluir o cadastro. Tente novamente.";
+      let errorMsg = "Não foi possível concluir o cadastro. Tente novamente.";
+      const fieldErrors: {
+        nome?: string;
+        email?: string;
+        password?: string;
+        confirmPassword?: string;
+        general?: string;
+      } = {};
+
+      if (err instanceof ApiError) {
+        errorMsg = err.message;
+        if (/e-?mail/i.test(errorMsg)) {
+          fieldErrors.email = errorMsg;
+        }
+
+        if (err.data && typeof err.data === "object" && "detail" in err.data) {
+          const detail = (err.data as { detail: unknown }).detail;
+          if (Array.isArray(detail)) {
+            detail.forEach((item: unknown) => {
+              if (item && typeof item === "object") {
+                const loc = (item as { loc?: unknown[] }).loc;
+                const field = Array.isArray(loc) ? loc[loc.length - 1] : "";
+                const rawMsg = (item as { msg?: unknown }).msg;
+                const cleanMsg = typeof rawMsg === "string" ? rawMsg.replace(/^Value error,\s*/i, "") : "";
+                if (field === "nome" && cleanMsg) {
+                  fieldErrors.nome = cleanMsg;
+                } else if (field === "email" && cleanMsg) {
+                  fieldErrors.email = cleanMsg;
+                } else if ((field === "senha" || field === "password") && cleanMsg) {
+                  fieldErrors.password = cleanMsg;
+                }
+              }
+            });
+          }
+        }
+      } else if (err instanceof Error) {
+        errorMsg = err.message;
+      }
+
       setErrors({
+        ...fieldErrors,
         general: errorMsg,
       });
     } finally {
@@ -171,7 +207,7 @@ export default function RegisterPage() {
           <div className="mb-5">
             <h2 className="text-xl font-bold text-[#202124]">Crie sua conta</h2>
             <p className="text-xs text-gray-500 mt-1">
-              Cadastre-se com seu e-mail institucional para ter voz ativa na plataforma.
+              Cadastre-se com seu e-mail para ter voz ativa na plataforma e colaborar com a comunidade.
             </p>
           </div>
 
@@ -237,9 +273,9 @@ export default function RegisterPage() {
               autoComplete="name"
             />
 
-            {/* Campo E-mail Institucional */}
+            {/* Campo E-mail */}
             <Input
-              label="E-mail Institucional (@aluno.unb.br)"
+              label="E-mail"
               type="email"
               id="register-email"
               name="email"
@@ -248,8 +284,8 @@ export default function RegisterPage() {
                 setEmail(e.target.value);
                 if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
               }}
-              placeholder="matricula@aluno.unb.br"
-              helperText="Utilizado para validação de vínculo acadêmico com a UnB."
+              placeholder="seu.email@exemplo.com"
+              helperText="Aceita qualquer provedor de e-mail (Gmail, Outlook, UnB, etc.)."
               error={errors.email}
               leftIcon={
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,6 +1,19 @@
 export type Campus = "FGA" | "Darcy Ribeiro" | "FCE" | "FUP" | string;
 export type CampusFilter = "Todos" | "FGA" | "Darcy Ribeiro" | "FCE" | "FUP" | string;
 
+export interface CourseMetrics {
+  ano?: number;
+  vagas_totais: number;
+  inscritos_total: number;
+  ingressantes: number;
+  matriculados: number;
+  concluintes: number;
+  trancados: number;
+  desvinculados: number;
+  taxa_sucesso?: number | null;
+  taxa_evasao?: number | null;
+}
+
 export interface Course {
   id?: string;
   codigo_mec?: string;
@@ -13,6 +26,11 @@ export interface Course {
   semestres?: number;
   total_disciplinas?: number;
   descricao?: string;
+  modalidade?: string;
+  area_geral?: string;
+  area_especifica?: string;
+  metricas_2024?: CourseMetrics | null;
+  metricas_recentes?: CourseMetrics | null;
 }
 
 export interface CourseGradeDisciplina {
@@ -31,15 +49,8 @@ export interface CourseDetail extends Course {
   modalidade?: string;
   area_geral?: string;
   area_especifica?: string;
-  metricas_2024?: {
-    vagas_totais: number;
-    inscritos_total: number;
-    ingressantes: number;
-    matriculados: number;
-    concluintes: number;
-    trancados: number;
-    desvinculados: number;
-  };
+  metricas_2024?: CourseMetrics | null;
+  metricas_recentes?: CourseMetrics | null;
   disciplinas?: CourseGradeDisciplina[];
 }
 

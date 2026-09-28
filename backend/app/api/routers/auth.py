@@ -32,6 +32,16 @@ def login(login_in: UsuarioLogin, db: Session = Depends(get_db)):
     return auth_service.autenticar_usuario(db, login_in)
 
 
+@router.get("/me", response_model=UsuarioResponse)
+def get_current_user_profile(
+    current_user: Usuario = Depends(get_current_user),
+):
+    """
+    Retorna os dados cadastrais do usuário autenticado atual.
+    """
+    return current_user
+
+
 @router.delete("/me", response_model=UsuarioDesativado)
 def deactivate_account(
     current_user: Usuario = Depends(get_current_user),

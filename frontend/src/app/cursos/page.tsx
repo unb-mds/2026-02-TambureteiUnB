@@ -265,15 +265,64 @@ export default function CursosPage() {
                         {course.descricao}
                       </p>
                     )}
+
+                    {/* Indicadores DPO reais do Curso */}
+                    {(() => {
+                      const m = course.metricas_recentes || course.metricas_2024;
+                      if (!m) return null;
+
+                      return (
+                        <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-[#F8F7FD] rounded-xl p-2.5 flex flex-col justify-between border border-[#EDE9FD]/70">
+                              <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
+                                Matriculados
+                              </span>
+                              <span className="text-sm font-extrabold text-[#202124] mt-0.5">
+                                {m.matriculados.toLocaleString("pt-BR")}{" "}
+                                <span className="text-[10px] font-normal text-gray-500">alunos</span>
+                              </span>
+                            </div>
+
+                            <div className="bg-[#EAF8EF] rounded-xl p-2.5 flex flex-col justify-between border border-[#D1F0DC]">
+                              <span className="text-[10px] uppercase font-bold tracking-wider text-[#287A45]">
+                                Taxa de Sucesso
+                              </span>
+                              <span className="text-sm font-extrabold text-[#1B6634] mt-0.5 flex items-center gap-1">
+                                {m.taxa_sucesso !== null && m.taxa_sucesso !== undefined
+                                  ? `${m.taxa_sucesso}%`
+                                  : `${m.concluintes} formados`}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] text-gray-500 px-1 pt-2.5">
+                            <span className="flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#5B4BDB]" />
+                              Ingressantes: <strong className="font-semibold text-gray-700">{m.ingressantes}</strong> / {m.vagas_totais} vagas
+                            </span>
+                            {m.taxa_evasao !== null && m.taxa_evasao !== undefined && (
+                              <span className="font-semibold text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                                {m.taxa_evasao}% evasão
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Rodapé do Card com Métricas e Botão */}
                   <div className="mt-5 pt-4 border-t border-[#F7F7FA] flex items-center justify-between gap-3">
                     <div className="text-[11px] text-gray-500 flex flex-col">
                       <span className="font-semibold text-gray-700">
-                        {course.semestres ? `${course.semestres} semestres` : "Fluxo padrão"}
+                        {course.semestres ? `${course.semestres} semestres` : "Fluxo sugerido"}
                       </span>
-                      <span>{course.total_disciplinas || 45} disciplinas</span>
+                      <span>
+                        {course.total_disciplinas !== undefined
+                          ? `${course.total_disciplinas} disciplinas na grade`
+                          : "Grade curricular"}
+                      </span>
                     </div>
 
                     <Link href={`/cursos/${course.slug}`}>

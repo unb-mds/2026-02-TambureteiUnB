@@ -62,7 +62,7 @@ export const GuestBanner: React.FC<GuestBannerProps> = ({
 
             <p className="text-sm font-medium text-[#78350F] leading-snug">
               Você está explorando o <strong className="text-[#202124]">Tamburetei UnB</strong> como visitante. 
-              Você pode pesquisar cursos, matrizes e métricas livremente. Para registrar situação acadêmica, enviar resumos ou votar em materiais, acesse sua conta institucional.
+              Você pode pesquisar cursos, matrizes e métricas livremente. Para registrar situação acadêmica, enviar resumos ou votar em materiais, acesse sua conta.
             </p>
           </div>
         </div>

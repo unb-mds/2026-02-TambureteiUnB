@@ -10,6 +10,7 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.status = status;
     this.data = data;
+    Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
 
@@ -51,23 +52,55 @@ export async function request<T>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (err: unknown) {
+    const originalMessage = err instanceof Error ? err.message : String(err);
+    const friendlyMessage =
+      "Não foi possível conectar ao servidor. Verifique sua conexão com a internet ou se a API está ativa.";
+    throw new ApiError(friendlyMessage, 0, { error: originalMessage });
+  }
 
   if (!response.ok) {
     let errorMessage = `Erro HTTP ${response.status}`;
-    let errorData = null;
+    let errorData: unknown = null;
     try {
       errorData = await response.json();
-      if (typeof errorData?.detail === "string") {
-        errorMessage = errorData.detail;
-      } else if (Array.isArray(errorData?.detail) && errorData.detail[0]?.msg) {
-        errorMessage = errorData.detail[0].msg;
+      const parsedData = errorData as Record<string, unknown> | null;
+      if (typeof parsedData?.detail === "string") {
+        errorMessage = parsedData.detail;
+      } else if (Array.isArray(parsedData?.detail)) {
+        const msgs = parsedData.detail
+          .map((item: unknown) => {
+            if (typeof item === "string") return item;
+            if (item && typeof item === "object" && "msg" in item) {
+              const msgStr = String((item as { msg: unknown }).msg);
+              return msgStr.replace(/^Value error,\s*/i, "");
+            }
+            return null;
+          })
+          .filter(Boolean);
+        if (msgs.length > 0) {
+          errorMessage = msgs.join(" • ");
+        }
+      } else if (typeof parsedData?.message === "string") {
+        errorMessage = parsedData.message;
+      } else if (typeof parsedData?.error === "string") {
+        errorMessage = parsedData.error;
       }
     } catch {
-      // Falha ao converter JSON do erro
+      try {
+        const text = await response.text();
+        if (text && text.trim().length > 0 && text.length < 300) {
+          errorMessage = text.trim();
+        }
+      } catch {
+        // Falha ao ler corpo como texto
+      }
     }
     throw new ApiError(errorMessage, response.status, errorData);
   }
