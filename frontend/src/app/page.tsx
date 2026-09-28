@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import GuestBanner from "@/components/GuestBanner";
 import Button from "@/components/Button";
 import COURSES, { CampusFilter, CAMPUS_LIST, Course } from "@/mocks/courses";
@@ -75,8 +76,13 @@ export default function HomePage() {
                   Explorar Cursos
                 </Button>
               </a>
+              <Link href="/disciplinas">
+                <Button variant="outline" size="lg" className="border-[#5B4BDB] text-[#5B4BDB] hover:bg-[#5B4BDB]/5">
+                  Explorar Disciplinas
+                </Button>
+              </Link>
               <Link href="/login">
-                <Button variant="outline" size="lg">
+                <Button variant="ghost" size="lg">
                   Entrar na Comunidade
                 </Button>
               </Link>
@@ -234,22 +240,19 @@ export default function HomePage() {
                       <span>{course.total_disciplinas || 45} disciplinas</span>
                     </div>
 
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => {
-                        alert(
-                          `Em breve: hub com grade e métricas analíticas de ${course.nome}!`
-                        );
-                      }}
-                      rightIcon={
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      }
-                    >
-                      Ver disciplinas
-                    </Button>
+                    <Link href={`/cursos/${course.slug}`}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        rightIcon={
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        }
+                      >
+                        Ver disciplinas
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -288,23 +291,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Rodapé */}
-      <footer className="border-t border-[#E8E6F8] bg-white py-6 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-          <p>© 2026 Tamburetei UnB • Projeto da disciplina MDS (FCTE/UnB).</p>
-          <div className="flex items-center gap-4">
-            <Link href="/cursos" className="hover:text-[#5B4BDB]">
-              Cursos
-            </Link>
-            <Link href="/login" className="hover:text-[#5B4BDB]">
-              Login
-            </Link>
-            <Link href="/cadastro" className="hover:text-[#5B4BDB]">
-              Cadastro
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
