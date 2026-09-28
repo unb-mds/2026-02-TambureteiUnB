@@ -22,6 +22,16 @@ class Curso(Base):
     metricas = relationship("MetricaCurso", back_populates="curso", cascade="all, delete-orphan")
 
     @property
+    def total_disciplinas(self) -> int:
+        return len(self.curso_disciplinas) if self.curso_disciplinas else 0
+
+    @property
+    def metricas_recentes(self):
+        if self.metricas:
+            return sorted(self.metricas, key=lambda m: m.ano, reverse=True)[0]
+        return None
+
+    @property
     def metricas_2024(self):
         if self.metricas:
             for m in self.metricas:

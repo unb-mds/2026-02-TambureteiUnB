@@ -2,6 +2,9 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 class MetricasCurso(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    ano: int = 2024
     vagas_totais: int = 0
     inscritos_total: int = 0
     ingressantes: int = 0
@@ -9,6 +12,8 @@ class MetricasCurso(BaseModel):
     concluintes: int = 0
     trancados: int = 0
     desvinculados: int = 0
+    taxa_sucesso: Optional[float] = None
+    taxa_evasao: Optional[float] = None
 
 class CursoGradeDisciplina(BaseModel):
     codigo: Optional[str] = None
@@ -35,7 +40,9 @@ class CursoResponse(BaseModel):
     modalidade: str | None = None
     area_geral: str | None = None
     area_especifica: str | None = None
+    total_disciplinas: int = 0
     metricas_2024: Optional[MetricasCurso] = None
+    metricas_recentes: Optional[MetricasCurso] = None
     disciplinas: list[CursoGradeDisciplina] = []
 
 class CursoResumo(BaseModel):
@@ -47,3 +54,9 @@ class CursoResumo(BaseModel):
     grau: str | None = None
     turno: str | None = None
     slug: str
+    modalidade: str | None = None
+    area_geral: str | None = None
+    area_especifica: str | None = None
+    total_disciplinas: int = 0
+    metricas_2024: Optional[MetricasCurso] = None
+    metricas_recentes: Optional[MetricasCurso] = None

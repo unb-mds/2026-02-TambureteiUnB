@@ -47,7 +47,7 @@ def comentario_de_outro(db: Session, admin_user, disciplina):
 def test_criar_comentario_disciplina_com_sucesso(client: TestClient, student_headers, disciplina):
     payload = {"disciplina_id": disciplina.id, "conteudo": "Gostei da disciplina"}
     response = client.post("/comentarios", json=payload, headers=student_headers)
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["conteudo"] == "Gostei da disciplina"
     assert data["status_moderacao"] == "PUBLICADO"

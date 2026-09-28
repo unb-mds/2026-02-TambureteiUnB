@@ -15,9 +15,9 @@ export interface AuthToken {
 }
 
 export interface UserResponse {
-  id: string | number;
+  id: string;
   nome: string;
   email: string;
   role: string;
-  is_active: boolean;
+  is_active?: boolean;
 }

@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.curso import Curso, CursoDisciplina
 from app.repositories.base import BaseRepository
@@ -9,7 +9,10 @@ class CursoRepository(BaseRepository[Curso]):
         super().__init__(Curso)
 
     def listar(self, db: Session, q: str | None = None, campus: str | None = None) -> list[Curso]:
-        query = db.query(Curso)
+        query = db.query(Curso).options(
+            selectinload(Curso.metricas),
+            selectinload(Curso.curso_disciplinas),
+        )
         if campus and campus.lower() not in ("todos", "todos os campi"):
             query = query.filter(Curso.campus.ilike(f"%{campus}%"))
         if q:

@@ -10,6 +10,9 @@ import { getCourseBySlug } from "@/services/courseService";
 import { getDisciplines } from "@/services/disciplineService";
 import { CourseDetail } from "@/types/curso";
 import { Discipline, SEMESTER_FILTERS } from "@/types/disciplina";
+import Pagination from "@/components/Pagination";
+
+const ITEMS_PER_PAGE = 24;
 
 export default function CourseDisciplinesPage() {
   const params = useParams();
@@ -22,6 +25,7 @@ export default function CourseDisciplinesPage() {
   const [disciplineQuery, setDisciplineQuery] = useState("");
   const [semester, setSemester] = useState("Todos");
   const [department, setDepartment] = useState("Todos os departamentos");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     let isMounted = true;
@@ -124,6 +128,36 @@ export default function CourseDisciplinesPage() {
     });
   }, [courseDisciplines, disciplineQuery, semester, department]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredDisciplines.length / ITEMS_PER_PAGE));
+  const activePage = Math.min(currentPage, totalPages);
+
+  const paginatedDisciplines = useMemo(() => {
+    const start = (activePage - 1) * ITEMS_PER_PAGE;
+    return filteredDisciplines.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredDisciplines, activePage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 380, behavior: "smooth" });
+    }
+  };
+
+  const handleQueryChange = (val: string) => {
+    setDisciplineQuery(val);
+    setCurrentPage(1);
+  };
+
+  const handleSemesterChange = (item: string) => {
+    setSemester(item);
+    setCurrentPage(1);
+  };
+
+  const handleDepartmentChange = (dept: string) => {
+    setDepartment(dept);
+    setCurrentPage(1);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F7F7FA] flex flex-col font-sans">
@@ -214,7 +248,7 @@ export default function CourseDisciplinesPage() {
                   <p className="mt-2 text-sm text-gray-500">
                     Campus {course.campus} <span className="mx-2 text-[#C4C1D8]">•</span>
                     {course.semestres || 8} semestres sugeridos <span className="mx-2 text-[#C4C1D8]">•</span>
-                    {courseDisciplines.length} disciplinas cadastradas
+                    {courseDisciplines.length} disciplinas cadastradas na grade
                   </p>
                 </div>
               </div>
@@ -235,6 +269,119 @@ export default function CourseDisciplinesPage() {
                 Trocar de curso
               </Link>
             </div>
+
+            {/* Painel de Indicadores Institucionais do Curso (DPO / INEP / LAI) */}
+            {(() => {
+              const m = course.metricas_recentes || course.metricas_2024;
+              if (!m) return null;
+
+              const taxaOcupacao = m.vagas_totais > 0 ? Math.round((m.ingressantes / m.vagas_totais) * 100) : null;
+              const concorrencia = m.vagas_totais > 0 ? (m.inscritos_total / m.vagas_totais).toFixed(1) : null;
+
+              return (
+                <div className="mt-8 pt-6 border-t border-[#EDE9FD]">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-2 w-2 rounded-full bg-[#5B4BDB]" />
+                      <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#202124]">
+                        Indicadores Oficiais do Curso
+                      </h2>
+                      <span className="rounded-full bg-[#EDE9FD] px-2.5 py-0.5 text-[11px] font-semibold text-[#5B4BDB]">
+                        Ano {m.ano || 2024}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-gray-500 font-medium">
+                      Fonte: DPO / Anuário Estatístico UnB &bull; Dados Abertos LAI
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+                    {/* KPI 1: Matriculados Ativos */}
+                    <div className="bg-[#F8F7FD] rounded-2xl p-4 border border-[#EDE9FD] flex flex-col justify-between shadow-xs">
+                      <div className="flex items-center justify-between text-gray-500 mb-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Matriculados</span>
+                        <svg className="w-4 h-4 text-[#5B4BDB]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                      </div>
+                      <div className="text-2xl font-black text-[#202124] tracking-tight">
+                        {m.matriculados.toLocaleString("pt-BR")}
+                      </div>
+                      <span className="text-[11px] text-gray-500 mt-1">Estudantes ativos</span>
+                    </div>
+
+                    {/* KPI 2: Vagas & Ingressantes */}
+                    <div className="bg-[#F8F7FD] rounded-2xl p-4 border border-[#EDE9FD] flex flex-col justify-between shadow-xs">
+                      <div className="flex items-center justify-between text-gray-500 mb-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Ingressantes / Vagas</span>
+                        <svg className="w-4 h-4 text-[#5B4BDB]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      </div>
+                      <div className="text-2xl font-black text-[#202124] tracking-tight">
+                        {m.ingressantes} <span className="text-sm font-semibold text-gray-500">/ {m.vagas_totais}</span>
+                      </div>
+                      <span className="text-[11px] text-gray-500 mt-1">
+                        {taxaOcupacao ? `${taxaOcupacao}% ocupação` : "Vagas anuais"}
+                        {concorrencia ? ` • ${concorrencia} cand/vaga` : ""}
+                      </span>
+                    </div>
+
+                    {/* KPI 3: Concluintes / Sucesso */}
+                    <div className="bg-[#EAF8EF] rounded-2xl p-4 border border-[#D1F0DC] flex flex-col justify-between shadow-xs">
+                      <div className="flex items-center justify-between text-[#287A45] mb-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Taxa de Sucesso</span>
+                        <svg className="w-4 h-4 text-[#287A45]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="text-2xl font-black text-[#1B6634] tracking-tight">
+                        {m.taxa_sucesso !== null && m.taxa_sucesso !== undefined
+                          ? `${m.taxa_sucesso}%`
+                          : `${m.concluintes} formados`}
+                      </div>
+                      <span className="text-[11px] text-[#287A45] mt-1 font-medium">
+                        {m.concluintes} concluintes no ano
+                      </span>
+                    </div>
+
+                    {/* KPI 4: Evasão / Desvinculados */}
+                    <div className="bg-[#FFF5F5] rounded-2xl p-4 border border-[#FED7D7] flex flex-col justify-between shadow-xs">
+                      <div className="flex items-center justify-between text-[#C53030] mb-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Taxa de Evasão</span>
+                        <svg className="w-4 h-4 text-[#C53030]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                        </svg>
+                      </div>
+                      <div className="text-2xl font-black text-[#9B2C2C] tracking-tight">
+                        {m.taxa_evasao !== null && m.taxa_evasao !== undefined
+                          ? `${m.taxa_evasao}%`
+                          : `${m.desvinculados} evadidos`}
+                      </div>
+                      <span className="text-[11px] text-[#C53030] mt-1 font-medium">
+                        {m.desvinculados} desvinculados no ano
+                      </span>
+                    </div>
+
+                    {/* KPI 5: Trancamentos */}
+                    <div className="bg-[#FFFDF0] rounded-2xl p-4 border border-[#FEEBC8] flex flex-col justify-between shadow-xs col-span-2 sm:col-span-1">
+                      <div className="flex items-center justify-between text-[#B7791F] mb-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Trancamentos</span>
+                        <svg className="w-4 h-4 text-[#B7791F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="text-2xl font-black text-[#744210] tracking-tight">
+                        {m.trancados}
+                      </div>
+                      <span className="text-[11px] text-[#B7791F] mt-1 font-medium">
+                        Matrículas trancadas
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </section>
 
@@ -251,7 +398,7 @@ export default function CourseDisciplinesPage() {
               <input
                 type="search"
                 value={disciplineQuery}
-                onChange={(event) => setDisciplineQuery(event.target.value)}
+                onChange={(event) => handleQueryChange(event.target.value)}
                 placeholder="Buscar por nome da matéria ou código SIGAA (ex.: FGA0158, Requisitos, Cálculo)..."
                 aria-label="Buscar disciplina por nome ou código SIGAA"
                 className="flex-1 bg-transparent text-sm text-[#202124] outline-none placeholder-gray-400"
@@ -259,7 +406,7 @@ export default function CourseDisciplinesPage() {
               {disciplineQuery && (
                 <button
                   type="button"
-                  onClick={() => setDisciplineQuery("")}
+                  onClick={() => handleQueryChange("")}
                   className="rounded-lg bg-[#EDE9FD] px-3 py-1.5 text-xs font-semibold text-[#5B4BDB] hover:bg-[#5B4BDB]/20"
                 >
                   Limpar
@@ -280,7 +427,7 @@ export default function CourseDisciplinesPage() {
                       <button
                         type="button"
                         key={item}
-                        onClick={() => setSemester(item)}
+                        onClick={() => handleSemesterChange(item)}
                         aria-pressed={selected}
                         className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
                           selected
@@ -302,7 +449,7 @@ export default function CourseDisciplinesPage() {
                 <div className="relative">
                   <select
                     value={department}
-                    onChange={(event) => setDepartment(event.target.value)}
+                    onChange={(event) => handleDepartmentChange(event.target.value)}
                     className="w-full appearance-none rounded-xl bg-[#F7F7FA] border border-[#E8E6F8] px-4 py-2.5 pr-10 text-xs font-medium text-[#202124] outline-none focus:border-[#5B4BDB]"
                   >
                     {departmentsList.map((item) => (
@@ -346,67 +493,78 @@ export default function CourseDisciplinesPage() {
 
           {/* Grid de Cards de Disciplinas */}
           {filteredDisciplines.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredDisciplines.map((discipline) => (
-                <article
-                  key={discipline.code}
-                  className="group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#EDE9FD] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all"
-                >
-                  <div>
-                    {/* Código e Taxa de Aprovação */}
-                    <div className="mb-4 flex items-start justify-between gap-2">
-                      <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold tracking-wide text-[#5B4BDB]">
-                        {discipline.code}
-                      </span>
-                      <span className="flex items-center gap-1.5 rounded-full bg-[#EAF8EF] px-2.5 py-1 text-xs font-semibold text-[#287A45]">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#42A866]" />
-                        {discipline.approval}% de aprovação
-                      </span>
-                    </div>
-
-                    {/* Nome da Disciplina */}
-                    <h3 className="text-base sm:text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
-                      {discipline.name}
-                    </h3>
-
-                    {/* Tags de Departamento e Créditos */}
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      <span className="rounded-md bg-[#F1F0F8] px-2.5 py-1 text-[11px] font-semibold text-[#5B536E]">
-                        {discipline.department}
-                      </span>
-                      <span className="rounded-md bg-[#F1F0F8] px-2.5 py-1 text-[11px] font-medium text-[#5B536E]">
-                        {discipline.credits}
-                      </span>
-                    </div>
-
-                    {/* Tags de Semestre e Tipo */}
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {discipline.semester && (
-                        <span className="rounded-md bg-[#FFF8D8] px-2.5 py-1 text-[11px] font-semibold text-[#806300]">
-                          {discipline.semester}
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {paginatedDisciplines.map((discipline) => (
+                  <article
+                    key={discipline.code}
+                    className="group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#EDE9FD] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all"
+                  >
+                    <div>
+                      {/* Código e Taxa de Aprovação */}
+                      <div className="mb-4 flex items-start justify-between gap-2">
+                        <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold tracking-wide text-[#5B4BDB]">
+                          {discipline.code}
                         </span>
-                      )}
-                      {discipline.type && (
-                        <span className="rounded-md bg-[#F7F7FA] border border-[#E5E7EB] px-2.5 py-1 text-[11px] font-medium text-gray-600">
-                          {discipline.type}
+                        <span className="flex items-center gap-1.5 rounded-full bg-[#EAF8EF] px-2.5 py-1 text-xs font-semibold text-[#287A45]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#42A866]" />
+                          {discipline.approval}% de aprovação
                         </span>
-                      )}
-                    </div>
-                  </div>
+                      </div>
 
-                  {/* Ação: Ver Disciplina */}
-                  <div className="mt-5 border-t border-[#EDE9FD] pt-4">
-                    <Link
-                      href={`/disciplinas/${discipline.slug}`}
-                      className="flex w-full items-center justify-between text-xs sm:text-sm font-bold text-[#5B4BDB] group-hover:translate-x-0.5 transition-all"
-                    >
-                      <span>Ver disciplina</span>
-                      <span aria-hidden="true">→</span>
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
+                      {/* Nome da Disciplina */}
+                      <h3 className="text-base sm:text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
+                        {discipline.name}
+                      </h3>
+
+                      {/* Tags de Departamento e Créditos */}
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        <span className="rounded-md bg-[#F1F0F8] px-2.5 py-1 text-[11px] font-semibold text-[#5B536E]">
+                          {discipline.department}
+                        </span>
+                        <span className="rounded-md bg-[#F1F0F8] px-2.5 py-1 text-[11px] font-medium text-[#5B536E]">
+                          {discipline.credits}
+                        </span>
+                      </div>
+
+                      {/* Tags de Semestre e Tipo */}
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {discipline.semester && (
+                          <span className="rounded-md bg-[#FFF8D8] px-2.5 py-1 text-[11px] font-semibold text-[#806300]">
+                            {discipline.semester}
+                          </span>
+                        )}
+                        {discipline.type && (
+                          <span className="rounded-md bg-[#F7F7FA] border border-[#E5E7EB] px-2.5 py-1 text-[11px] font-medium text-gray-600">
+                            {discipline.type}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Ação: Ver Disciplina */}
+                    <div className="mt-5 border-t border-[#EDE9FD] pt-4">
+                      <Link
+                        href={`/disciplinas/${discipline.slug}`}
+                        className="flex w-full items-center justify-between text-xs sm:text-sm font-bold text-[#5B4BDB] group-hover:translate-x-0.5 transition-all"
+                      >
+                        <span>Ver disciplina</span>
+                        <span aria-hidden="true">→</span>
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <Pagination
+                currentPage={activePage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                totalItems={filteredDisciplines.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                itemName="disciplinas"
+              />
+            </>
           ) : (
             /* Estado Vazio */
             <div className="flex flex-col items-center rounded-3xl bg-white border border-[#EDE9FD] px-8 py-16 text-center max-w-md mx-auto">
@@ -423,6 +581,7 @@ export default function CourseDisciplinesPage() {
                   setDisciplineQuery("");
                   setSemester("Todos");
                   setDepartment("Todos os departamentos");
+                  setCurrentPage(1);
                 }}
                 className="mt-5 rounded-xl border border-[#5B4BDB] px-4 py-2 text-xs font-semibold text-[#5B4BDB] hover:bg-[#5B4BDB]/5"
               >
