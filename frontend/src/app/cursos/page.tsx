@@ -86,7 +86,7 @@ export default function CursosPage() {
 
   const campusBadgeColor = (campus: string) => {
     switch (campus) {
-      case "FGA":
+      case "FCTE":
         return "bg-indigo-50 text-indigo-700 border-indigo-200";
       case "Darcy Ribeiro":
         return "bg-purple-50 text-purple-700 border-purple-200";
@@ -117,7 +117,7 @@ export default function CursosPage() {
             Catálogo de Cursos
           </h1>
           <p className="mt-2 text-sm sm:text-base text-gray-600 max-w-2xl leading-relaxed">
-            Consulte os cursos de graduação da UnB nos campi FGA, Darcy Ribeiro, FCE e FUP. 
+            Consulte os cursos de graduação da UnB nos campi FCTE, Darcy Ribeiro, FCE e FUP. 
             Acesse as disciplinas, estatísticas de aprovação e materiais de apoio.
           </p>
         </div>
