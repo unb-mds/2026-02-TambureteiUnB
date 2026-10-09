@@ -6,6 +6,9 @@ import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
+import CardTurma from "@/components/CardTurma";
+import { MOCK_TURMAS } from "@/mocks/turmas";
+import { getFallbackDiscipline } from "@/mocks/disciplinas";
 import { getDisciplineBySlug } from "@/services/disciplineService";
 import { Discipline, DEFAULT_HISTORICAL_PERFORMANCE } from "@/types/disciplina";
 
@@ -28,10 +31,17 @@ export default function DisciplineDetailPage() {
         setLoading(true);
         const data = await getDisciplineBySlug(slug);
         if (isMounted) {
-          setDiscipline(data);
+          if (data && data.name) {
+            setDiscipline(data);
+          } else {
+            setDiscipline(getFallbackDiscipline(slug));
+          }
         }
       } catch (err) {
-        console.error("Erro ao carregar detalhes da disciplina da API:", err);
+        console.warn(`[Tamburetei] API indisponível ou 404 para "${slug}". Carregando fallback mock:`, err);
+        if (isMounted) {
+          setDiscipline(getFallbackDiscipline(slug));
+        }
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -404,6 +414,49 @@ export default function DisciplineDetailPage() {
                   ))}
                 </ul>
               </div>
+            </div>
+          </section>
+
+          {/* Seção Turmas Ofertadas */}
+          <section className="mb-6 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EDE9FD] text-[#5B4BDB]">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-[#202124]">
+                    Turmas Ofertadas
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    Consulte docentes, horários, salas e ocupação das vagas no semestre letivo atual
+                  </p>
+                </div>
+              </div>
+              <span className="self-start sm:self-auto rounded-full bg-[#EDE9FD] px-3 py-1 text-xs font-semibold text-[#5B4BDB]">
+                {MOCK_TURMAS.length} turmas disponíveis
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+              {MOCK_TURMAS.map((turma) => (
+                <CardTurma key={turma.id} turma={turma} />
+              ))}
             </div>
           </section>
 
