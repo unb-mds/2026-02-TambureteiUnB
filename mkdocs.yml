@@ -19,7 +19,7 @@ markdown_extensions:
       custom_fences:
         - name: mermaid
           class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
+          format: !!python/name:pymdownx.superfences.fence_div_format
   - pymdownx.arithmatex:
       generic: true
 
@@ -39,3 +39,4 @@ nav:
   - Como Popular o Banco de Dados: popular_banco_de_dados.md
   - Regras de Negócio & Governança: regras_negocio.md
   - Guia de Desenvolvimento: desenvolvimento.md
+  - Banco de Dados: banco_de_dados.md
