@@ -21,7 +21,6 @@ erDiagram
     professores ||--o{ turmas_professores : leciona
     turmas |o--o{ conteudos : vincula
     turmas |o--o{ comentarios : vincula
-    comentarios |o--o{ comentarios : responde
 ```
 
 ---
@@ -161,7 +160,7 @@ Crowdsourcing "Já cursei essa matéria". Alimenta apenas estatísticas agregada
 | `usuario_id` | UUID | NOT NULL, **FK** → `usuarios(id)` ON DELETE CASCADE | Estudante |
 | `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina |
 | `situacao` | VARCHAR(20) | NOT NULL, CHECK (`APROVADO`, `REPROVADO_NOTA`, `REPROVADO_FALTA`, `TRANCOU`) | Resultado declarado |
-| `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Última atualização |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
 
 **Restrição:** `UNIQUE (usuario_id, disciplina_id)`, ou seja, um registro por aluno e disciplina (RN02).
 
@@ -181,7 +180,7 @@ Materiais de apoio: resumos, links, provas antigas e dicas.
 | `semestre` | VARCHAR(10) | — | Semestre de referência |
 | `status_curadoria` | VARCHAR(20) | NOT NULL, default `'PENDENTE'`, CHECK (`PENDENTE`, `APROVADO`, `RECUSADO`) | Moderação (RN06) |
 | `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
-| `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Última atualização |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de atualização |
 
 ### `comentarios`
 Relatos e discussões, exibidos sob pseudônimo.
