@@ -1,253 +1,323 @@
 # Dicionário de Dados — Modelo Relacional
 
-Este documento descreve o modelo relacional ativo do **Tamburetei UnB** (PostgreSQL 17), conforme criado pelo script `init.sql`. O esquema possui **12 tabelas de domínio** e a tabela de controle `alembic_version`.
+Este documento descreve o modelo relacional ativo do **Tamburetei UnB** (PostgreSQL 17), sincronizado integralmente com o script `init.sql` e a cadeia oficial de migrações do Alembic (revisão `007` — Head). O esquema possui **14 tabelas de domínio** e a tabela de controle `alembic_version`.
 
-## Diagrama Entidade-Relacionamento
+---
 
-```mermaid
-erDiagram
-    usuarios ||--o{ situacoes_disciplinas : registra
-    usuarios ||--o{ conteudos : submete
-    usuarios ||--o{ comentarios : escreve
-    usuarios ||--o{ votos_uteis : vota
-    cursos ||--o{ cursos_disciplinas : possui
-    disciplinas ||--o{ cursos_disciplinas : compoe
-    disciplinas ||--o{ turmas : oferta
-    disciplinas ||--o{ metricas_academicas : agrega
-    disciplinas ||--o{ situacoes_disciplinas : recebe
-    disciplinas ||--o{ conteudos : contem
-    disciplinas ||--o{ comentarios : recebe
-    turmas ||--o{ turmas_professores : tem
-    professores ||--o{ turmas_professores : leciona
-    turmas |o--o{ conteudos : vincula
-    turmas |o--o{ comentarios : vincula
+## 🗺️ Mapa de Relacionamentos do Modelo Relacional
+
+Para facilitar a visualização clara e objetiva sem distorções de escala em diferentes resoluções, as dependências relacionais do banco estão estruturadas por módulos de domínio:
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   MÓDULO DE USUÁRIOS E SEGURANÇA                                 │
+│                                                                                                  │
+│   [ usuarios ] (UUID) ──(1:N)──► [ situacoes_disciplinas ] (Registro de aprovação/trancamento)   │
+│                       ──(1:N)──► [ conteudos ]             (Submissão de materiais didáticos)    │
+│                       ──(1:N)──► [ comentarios ]           (Relatos discentes sob pseudônimo)    │
+│                       ──(1:N)──► [ votos_uteis ]           (Upvotes de relevância da comunidade) │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                                 │
+                                                 ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   MÓDULO DE ESTRUTURA ACADÊMICA                                  │
+│                                                                                                  │
+│   [ cursos ] ───────(1:N)──► [ cursos_disciplinas ] (N:N Matriz Curricular)                      │
+│                                           ▲                                                      │
+│   [ disciplinas ] ──(1:N)─────────────────┘                                                      │
+│          │                                                                                       │
+│          ├──(1:N)──► [ turmas ] ◄──(N:N)── [ professores ] (via turmas_professores)              │
+│          │                                                                                       │
+│          ├──(1:N)──► [ metricas_academicas ]   (Séries históricas por ano/semestre do DPO)       │
+│          ├──(1:1)──► [ metricas_consolidadas ] (Totalizador acumulado e supressão LGPD RN07)     │
+│          ├──(1:N)──► [ situacoes_disciplinas ] (Histórico crowdsourced de estudantes)            │
+│          ├──(1:N)──► [ conteudos ]             (Materiais, provas e links)                       │
+│          └──(1:N)──► [ comentarios ]           (Discussões e dúvidas com threads aninhadas)      │
+│                                                                                                  │
+│   [ cursos ] ───────(1:N)──► [ metricas_cursos ]       (Indicadores de evasão e fluxo INEP)      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Matriz de Cardinalidade e Chaves Estrangeiras
+
+| Tabela Origem | Tabela Destino | Relação | Coluna FK | Política de Deleção | Propósito |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `cursos` | `cursos_disciplinas` | **1 : N** | `curso_id` | `CASCADE` | Vincula a disciplina à grade curricular do curso |
+| `disciplinas` | `cursos_disciplinas` | **1 : N** | `disciplina_id` | `CASCADE` | Define periodicidade e natureza (obrigatória/optativa) |
+| `disciplinas` | `turmas` | **1 : N** | `disciplina_id` | `CASCADE` | Ofertas semestrais concretas da disciplina |
+| `turmas` | `turmas_professores` | **1 : N** | `turma_id` | `CASCADE` | Associação N:N entre turmas e professores |
+| `professores` | `turmas_professores` | **1 : N** | `professor_id` | `CASCADE` | Suporte a múltiplos docentes na mesma turma |
+| `disciplinas` | `metricas_academicas` | **1 : N** | `disciplina_id` | `CASCADE` | Séries históricas de aprovação/reprovação (DPO/INEP) |
+| `disciplinas` | `metricas_consolidadas` | **1 : 1** | `disciplina_id` | `CASCADE` | Consolidado geral com proteção contra reidentificação LGPD |
+| `cursos` | `metricas_cursos` | **1 : N** | `curso_id` | `CASCADE` | Séries históricas de vagas, ingressantes e evasão por curso |
+| `usuarios` | `situacoes_disciplinas` | **1 : N** | `usuario_id` | `CASCADE` | Registro anônimo de "Já cursei essa matéria" |
+| `disciplinas` | `situacoes_disciplinas` | **1 : N** | `disciplina_id` | `CASCADE` | Totalizador de experiência discente na disciplina |
+| `disciplinas` | `conteudos` | **1 : N** | `disciplina_id` | `CASCADE` | Repositório colaborativo de materiais |
+| `turmas` | `conteudos` | **1 : N** | `turma_id` | `SET NULL` | Vínculo opcional de material a uma turma específica |
+| `usuarios` | `conteudos` | **1 : N** | `usuario_id` | `SET NULL` | Preserva material didático se a conta for excluída |
+| `disciplinas` | `comentarios` | **1 : N** | `disciplina_id` | `CASCADE` | Mural de discussões da disciplina |
+| `turmas` | `comentarios` | **1 : N** | `turma_id` | `SET NULL` | Contextualização opcional do relato por turma |
+| `usuarios` | `comentarios` | **1 : N** | `usuario_id` | `CASCADE` | Auditoria interna (não exibido publicamente) |
+| `comentarios` | `comentarios` | **1 : N** | `parent_id` | `CASCADE` | Hierarquia em árvore para respostas aninhadas (threads) |
+| `usuarios` | `votos_uteis` | **1 : N** | `usuario_id` | `CASCADE` | Upvotes únicos por usuário em conteúdos ou comentários |
 
 ---
 
 ## 1. Usuários e Segurança
 
 ### `usuarios`
-Contas de acesso à plataforma. Seguindo o *Privacy by Design*, **não armazena matrícula, CPF ou histórico acadêmico**.
+Contas de acesso à plataforma. Em estrita conformidade com o princípio de *Privacy by Design* e a LGPD, **não armazena matrícula, CPF, IRA ou histórico acadêmico discente**.
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `id` | UUID | **PK**, default `gen_random_uuid()` | Identificador não sequencial (evita enumeração) |
-| `nome` | VARCHAR(100) | NOT NULL | Nome de exibição |
-| `email` | VARCHAR(150) | NOT NULL, UNIQUE | Login do usuário |
-| `password_hash` | VARCHAR(255) | NOT NULL | Hash bcrypt da senha |
-| `role` | VARCHAR(20) | NOT NULL, default `'STUDENT'`, CHECK (`STUDENT`, `MODERATOR`, `ADMIN`) | Perfil de permissão |
-| `is_active` | BOOLEAN | NOT NULL, default `TRUE` | Desativação lógica da conta (LGPD) |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
+| `id` | UUID | **PK**, default `gen_random_uuid()` | Identificador não sequencial para prevenção de enumeração |
+| `nome` | VARCHAR(100) | NOT NULL | Nome de exibição do usuário |
+| `email` | VARCHAR(150) | NOT NULL, UNIQUE | E-mail institucional ou de acesso |
+| `password_hash` | VARCHAR(255) | NOT NULL | Hash criptográfico bcrypt da senha |
+| `role` | VARCHAR(20) | NOT NULL, default `'STUDENT'`, CHECK (`STUDENT`, `MODERATOR`, `ADMIN`) | Nível de privilégio e controle de acesso (RBAC) |
+| `is_active` | BOOLEAN | NOT NULL, default `TRUE` | Controle de desativação lógica da conta |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Carimbo de data/hora de criação do registro |
 
 ---
 
-## 2. Estrutura Acadêmica
+## 2. Estrutura Acadêmica e Curricular
 
 ### `cursos`
-Metadados institucionais dos cursos de graduação.
+Metadados institucionais dos cursos de graduação da Universidade de Brasília.
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `id` | SERIAL | **PK** | Identificador |
-| `codigo_mec` | VARCHAR(20) | UNIQUE | Código do curso no MEC |
-| `nome` | VARCHAR(150) | NOT NULL | Nome do curso |
-| `campus` | VARCHAR(100) | NOT NULL, default `'FCTE - Gama'` | Campus de oferta |
-| `grau` | VARCHAR(50) | default `'Bacharelado'` | Grau acadêmico |
-| `turno` | VARCHAR(50) | default `'Diurno'` | Turno |
-| `slug` | VARCHAR(150) | NOT NULL, UNIQUE | Identificador amigável para URLs |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
+| `id` | SERIAL | **PK** | Identificador sequencial do curso |
+| `codigo_mec` | VARCHAR(20) | UNIQUE | Código oficial do curso registrado no MEC |
+| `nome` | VARCHAR(150) | NOT NULL | Nome oficial do curso (ex.: *Engenharia de Software*) |
+| `campus` | VARCHAR(100) | NOT NULL, default `'FCTE - Gama'` | Campus universitário de oferta |
+| `grau` | VARCHAR(50) | default `'Bacharelado'` | Grau acadêmico conferido |
+| `turno` | VARCHAR(50) | default `'Diurno'` | Turno predominante das aulas |
+| `slug` | VARCHAR(150) | NOT NULL, UNIQUE | Identificador amigável para rotas (`/cursos/:slug`) |
+| `modalidade` | VARCHAR(50) | — | Modalidade de ensino (ex.: Presencial / EaD) |
+| `area_geral` | VARCHAR(100) | — | Grande área de conhecimento do curso |
+| `area_especifica` | VARCHAR(100) | — | Área de conhecimento específica |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de inserção no sistema |
 
 ### `disciplinas`
-Cadastro canônico das disciplinas.
+Cadastro canônico das disciplinas ofertadas.
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `id` | SERIAL | **PK** | Identificador |
-| `codigo` | VARCHAR(30) | NOT NULL | Código acadêmico (ex.: `FGA0001`) |
-| `slug` | VARCHAR(150) | NOT NULL, UNIQUE | Usado na rota `/cadeiras/:slug` |
+| `id` | SERIAL | **PK** | Identificador sequencial da disciplina |
+| `codigo` | VARCHAR(30) | — | Código acadêmico SIGAA (ex.: `FGA0138`) |
+| `slug` | VARCHAR(150) | NOT NULL, UNIQUE | Identificador amigável de rota (`/disciplinas/:slug`) |
 | `nome` | VARCHAR(150) | NOT NULL | Nome da disciplina |
-| `departamento` | VARCHAR(100) | — | Departamento responsável (texto livre, sem FK) |
-| `creditos` | INT | CHECK (> 0) | Quantidade de créditos |
-| `carga_horaria` | INT | CHECK (> 0) | Carga horária total |
-| `ementa` | TEXT | — | Ementa da disciplina |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
+| `departamento` | VARCHAR(255) | — | Nome do departamento ou faculdade responsável |
+| `creditos` | INT | CHECK (> 0) | Quantidade total de créditos |
+| `carga_horaria` | INT | CHECK (> 0) | Carga horária total em horas |
+| `ementa` | TEXT | — | Ementa oficial da disciplina |
+| `pre_requisitos` | TEXT | — | Expressão formal de pré-requisitos (ex.: `FGA0158 OU MAT0025`) |
+| `co_requisitos` | TEXT | — | Co-requisitos acadêmicos simultâneos |
+| `equivalencias` | TEXT | — | Disciplinas equivalentes aceitas na matriz |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de inserção |
 
 ### `cursos_disciplinas`
-Tabela associativa **N:N** que representa a matriz curricular de cada curso.
+Tabela associativa **N:N** que define a matriz curricular de cada curso.
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `id` | SERIAL | **PK** | Identificador |
-| `curso_id` | INT | NOT NULL, **FK** → `cursos(id)` ON DELETE CASCADE | Curso |
-| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina |
-| `periodo_sugerido` | INT | CHECK (> 0) | Semestre sugerido (NULL para optativas livres) |
-| `is_obrigatoria` | BOOLEAN | NOT NULL, default `TRUE` | Obrigatória ou optativa |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
+| `id` | SERIAL | **PK** | Identificador da relação |
+| `curso_id` | INT | NOT NULL, **FK** → `cursos(id)` ON DELETE CASCADE | Identificador do curso |
+| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Identificador da disciplina vinculada |
+| `periodo_sugerido` | INT | CHECK (> 0) | Semestre ideal de cursagem (nulo para optativas livres) |
+| `is_obrigatoria` | BOOLEAN | NOT NULL, default `TRUE` | Flag booleana de obrigatoriedade |
+| `natureza` | VARCHAR(50) | NOT NULL, default `'Obrigatoria'` | Classificação curricular (*Obrigatoria*, *Optativa*, etc.) |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de registro |
 
-**Restrição:** `UNIQUE (curso_id, disciplina_id)` impede vínculo duplicado.
+**Restrição de Unicidade:** `UNIQUE (curso_id, disciplina_id)` impede vínculos duplicados da mesma disciplina no mesmo curso.
 
 ---
 
 ## 3. Corpo Docente e Turmas
 
 ### `professores`
-Cadastro dos docentes.
+Cadastro de docentes da instituição.
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `id` | SERIAL | **PK** | Identificador |
-| `nome` | VARCHAR(150) | NOT NULL | Nome do docente |
-| `departamento` | VARCHAR(100) | — | Departamento (texto livre, sem FK) |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
+| `id` | SERIAL | **PK** | Identificador sequencial do docente |
+| `nome` | VARCHAR(150) | NOT NULL | Nome completo do professor |
+| `departamento` | VARCHAR(255) | — | Lotação departamental do docente |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de inserção |
 
 ### `turmas`
-Oferta concreta de uma disciplina em um semestre (ex.: Turma 01 manhã × Turma 02 tarde).
+Oferta semestral de uma disciplina.
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `id` | SERIAL | **PK** | Identificador |
+| `id` | SERIAL | **PK** | Identificador sequencial da turma |
 | `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina ofertada |
-| `codigo_turma` | VARCHAR(10) | NOT NULL | Código da turma (ex.: `01`, `A`) |
-| `semestre` | VARCHAR(10) | NOT NULL | Semestre letivo (ex.: `2026.1`) |
-| `horario` | VARCHAR(255) | — | Código de horário SIGAA (ex.: `35M12`) |
-| `local` | VARCHAR(255) | — | Sala ou prédio |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
+| `codigo_turma` | VARCHAR(10) | NOT NULL | Código identificador da turma (ex.: `01`, `A`) |
+| `semestre` | VARCHAR(10) | NOT NULL | Semestre letivo da oferta (ex.: `2026.2`) |
+| `horario` | VARCHAR(255) | — | Código de horário SIGAA (ex.: `35M12` ou descritivo) |
+| `local` | VARCHAR(255) | — | Local de realização das aulas (ex.: `UED - Sala 102`) |
+| `capacidade` | INT | — | Número total de vagas disponibilizadas |
+| `matriculados` | INT | — | Número total de discentes matriculados |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de cadastro |
 
-**Restrição:** `UNIQUE (disciplina_id, codigo_turma, semestre)`.
+**Restrição de Unicidade:** `UNIQUE (disciplina_id, codigo_turma, semestre)` assegura que a mesma turma não seja duplicada no mesmo semestre.
 
 ### `turmas_professores`
-Tabela associativa **N:N** entre turmas e professores (suporta co-docência).
+Tabela associativa **N:N** que conecta turmas aos professores responsáveis, suportando co-docência.
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `turma_id` | INT | **PK composta**, **FK** → `turmas(id)` ON DELETE CASCADE | Turma |
-| `professor_id` | INT | **PK composta**, **FK** → `professores(id)` ON DELETE CASCADE | Professor |
+| `turma_id` | INT | **PK composta**, **FK** → `turmas(id)` ON DELETE CASCADE | Turma lecionada |
+| `professor_id` | INT | **PK composta**, **FK** → `professores(id)` ON DELETE CASCADE | Professor associado |
 
 ---
 
-## 4. Métricas Acadêmicas Históricas
+## 4. Métricas Acadêmicas e Séries Históricas
 
 ### `metricas_academicas`
-Fato analítico **agregado** com dados públicos (DPO/INEP/LAI). Não contém dados individuais de estudantes.
+Dados analíticos históricos agregados por disciplina, ano e semestre (fontes: DPO / INEP / LAI).
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `id` | BIGSERIAL | **PK** | Identificador |
-| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina |
-| `ano` | INT | NOT NULL | Ano letivo |
-| `semestre` | INT | NOT NULL, CHECK (1, 2) | Semestre |
-| `matriculados` | INT | NOT NULL, default 0 | Total de matriculados |
-| `aprovados` | INT | NOT NULL, default 0 | Total de aprovados |
-| `reprovados_nota` | INT | NOT NULL, default 0 | Reprovações por nota |
-| `reprovados_falta` | INT | NOT NULL, default 0 | Reprovações por falta |
-| `trancamentos` | INT | NOT NULL, default 0 | Trancamentos |
-| `taxa_aprovacao` | NUMERIC(5,2) | — | Percentual de aprovação (ex.: `78.50`) |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
+| `id` | BIGSERIAL | **PK** | Identificador do registro histórico |
+| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina analisada |
+| `ano` | INT | NOT NULL | Ano letivo de referência |
+| `semestre` | INT | NOT NULL, CHECK (1, 2) | Semestre letivo (1 ou 2) |
+| `matriculados` | INT | NOT NULL, default 0 | Quantidade total de matriculados na amostra |
+| `aprovados` | INT | NOT NULL, default 0 | Total de aprovações |
+| `reprovados_nota` | INT | NOT NULL, default 0 | Reprovações por nota inferior à média |
+| `reprovados_falta` | INT | NOT NULL, default 0 | Reprovações por insuficiência de frequência |
+| `trancamentos` | INT | NOT NULL, default 0 | Quantidade de trancamentos da matéria |
+| `taxa_aprovacao` | NUMERIC(5,2) | — | Índice percentual consolidado de aprovação (ex.: `78.50`) |
+| `amostragem_suprimida_lgpd` | BOOLEAN | NOT NULL, default `FALSE` | Flag que indica se a amostra foi ocultada para proteção discente (RN07) |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de inserção |
 
-**Restrição:** `UNIQUE (disciplina_id, ano, semestre)`.
+**Restrição de Unicidade:** `UNIQUE (disciplina_id, ano, semestre)`.
 
----
-
-## 5. Colaboração Discente
-
-### `situacoes_disciplinas`
-Crowdsourcing "Já cursei essa matéria". Alimenta apenas estatísticas agregadas.
+### `metricas_consolidadas`
+Totalizadores acumulados de desempenho acadêmico por disciplina em toda a sua série histórica.
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `id` | BIGSERIAL | **PK** | Identificador |
-| `usuario_id` | UUID | NOT NULL, **FK** → `usuarios(id)` ON DELETE CASCADE | Estudante |
-| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina |
-| `situacao` | VARCHAR(20) | NOT NULL, CHECK (`APROVADO`, `REPROVADO_NOTA`, `REPROVADO_FALTA`, `TRANCOU`) | Resultado declarado |
-| `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
+| `id` | BIGSERIAL | **PK** | Identificador da métrica consolidada |
+| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE, **UNIQUE** | Disciplina associada |
+| `matriculados` | INT | NOT NULL, default 0 | Somatório total de matrículas históricas |
+| `aprovados` | INT | NOT NULL, default 0 | Somatório total de aprovações históricas |
+| `reprovados_nota` | INT | NOT NULL, default 0 | Somatório total de reprovações por nota |
+| `reprovados_falta` | INT | NOT NULL, default 0 | Somatório total de reprovações por falta |
+| `trancamentos` | INT | NOT NULL, default 0 | Somatório total de trancamentos |
+| `taxa_aprovacao_acumulada` | NUMERIC(5,2) | — | Média ponderada histórica de aprovação |
+| `total_turmas_suprimidas` | INT | NOT NULL, default 0 | Quantidade de turmas com amostragem suprimida por LGPD |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data e hora do último cálculo de consolidação |
 
-**Restrição:** `UNIQUE (usuario_id, disciplina_id)`, ou seja, um registro por aluno e disciplina (RN02).
-
-### `conteudos`
-Materiais de apoio: resumos, links, provas antigas e dicas.
+### `metricas_cursos`
+Indicadores macro de fluxo, evasão e sucesso dos cursos de graduação (dados INEP / Censo da Educação Superior).
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `id` | BIGSERIAL | **PK** | Identificador |
-| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina |
-| `turma_id` | INT | **FK** → `turmas(id)` ON DELETE SET NULL | Turma (opcional) |
-| `usuario_id` | UUID | **FK** → `usuarios(id)` ON DELETE SET NULL | Autor (mantido se a conta for removida) |
-| `titulo` | VARCHAR(200) | NOT NULL | Título |
-| `descricao` | TEXT | — | Descrição |
-| `tipo` | VARCHAR(30) | NOT NULL, CHECK (`LINK_UTIL`, `RESUMO`, `PROVA_ANTIGA`, `DICA`) | Tipo de material |
-| `url_origem` | TEXT | NOT NULL | Link do material |
-| `semestre` | VARCHAR(10) | — | Semestre de referência |
-| `status_curadoria` | VARCHAR(20) | NOT NULL, default `'PENDENTE'`, CHECK (`PENDENTE`, `APROVADO`, `RECUSADO`) | Moderação (RN06) |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
+| `id` | BIGSERIAL | **PK** | Identificador do registro do curso |
+| `curso_id` | INT | NOT NULL, **FK** → `cursos(id)` ON DELETE CASCADE | Curso de graduação |
+| `ano` | INT | NOT NULL | Ano de referência do Censo |
+| `vagas_totais` | INT | NOT NULL, default 0 | Total de vagas ofertadas no vestibular e SISU |
+| `inscritos_total` | INT | NOT NULL, default 0 | Total de inscritos concorrendo às vagas |
+| `ingressantes` | INT | NOT NULL, default 0 | Total de novos alunos que ingressaram |
+| `matriculados` | INT | NOT NULL, default 0 | Total de alunos ativos matriculados |
+| `concluintes` | INT | NOT NULL, default 0 | Total de discentes formados no ano |
+| `trancados` | INT | NOT NULL, default 0 | Total de matrículas com trancamento ativo |
+| `desvinculados` | INT | NOT NULL, default 0 | Total de abandonos/desligamentos formais |
+| `taxa_sucesso` | NUMERIC(5,2) | — | Taxa percentual de conclusão do curso |
+| `taxa_evasao` | NUMERIC(5,2) | — | Taxa percentual de evasão discente anual |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de inserção |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de atualização |
 
-### `comentarios`
-Relatos e discussões, exibidos sob pseudônimo.
+**Restrição de Unicidade:** `UNIQUE (curso_id, ano)`.
+
+---
+
+## 5. Colaboração Discente e Moderação
+
+### `situacoes_disciplinas`
+Módulo crowdsourced que permite ao estudante declarar sua experiência com a matéria ("Já cursei"). Alimenta unicamente dados agregados.
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
 | `id` | BIGSERIAL | **PK** | Identificador |
-| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina |
-| `turma_id` | INT | **FK** → `turmas(id)` ON DELETE SET NULL | Turma (opcional) |
-| `usuario_id` | UUID | NOT NULL, **FK** → `usuarios(id)` ON DELETE CASCADE | Autor real (não exibido) |
-| `autor_alias` | VARCHAR(50) | NOT NULL, default `'Estudante Anônimo'` | Pseudônimo público (RN01) |
-| `topico_dificuldade` | VARCHAR(150) | — | Tópico abordado |
+| `usuario_id` | UUID | NOT NULL, **FK** → `usuarios(id)` ON DELETE CASCADE | Estudante autor |
+| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina avaliada |
+| `situacao` | VARCHAR(20) | NOT NULL, CHECK (`APROVADO`, `REPROVADO_NOTA`, `REPROVADO_FALTA`, `TRANCOU`) | Situação declarada pelo estudante |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data da última atualização |
+
+**Restrição de Unicidade:** `UNIQUE (usuario_id, disciplina_id)` assegura exatamente um registro por aluno em cada matéria (RN02).
+
+### `conteudos`
+Repositório colaborativo de materiais didáticos: resumos, links, provas anteriores e dicas de estudo.
+
+| Coluna | Tipo | Restrições | Descrição |
+|---|---|---|---|
+| `id` | BIGSERIAL | **PK** | Identificador do material |
+| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina vinculada |
+| `turma_id` | INT | **FK** → `turmas(id)` ON DELETE SET NULL | Turma opcional de referência |
+| `usuario_id` | UUID | **FK** → `usuarios(id)` ON DELETE SET NULL | Autor do envio (preservado em caso de exclusão da conta) |
+| `titulo` | VARCHAR(200) | NOT NULL | Título descritivo do material |
+| `descricao` | TEXT | — | Detalhes adicionais sobre o conteúdo |
+| `tipo` | VARCHAR(30) | NOT NULL, CHECK (`LINK_UTIL`, `RESUMO`, `PROVA_ANTIGA`, `DICA`) | Categoria acadêmica do material |
+| `url_origem` | TEXT | NOT NULL | Link para download ou visualização externa |
+| `semestre` | VARCHAR(10) | — | Semestre de aplicação ou confecção |
+| `status_curadoria` | VARCHAR(20) | NOT NULL, default `'PENDENTE'`, CHECK (`PENDENTE`, `APROVADO`, `RECUSADO`) | Status no fluxo de moderação (RN06) |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de submissão |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de alteração de curadoria |
+
+### `comentarios`
+Relatos discentes e discussões acadêmicas sobre matérias e turmas, exibidos sob pseudônimo.
+
+| Coluna | Tipo | Restrições | Descrição |
+|---|---|---|---|
+| `id` | BIGSERIAL | **PK** | Identificador do comentário |
+| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina comentada |
+| `turma_id` | INT | **FK** → `turmas(id)` ON DELETE SET NULL | Turma vinculada (opcional) |
+| `usuario_id` | UUID | NOT NULL, **FK** → `usuarios(id)` ON DELETE CASCADE | Identificador do autor real (oculto no frontend) |
+| `autor_alias` | VARCHAR(50) | NOT NULL, default `'Estudante Anônimo'` | Pseudônimo público exibido aos leitores (RN01) |
+| `topico_dificuldade` | VARCHAR(150) | — | Classificação do tópico de maior desafio |
 | `conteudo` | TEXT | NOT NULL | Texto do comentário |
-| `parent_id` | BIGINT | **FK** → `comentarios(id)` ON DELETE CASCADE | Comentário pai (respostas em thread) |
-| `status_moderacao` | VARCHAR(20) | NOT NULL, default `'PUBLICADO'`, CHECK (`PUBLICADO`, `PENDENTE`, `OCULTO`) | Moderação |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de criação |
+| `parent_id` | BIGINT | **FK** → `comentarios(id)` ON DELETE CASCADE | Comentário pai para respostas aninhadas em árvore |
+| `status_moderacao` | VARCHAR(20) | NOT NULL, default `'PUBLICADO'`, CHECK (`PUBLICADO`, `PENDENTE`, `OCULTO`) | Estado no ciclo de moderação de termos |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de postagem |
 
 ### `votos_uteis`
-Upvotes de relevância em conteúdos e comentários.
+Mecanismo de avaliação da relevância de conteúdos e comentários por *upvotes*.
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `id` | BIGSERIAL | **PK** | Identificador |
-| `usuario_id` | UUID | NOT NULL, **FK** → `usuarios(id)` ON DELETE CASCADE | Quem votou |
-| `target_type` | VARCHAR(20) | NOT NULL, CHECK (`CONTEUDO`, `COMENTARIO`) | Tipo do alvo |
-| `target_id` | BIGINT | NOT NULL | ID do alvo (associação polimórfica, sem FK física) |
-| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data do voto |
+| `id` | BIGSERIAL | **PK** | Identificador do voto |
+| `usuario_id` | UUID | NOT NULL, **FK** → `usuarios(id)` ON DELETE CASCADE | Usuário votante |
+| `target_type` | VARCHAR(20) | NOT NULL, CHECK (`CONTEUDO`, `COMENTARIO`) | Tipo do elemento avaliado |
+| `target_id` | BIGINT | NOT NULL | Identificador do conteúdo ou comentário votado |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Carimbo do voto |
 
-**Restrição:** `UNIQUE (usuario_id, target_type, target_id)`, ou seja, um voto por item (RN03).
+**Restrição de Unicidade:** `UNIQUE (usuario_id, target_type, target_id)` impede votos duplicados no mesmo item pelo mesmo usuário (RN03).
 
 ---
 
-## 6. Controle de Migrações
+## 6. Governança e Controle de Migrações (Database-as-Code)
 
 ### `alembic_version`
-Tabela interna do Alembic que registra a revisão aplicada ao banco.
+Tabela interna utilizada pelo motor do Alembic para controle estrito de migrações em conformidade com o princípio de *Database-as-Code* (ADR 02).
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `version_num` | VARCHAR(32) | **PK** | Revisão atual (o `init.sql` grava `'001'`) |
+| `version_num` | VARCHAR(32) | **PK** | Identificador alfanumérico da revisão ativa (revisão `007`) |
 
----
+### Histórico da Linha de Base (Baseline Unificado)
 
-## ⚠️ Débitos Técnicos
+O script `init.sql` e as migrações versionadas do Alembic encontram-se **100% sincronizados no baseline 007 (Head)**:
 
-### DT-01 — Inconsistência de baseline entre `init.sql` e Alembic
-
-**Diagnóstico:**
-O `init.sql` cria o esquema e grava `alembic_version = '001'`. Porém, o diretório `backend/alembic/versions/` já possui migrações até a **`007`**:
-
-| Revisão | Migração |
-|---|---|
-| 001 | `initial_schema` |
-| 002 | `add_amostragem_suprimida_lgpd` |
-| 003 | `add_turma_ocupacao_and_metricas_consolidadas` |
-| 004 | `widen_turma_horario_and_local` |
-| 005 | `widen_departamento_columns` |
-| 006 | `add_requisitos_and_natureza` |
-| 007 | `add_metricas_cursos` |
-
-As alterações das revisões 002 a 007 não estão refletidas no `init.sql`. Exemplos: a coluna `amostragem_suprimida_lgpd` em `metricas_academicas` e o aumento de `departamento` para 255 caracteres. Assim, um banco criado só pelo `init.sql` fica divergente dos models SQLAlchemy.
-
-**Situação atual:**
-O container sobe normalmente graças à tolerância configurada no `entrypoint.sh`. Por decisão da Sprint, o `init.sql` e as migrações **não foram alterados**, para preservar a estabilidade.
-
-**Recomendação (Sprint futura dedicada a banco):**
-1. Definir o Alembic como **fonte única da verdade** do esquema (RNF05 — Database-as-Code).
-2. Reduzir o `init.sql` a tarefas que o Alembic não cobre (ex.: `CREATE EXTENSION pgcrypto`) e mover os dados de exemplo para um script de *seed* separado.
-3. Realizar o saneamento de forma **idempotente**: validar em um banco limpo que `alembic upgrade head` gera exatamente o esquema dos models e, para bancos já existentes, alinhar a revisão com `alembic stamp`.
-4. Adicionar um teste no CI que suba um banco vazio e execute as migrações, impedindo nova divergência.
+| Revisão | Identificador Alembic | Responsabilidade Técnica | Status |
+| :---: | :--- | :--- | :---: |
+| **001** | `initial_schema` | Criação das tabelas fundamentais de usuários, disciplinas, cursos e turmas | Incorporado |
+| **002** | `add_amostragem_suprimida_lgpd` | Adição da flag de supressão de pequenas amostragens discentes (LGPD / RN07) | Incorporado |
+| **003** | `add_turma_ocupacao_and_metricas_consolidadas` | Campos de capacidade/matrícula em turmas e tabela `metricas_consolidadas` | Incorporado |
+| **004** | `widen_turma_horario_and_local` | Expansão dos campos de texto de horários e salas para 255 caracteres | Incorporado |
+| **005** | `widen_departamento_columns` | Expansão das colunas de departamento em disciplinas e docentes para 255 caracteres | Incorporado |
+| **006** | `add_requisitos_and_natureza` | Adição de pré/co-requisitos e equivalências em disciplinas e natureza em cursos | Incorporado |
+| **007** | `add_metricas_cursos` | Adição de metadados em cursos e tabela `metricas_cursos` para dados do Censo | **HEAD (Ativo)** |
