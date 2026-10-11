@@ -91,12 +91,12 @@ export default function CourseDisciplinesPage() {
       if (hasCourseLink) return true;
 
       if (courseNameLower.includes("software")) {
-        return d.campus === "FGA" || d.department === "MAT" || d.department === "CIC";
+        return d.campus === "FCTE" || d.campus === "FGA" || d.department === "MAT" || d.department === "CIC";
       }
       if (courseNameLower.includes("computação") || courseNameLower.includes("computacao")) {
         return d.department === "CIC" || d.department === "MAT" || d.department === "IF";
       }
-      return d.campus === course.campus;
+      return Boolean(d.campus && course.campus && (course.campus.includes(d.campus) || d.campus.includes(course.campus)));
     });
   }, [course, allDisciplines]);
 

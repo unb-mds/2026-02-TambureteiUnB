@@ -57,18 +57,20 @@ export default function HomePage() {
   }, [courses, searchQuery, selectedCampus]);
 
   const campusBadgeColor = (campus: string) => {
-    switch (campus) {
-      case "FGA":
-        return "bg-indigo-50 text-indigo-700 border-indigo-200";
-      case "Darcy Ribeiro":
-        return "bg-purple-50 text-purple-700 border-purple-200";
-      case "FCE":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
-      case "FUP":
-        return "bg-amber-50 text-amber-800 border-amber-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
+    if (!campus) return "bg-gray-100 text-gray-700 border-gray-200";
+    if (campus.includes("FCTE") || campus.includes("FGA")) {
+      return "bg-indigo-50 text-indigo-700 border-indigo-200";
     }
+    if (campus.includes("Darcy") || campus.includes("Darcy Ribeiro")) {
+      return "bg-purple-50 text-purple-700 border-purple-200";
+    }
+    if (campus.includes("FCE") || campus.includes("Ceilândia") || campus.includes("Ceilandia")) {
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    }
+    if (campus.includes("FUP") || campus.includes("Planaltina")) {
+      return "bg-amber-50 text-amber-800 border-amber-200";
+    }
+    return "bg-gray-100 text-gray-700 border-gray-200";
   };
 
   return (
@@ -123,7 +125,7 @@ export default function HomePage() {
             <div className="flex items-center gap-2 text-xs font-semibold text-[#5B4BDB] uppercase tracking-wider mb-1">
               <span>Matrizes Curriculares</span>
               <span>•</span>
-              <span>FGA, Darcy Ribeiro, FCE e FUP</span>
+              <span>FCTE, Darcy Ribeiro, FCE e FUP</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#202124]">
               Catálogo de Cursos
