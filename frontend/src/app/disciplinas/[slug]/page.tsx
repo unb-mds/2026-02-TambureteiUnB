@@ -6,6 +6,9 @@ import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
+import CardTurma from "@/components/CardTurma";
+import { MOCK_TURMAS } from "@/mocks/turmas";
+import { getFallbackDiscipline } from "@/mocks/disciplinas";
 import { getDisciplineBySlug } from "@/services/disciplineService";
 import { Discipline, DEFAULT_HISTORICAL_PERFORMANCE } from "@/types/disciplina";
 
@@ -28,10 +31,17 @@ export default function DisciplineDetailPage() {
         setLoading(true);
         const data = await getDisciplineBySlug(slug);
         if (isMounted) {
-          setDiscipline(data);
+          if (data && data.name) {
+            setDiscipline(data);
+          } else {
+            setDiscipline(getFallbackDiscipline(slug));
+          }
         }
       } catch (err) {
-        console.error("Erro ao carregar detalhes da disciplina da API:", err);
+        console.warn(`[Tamburetei] API indisponível ou 404 para "${slug}". Carregando fallback mock:`, err);
+        if (isMounted) {
+          setDiscipline(getFallbackDiscipline(slug));
+        }
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -407,6 +417,90 @@ export default function DisciplineDetailPage() {
             </div>
           </section>
 
+          {/* Seção Turmas Ofertadas */}
+          <section className="mb-6 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EDE9FD] text-[#5B4BDB]">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-[#202124]">
+                    Turmas Ofertadas
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    Consulte docentes, horários, salas e ocupação das vagas no semestre letivo atual
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`self-start sm:self-auto rounded-full px-3 py-1 text-xs font-semibold ${
+                  MOCK_TURMAS && MOCK_TURMAS.length > 0
+                    ? "bg-[#EDE9FD] text-[#5B4BDB]"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {MOCK_TURMAS && MOCK_TURMAS.length > 0
+                  ? `${MOCK_TURMAS.length} ${
+                      MOCK_TURMAS.length === 1 ? "turma disponível" : "turmas disponíveis"
+                    }`
+                  : "0 turmas disponíveis"}
+              </span>
+            </div>
+
+            {MOCK_TURMAS && MOCK_TURMAS.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                {MOCK_TURMAS.map((turma) => (
+                  <CardTurma key={turma.id} turma={turma} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#DDD9F1] bg-[#FAFAFC] px-6 py-12 text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EDE9FD] text-[#5B4BDB]">
+                  <svg
+                    className="h-7 w-7"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-base font-bold text-[#202124]">
+                  Nenhuma turma ofertada no momento
+                </h3>
+                <p className="mt-2 max-w-md text-xs sm:text-sm text-gray-500 leading-relaxed">
+                  Não há turmas ofertadas cadastradas para o semestre atual. Novas turmas poderão ser disponibilizadas no período de matrícula.
+                </p>
+                <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#EDE9FD]/70 px-3.5 py-1 text-xs font-medium text-[#5B4BDB]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#5B4BDB]" />
+                  Acompanhe as atualizações no período de matrícula
+                </div>
+              </div>
+            )}
+          </section>
+
           {/* Seção Estatísticas Históricas e Painel de Desempenho */}
           <section className="rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
             {/* Cabeçalho do Painel */}
@@ -522,33 +616,41 @@ export default function DisciplineDetailPage() {
                     />
                   ))}
 
-                  {performanceList.map((item) => (
-                    <div
-                      key={item.semester}
-                      className="relative z-10 flex h-full w-10 sm:w-16 flex-col items-center justify-end group"
-                    >
-                      {/* Tooltip com dados no hover */}
-                      <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-nowrap z-20 shadow-md">
-                        {item.semester}: {item.approved}% aprov.
-                      </div>
+                  {performanceList.map((item) => {
+                    const total = (item.approved || 0) + (item.failed || 0) + (item.absent || 0) + (item.withdrawn || 0);
+                    const approvedPct = total > 0 ? ((item.approved / total) * 100).toFixed(1) : "0";
+                    const failedPct = total > 0 ? ((item.failed / total) * 100).toFixed(1) : "0";
+                    const absentPct = total > 0 ? ((item.absent / total) * 100).toFixed(1) : "0";
+                    const withdrawnPct = total > 0 ? ((item.withdrawn / total) * 100).toFixed(1) : "0";
 
-                      {/* Barra empilhada */}
+                    return (
                       <div
-                        className="flex h-full w-8 sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
-                        aria-label={`${item.semester}: ${item.approved}% aprovação, ${item.failed}% reprovação por nota`}
+                        key={item.semester}
+                        className="relative z-10 flex h-full w-10 sm:w-16 flex-col items-center justify-end group"
                       >
-                        <div style={{ height: `${item.approved}%`, background: "#10B981" }} title={`Aprovação: ${item.approved}%`} />
-                        <div style={{ height: `${item.failed}%`, background: "#EF4444" }} title={`Reprovação por nota: ${item.failed}%`} />
-                        <div style={{ height: `${item.absent}%`, background: "#F59E0B" }} title={`Reprovação por falta: ${item.absent}%`} />
-                        <div style={{ height: `${item.withdrawn}%`, background: "#94A3B8" }} title={`Trancamento: ${item.withdrawn}%`} />
-                      </div>
+                        {/* Tooltip com dados no hover */}
+                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-nowrap z-20 shadow-md">
+                          {item.semester}: {approvedPct}% aprov. ({item.approved}/{total})
+                        </div>
 
-                      {/* Rótulo do semestre */}
-                      <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-gray-600">
-                        {item.semester}
-                      </span>
-                    </div>
-                  ))}
+                        {/* Barra empilhada */}
+                        <div
+                          className="flex h-full w-8 sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
+                          aria-label={`${item.semester}: ${approvedPct}% aprovação, ${failedPct}% reprovação por nota`}
+                        >
+                          <div style={{ height: `${approvedPct}%`, background: "#10B981" }} title={`Aprovação: ${approvedPct}% (${item.approved})`} />
+                          <div style={{ height: `${failedPct}%`, background: "#EF4444" }} title={`Reprovação por nota: ${failedPct}% (${item.failed})`} />
+                          <div style={{ height: `${absentPct}%`, background: "#F59E0B" }} title={`Reprovação por falta: ${absentPct}% (${item.absent})`} />
+                          <div style={{ height: `${withdrawnPct}%`, background: "#94A3B8" }} title={`Trancamento: ${withdrawnPct}% (${item.withdrawn})`} />
+                        </div>
+
+                        {/* Rótulo do semestre */}
+                        <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-gray-600">
+                          {item.semester}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

@@ -113,7 +113,7 @@ export interface PaginatedDisciplines {
 export const GLOBAL_CAMPUSES = [
   "Todos os Campi",
   "Darcy Ribeiro",
-  "FGA (Gama)",
+  "FCTE (Gama)",
   "FCE (Ceilândia)",
   "FUP (Planaltina)",
 ];
@@ -128,7 +128,7 @@ export const GLOBAL_AREAS = [
 
 export const GLOBAL_DEPARTMENTS = [
   "Todos os Departamentos",
-  "FGA",
+  "FCTE",
   "MAT",
   "CIC",
   "IF",
@@ -172,8 +172,8 @@ export function adaptBackendDisciplina(
   let area: "Exatas" | "Tecnologia" | "Saúde" | "Humanas" = "Exatas";
 
   if (dep.includes("FGA") || dep.includes("FCTE")) {
-    campus = "FGA";
-    campusFilter = "FGA (Gama)";
+    campus = "FCTE";
+    campusFilter = "FCTE (Gama)";
     area = "Tecnologia";
   } else if (dep.includes("FCE")) {
     campus = "FCE";
