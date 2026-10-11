@@ -99,15 +99,72 @@ docker compose exec backend pytest --cov=app --cov-report=term-missing
 docker compose exec backend mutmut run
 ```
 
+## 🧪 Roteiro de Validação Rápida (Smoke Test)
+
+Este roteiro homologado permite que novos desenvolvedores e avaliadores validem a saúde operacional e a integração ponta a ponta de toda a stack em **menos de 5 minutos**:
+
+### Passo 1: Subida e Integridade dos Contêineres
+Certifique-se de que o Docker está em execução e inicie os serviços:
+```bash
+docker compose up -d --build
+docker compose ps
+```
+* **Critério de Aceite:** Os serviços `db` (PostgreSQL 17), `backend` (FastAPI) e `adminer` devem estar com status `Up`. Teste a resposta rápida da API:
+  ```bash
+  curl http://localhost:8000/health
+  ```
+  *(Deve retornar `{"status":"ok"}`)*
+
+### Passo 2: Aplicação de Migrações e Carga Inicial Rápida
+Garanta que as tabelas estão atualizadas e popule o catálogo com dados do campus Gama (FGA):
+```bash
+docker compose exec backend alembic upgrade head
+docker compose exec backend python -m app.pipeline.cli --source sigaa --departamento 673 --semestre 2026.2
+```
+* **Critério de Aceite:** O terminal reporta sucesso com cadastro dos cursos da FGA e mais de 350 disciplinas com pré-requisitos e turmas.
+
+### Passo 3: Inicialização do Frontend (Next.js)
+Em outro terminal, acesse o diretório do frontend e suba o servidor de desenvolvimento:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+* **Critério de Aceite:** Servidor web disponível em **[http://localhost:3000](http://localhost:3000)**.
+
+### Passo 4: Auditoria dos Fluxos Ponta a Ponta
+Abra o navegador em `http://localhost:3000` e valide os fluxos ativos da aplicação:
+
+1. **Fluxo 1 — Autenticação Discente:**
+   - Acesse `/cadastro` e registre uma nova conta com e-mail e senha.
+   - Acesse `/login`, preencha as credenciais e envie o formulário.
+   - *Verificação:* O usuário é redirecionado para a página inicial, o token JWT é persistido em `localStorage` e a Navbar exibe a sessão do usuário.
+2. **Fluxo 2 — Catálogo de Disciplinas e Detalhes:**
+   - Acesse `/disciplinas`.
+   - Teste a busca textual (ex.: "Métodos", "Cálculo"), filtre por campus ou departamento e navegue pelas páginas pelo seletor de paginação (25 disciplinas por página).
+   - Clique em um card (ex.: `/disciplinas/metodos-de-desenvolvimento-de-software`) e confirme a exibição de código, ementa oficial, créditos e grade de pré-requisitos navegáveis.
+3. **Fluxo 3 — Catálogo de Cursos:**
+   - Acesse `/cursos` e filtre pelos botões de campus (FGA, Darcy Ribeiro, FCE, FUP).
+   - Clique em "Ver disciplinas" em um curso para abrir sua matriz curricular.
+
+### Passo 5: Auditoria de Rede e Logs
+- Abra o painel de desenvolvedor do navegador (**F12 -> aba Rede / Network**): confirme que as requisições assíncronas para `http://localhost:8000` retornam status `200 OK` (ou `201 Created`), sem alertas de CORS.
+- No terminal, verifique os logs do backend:
+  ```bash
+  docker compose logs --tail=50 backend
+  ```
+  *(Não deve conter exceções não tratadas ou status HTTP 500)*
+
 ---
 
 ## 📖 Visualizar e Construir a Documentação (MkDocs)
 
 ### Visualizar localmente em tempo real:
+Para evitar colisão de portas com a API FastAPI (que roda na porta 8000), execute o servidor de documentação especificando a porta **8001**:
 ```bash
-mkdocs serve
+mkdocs serve -a localhost:8001
 ```
-Acesse no seu navegador: **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
+Acesse no seu navegador: **[http://localhost:8001](http://localhost:8001)**
 
 ### Gerar arquivos estáticos para deploy (HTML):
 ```bash
