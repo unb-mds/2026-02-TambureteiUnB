@@ -162,11 +162,17 @@ Eu, como Engenheiro de Banco de Dados, desejo versionar o esquema em migrações
 
 **Nessa issue deve ser feito:**
 - Configurar o arquivo `alembic.ini` e o runner `alembic/env.py` mapeando `Base.metadata`
-- Gerar o arquivo de migração versionada inicial `001_initial_schema.py` com as 9 tabelas e seus índices
-- Criar o script `init.sql` com as definições DDL e inserção de dados de semente (seeds) da UnB FCTE Gama
+- Versionar a estrutura do banco e seus índices por migrações Alembic, preservando revisões publicadas
+- Manter `init.sql` compatível com o baseline `007` da base atual; evoluções posteriores são aplicadas pelo Alembic
 - Configurar volume no `docker-compose.yml` montando o script em `/docker-entrypoint-initdb.d/init.sql`
 
 **Critérios de aceitação:**
-- Subir o contêiner do PostgreSQL 17 com todas as 9 tabelas e dados de teste criados automaticamente
+- Subir o contêiner do PostgreSQL 17 e aplicar as migrações pendentes, incluindo a integração de materiais
 - Executar `alembic upgrade head` sem erros de sintaxe ou conflito de tipos
 - Possibilitar reverter todo o esquema de forma limpa via `alembic downgrade base`
+
+## Arquivos de apoio — integração da Feature 5.2
+
+A tabela `materiais` guarda metadados dos arquivos, vinculados à disciplina e opcionalmente ao autor. Os binários ficam no volume privado `materiais_data`. O estado inicial `ativo` segue a US 5.2.1 do backend; a curadoria prévia de `conteudos` permanece separada.
+
+A migração `002_materiais` cria a tabela. A convergência `008_materiais_cursos` reúne o histórico de materiais e a revisão `007` de métricas de cursos, preservando revisões publicadas. Consulte [os contratos e testes](feature_5_2_materiais.md).
