@@ -522,33 +522,41 @@ export default function DisciplineDetailPage() {
                     />
                   ))}
 
-                  {performanceList.map((item) => (
-                    <div
-                      key={item.semester}
-                      className="relative z-10 flex h-full w-10 sm:w-16 flex-col items-center justify-end group"
-                    >
-                      {/* Tooltip com dados no hover */}
-                      <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-nowrap z-20 shadow-md">
-                        {item.semester}: {item.approved}% aprov.
-                      </div>
+                  {performanceList.map((item) => {
+                    const total = (item.approved || 0) + (item.failed || 0) + (item.absent || 0) + (item.withdrawn || 0);
+                    const approvedPct = total > 0 ? ((item.approved / total) * 100).toFixed(1) : "0";
+                    const failedPct = total > 0 ? ((item.failed / total) * 100).toFixed(1) : "0";
+                    const absentPct = total > 0 ? ((item.absent / total) * 100).toFixed(1) : "0";
+                    const withdrawnPct = total > 0 ? ((item.withdrawn / total) * 100).toFixed(1) : "0";
 
-                      {/* Barra empilhada */}
+                    return (
                       <div
-                        className="flex h-full w-8 sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
-                        aria-label={`${item.semester}: ${item.approved}% aprovação, ${item.failed}% reprovação por nota`}
+                        key={item.semester}
+                        className="relative z-10 flex h-full w-10 sm:w-16 flex-col items-center justify-end group"
                       >
-                        <div style={{ height: `${item.approved}%`, background: "#10B981" }} title={`Aprovação: ${item.approved}%`} />
-                        <div style={{ height: `${item.failed}%`, background: "#EF4444" }} title={`Reprovação por nota: ${item.failed}%`} />
-                        <div style={{ height: `${item.absent}%`, background: "#F59E0B" }} title={`Reprovação por falta: ${item.absent}%`} />
-                        <div style={{ height: `${item.withdrawn}%`, background: "#94A3B8" }} title={`Trancamento: ${item.withdrawn}%`} />
-                      </div>
+                        {/* Tooltip com dados no hover */}
+                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-nowrap z-20 shadow-md">
+                          {item.semester}: {approvedPct}% aprov. ({item.approved}/{total})
+                        </div>
 
-                      {/* Rótulo do semestre */}
-                      <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-gray-600">
-                        {item.semester}
-                      </span>
-                    </div>
-                  ))}
+                        {/* Barra empilhada */}
+                        <div
+                          className="flex h-full w-8 sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
+                          aria-label={`${item.semester}: ${approvedPct}% aprovação, ${failedPct}% reprovação por nota`}
+                        >
+                          <div style={{ height: `${approvedPct}%`, background: "#10B981" }} title={`Aprovação: ${approvedPct}% (${item.approved})`} />
+                          <div style={{ height: `${failedPct}%`, background: "#EF4444" }} title={`Reprovação por nota: ${failedPct}% (${item.failed})`} />
+                          <div style={{ height: `${absentPct}%`, background: "#F59E0B" }} title={`Reprovação por falta: ${absentPct}% (${item.absent})`} />
+                          <div style={{ height: `${withdrawnPct}%`, background: "#94A3B8" }} title={`Trancamento: ${withdrawnPct}% (${item.withdrawn})`} />
+                        </div>
+
+                        {/* Rótulo do semestre */}
+                        <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-gray-600">
+                          {item.semester}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

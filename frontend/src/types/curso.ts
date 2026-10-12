@@ -1,5 +1,5 @@
-export type Campus = "FGA" | "Darcy Ribeiro" | "FCE" | "FUP" | string;
-export type CampusFilter = "Todos" | "FGA" | "Darcy Ribeiro" | "FCE" | "FUP" | string;
+export type Campus = "FCTE" | "Darcy Ribeiro" | "FCE" | "FUP" | string;
+export type CampusFilter = "Todos" | "FCTE" | "Darcy Ribeiro" | "FCE" | "FUP" | string;
 
 export interface CourseMetrics {
   ano?: number;
@@ -56,7 +56,7 @@ export interface CourseDetail extends Course {
 
 export const CAMPUS_LIST: CampusFilter[] = [
   "Todos",
-  "FGA",
+  "FCTE",
   "Darcy Ribeiro",
   "FCE",
   "FUP",
