@@ -28,8 +28,9 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 * São aceitos apenas enunciados de provas públicas de semestres anteriores e materiais conceituais de estudo.
 
 ### [RN06] Curadoria de Submissões Externas
-* Todo material submetido por estudantes (links, resumos e arquivos) é gravado inicialmente com `status_curadoria = PENDENTE`.
-* O recurso só é exibido publicamente após aprovação formal de um moderador da plataforma.
+* Links e conteúdos registrados em `conteudos` entram com `status_curadoria = PENDENTE` e são exibidos após aprovação.
+* Arquivos da Feature 5.2 usam `materiais`, com estado inicial `ativo`, conforme a US 5.2.1; o download respeita os estados de moderação.
+* Os endpoints administrativos da Feature 5.3 permanecem planejados.
 
 ### [RN07] Tratamento de Dados Históricos com Baixa Amostragem (LGPD / DPO)
 * Agregações históricas oriundas de microdados públicos do DPO/INEP com **menos de 5 estudantes** em uma turma devem ser consolidadas no acumulado geral da matéria para inviabilizar qualquer identificação indireta de notas.
@@ -47,3 +48,8 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 3. **Testes de Sabotagem:** A suíte de testes deve falhar com 100% de eficácia quando falhas forem intencionalmente injetadas no domínio.
 4. **Análise Estática de Segurança (SAST):** Nenhuma vulnerabilidade crítica ou alta tolerada no pipeline (validação contínua com Bandit e SonarQube).
 5. **Reprodutibilidade:** Todo o ambiente deve subir integralmente via Docker Compose sem comandos manuais no sistema operacional hospedeiro.
+
+
+### Aplicação da moderação aos arquivos da Feature 5.2
+
+Os registros de links e conteúdos em `conteudos` seguem curadoria prévia. Os arquivos em `materiais` seguem o estado inicial `ativo` exigido pela US 5.2.1 e download condicionado ao estado de moderação. Os endpoints administrativos da Feature 5.3 continuam fora desta entrega.
