@@ -5,6 +5,11 @@ import {
   PaginatedDisciplines,
   adaptBackendDisciplina,
 } from "@/types/disciplina";
+import {
+  Class,
+  BackendTurmaResponse,
+  adaptBackendTurma,
+} from "@/types/turma";
 import { request } from "./httpClient";
 
 /**
@@ -20,7 +25,10 @@ export async function getDisciplines(filters?: {
   const params = new URLSearchParams();
   if (filters?.q) params.set("q", filters.q);
   if (filters?.codigo) params.set("codigo", filters.codigo);
-  if (filters?.departamento && filters.departamento !== "Todos os Departamentos") {
+  if (
+    filters?.departamento &&
+    filters.departamento !== "Todos os Departamentos"
+  ) {
     params.set("departamento", filters.departamento);
   }
   if (filters?.limit) params.set("limit", String(filters.limit));
@@ -39,18 +47,31 @@ export async function getCatalogDisciplines(params?: {
   departamento?: string;
   page?: number;
   size?: number;
-}): Promise<{ items: Discipline[]; total: number; page: number; size: number; pages: number }> {
+}): Promise<{
+  items: Discipline[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}> {
   const searchParams = new URLSearchParams();
   if (params?.nome) searchParams.set("nome", params.nome);
   if (params?.codigo) searchParams.set("codigo", params.codigo);
-  if (params?.departamento && params.departamento !== "Todos os Departamentos") {
+  if (
+    params?.departamento &&
+    params.departamento !== "Todos os Departamentos"
+  ) {
     searchParams.set("departamento", params.departamento);
   }
   if (params?.page) searchParams.set("page", String(params.page));
   if (params?.size) searchParams.set("size", String(params.size));
 
-  const queryStr = searchParams.toString() ? `?${searchParams.toString()}` : "";
-  const res = await request<PaginatedDisciplines>(`/catalogo/cadeiras${queryStr}`);
+  const queryStr = searchParams.toString()
+    ? `?${searchParams.toString()}`
+    : "";
+  const res = await request<PaginatedDisciplines>(
+    `/catalogo/cadeiras${queryStr}`
+  );
 
   return {
     ...res,
@@ -63,8 +84,31 @@ export async function getCatalogDisciplines(params?: {
  * incluindo ementa, pré-requisitos, equivalências e métricas consolidadas/históricas.
  */
 export async function getDisciplineBySlug(slug: string): Promise<Discipline> {
-  const raw = await request<BackendDisciplinaResponse>(`/cadeiras/${encodeURIComponent(slug)}`);
+  const raw = await request<BackendDisciplinaResponse>(
+    `/cadeiras/${encodeURIComponent(slug)}`
+  );
   return adaptBackendDisciplina(raw);
+}
+
+/**
+ * Lista as turmas/ofertas vinculadas a uma disciplina no semestre letivo.
+ */
+export async function getClassesByDiscipline(params: {
+  disciplinaId?: number;
+  codigo?: string;
+  semestre?: string;
+}): Promise<Class[]> {
+  const query = new URLSearchParams();
+  if (typeof params.disciplinaId === "number") {
+    query.set("disciplina_id", String(params.disciplinaId));
+  }
+  if (params.semestre) {
+    query.set("semestre", params.semestre);
+  }
+
+  const queryStr = query.toString() ? `?${query.toString()}` : "";
+  const items = await request<BackendTurmaResponse[]>(`/turmas${queryStr}`);
+  return items.map((item) => adaptBackendTurma(item, params.codigo));
 }
 
 /**
@@ -73,22 +117,33 @@ export async function getDisciplineBySlug(slug: string): Promise<Discipline> {
 export async function getComments(
   disciplinaId: number,
   params?: { turmaId?: number; page?: number; size?: number }
-): Promise<{ items: unknown[]; total: number; page: number; size: number; pages: number }> {
+): Promise<{
+  items: unknown[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}> {
   const query = new URLSearchParams();
   if (params?.turmaId) query.set("turma_id", String(params.turmaId));
   if (params?.page) query.set("page", String(params.page));
   if (params?.size) query.set("size", String(params.size));
 
   const queryStr = query.toString() ? `?${query.toString()}` : "";
-  return request<{ items: unknown[]; total: number; page: number; size: number; pages: number }>(
-    `/cadeiras/${disciplinaId}/comentarios${queryStr}`
-  );
+  return request<{
+    items: unknown[];
+    total: number;
+    page: number;
+    size: number;
+    pages: number;
+  }>(`/cadeiras/${disciplinaId}/comentarios${queryStr}`);
 }
 
 export const disciplineService = {
   getDisciplines,
   getCatalogDisciplines,
   getDisciplineBySlug,
+  getClassesByDiscipline,
   getComments,
 };
 
