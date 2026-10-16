@@ -112,29 +112,11 @@ export default function DisciplineDetailPage() {
     return `${val} ${val === 1 ? "aluno" : "alunos"}`;
   };
 
-  // Cálculo seguro das porcentagens reais (sem dados fixos)
-  const taxaAprovacao = metrica
-    ? (metrica.taxa_aprovacao_acumulada !== null && metrica.taxa_aprovacao_acumulada !== undefined
-        ? Number(metrica.taxa_aprovacao_acumulada)
-        : (totalMatriculados > 0 ? Number(((metrica.aprovados / totalMatriculados) * 100).toFixed(1)) : 0))
-    : (discipline.approval ?? 0);
-
-  const taxaReprovNota = metrica
-    ? (totalMatriculados > 0 ? Number(((metrica.reprovados_nota / totalMatriculados) * 100).toFixed(1)) : 0)
-    : (discipline.failedGrade ?? 0);
-
-  const taxaReprovFalta = metrica
-    ? (totalMatriculados > 0 ? Number(((metrica.reprovados_falta / totalMatriculados) * 100).toFixed(1)) : 0)
-    : (discipline.failedAttendance ?? 0);
-
-  const taxaTrancamento = metrica
-    ? (totalMatriculados > 0 ? Number(((metrica.trancamentos / totalMatriculados) * 100).toFixed(1)) : 0)
-    : (discipline.withdrawn ?? 0);
-
+  // Cards de métricas consumindo as taxas centralizadas no adaptador
   const metrics = [
     {
       label: "Taxa de Aprovação",
-      value: `${taxaAprovacao}%`,
+      value: `${discipline.approval}%`,
       count: formatAlunos(metrica?.aprovados),
       color: "#067A59",
       iconColor: "#10B981",
@@ -151,7 +133,7 @@ export default function DisciplineDetailPage() {
     },
     {
       label: "Reprovação por Nota",
-      value: `${taxaReprovNota}%`,
+      value: `${discipline.failedGrade ?? 0}%`,
       count: formatAlunos(metrica?.reprovados_nota),
       color: "#C52C2C",
       iconColor: "#EF4444",
@@ -168,7 +150,7 @@ export default function DisciplineDetailPage() {
     },
     {
       label: "Reprovação por Falta",
-      value: `${taxaReprovFalta}%`,
+      value: `${discipline.failedAttendance ?? 0}%`,
       count: formatAlunos(metrica?.reprovados_falta),
       color: "#9A5700",
       iconColor: "#F59E0B",
@@ -182,7 +164,7 @@ export default function DisciplineDetailPage() {
     },
     {
       label: "Trancamentos",
-      value: `${taxaTrancamento}%`,
+      value: `${discipline.withdrawn ?? 0}%`,
       count: formatAlunos(metrica?.trancamentos),
       color: "#526174",
       iconColor: "#64748B",
@@ -483,7 +465,7 @@ export default function DisciplineDetailPage() {
               </label>
             </div>
 
-            {/* 4 Cards de Métricas com Dados Reais */}
+            {/* 4 Cards de Métricas com Dados Reais Centralizados */}
             <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {metrics.map((metric) => (
                 <div
