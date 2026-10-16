@@ -23,6 +23,7 @@ export interface CourseReference {
 }
 
 export interface Discipline {
+  id?: number;
   code: string;
   name: string;
   slug: string;
@@ -51,6 +52,7 @@ export interface Discipline {
 
 // Backend schemas interfaces
 export interface BackendDisciplinaResumo {
+  id?: number;
   codigo: string;
   nome: string;
   slug: string;
@@ -235,6 +237,7 @@ export function adaptBackendDisciplina(
   })) || [];
 
   return {
+    id: raw.id,
     code: raw.codigo,
     name: raw.nome,
     slug: raw.slug,
