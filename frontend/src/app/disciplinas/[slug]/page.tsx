@@ -1,3 +1,5 @@
+import CommentsSection from "@/components/CommentsSection";
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -606,6 +608,9 @@ export default function DisciplineDetailPage() {
               </p>
             </div>
           </section>
+
+          {/* Seção da Comunidade e Comentários (Sprint 6) */}
+          <CommentsSection disciplineName={discipline.name} disciplineCode={discipline.code} />
         </div>
       </main>
 
