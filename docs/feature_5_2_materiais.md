@@ -1,6 +1,6 @@
 # Feature 5.2 — Compartilhamento e upload de materiais
 
-Implementação das US 5.2.1, 5.2.2 e 5.2.3 de [Histórias de Usuário do Backend](historias_usuario_backend.md), integrada à `develop` de referência `f38c67c`, na branch `feat/integracao-materiais`.
+Implementação das US 5.2.1, 5.2.2 e 5.2.3 de [Histórias de Usuário do Backend](historias_usuario_backend.md), integrada à `develop` de referência `a1b236a` (migração `008`), na branch `feat/integracao-materiais`.
 
 ## 1. Escopo e decisões de integração
 
@@ -19,7 +19,7 @@ A integração utiliza as sessões SQLAlchemy síncronas e as dependências de a
 | Camada | Arquivo | Responsabilidade |
 | --- | --- | --- |
 | Modelo | `backend/app/models/material.py` | Metadados, vínculos, estados e restrições. |
-| Migração | `backend/alembic/versions/002_materiais.py` | Evolução reversível de `001` para `002_materiais`. |
+| Migração | `backend/alembic/versions/009_add_materiais.py` | Evolução linear e reversível de `008` para `009_materiais`. |
 | Domínio | `backend/app/domain/materiais.py` | Validação de formato e tamanho, sem dependência de HTTP ou ORM. |
 | Repositório | `backend/app/repositories/material_repo.py` | Persistência, busca, paginação e filtros. |
 | Serviço | `backend/app/services/material_service.py` | Orquestração, transação e estados de disponibilidade. |
@@ -38,11 +38,13 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-O Compose mantém o bootstrap `init.sql` da base atual, que cria o esquema de referência e registra a revisão `007` em volumes novos. O backend aguarda o PostgreSQL e aplica as migrações pendentes pelo Alembic antes de iniciar a API; falhas interrompem a inicialização. O volume privado `materiais_data` preserva os arquivos entre recriações do backend. O bootstrap não é reaplicado a volumes existentes.
+O Compose mantém o bootstrap `init.sql` da base atual, que cria o esquema de referência e registra a revisão `009_materiais`, incluindo doações estatísticas e materiais em volumes novos. O backend aguarda o PostgreSQL e aplica as migrações pendentes pelo Alembic antes de iniciar a API; falhas interrompem a inicialização. O volume privado `materiais_data` preserva os arquivos entre recriações do backend. O bootstrap não é reaplicado a volumes existentes.
 
-**Banco existente:** as revisões `001`, `006`, `007`, `002_materiais` e `007_merge_materiais_pipeline` convergem para `008_materiais_cursos`. As migrações já publicadas são preservadas. A revisão `008` une os históricos sem criar novas colunas; a tabela de materiais é criada por `002_materiais`. Não executar `stamp` em uma base sem histórico sem conferir a correspondência real do esquema. Não apagar volumes para contornar conflitos.
+**Banco existente na develop:** executar `alembic upgrade head`. A cadeia é linear: `007` → `008` (doações estatísticas, já existente na develop) → `009_materiais`. As revisões bifurcadas desta PR foram substituídas antes de sua integração.
 
-Os testes verificam atualização a partir dos históricos de métricas de cursos e materiais, preservando registros acadêmicos, métricas e materiais existentes.
+**Ambientes que testaram versões anteriores da PR:** não executar atualização automática se `alembic_version` contiver `002_materiais`, `007_merge_materiais_pipeline` ou `008_materiais_cursos`. Esses identificadores não fazem parte da cadeia atual. Fazer backup do banco e dos arquivos e conferir as tabelas, restrições e índices com o responsável pelo banco antes de reconciliar o histórico. Não apagar volumes nem executar `stamp` sem essa conferência. O backend interrompe a inicialização nesse caso para evitar uma conversão silenciosa.
+
+Os testes verificam atualização desde `001`, `006`, `007` e `008`, preservação de registros e um único head.
 
 | Variável | Valor padrão | Uso |
 | --- | --- | --- |
@@ -144,7 +146,7 @@ python -m pip install -r requirements-dev.txt
 python -m pytest tests/unit -q
 ```
 
-Os testes de integração exigem `TEST_DATABASE_URL` apontando para um PostgreSQL 17 exclusivo de testes, cujo nome termine em `_test`. As migrações do pipeline usam alterações de tipos não suportadas pelo SQLite. Sem banco configurado, execute apenas `python -m pytest tests/unit -q`. Use collation com suporte a caracteres acentuados (por exemplo, ICU `pt-BR`) para validar as buscas em português:
+O comando padrão `docker compose exec backend pytest -v` funciona sem definir `TEST_DATABASE_URL`: deriva da conexão da aplicação um banco com sufixo `_test` e cria esse banco separado quando necessário. O usuário local precisa de permissão CREATEDB. A base da aplicação não recebe as migrações dos testes. Para banco externo pré-provisionado, defina `TEST_DATABASE_URL`; o nome deve terminar em `_test` e o provisionamento automático não ocorre nesse modo. As migrações do pipeline usam alterações de tipos não suportadas pelo SQLite. Sem banco configurado, execute apenas `python -m pytest tests/unit -q`. Use collation com suporte a caracteres acentuados (por exemplo, ICU `pt-BR`) para validar as buscas em português:
 
 ```bash
 export TEST_DATABASE_URL='postgresql://postgres:postgres@localhost:5432/materiais_test'
@@ -155,7 +157,7 @@ python -m pytest -q \
 python -m bandit -r app -ll
 ```
 
-As tabelas de teste são criadas pelas migrações reais; cada caso usa uma transação isolada. O teste de migração verifica os pontos `001`, `006`, `007`, `002_materiais` e `007_merge_materiais_pipeline` e retorna para `head`, portanto nunca use uma base de desenvolvimento compartilhada ou produção em `TEST_DATABASE_URL`.
+As tabelas de teste são criadas pelas migrações reais; cada caso usa uma transação isolada. O teste de migração verifica os pontos `001`, `006`, `007` e `008` e retorna para `head`, portanto nunca use uma base de desenvolvimento compartilhada ou produção em `TEST_DATABASE_URL`.
 
 No Windows, se houver erro de inicialização PyO3/bcrypt ao medir cobertura, carregue a biblioteca antes do pytest (`python -c "import bcrypt, pytest; raise SystemExit(pytest.main(['-q', '--cov=app.domain']))"`). Erros de permissão em temporários podem ser isolados com `--basetemp` apontando para uma pasta nova dedicada e `-p no:cacheprovider`.
 
@@ -174,7 +176,7 @@ mutmut results
 - A Feature 5.3 deverá gerenciar a moderação e a remoção física dos arquivos. Não foram adicionados endpoints administrativos fora do escopo 5.2.
 - Banco e diretório de arquivos não compartilham uma transação distribuída: erros capturados são compensados, mas interrupções abruptas do processo podem exigir reconciliação operacional de arquivos órfãos.
 
-A revisão final `008_materiais_cursos` converge o histórico `007` de métricas de cursos e o histórico `007_merge_materiais_pipeline`, preservando ambos.
+A revisão final `009_materiais` sucede `008` de doações estatísticas em uma cadeia linear, sem migrações de merge.
 
 
 ## 11. Rastreabilidade e integração
@@ -200,3 +202,13 @@ docker compose --env-file .env.example -p materiais-validacao exec -T -e MATERIA
 ```
 
 Aguarde `/health` responder após cada inicialização. O script cria uma conta e disciplina de teste no ambiente isolado, envia um PDF e verifica listagem pública, autenticação e conteúdo baixado. A etapa `conferir` repete a leitura após a recriação do serviço, verificando a persistência dos metadados e do arquivo. Ao encerrar, `docker compose --env-file .env.example -p materiais-validacao down` preserva os volumes para inspeção.
+
+## Revisão de integração e escopo do frontend
+
+Esta entrega implementa exclusivamente o backend. O botão de upload da página de disciplinas ainda não envia arquivos. A entrega seguinte deve substituir o alerta por formulário multipart, usar `POST /cadeiras/{id}/materiais` com JWT e conectar listagem e download, incluindo erros 401/403/413/415/422.
+
+### Materiais e conteúdos: decisão pendente do time
+
+A separação é uma proposta desta implementação, não uma decisão aprovada do time: `conteudos` referencia URLs externas com `url_origem` obrigatório e curadoria prévia; `materiais` gerencia arquivos privados, tamanho, formato, armazenamento e download autenticado. Há sobreposição de finalidade e a interface poderá precisar apresentar ambas as fontes. Não são criadas referências duplicadas automaticamente.
+
+Antes da integração, alinhar com o time se manterá as entidades separadas ou estenderá `conteudos`. Uma unificação requer definir metadados e estados de curadoria, preservar os registros existentes e ajustar os contratos. Este ponto não está resolvido apenas pela documentação e deve permanecer na revisão da PR.
