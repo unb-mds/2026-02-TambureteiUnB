@@ -1,6 +1,7 @@
 -- =====================================================================
 -- PROJETO TAMBURETEI UnB - ESQUEMA RELACIONAL OFICIAL (PostgreSQL 17)
 -- Baseado no PROJECT_CONTEXT.md e na documentação técnica (MDS 2026/2)
+-- Sincronizado integralmente com o baseline Alembic revisão 007 (Head)
 -- =====================================================================
 
 -- Extensão para geração nativa de UUIDs
@@ -30,18 +31,24 @@ CREATE TABLE IF NOT EXISTS cursos (
     grau VARCHAR(50) DEFAULT 'Bacharelado',
     turno VARCHAR(50) DEFAULT 'Diurno',
     slug VARCHAR(150) NOT NULL UNIQUE,
+    modalidade VARCHAR(50),
+    area_geral VARCHAR(100),
+    area_especifica VARCHAR(100),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS disciplinas (
     id SERIAL PRIMARY KEY,
-    codigo VARCHAR(30) NOT NULL,
+    codigo VARCHAR(30),
     slug VARCHAR(150) NOT NULL UNIQUE,
     nome VARCHAR(150) NOT NULL,
-    departamento VARCHAR(100),
+    departamento VARCHAR(255),
     creditos INT CHECK (creditos > 0),
     carga_horaria INT CHECK (carga_horaria > 0),
     ementa TEXT,
+    pre_requisitos TEXT,
+    co_requisitos TEXT,
+    equivalencias TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -52,6 +59,7 @@ CREATE TABLE IF NOT EXISTS cursos_disciplinas (
     disciplina_id INT NOT NULL REFERENCES disciplinas(id) ON DELETE CASCADE,
     periodo_sugerido INT CHECK (periodo_sugerido > 0), -- NULL para optativas livres
     is_obrigatoria BOOLEAN NOT NULL DEFAULT TRUE,
+    natureza VARCHAR(50) NOT NULL DEFAULT 'Obrigatoria',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_curso_disciplina UNIQUE (curso_id, disciplina_id)
 );
@@ -62,7 +70,7 @@ CREATE TABLE IF NOT EXISTS cursos_disciplinas (
 CREATE TABLE IF NOT EXISTS professores (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(150) NOT NULL,
-    departamento VARCHAR(100),
+    departamento VARCHAR(255),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -74,6 +82,8 @@ CREATE TABLE IF NOT EXISTS turmas (
     semestre VARCHAR(10) NOT NULL,     -- Ex: '2026.1'
     horario VARCHAR(255),              -- Ex: '35M12' (manhã) ou '35T23' (tarde)
     local VARCHAR(255),                -- Ex: 'UED - Sala 102'
+    capacidade INT,
+    matriculados INT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_disciplina_turma_semestre UNIQUE (disciplina_id, codigo_turma, semestre)
 );
@@ -86,7 +96,7 @@ CREATE TABLE IF NOT EXISTS turmas_professores (
 );
 
 -- =====================================================================
--- 4. MÉTRICAS ACADÊMICAS HISTÓRICAS (DPO / INEP / LAI)
+-- 4. MÉTRICAS ACADÊMICAS HISTÓRICAS E CONSOLIDADAS (DPO / INEP / LAI)
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS metricas_academicas (
     id BIGSERIAL PRIMARY KEY,
@@ -99,8 +109,43 @@ CREATE TABLE IF NOT EXISTS metricas_academicas (
     reprovados_falta INT NOT NULL DEFAULT 0,
     trancamentos INT NOT NULL DEFAULT 0,
     taxa_aprovacao NUMERIC(5, 2), -- Ex: 78.50%
+    amostragem_suprimida_lgpd BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_disciplina_ano_semestre UNIQUE (disciplina_id, ano, semestre)
+);
+
+-- Métricas agregadas consolidadas por disciplina (RN07 - LGPD)
+CREATE TABLE IF NOT EXISTS metricas_consolidadas (
+    id BIGSERIAL PRIMARY KEY,
+    disciplina_id INT NOT NULL REFERENCES disciplinas(id) ON DELETE CASCADE,
+    matriculados INT NOT NULL DEFAULT 0,
+    aprovados INT NOT NULL DEFAULT 0,
+    reprovados_nota INT NOT NULL DEFAULT 0,
+    reprovados_falta INT NOT NULL DEFAULT 0,
+    trancamentos INT NOT NULL DEFAULT 0,
+    taxa_aprovacao_acumulada NUMERIC(5, 2),
+    total_turmas_suprimidas INT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_metrica_consolidada_disciplina UNIQUE (disciplina_id)
+);
+
+-- Métricas históricas de fluxo e evasão por curso (INEP / Censo da Educação Superior)
+CREATE TABLE IF NOT EXISTS metricas_cursos (
+    id BIGSERIAL PRIMARY KEY,
+    curso_id INT NOT NULL REFERENCES cursos(id) ON DELETE CASCADE,
+    ano INT NOT NULL,
+    vagas_totais INT NOT NULL DEFAULT 0,
+    inscritos_total INT NOT NULL DEFAULT 0,
+    ingressantes INT NOT NULL DEFAULT 0,
+    matriculados INT NOT NULL DEFAULT 0,
+    concluintes INT NOT NULL DEFAULT 0,
+    trancados INT NOT NULL DEFAULT 0,
+    desvinculados INT NOT NULL DEFAULT 0,
+    taxa_sucesso NUMERIC(5, 2),
+    taxa_evasao NUMERIC(5, 2),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_curso_ano UNIQUE (curso_id, ano)
 );
 
 -- =====================================================================
@@ -178,6 +223,8 @@ CREATE INDEX IF NOT EXISTS idx_turmas_semestre ON turmas(semestre);
 CREATE INDEX IF NOT EXISTS idx_turmas_professores_professor ON turmas_professores(professor_id);
 
 CREATE INDEX IF NOT EXISTS idx_metricas_disciplina_ano ON metricas_academicas(disciplina_id, ano);
+CREATE INDEX IF NOT EXISTS idx_metricas_consolidadas_disciplina ON metricas_consolidadas(disciplina_id);
+CREATE INDEX IF NOT EXISTS idx_metricas_cursos_curso_ano ON metricas_cursos(curso_id, ano);
 CREATE INDEX IF NOT EXISTS idx_situacoes_disciplina ON situacoes_disciplinas(disciplina_id);
 CREATE INDEX IF NOT EXISTS idx_conteudos_disciplina_tipo ON conteudos(disciplina_id, tipo, status_curadoria);
 CREATE INDEX IF NOT EXISTS idx_conteudos_turma ON conteudos(turma_id);
@@ -187,22 +234,21 @@ CREATE INDEX IF NOT EXISTS idx_comentarios_parent ON comentarios(parent_id);
 CREATE INDEX IF NOT EXISTS idx_votos_target ON votos_uteis(target_type, target_id);
 
 -- Métricas históricas agregadas de exemplo
-INSERT INTO metricas_academicas (disciplina_id, ano, semestre, matriculados, aprovados, reprovados_nota, reprovados_falta, trancamentos, taxa_aprovacao)
-SELECT id, 2024, 1, 85, 55, 18, 5, 7, 64.71
+INSERT INTO metricas_academicas (disciplina_id, ano, semestre, matriculados, aprovados, reprovados_nota, reprovados_falta, trancamentos, taxa_aprovacao, amostragem_suprimida_lgpd)
+SELECT id, 2024, 1, 85, 55, 18, 5, 7, 64.71, false
 FROM disciplinas WHERE slug = 'calculo-1'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO metricas_academicas (disciplina_id, ano, semestre, matriculados, aprovados, reprovados_nota, reprovados_falta, trancamentos, taxa_aprovacao)
-SELECT id, 2024, 1, 60, 48, 6, 2, 4, 80.00
+INSERT INTO metricas_academicas (disciplina_id, ano, semestre, matriculados, aprovados, reprovados_nota, reprovados_falta, trancamentos, taxa_aprovacao, amostragem_suprimida_lgpd)
+SELECT id, 2024, 1, 60, 48, 6, 2, 4, 80.00, false
 FROM disciplinas WHERE slug = 'algoritmos-e-programacao-de-computadores'
 ON CONFLICT DO NOTHING;
 
 -- =====================================================================
--- 8. CONTROLE DE VERSÃO DE MIGRAÇÕES (ALEMBIC)
+-- 10. CONTROLE DE VERSÃO DE MIGRAÇÕES (ALEMBIC)
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS alembic_version (
     version_num VARCHAR(32) NOT NULL,
     CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
 );
-INSERT INTO alembic_version (version_num) VALUES ('001') ON CONFLICT DO NOTHING;
-
+INSERT INTO alembic_version (version_num) VALUES ('007') ON CONFLICT (version_num) DO UPDATE SET version_num = '007';
