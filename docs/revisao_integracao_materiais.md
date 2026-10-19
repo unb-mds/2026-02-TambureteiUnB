@@ -1,5 +1,7 @@
 # Revisão da integração de materiais — 12/10/2026
 
+> Registro histórico da preparação inicial. As alterações solicitadas em 19/10/2026 estão em [Resposta à revisão da PR #95](revisao_pr95.md) e substituem as decisões de migração descritas abaixo.
+
 ## Escopo preparado para aprovação
 
 Branch local: `feat/integracao-materiais`, baseada em `develop` (`f38c67c`). Implementação de upload, listagem pública e download autenticado, preservando cursos, comentários, métricas e frontend da base. Nenhum push, issue ou PR foi publicado nesta etapa.
