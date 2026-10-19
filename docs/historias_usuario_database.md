@@ -110,13 +110,13 @@ Depende de: US 1.1.1, US 2.1.1
 Eu, como Engenheiro de Banco de Dados, desejo modelar a tabela `conteudos`, a fim de persistir materiais de estudo e registrar seu ciclo de aprovação na moderação.
 
 **Nessa issue deve ser feito:**
-- Criar tabela `conteudos`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `titulo` (VARCHAR 200), `descricao` (TEXT), `tipo` (VARCHAR 30), `url_origem` (TEXT nullable), `caminho_arquivo` (TEXT nullable), `formato` (VARCHAR 30 nullable), `semestre` (VARCHAR 10), `status_curadoria` (VARCHAR 20) e carimbos de data
-- Adicionar constraint CHECK para os tipos aceitos: `'LINK_UTIL'`, `'RESUMO'`, `'PROVA_ANTIGA'`, `'DICA'`
+- Criar tabela `conteudos`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `titulo` (VARCHAR 200), `descricao` (TEXT), `tipo` (VARCHAR 30), `url_origem` (TEXT nullable), `caminho_arquivo` (VARCHAR 64 nullable), `formato` (VARCHAR 3 nullable), `tamanho_bytes` (INTEGER nullable), `status_moderacao` (VARCHAR 20 nullable), `semestre` (VARCHAR 10), `status_curadoria` (VARCHAR 20) e carimbos de data
+- Adicionar constraint CHECK para os tipos aceitos: `'LINK_UTIL'`, `'RESUMO'`, `'PROVA_ANTIGA'`, `'DICA'`, `'ARQUIVO'`
 - Adicionar constraint CHECK para os status de curadoria: `'PENDENTE'`, `'APROVADO'`, `'RECUSADO'`, com default `'PENDENTE'`
 - Criar índice composto em `(disciplina_id, tipo, status_curadoria)` para agilizar a listagem de materiais públicos
 
 **Critérios de aceitação:**
-- Toda nova submissão deve nascer obrigatoriamente com o status `PENDENTE`
+- Links e resumos da US 5.1.1 começam como `PENDENTE`; uploads da US 5.2.1 mantêm disponibilidade imediata com `APROVADO` e moderação `ativo`.
 - Preservar os materiais na base mesmo se o autor excluir a conta, tornando `usuario_id` nulo (`ON DELETE SET NULL`)
 - Permitir filtragem imediata apenas de materiais aprovados nas consultas públicas
 
@@ -173,6 +173,6 @@ Eu, como Engenheiro de Banco de Dados, desejo versionar o esquema em migrações
 
 ## Arquivos de apoio — integração da Feature 5.2
 
-A tabela `materiais` guarda metadados dos arquivos, vinculados à disciplina e opcionalmente ao autor. Os binários ficam no volume privado `materiais_data`. O estado inicial `ativo` segue a US 5.2.1 do backend; a curadoria prévia de `conteudos` permanece separada.
+A tabela `conteudos` também representa arquivos privados com `tipo=ARQUIVO`. Os campos opcionais `caminho_arquivo`, `formato`, `tamanho_bytes` e `status_moderacao` descrevem o upload; os binários ficam no volume privado `materiais_data`. Links e resumos anteriores preservam URL, dados e curadoria. Arquivos seguem a disponibilidade imediata da US 5.2.1, com `status_curadoria=APROVADO` e moderação `ativo`; consultas respeitam ambos os estados.
 
-A migração `002_materiais` cria a tabela. A convergência `008_materiais_cursos` reúne o histórico de materiais e a revisão `007` de métricas de cursos, preservando revisões publicadas. Consulte [os contratos e testes](feature_5_2_materiais.md).
+A migração linear `009_arquivos_conteudos` estende a entidade após `008`, sem criar uma tabela `materiais`. Consulte [os contratos e testes](feature_5_2_materiais.md).
