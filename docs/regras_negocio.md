@@ -28,8 +28,8 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 * São aceitos apenas enunciados de provas públicas de semestres anteriores e materiais conceituais de estudo.
 
 ### [RN06] Curadoria de Submissões Externas
-* Links e conteúdos registrados em `conteudos` entram com `status_curadoria = PENDENTE` e são exibidos após aprovação.
-* Arquivos da Feature 5.2 usam `materiais`, com estado inicial `ativo`, conforme a US 5.2.1; o download respeita os estados de moderação.
+* Links e resumos (tipos anteriores da US 5.1.1) registrados em `conteudos` entram com `status_curadoria = PENDENTE` e são exibidos após aprovação.
+* Arquivos da Feature 5.2 usam a mesma tabela `conteudos`, com `tipo=ARQUIVO`, `status_curadoria=APROVADO` e estado inicial de moderação `ativo`, conforme a disponibilidade imediata da US 5.2.1; listagem e download respeitam curadoria e moderação.
 * Os endpoints administrativos da Feature 5.3 permanecem planejados.
 
 ### [RN07] Tratamento de Dados Históricos com Baixa Amostragem (LGPD / DPO)
@@ -52,4 +52,4 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 
 ### Aplicação da moderação aos arquivos da Feature 5.2
 
-Os registros de links e conteúdos em `conteudos` seguem curadoria prévia. Os arquivos em `materiais` seguem o estado inicial `ativo` exigido pela US 5.2.1 e download condicionado ao estado de moderação. Os endpoints administrativos da Feature 5.3 continuam fora desta entrega.
+Os registros de links e conteúdos em `conteudos` seguem curadoria prévia. Os arquivos também estão em `conteudos`, com `tipo=ARQUIVO`, aprovação inicial da US 5.2.1 e download condicionado aos estados de curadoria e moderação. Os endpoints administrativos da Feature 5.3 continuam fora desta entrega.

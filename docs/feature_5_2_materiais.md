@@ -8,9 +8,9 @@ Implementação das US 5.2.1, 5.2.2 e 5.2.3 de [Histórias de Usuário do Backen
 - Listagem pública de materiais ativos, paginada e filtrada por título.
 - Download protegido por JWT e perfil `STUDENT`.
 - Arquivos físicos em diretório privado; somente o caminho relativo é persistido.
-- Nova tabela `materiais`, independente dos links e resumos já representados por `conteudos`.
+- Tabela única `conteudos`: links e resumos existentes são preservados; uploads usam o tipo `ARQUIVO`. Não existe tabela `materiais`.
 
-O status inicial é **`ativo`**, como determina expressamente a US 5.2.1. Essa decisão aplica-se aos arquivos desta feature; a curadoria `PENDENTE` dos registros em `conteudos` não foi alterada. O tratamento de denúncias e as ações de moderação pertencem à Feature 5.3. O download já respeita estados `em_analise`, `bloqueado` e `excluido`.
+O status inicial é **`ativo`**, como determina expressamente a US 5.2.1. Uploads entram em `conteudos` como `tipo=ARQUIVO`, `status_curadoria=APROVADO` e `status_moderacao=ativo`, preservando a disponibilidade imediata da US 5.2.1. Links e resumos mantêm a curadoria prévia com padrão `PENDENTE`. Arquivos que posteriormente estejam pendentes, recusados ou bloqueados não são listados nem baixados. O tratamento de denúncias e as ações de moderação pertencem à Feature 5.3. O download já respeita estados `em_analise`, `bloqueado` e `excluido`.
 
 A integração utiliza as sessões SQLAlchemy síncronas e as dependências de autenticação existentes na branch base. As rotas são funções síncronas, executadas pelo FastAPI fora do event loop. Uma migração global para persistência assíncrona não faz parte desta entrega.
 
@@ -18,8 +18,8 @@ A integração utiliza as sessões SQLAlchemy síncronas e as dependências de a
 
 | Camada | Arquivo | Responsabilidade |
 | --- | --- | --- |
-| Modelo | `backend/app/models/material.py` | Metadados, vínculos, estados e restrições. |
-| Migração | `backend/alembic/versions/009_add_materiais.py` | Evolução linear e reversível de `008` para `009_materiais`. |
+| Modelo | `backend/app/models/conteudo.py` | Entidade única para URLs externas e arquivos privados. |
+| Migração | `backend/alembic/versions/009_add_arquivos_conteudos.py` | Evolução linear e reversível de `008` para `009_arquivos_conteudos`. |
 | Domínio | `backend/app/domain/materiais.py` | Validação de formato e tamanho, sem dependência de HTTP ou ORM. |
 | Repositório | `backend/app/repositories/material_repo.py` | Persistência, busca, paginação e filtros. |
 | Serviço | `backend/app/services/material_service.py` | Orquestração, transação e estados de disponibilidade. |
@@ -27,7 +27,7 @@ A integração utiliza as sessões SQLAlchemy síncronas e as dependências de a
 | Schemas | `backend/app/api/schemas/material.py` | Contratos de metadados e paginação. |
 | Rotas | `backend/app/api/routers/materiais.py` | Multipart, autenticação, parâmetros e resposta binária. |
 
-O banco mantém `id`, `usuario_id`, `disciplina_id`, `titulo`, `caminho_arquivo`, `formato`, `tamanho_bytes`, `status_moderacao` e `created_at`. A API não expõe caminho interno nem identidade do autor nas respostas de materiais. A exclusão lógica da conta, já existente na autenticação, preserva as contribuições. Se houver exclusão física de usuário, a FK aplica `SET NULL`.
+A entidade preserva seus campos anteriores e acrescenta `caminho_arquivo`, `formato`, `tamanho_bytes` e `status_moderacao`, opcionais para URLs externas. `url_origem` fica opcional somente para `ARQUIVO`. Restrições no PostgreSQL exigem uma única origem: URL para os tipos anteriores ou metadados completos de arquivo para `ARQUIVO`. O ID retornado pelas rotas de materiais é o ID de `conteudos`. A API não expõe caminho interno nem identidade do autor nas respostas de materiais. A exclusão lógica da conta, já existente na autenticação, preserva as contribuições. Se houver exclusão física de usuário, a FK aplica `SET NULL`.
 
 ## 3. Preparar o ambiente
 
@@ -38,11 +38,11 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-O Compose mantém o bootstrap `init.sql` da base atual, que cria o esquema de referência e registra a revisão `009_materiais`, incluindo doações estatísticas e materiais em volumes novos. O backend aguarda o PostgreSQL e aplica as migrações pendentes pelo Alembic antes de iniciar a API; falhas interrompem a inicialização. O volume privado `materiais_data` preserva os arquivos entre recriações do backend. O bootstrap não é reaplicado a volumes existentes.
+O Compose mantém o bootstrap `init.sql` da base atual, que cria o esquema de referência e registra a revisão `009_arquivos_conteudos`, incluindo doações estatísticas e arquivos em `conteudos` em volumes novos. O backend aguarda o PostgreSQL e aplica as migrações pendentes pelo Alembic antes de iniciar a API; falhas interrompem a inicialização. O volume privado `materiais_data` preserva os arquivos entre recriações do backend. O bootstrap não é reaplicado a volumes existentes.
 
-**Banco existente na develop:** executar `alembic upgrade head`. A cadeia é linear: `007` → `008` (doações estatísticas, já existente na develop) → `009_materiais`. As revisões bifurcadas desta PR foram substituídas antes de sua integração.
+**Banco existente na develop:** executar `alembic upgrade head`. A cadeia é linear: `007` → `008` (doações estatísticas, já existente na develop) → `009_arquivos_conteudos`, que estende `conteudos` sem recriar a tabela ou alterar os registros anteriores. A atualização reconhece tanto o nome de constraint da migração inicial quanto o nome gerado pelo bootstrap antigo. As revisões bifurcadas desta PR foram substituídas antes de sua integração.
 
-**Ambientes que testaram versões anteriores da PR:** não executar atualização automática se `alembic_version` contiver `002_materiais`, `007_merge_materiais_pipeline` ou `008_materiais_cursos`. Esses identificadores não fazem parte da cadeia atual. Fazer backup do banco e dos arquivos e conferir as tabelas, restrições e índices com o responsável pelo banco antes de reconciliar o histórico. Não apagar volumes nem executar `stamp` sem essa conferência. O backend interrompe a inicialização nesse caso para evitar uma conversão silenciosa.
+**Ambientes que testaram versões anteriores da PR:** não executar atualização automática se `alembic_version` contiver `002_materiais`, `007_merge_materiais_pipeline` ou `008_materiais_cursos` ou o identificador local não publicado `009_materiais`. Esses identificadores não fazem parte da cadeia atual. Fazer backup do banco e dos arquivos e conferir as tabelas, restrições e índices com o responsável pelo banco antes de reconciliar o histórico. Não apagar volumes nem executar `stamp` sem essa conferência. O backend interrompe a inicialização nesse caso para evitar uma conversão silenciosa.
 
 Os testes verificam atualização desde `001`, `006`, `007` e `008`, preservação de registros e um único head.
 
@@ -176,7 +176,7 @@ mutmut results
 - A Feature 5.3 deverá gerenciar a moderação e a remoção física dos arquivos. Não foram adicionados endpoints administrativos fora do escopo 5.2.
 - Banco e diretório de arquivos não compartilham uma transação distribuída: erros capturados são compensados, mas interrupções abruptas do processo podem exigir reconciliação operacional de arquivos órfãos.
 
-A revisão final `009_materiais` sucede `008` de doações estatísticas em uma cadeia linear, sem migrações de merge.
+A revisão final `009_arquivos_conteudos` sucede `008` de doações estatísticas em uma cadeia linear, sem migrações de merge. O downgrade é bloqueado enquanto houver arquivos na entidade: os metadados não são apagados para forçar a reversão. Os links existentes podem ser preservados em um downgrade quando não há arquivos.
 
 
 ## 11. Rastreabilidade e integração
@@ -207,8 +207,8 @@ Aguarde `/health` responder após cada inicialização. O script cria uma conta 
 
 Esta entrega implementa exclusivamente o backend. O botão de upload da página de disciplinas ainda não envia arquivos. A entrega seguinte deve substituir o alerta por formulário multipart, usar `POST /cadeiras/{id}/materiais` com JWT e conectar listagem e download, incluindo erros 401/403/413/415/422.
 
-### Materiais e conteúdos: decisão pendente do time
+### Entidade única e contrato HTTP
 
-A separação é uma proposta desta implementação, não uma decisão aprovada do time: `conteudos` referencia URLs externas com `url_origem` obrigatório e curadoria prévia; `materiais` gerencia arquivos privados, tamanho, formato, armazenamento e download autenticado. Há sobreposição de finalidade e a interface poderá precisar apresentar ambas as fontes. Não são criadas referências duplicadas automaticamente.
+Por decisão do responsável pela entrega, a implementação usa somente `conteudos`. O tipo `ARQUIVO` distingue armazenamento privado de URLs externas, sem criar um segundo modelo ou gravar cópias da mesma contribuição. As rotas `/cadeiras/{id}/materiais` e `/materiais/{id}/download` permanecem por compatibilidade do contrato HTTP; o nome da rota não representa uma segunda tabela.
 
-Antes da integração, alinhar com o time se manterá as entidades separadas ou estenderá `conteudos`. Uma unificação requer definir metadados e estados de curadoria, preservar os registros existentes e ajustar os contratos. Este ponto não está resolvido apenas pela documentação e deve permanecer na revisão da PR.
+A listagem geral do repositório de conteúdos aprovados aceita links e arquivos, mas exclui arquivos bloqueados. A listagem de materiais retorna somente arquivos aprovados e ativos; links existentes não passam pelo download privado. O frontend poderá consumir uma única entidade de negócio, usando os contratos apropriados para cada origem. Sua integração permanece como entrega subsequente.
