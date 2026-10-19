@@ -1,11 +1,11 @@
-"""Adiciona arquivos de apoio da Feature 5.2 sem alterar revisões existentes."""
+"""Adiciona arquivos de apoio apos as doacoes estatisticas de develop."""
 
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = "002_materiais"
-down_revision = "001"
+revision = "009_materiais"
+down_revision = "008"
 branch_labels = None
 depends_on = None
 
