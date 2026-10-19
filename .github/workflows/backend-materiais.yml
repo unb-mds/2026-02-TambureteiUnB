@@ -3,9 +3,9 @@ name: Backend - Materiais
 on:
   push:
     branches: ["feat/integracao-materiais", "feat/materiais-apoio", "develop", "main"]
-    paths: ["backend/**", "docker-compose.yml", ".github/workflows/backend-materiais.yml"]
+    paths: ["backend/**", "docker-compose.yml", "init.sql", ".env.example", ".github/workflows/backend-materiais.yml"]
   pull_request:
-    paths: ["backend/**", "docker-compose.yml", ".github/workflows/backend-materiais.yml"]
+    paths: ["backend/**", "docker-compose.yml", "init.sql", ".env.example", ".github/workflows/backend-materiais.yml"]
   workflow_dispatch:
 
 permissions:
@@ -79,8 +79,10 @@ jobs:
       - name: Verificar API e migração aplicada
         run: |
           curl --fail --retry 30 --retry-delay 2 --retry-all-errors http://localhost:8000/health
-          docker compose --env-file .env.example -p materiais-ci exec -T backend alembic current | grep 008_materiais_cursos
+          docker compose --env-file .env.example -p materiais-ci exec -T backend alembic current | grep 009_materiais
           docker compose --env-file .env.example -p materiais-ci exec -T backend python -c "from app.core.database import SessionLocal; from app.models import Material; s=SessionLocal(); print('Materiais:', s.query(Material).count()); s.close()"
+      - name: Testes pelo comando padrão sem TEST_DATABASE_URL
+        run: docker compose --env-file .env.example -p materiais-ci exec -T backend pytest -v
       - name: Validar upload e persistência após recriação
         run: |
           docker compose --env-file .env.example -p materiais-ci exec -T -e MATERIAIS_SMOKE_TEST=1 -e PYTHONPATH=. backend python tests/smoke/materiais.py enviar
