@@ -48,6 +48,7 @@ export interface Discipline {
   preRequisitos?: string[];
   equivalencias?: string[];
   courses?: CourseReference[];
+  metrica_consolidada?: BackendMetricaConsolidada | null;
 }
 
 // Backend schemas interfaces
@@ -159,8 +160,7 @@ export const DEFAULT_HISTORICAL_PERFORMANCE: HistoricalPerformance[] = [
 ];
 
 /**
- * Converte dados do backend (BackendDisciplinaResumo ou BackendDisciplinaResponse)
- * para a interface completa Discipline utilizada na renderização da interface do usuário.
+ * Converte dados do backend para a interface completa Discipline
  */
 export function adaptBackendDisciplina(
   raw: BackendDisciplinaResumo | BackendDisciplinaResponse
@@ -198,16 +198,16 @@ export function adaptBackendDisciplina(
   const creditosNum = raw.creditos || 4;
   const cargaHoraria = full?.carga_horaria || creditosNum * 15;
 
-  let approval = 75.0;
-  let failedGrade = 15.0;
-  let failedAttendance = 5.0;
-  let withdrawn = 5.0;
+  let approval = 0;
+  let failedGrade = 0;
+  let failedAttendance = 0;
+  let withdrawn = 0;
 
   if (full?.metrica_consolidada) {
     const mc = full.metrica_consolidada;
     approval = mc.taxa_aprovacao_acumulada !== null && mc.taxa_aprovacao_acumulada !== undefined
       ? Number(mc.taxa_aprovacao_acumulada)
-      : (mc.matriculados > 0 ? Number(((mc.aprovados / mc.matriculados) * 100).toFixed(1)) : 75.0);
+      : (mc.matriculados > 0 ? Number(((mc.aprovados / mc.matriculados) * 100).toFixed(1)) : 0);
     if (mc.matriculados > 0) {
       failedGrade = Number(((mc.reprovados_nota / mc.matriculados) * 100).toFixed(1));
       failedAttendance = Number(((mc.reprovados_falta / mc.matriculados) * 100).toFixed(1));
@@ -259,5 +259,6 @@ export function adaptBackendDisciplina(
     preRequisitos: preReqs,
     equivalencias: equivs,
     courses,
+    metrica_consolidada: full?.metrica_consolidada || null,
   };
 }
