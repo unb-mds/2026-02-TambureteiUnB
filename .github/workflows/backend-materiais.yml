@@ -79,8 +79,8 @@ jobs:
       - name: Verificar API e migração aplicada
         run: |
           curl --fail --retry 30 --retry-delay 2 --retry-all-errors http://localhost:8000/health
-          docker compose --env-file .env.example -p materiais-ci exec -T backend alembic current | grep 009_materiais
-          docker compose --env-file .env.example -p materiais-ci exec -T backend python -c "from app.core.database import SessionLocal; from app.models import Material; s=SessionLocal(); print('Materiais:', s.query(Material).count()); s.close()"
+          docker compose --env-file .env.example -p materiais-ci exec -T backend alembic current | grep 009_arquivos_conteudos
+          docker compose --env-file .env.example -p materiais-ci exec -T backend python -c "from app.core.database import SessionLocal; from app.models import Conteudo; s=SessionLocal(); print('Materiais:', s.query(Conteudo).filter_by(tipo='ARQUIVO').count()); s.close()"
       - name: Testes pelo comando padrão sem TEST_DATABASE_URL
         run: docker compose --env-file .env.example -p materiais-ci exec -T backend pytest -v
       - name: Validar upload e persistência após recriação
