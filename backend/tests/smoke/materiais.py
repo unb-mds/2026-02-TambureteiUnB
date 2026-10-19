@@ -5,7 +5,7 @@ import sys
 import httpx
 
 from app.core.database import SessionLocal
-from app.models import Disciplina, Material
+from app.models import Disciplina, Conteudo
 
 PDF = b"%PDF-1.7\n1 0 obj\n<<>>\nendobj\n%%EOF\n"
 EMAIL = "smoke.materiais@example.com"
@@ -38,7 +38,7 @@ def executar(etapa: str) -> None:
                 )
                 assert resposta.status_code == 201, resposta.text
             assert disciplina is not None
-            material = db.query(Material).filter_by(disciplina_id=disciplina.id, titulo=TITULO).order_by(Material.id.desc()).first()
+            material = db.query(Conteudo).filter_by(disciplina_id=disciplina.id, titulo=TITULO).order_by(Conteudo.id.desc()).first()
             assert material is not None
             lista = client.get(f"/cadeiras/{disciplina.id}/materiais").json()
             assert any(item["id"] == material.id for item in lista["items"])
