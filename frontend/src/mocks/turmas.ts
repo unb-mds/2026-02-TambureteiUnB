@@ -1,0 +1,48 @@
+import { Turma } from "@/types/turma";
+
+export const MOCK_TURMAS: Turma[] = [
+  {
+    id: "1",
+    codigoTurma: "Turma 01",
+    disciplinaCodigo: "FGA0138",
+    professor: "Profª. Dra. Carla Rocha",
+    horarios: "Seg/Qua 10:00 - 11:50",
+    local: "FCTE - UAC Sala S-9",
+    vagasOcupadas: 35,
+    totalVagas: 40,
+    turno: "Diurno",
+  },
+  {
+    id: "2",
+    codigoTurma: "Turma 02",
+    disciplinaCodigo: "FGA0138",
+    professor: "Prof. Dr. Hilmer Neri",
+    horarios: "Ter/Qui 14:00 - 15:50",
+    local: "FCTE - Lab MOC",
+    vagasOcupadas: 40,
+    totalVagas: 40,
+    turno: "Vespertino",
+  },
+  {
+    id: "3",
+    codigoTurma: "Turma 03",
+    disciplinaCodigo: "FGA0158",
+    professor: "Prof. Me. Edson Alves",
+    horarios: "Seg/Qua 19:00 - 20:50",
+    local: "FCTE - UAC Sala I-3",
+    vagasOcupadas: 18,
+    totalVagas: 45,
+    turno: "Noturno",
+  },
+  {
+    id: "4",
+    codigoTurma: "Turma 04",
+    disciplinaCodigo: "FGA0160",
+    professor: "Prof. Dr. Vinicius Sebba Patto",
+    horarios: "Ter/Qui 16:00 - 17:50",
+    local: "FCTE - Lab LAPPIS",
+    vagasOcupadas: 28,
+    totalVagas: 35,
+    turno: "Vespertino",
+  },
+];
