@@ -112,11 +112,22 @@ export default function DisciplineDetailPage() {
 
   const performanceList = discipline.historicalPerformance || DEFAULT_HISTORICAL_PERFORMANCE;
 
+  // Extração dos dados consolidados reais da disciplina
+  const metrica = discipline.metrica_consolidada;
+  const totalMatriculados = metrica?.matriculados ?? 0;
+
+  // Formatação segura de quantidades de alunos
+  const formatAlunos = (qtd: number | undefined) => {
+    const val = qtd ?? 0;
+    return `${val} ${val === 1 ? "aluno" : "alunos"}`;
+  };
+
+  // Cards de métricas consumindo as taxas centralizadas no adaptador
   const metrics = [
     {
       label: "Taxa de Aprovação",
       value: `${discipline.approval}%`,
-      count: "312 alunos",
+      count: formatAlunos(metrica?.aprovados),
       color: "#067A59",
       iconColor: "#10B981",
       background: "#E9F9F3",
@@ -132,8 +143,8 @@ export default function DisciplineDetailPage() {
     },
     {
       label: "Reprovação por Nota",
-      value: `${discipline.failedGrade || 14.2}%`,
-      count: "56 alunos",
+      value: `${discipline.failedGrade ?? 0}%`,
+      count: formatAlunos(metrica?.reprovados_nota),
       color: "#C52C2C",
       iconColor: "#EF4444",
       background: "#FFF0F0",
@@ -149,8 +160,8 @@ export default function DisciplineDetailPage() {
     },
     {
       label: "Reprovação por Falta",
-      value: `${discipline.failedAttendance || 4.8}%`,
-      count: "19 alunos",
+      value: `${discipline.failedAttendance ?? 0}%`,
+      count: formatAlunos(metrica?.reprovados_falta),
       color: "#9A5700",
       iconColor: "#F59E0B",
       background: "#FFF7E8",
@@ -163,8 +174,8 @@ export default function DisciplineDetailPage() {
     },
     {
       label: "Trancamentos",
-      value: `${discipline.withdrawn || 2.6}%`,
-      count: "10 alunos",
+      value: `${discipline.withdrawn ?? 0}%`,
+      count: formatAlunos(metrica?.trancamentos),
       color: "#526174",
       iconColor: "#64748B",
       background: "#F1F5F9",
@@ -548,7 +559,7 @@ export default function DisciplineDetailPage() {
               </label>
             </div>
 
-            {/* 4 Cards de Métricas */}
+            {/* 4 Cards de Métricas com Dados Reais Centralizados */}
             <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {metrics.map((metric) => (
                 <div
@@ -590,8 +601,9 @@ export default function DisciplineDetailPage() {
                   <h3 className="text-base sm:text-lg font-bold text-[#202124]">Evolução semestral</h3>
                   <p className="mt-0.5 text-xs text-gray-500">Distribuição percentual dos resultados por semestre</p>
                 </div>
+                {/* Base acumulada dinâmica com total real */}
                 <span className="self-start sm:self-auto rounded-full bg-[#EDE9FD] px-3 py-1 text-xs font-semibold text-[#5B4BDB]">
-                  Base acumulada: 397 matrículas
+                  Base acumulada: {totalMatriculados} {totalMatriculados === 1 ? "matrícula" : "matrículas"}
                 </span>
               </div>
 
