@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
 from app.core.security import ALGORITHM, SECRET_KEY, create_access_token
-from app.models import Disciplina, Material
+from app.models import Disciplina, Conteudo
 from app.repositories.material_repo import material_repo
 from app.services.armazenamento_material import ArmazenamentoMaterial
 
@@ -33,7 +33,7 @@ def test_upload_listagem_download_com_login_real(client, db, disciplina, usuario
     assert payload["status_moderacao"] == "ativo"
     assert payload["tamanho_bytes"] == len(PDF)
     assert {"usuario_id", "caminho_arquivo", "email", "password_hash"}.isdisjoint(payload)
-    material = db.get(Material, payload["id"])
+    material = db.get(Conteudo, payload["id"])
     assert material.usuario_id == usuario.id
     assert not material.caminho_arquivo.startswith("/")
     assert (settings.MATERIALS_DIR / material.caminho_arquivo).read_bytes() == PDF
@@ -86,7 +86,7 @@ def test_conta_desativada_preserva_material_e_bloqueia_download(client, db, disc
     response = upload(client, disciplina.id, headers)
     material_id = response.json()["id"]
     assert client.delete("/auth/me", headers=headers).status_code == 200
-    assert db.get(Material, material_id) is not None
+    assert db.get(Conteudo, material_id) is not None
     assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["total"] == 1
     assert client.get(f"/materiais/{material_id}/download", headers=headers).status_code == 401
 
@@ -100,7 +100,7 @@ def test_conta_desativada_preserva_material_e_bloqueia_download(client, db, disc
 def test_rejeita_arquivos_invalidos_sem_residuos(client, db, disciplina, headers, nome, mime, content, status):
     response = upload(client, disciplina.id, headers, nome=nome, mime=mime, content=content)
     assert response.status_code == status
-    assert db.scalar(select(func.count()).select_from(Material)) == 0
+    assert db.scalar(select(func.count()).select_from(Conteudo)) == 0
     assert not list(settings.MATERIALS_DIR.glob("*"))
 
 
@@ -109,7 +109,7 @@ def test_limite_de_5mib(client, db, disciplina, headers):
     content = b"%PDF-" + b"x" * (tamanho - 5)
     assert upload(client, disciplina.id, headers, content=content).status_code == 201
     assert upload(client, disciplina.id, headers, content=content + b"x").status_code == 413
-    assert db.scalar(select(func.count()).select_from(Material)) == 1
+    assert db.scalar(select(func.count()).select_from(Conteudo)) == 1
     assert len(list(settings.MATERIALS_DIR.iterdir())) == 1
 
 
@@ -133,7 +133,7 @@ def test_filtro_paginacao_e_moderacao(client, db, disciplina, headers):
     ids = []
     for titulo in ["Resumo A", "RESUMO B", "Outro", "100%_literal", "Resumo oculto"]:
         ids.append(upload(client, disciplina.id, headers, titulo=titulo).json()["id"])
-    db.get(Material, ids[-1]).status_moderacao = "em_analise"
+    db.get(Conteudo, ids[-1]).status_moderacao = "em_analise"
     outra = Disciplina(nome="Outra", slug="outra")
     db.add(outra)
     db.commit()
@@ -156,7 +156,7 @@ def test_paginacao_invalida(client, disciplina, parametros):
 @pytest.mark.parametrize("estado,esperado", [("em_analise", 403), ("bloqueado", 403), ("excluido", 404)])
 def test_download_respeita_moderacao(client, db, disciplina, headers, estado, esperado):
     material_id = upload(client, disciplina.id, headers).json()["id"]
-    db.get(Material, material_id).status_moderacao = estado
+    db.get(Conteudo, material_id).status_moderacao = estado
     db.commit()
     assert client.get(f"/materiais/{material_id}/download", headers=headers).status_code == esperado
     assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["items"] == []
@@ -165,7 +165,7 @@ def test_download_respeita_moderacao(client, db, disciplina, headers, estado, es
 def test_download_inexistente_arquivo_ausente_e_caminho_invalido(client, db, disciplina, headers):
     assert client.get("/materiais/999999/download", headers=headers).status_code == 404
     material_id = upload(client, disciplina.id, headers).json()["id"]
-    material = db.get(Material, material_id)
+    material = db.get(Conteudo, material_id)
     (settings.MATERIALS_DIR / material.caminho_arquivo).unlink()
     assert client.get(f"/materiais/{material_id}/download", headers=headers).status_code == 404
     material.caminho_arquivo = "../.env"
@@ -176,7 +176,7 @@ def test_download_inexistente_arquivo_ausente_e_caminho_invalido(client, db, dis
 def test_nomes_iguais_nao_sobrescrevem(client, db, disciplina, headers):
     primeiro = upload(client, disciplina.id, headers, nome="../../resumo.pdf").json()["id"]
     segundo = upload(client, disciplina.id, headers, nome="../../resumo.pdf").json()["id"]
-    assert db.get(Material, primeiro).caminho_arquivo != db.get(Material, segundo).caminho_arquivo
+    assert db.get(Conteudo, primeiro).caminho_arquivo != db.get(Conteudo, segundo).caminho_arquivo
     assert len(list(settings.MATERIALS_DIR.iterdir())) == 2
 
 
@@ -184,20 +184,20 @@ def test_falha_de_banco_remove_arquivo(client, db, disciplina, headers):
     with patch.object(material_repo, "adicionar", side_effect=SQLAlchemyError("falha simulada")):
         assert upload(client, disciplina.id, headers).status_code == 503
     assert list(settings.MATERIALS_DIR.iterdir()) == []
-    assert db.scalar(select(func.count()).select_from(Material)) == 0
+    assert db.scalar(select(func.count()).select_from(Conteudo)) == 0
 
 
 def test_falha_de_commit_remove_arquivo(client, db, disciplina, headers):
     with patch.object(db, "commit", side_effect=SQLAlchemyError("falha simulada")):
         assert upload(client, disciplina.id, headers).status_code == 503
     assert list(settings.MATERIALS_DIR.iterdir()) == []
-    assert db.scalar(select(func.count()).select_from(Material)) == 0
+    assert db.scalar(select(func.count()).select_from(Conteudo)) == 0
 
 
 def test_falha_de_disco_nao_grava_metadados(client, db, disciplina, headers):
     with patch.object(ArmazenamentoMaterial, "salvar", side_effect=OSError("falha simulada")):
         assert upload(client, disciplina.id, headers).status_code == 503
-    assert db.scalar(select(func.count()).select_from(Material)) == 0
+    assert db.scalar(select(func.count()).select_from(Conteudo)) == 0
 
 
 def test_schema_openapi(client):

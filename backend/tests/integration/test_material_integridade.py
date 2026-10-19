@@ -2,14 +2,14 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Material
+from app.models import Conteudo
 
 
 def material_valido(disciplina_id, usuario_id=None, **alteracoes):
     dados = dict(disciplina_id=disciplina_id, usuario_id=usuario_id, titulo="Resumo",
                  caminho_arquivo="a" * 32 + ".pdf", formato="pdf", tamanho_bytes=10)
     dados.update(alteracoes)
-    return Material(**dados)
+    return Conteudo(tipo="ARQUIVO", status_curadoria="APROVADO", status_moderacao=dados.pop("status_moderacao", "ativo"), **dados)
 
 
 @pytest.mark.parametrize("alteracoes", [
@@ -50,4 +50,4 @@ def test_exclusao_da_disciplina_remove_metadados(db, disciplina):
     db.delete(disciplina)
     db.commit()
     db.expunge_all()
-    assert db.get(Material, material_id) is None
+    assert db.get(Conteudo, material_id) is None

@@ -187,12 +187,22 @@ CREATE TABLE IF NOT EXISTS conteudos (
     usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
     titulo VARCHAR(200) NOT NULL,
     descricao TEXT,
-    tipo VARCHAR(30) NOT NULL CHECK (tipo IN ('LINK_UTIL', 'RESUMO', 'PROVA_ANTIGA', 'DICA')),
-    url_origem TEXT NOT NULL,
+    tipo VARCHAR(30) NOT NULL CONSTRAINT chk_tipo_conteudo CHECK (tipo IN ('LINK_UTIL', 'RESUMO', 'PROVA_ANTIGA', 'DICA', 'ARQUIVO')),
+    url_origem TEXT,
+    caminho_arquivo VARCHAR(64),
+    formato VARCHAR(3),
+    tamanho_bytes INTEGER,
+    status_moderacao VARCHAR(20),
     semestre VARCHAR(10), -- Ex: '2024.1'
     status_curadoria VARCHAR(20) NOT NULL DEFAULT 'PENDENTE' CHECK (status_curadoria IN ('PENDENTE', 'APROVADO', 'RECUSADO')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_conteudos_caminho_arquivo UNIQUE (caminho_arquivo),
+    CONSTRAINT chk_origem_conteudo CHECK ((tipo = 'ARQUIVO' AND url_origem IS NULL AND caminho_arquivo IS NOT NULL AND formato IS NOT NULL AND tamanho_bytes IS NOT NULL AND status_moderacao IS NOT NULL) OR (tipo <> 'ARQUIVO' AND url_origem IS NOT NULL AND caminho_arquivo IS NULL AND formato IS NULL AND tamanho_bytes IS NULL AND status_moderacao IS NULL)),
+    CONSTRAINT chk_conteudo_formato CHECK (formato IS NULL OR formato IN ('pdf', 'png', 'jpg')),
+    CONSTRAINT chk_conteudo_tamanho CHECK (tamanho_bytes IS NULL OR tamanho_bytes > 0),
+    CONSTRAINT chk_conteudo_titulo CHECK (tipo <> 'ARQUIVO' OR length(trim(titulo)) > 0),
+    CONSTRAINT chk_conteudo_moderacao CHECK (status_moderacao IS NULL OR status_moderacao IN ('ativo', 'em_analise', 'bloqueado', 'excluido'))
 );
 
 -- =====================================================================
@@ -246,6 +256,7 @@ CREATE INDEX IF NOT EXISTS idx_situacoes_disciplina ON situacoes_disciplinas(dis
 CREATE INDEX IF NOT EXISTS idx_doacoes_turma_status ON doacoes_estatisticas(turma_id, status);
 CREATE INDEX IF NOT EXISTS idx_doacoes_usuario ON doacoes_estatisticas(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_conteudos_disciplina_tipo ON conteudos(disciplina_id, tipo, status_curadoria);
+CREATE INDEX IF NOT EXISTS ix_conteudos_arquivos_disciplina_status ON conteudos(disciplina_id, tipo, status_curadoria, status_moderacao, id);
 CREATE INDEX IF NOT EXISTS idx_conteudos_turma ON conteudos(turma_id);
 CREATE INDEX IF NOT EXISTS idx_comentarios_disciplina ON comentarios(disciplina_id);
 CREATE INDEX IF NOT EXISTS idx_comentarios_turma ON comentarios(turma_id);
@@ -266,27 +277,8 @@ ON CONFLICT DO NOTHING;
 -- =====================================================================
 -- 10. CONTROLE DE VERSÃO DE MIGRAÇÕES (ALEMBIC)
 -- =====================================================================
--- Arquivos privados da Feature 5.2 (conteudos continua representando referencias externas).
-CREATE TABLE IF NOT EXISTS materiais (
-    id SERIAL PRIMARY KEY,
-    usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-    disciplina_id INTEGER NOT NULL REFERENCES disciplinas(id) ON DELETE CASCADE,
-    titulo VARCHAR(200) NOT NULL,
-    caminho_arquivo VARCHAR(64) NOT NULL UNIQUE,
-    formato VARCHAR(3) NOT NULL,
-    tamanho_bytes INTEGER NOT NULL,
-    status_moderacao VARCHAR(20) NOT NULL DEFAULT 'ativo',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT chk_material_formato CHECK (formato IN ('pdf', 'png', 'jpg')),
-    CONSTRAINT chk_material_tamanho CHECK (tamanho_bytes > 0),
-    CONSTRAINT chk_material_titulo CHECK (length(trim(titulo)) > 0),
-    CONSTRAINT chk_material_status CHECK (status_moderacao IN ('ativo', 'em_analise', 'bloqueado', 'excluido'))
-);
-CREATE INDEX IF NOT EXISTS ix_materiais_disciplina_status_id ON materiais(disciplina_id, status_moderacao, id);
-CREATE INDEX IF NOT EXISTS ix_materiais_usuario_id ON materiais(usuario_id);
-
 CREATE TABLE IF NOT EXISTS alembic_version (
     version_num VARCHAR(32) NOT NULL,
     CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
 );
-INSERT INTO alembic_version (version_num) VALUES ('009_materiais') ON CONFLICT (version_num) DO UPDATE SET version_num = '009_materiais';
+INSERT INTO alembic_version (version_num) VALUES ('009_arquivos_conteudos') ON CONFLICT (version_num) DO UPDATE SET version_num = '009_arquivos_conteudos';

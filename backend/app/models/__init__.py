@@ -10,10 +10,8 @@ from app.models.conteudo import Conteudo
 from app.models.comentario import Comentario
 from app.models.voto import VotoUtil
 
-from app.models.material import Material
 
 __all__ = [
-    "Material",
     "Base",
     "Curso",
     "CursoDisciplina",
