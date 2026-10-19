@@ -6,7 +6,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy.engine import make_url
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from app.main import app
@@ -19,11 +19,26 @@ from app.models.disciplina import Disciplina
 
 @pytest.fixture(scope="session")
 def engine():
-    url = os.getenv("TEST_DATABASE_URL")
-    if not url or not (make_url(url).database or "").endswith("_test"):
-        raise ValueError("Configure TEST_DATABASE_URL para banco dedicado com sufixo _test.")
-    if make_url(url).get_backend_name() != "postgresql":
+    explicit_url = os.getenv("TEST_DATABASE_URL")
+    url = make_url(explicit_url or settings.SQLALCHEMY_DATABASE_URI)
+    if not explicit_url:
+        # O comando habitual funciona sem migrar ou limpar a base da aplicacao.
+        url = url.set(database=(url.database or "tamburetei") + "_test")
+    if not (url.database or "").endswith("_test"):
+        raise ValueError("TEST_DATABASE_URL deve apontar para banco dedicado com sufixo _test.")
+    if url.get_backend_name() != "postgresql":
         raise ValueError("Os testes de integração exigem PostgreSQL.")
+    if not explicit_url:
+        admin = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")
+        try:
+            with admin.connect() as connection:
+                exists = connection.scalar(text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": url.database})
+                if not exists:
+                    name = connection.dialect.identifier_preparer.quote_identifier(url.database)
+                    connection.exec_driver_sql(f"CREATE DATABASE {name}")
+        finally:
+            admin.dispose()
+    url = url.render_as_string(hide_password=False)
     with patch.object(Settings, "SQLALCHEMY_DATABASE_URI", property(lambda _: url)):
         command.upgrade(Config("alembic.ini"), "head")
     test_engine = create_engine(url)
