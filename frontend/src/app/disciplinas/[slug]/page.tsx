@@ -6,6 +6,9 @@ import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
+import CardTurma from "@/components/CardTurma";
+import { MOCK_TURMAS } from "@/mocks/turmas";
+import { getFallbackDiscipline } from "@/mocks/disciplinas";
 import { getDisciplineBySlug } from "@/services/disciplineService";
 import { Discipline, DEFAULT_HISTORICAL_PERFORMANCE } from "@/types/disciplina";
 
@@ -28,10 +31,17 @@ export default function DisciplineDetailPage() {
         setLoading(true);
         const data = await getDisciplineBySlug(slug);
         if (isMounted) {
-          setDiscipline(data);
+          if (data && data.name) {
+            setDiscipline(data);
+          } else {
+            setDiscipline(getFallbackDiscipline(slug));
+          }
         }
       } catch (err) {
-        console.error("Erro ao carregar detalhes da disciplina da API:", err);
+        console.warn(`[Tamburetei] API indisponível ou 404 para "${slug}". Carregando fallback mock:`, err);
+        if (isMounted) {
+          setDiscipline(getFallbackDiscipline(slug));
+        }
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -416,6 +426,90 @@ export default function DisciplineDetailPage() {
                 </ul>
               </div>
             </div>
+          </section>
+
+          {/* Seção Turmas Ofertadas */}
+          <section className="mb-6 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EDE9FD] text-[#5B4BDB]">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-[#202124]">
+                    Turmas Ofertadas
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    Consulte docentes, horários, salas e ocupação das vagas no semestre letivo atual
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`self-start sm:self-auto rounded-full px-3 py-1 text-xs font-semibold ${
+                  MOCK_TURMAS && MOCK_TURMAS.length > 0
+                    ? "bg-[#EDE9FD] text-[#5B4BDB]"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {MOCK_TURMAS && MOCK_TURMAS.length > 0
+                  ? `${MOCK_TURMAS.length} ${
+                      MOCK_TURMAS.length === 1 ? "turma disponível" : "turmas disponíveis"
+                    }`
+                  : "0 turmas disponíveis"}
+              </span>
+            </div>
+
+            {MOCK_TURMAS && MOCK_TURMAS.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                {MOCK_TURMAS.map((turma) => (
+                  <CardTurma key={turma.id} turma={turma} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#DDD9F1] bg-[#FAFAFC] px-6 py-12 text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EDE9FD] text-[#5B4BDB]">
+                  <svg
+                    className="h-7 w-7"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-base font-bold text-[#202124]">
+                  Nenhuma turma ofertada no momento
+                </h3>
+                <p className="mt-2 max-w-md text-xs sm:text-sm text-gray-500 leading-relaxed">
+                  Não há turmas ofertadas cadastradas para o semestre atual. Novas turmas poderão ser disponibilizadas no período de matrícula.
+                </p>
+                <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#EDE9FD]/70 px-3.5 py-1 text-xs font-medium text-[#5B4BDB]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#5B4BDB]" />
+                  Acompanhe as atualizações no período de matrícula
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Seção Estatísticas Históricas e Painel de Desempenho */}
