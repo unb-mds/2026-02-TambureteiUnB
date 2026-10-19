@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.api.schemas.material import MaterialPage, MaterialResponse, validar_titulo
 from app.domain.materiais import ArquivoMuitoGrande, ArquivoVazio, FormatoNaoSuportado
-from app.models.material import Material
+from app.models.conteudo import Conteudo
 from app.repositories.disciplina_repo import disciplina_repo
 from app.repositories.material_repo import material_repo
 from app.services.armazenamento_material import ArmazenamentoMaterial
@@ -48,7 +48,8 @@ class MaterialService:
             raise HTTPException(503, "Armazenamento temporariamente indisponível.") from exc
 
         try:
-            material = Material(
+            material = Conteudo(
+                tipo="ARQUIVO", status_curadoria="APROVADO",
                 usuario_id=usuario_id, disciplina_id=disciplina_id, titulo=titulo,
                 caminho_arquivo=chave, formato=formato, tamanho_bytes=tamanho,
                 status_moderacao="ativo",
@@ -77,11 +78,11 @@ class MaterialService:
         )
         return MaterialPage(items=materiais, total=total, pagina=pagina, tamanho_pagina=tamanho_pagina)
 
-    def baixar(self, db: Session, material_id: int) -> tuple[Material, Path]:
+    def baixar(self, db: Session, material_id: int) -> tuple[Conteudo, Path]:
         material = material_repo.get_by_id(db, material_id)
         if material is None or material.status_moderacao == "excluido":
             raise HTTPException(404, "Material não encontrado.")
-        if material.status_moderacao != "ativo":
+        if material.status_moderacao != "ativo" or material.status_curadoria != "APROVADO":
             raise HTTPException(403, "Material indisponível por moderação.")
         try:
             caminho = self.armazenamento.localizar(material.caminho_arquivo)

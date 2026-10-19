@@ -1,18 +1,18 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.material import Material
+from app.models.conteudo import Conteudo
 from app.repositories.base import BaseRepository
 
 
-class MaterialRepository(BaseRepository[Material]):
+class MaterialRepository(BaseRepository[Conteudo]):
     def __init__(self) -> None:
-        super().__init__(Material)
+        super().__init__(Conteudo)
 
-    def get_by_id(self, db: Session, material_id: int) -> Material | None:
-        return db.get(Material, material_id)
+    def get_by_id(self, db: Session, material_id: int) -> Conteudo | None:
+        return db.scalar(select(Conteudo).where(Conteudo.id == material_id, Conteudo.tipo == "ARQUIVO"))
 
-    def adicionar(self, db: Session, material: Material) -> None:
+    def adicionar(self, db: Session, material: Conteudo) -> None:
         """A transação é concluída pelo serviço junto ao armazenamento do arquivo."""
         db.add(material)
         db.flush()
@@ -20,13 +20,18 @@ class MaterialRepository(BaseRepository[Material]):
 
     def listar_ativos(
         self, db: Session, disciplina_id: int, titulo: str | None, pagina: int, tamanho_pagina: int
-    ) -> tuple[list[Material], int]:
-        filtros = [Material.disciplina_id == disciplina_id, Material.status_moderacao == "ativo"]
+    ) -> tuple[list[Conteudo], int]:
+        filtros = [
+            Conteudo.disciplina_id == disciplina_id,
+            Conteudo.tipo == "ARQUIVO",
+            Conteudo.status_curadoria == "APROVADO",
+            Conteudo.status_moderacao == "ativo",
+        ]
         if titulo:
-            filtros.append(Material.titulo.icontains(titulo, autoescape=True))
-        total = db.scalar(select(func.count()).select_from(Material).where(*filtros)) or 0
+            filtros.append(Conteudo.titulo.icontains(titulo, autoescape=True))
+        total = db.scalar(select(func.count()).select_from(Conteudo).where(*filtros)) or 0
         consulta = (
-            select(Material).where(*filtros).order_by(Material.id.desc())
+            select(Conteudo).where(*filtros).order_by(Conteudo.id.desc())
             .offset((pagina - 1) * tamanho_pagina).limit(tamanho_pagina)
         )
         return list(db.scalars(consulta)), total
