@@ -19,7 +19,7 @@ markdown_extensions:
       custom_fences:
         - name: mermaid
           class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
+          format: !!python/name:pymdownx.superfences.fence_div_format
   - pymdownx.arithmatex:
       generic: true
 
@@ -29,13 +29,17 @@ extra_javascript:
 
 nav:
   - Documento de Visão: index.md
-  - Arquitetura Geral do Sistema: arquitetura.md
-  - Requisitos do Sistema: requisitos.md
-  - Histórias de Usuário do Backend: historias_usuario_backend.md
-  - Histórias de Usuário do Frontend: historias_usuario_frontend.md
-  - Histórias de Usuário do Banco de Dados: historias_usuario_database.md
-  - Arquitetura & Banco de Dados: historias_usuario_arquitetura.md
-  - Pipeline de Dados & ETL: pipeline_etl.md
-  - Como Popular o Banco de Dados: popular_banco_de_dados.md
-  - Regras de Negócio & Governança: regras_negocio.md
-  - Guia de Desenvolvimento: desenvolvimento.md
+  - Planejamento & Requisitos:
+      - Requisitos do Sistema: requisitos.md
+      - Regras de Negócio & Governança: regras_negocio.md
+  - Arquitetura & Banco de Dados:
+      - Arquitetura do Sistema & ADRs: arquitetura.md
+      - Dicionário de Dados Relacional: banco_de_dados.md
+  - Engenharia de Dados & ETL:
+      - Pipeline de Dados & ETL: pipeline_etl.md
+      - Como Popular o Banco de Dados: popular_banco_de_dados.md
+  - Histórias de Usuário:
+      - Backend: historias_usuario_backend.md
+      - Frontend: historias_usuario_frontend.md
+      - Banco de Dados: historias_usuario_database.md
+  - Guia do Desenvolvedor: desenvolvimento.md
