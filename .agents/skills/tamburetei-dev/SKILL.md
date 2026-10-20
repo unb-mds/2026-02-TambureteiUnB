@@ -1,6 +1,6 @@
 ---
 name: tamburetei-dev
-description: Diretrizes de arquitetura, banco de dados, governança e regras de negócio para desenvolvimento do Tamburetei UnB (MDS 2026/2). Use sempre que for criar ou alterar código no backend FastAPI, modelos SQLAlchemy, migrações Alembic, rotas ou testes.
+description: Diretrizes de arquitetura, banco de dados, governança, estilo de texto e regras de negócio para desenvolvimento do Tamburetei UnB (MDS 2026/2). Use sempre que for criar ou alterar código no backend FastAPI, modelos SQLAlchemy, migrações Alembic, rotas, testes ou textos técnicos.
 ---
 
 # Skill: Desenvolvimento do Tamburetei UnB
@@ -9,7 +9,13 @@ Esta skill instrui agentes de IA a seguirem rigorosamente os padrões técnicos,
 
 ---
 
-## 🏛️ Diretrizes Arquiteturais Obrigatórias
+## Regra de Escrita e Comunicação (Proibição Estrita de Emojis)
+
+* Proibição Estrita de Emojis: Nunca utilize emojis sob nenhuma hipótese em qualquer texto gerado, incluindo respostas no chat, documentações, mensagens de commit, títulos ou corpos de Pull Requests, Issues e comentários em código. Toda comunicação deve ser técnica, limpa, objetiva e exclusivamente em formato textual formal sem nenhum caractere pictográfico ou emoji.
+
+---
+
+## Diretrizes Arquiteturais Obrigatórias
 
 1. **Separação Estrita de Camadas (Clean Architecture):**
    * `api/`: Apenas roteamento HTTP do FastAPI e validação de entrada/saída com schemas Pydantic v2. Nunca invocar consultas de banco de dados diretamente aqui.
@@ -32,7 +38,7 @@ Esta skill instrui agentes de IA a seguirem rigorosamente os padrões técnicos,
 
 ---
 
-## 📌 Entidades Canônicas do Banco de Dados
+## Entidades Canônicas do Banco de Dados
 
 * `usuarios`: id, nome, email, password_hash, role (STUDENT, MODERATOR, ADMIN), is_active, created_at.
 * `cursos`: id, codigo_mec, nome, campus, grau, turno, slug.
@@ -46,7 +52,7 @@ Esta skill instrui agentes de IA a seguirem rigorosamente os padrões técnicos,
 
 ---
 
-## ⚖️ Regras de Negócio Críticas (RN)
+## Regras de Negócio Críticas (RN)
 
 * **[RN01] Anonimato Discente:** Nenhuma ação pública do estudante expõe dados pessoais nominais.
 * **[RN02] Unicidade de Situação na Disciplina:** Cada estudante possui apenas 1 registro ativo por cadeira. Novos registros da mesma matéria atualizam o status anterior.
@@ -59,7 +65,7 @@ Esta skill instrui agentes de IA a seguirem rigorosamente os padrões técnicos,
 
 ---
 
-## 🎯 Portas de Qualidade da Disciplina (MDS 2026/2)
+## Portas de Qualidade da Disciplina (MDS 2026/2)
 
 1. **Cobertura de Código:** Mínimo de **70% de cobertura** de linhas no módulo de domínio (`app/domain/`).
 2. **Escore de Mutação:** Mínimo de **50% de mortes** de mutantes nas regras de negócio com Mutmut.
@@ -69,7 +75,7 @@ Esta skill instrui agentes de IA a seguirem rigorosamente os padrões técnicos,
 
 ---
 
-## 🛠️ Comandos de Referência Rápida
+## Comandos de Referência Rápida
 
 * **Subir contêineres:**
   ```bash
