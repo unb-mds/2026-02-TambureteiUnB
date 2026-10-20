@@ -18,6 +18,7 @@ export const api = {
   getDisciplines: disciplineService.getDisciplines,
   getCatalogDisciplines: disciplineService.getCatalogDisciplines,
   getDisciplineBySlug: disciplineService.getDisciplineBySlug,
+  getClassesByDiscipline: disciplineService.getClassesByDiscipline,
   getComments: disciplineService.getComments,
   login: authService.login,
   register: authService.register,

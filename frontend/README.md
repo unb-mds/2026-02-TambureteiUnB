@@ -34,7 +34,7 @@ Acesse [http://localhost:3000](http://localhost:3000) no seu navegador.
 
 A arquitetura do frontend conta com componentes modulares, acessíveis e reutilizáveis organizados em `src/components`:
 
-### `CardTurma` (`src/components/CardTurma.tsx`)
+### `ClassCard` (`src/components/ClassCard.tsx`)
 
 Componente responsável por exibir as informações essenciais de cada turma ofertada para uma disciplina no semestre letivo vigente.
 
@@ -44,7 +44,7 @@ Componente responsável por exibir as informações essenciais de cada turma ofe
 - **Badges de Identificação e Turno:**
   - **Identificador da Turma:** Badge de destaque com o código da turma (ex.: `Turma 01`, `Turma 02`) estilizado com as cores temáticas do sistema (`bg-[#EDE9FD] text-[#5B4BDB]`).
   - **Turno de Oferta:** Badges semânticos com paleta de cores contextual para rápida identificação:
-    - **Diurno:** Tons de âmbar (`bg-amber-50 text-amber-700 border-amber-200/80`).
+    - **Matutino / Diurno:** Tons de âmbar (`bg-amber-50 text-amber-700 border-amber-200/80`).
     - **Vespertino:** Tons de laranja (`bg-orange-50 text-orange-700 border-orange-200/80`).
     - **Noturno:** Tons de índigo (`bg-indigo-50 text-indigo-700 border-indigo-200/80`).
 
@@ -54,9 +54,14 @@ Componente responsável por exibir as informações essenciais de cada turma ofe
   - **Indicador de Vagas Esgotadas:** Quando `vagasOcupadas >= totalVagas`, o componente exibe um badge visual `Esgotada` em vermelho (`bg-rose-100 text-rose-700`) e a barra de progresso adota a cor de alerta (`bg-rose-500` / `text-rose-600`).
 
 ### Outros Componentes do Sistema
+- **`ClassCardSkeleton`**: Skeleton loader com dimensões equivalentes ao `ClassCard` para prevenção de CLS durante o carregamento.
+- **`ClassFilters`**: Barra de filtros reativos por turno e ordenação rápida de turmas.
+- **`ClassEmptyState`**: Estado vazio para listagem de turmas (sem oferta no semestre ou sem resultados para o filtro ativo).
+- **`MaterialModal`**: Modal para compartilhamento de materiais acadêmicos na página da disciplina.
 - **`Navbar`**: Barra de navegação superior global com links de cursos, disciplinas e acesso de usuário.
 - **`Footer`**: Rodapé institucional com links de apoio e informações do projeto Tamburetei.
 - **`Pagination`**: Controle de paginação para listas com cálculo dinâmico de páginas.
 - **`Button`**: Botão estilizado com suporte a múltiplas variantes e estados.
 - **`Input`**: Campo de entrada customizado para formulários e filtros de busca.
 - **`StoolIllustration`**: Ilustração SVG temática do tamborete que representa a identidade visual da aplicação.
+
