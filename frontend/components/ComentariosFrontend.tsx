@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export interface Comment {
   id: string;
@@ -12,46 +12,29 @@ export interface Comment {
   isLikedByMe: boolean;
 }
 
-interface CommentsSectionProps {
+interface ComentariosFrontendProps {
   disciplineName: string;
   disciplineCode?: string;
 }
 
-const INITIAL_COMMENTS: Comment[] = [
-  {
-    id: "1",
-    authorAlias: "@veterano_fcte",
-    isAnonymous: false,
-    content:
-      "Para quem está fazendo essa matéria na FCTE: não deixem de refazer as provas antigas disponíveis aqui no Tamburetei. As listas de exercícios ajudam muito a entender o padrão de cobrança!",
-    createdAt: "há 2 dias",
-    upvotes: 24,
-    isLikedByMe: true,
-  },
-  {
-    id: "2",
-    authorAlias: "@calouro_fcte",
-    isAnonymous: false,
-    content:
-      "Alguém tem o resumo ('leite') atualizado da primeira parte da matéria? O ritmo das aulas está bem acelerado neste início de semestre.",
-    createdAt: "há 5 horas",
-    upvotes: 9,
-    isLikedByMe: false,
-  },
-  {
-    id: "3",
-    authorAlias: "@estudante_anonimo",
-    isAnonymous: true,
-    content:
-      "A matéria exige dedicação contínua toda semana. Participem das monitorias presenciais da FCTE, me salvou bastante nas avaliações!",
-    createdAt: "há 1 semana",
-    upvotes: 16,
-    isLikedByMe: false,
-  },
-];
+async function fetchCommentsFromApi(disciplineCode?: string): Promise<Comment[]> {
+  if (!disciplineCode) return [];
+  try {
+    const response = await fetch(`/api/disciplinas/${disciplineCode}/comentarios`);
+    if (!response.ok) {
+      return [];
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("Erro ao carregar comentários:", error);
+    return [];
+  }
+}
 
-export default function CommentsSection({ disciplineName }: CommentsSectionProps) {
-  const [comments, setComments] = useState<Comment[]>(INITIAL_COMMENTS);
+export default function ComentariosFrontend({ disciplineName, disciplineCode }: ComentariosFrontendProps) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [newCommentText, setNewCommentText] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [customAlias, setCustomAlias] = useState("@estudante_fcte");
@@ -61,7 +44,25 @@ export default function CommentsSection({ disciplineName }: CommentsSectionProps
   const currentLength = newCommentText.length;
   const isLengthValid = currentLength >= MIN_CHARS && currentLength <= MAX_CHARS;
 
-  // Mecanismo de Upvote com Atualização Otimista
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      setLoading(true);
+      const data = await fetchCommentsFromApi(disciplineCode);
+      if (isMounted) {
+        setComments(data);
+        setLoading(false);
+      }
+    }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [disciplineCode]);
+
   const handleToggleUpvote = (commentId: string) => {
     setComments((prevComments) =>
       prevComments.map((comment) => {
@@ -78,8 +79,7 @@ export default function CommentsSection({ disciplineName }: CommentsSectionProps
     );
   };
 
-  // Formulário de Envio
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLengthValid) return;
 
@@ -93,13 +93,24 @@ export default function CommentsSection({ disciplineName }: CommentsSectionProps
       isLikedByMe: false,
     };
 
-    setComments([newComment, ...comments]);
+    setComments((prev) => [newComment, ...prev]);
     setNewCommentText("");
+
+    try {
+      if (disciplineCode) {
+        await fetch(`/api/disciplinas/${disciplineCode}/comentarios`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newComment),
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao salvar comentário na API:", error);
+    }
   };
 
   return (
     <section className="mt-8 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
-      {/* Cabeçalho da Seção */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-5">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EDE9FD] text-[#5B4BDB]">
@@ -128,14 +139,12 @@ export default function CommentsSection({ disciplineName }: CommentsSectionProps
         </span>
       </div>
 
-      {/* Formulário de Envio com Validação */}
       <form onSubmit={handleFormSubmit} className="mb-8 rounded-2xl bg-[#FAFAFC] p-4 sm:p-5 border border-[#ECEAF5]">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
             Deixar um relato ou dúvida
           </span>
 
-          {/* Seletor de Identidade (Privacidade LGPD) */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -162,7 +171,6 @@ export default function CommentsSection({ disciplineName }: CommentsSectionProps
           </div>
         </div>
 
-        {/* Campo de Texto */}
         <textarea
           rows={3}
           value={newCommentText}
@@ -171,7 +179,6 @@ export default function CommentsSection({ disciplineName }: CommentsSectionProps
           className="w-full resize-none rounded-xl bg-white border border-[#DDD9F1] p-3 text-xs sm:text-sm text-[#202124] placeholder-gray-400 outline-none focus:border-[#5B4BDB] focus:ring-1 focus:ring-[#5B4BDB]"
         />
 
-        {/* Rodapé do Formulário: Contador e Botão */}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <span
             className={`text-xs ${
@@ -200,60 +207,66 @@ export default function CommentsSection({ disciplineName }: CommentsSectionProps
         </div>
       </form>
 
-      {/* Feed de Comentários */}
-      <div className="flex flex-col gap-4">
-        {comments.map((comment) => (
-          <div
-            key={comment.id}
-            className="flex flex-col gap-3 rounded-2xl bg-white p-5 border border-[#EDE9FD] transition-all hover:border-[#D8D1FA]"
-          >
-            {/* Topo do Card: Autor e Data */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EDE9FD] text-[#5B4BDB] text-xs font-bold">
-                  {comment.isAnonymous ? "🔒" : "👤"}
+      {loading ? (
+        <div className="py-8 text-center text-sm text-gray-400">
+          Carregando relatos da comunidade...
+        </div>
+      ) : comments.length === 0 ? (
+        <div className="py-8 text-center text-sm text-gray-400">
+          Nenhum relato compartilhado ainda. Seja o primeiro a enviar!
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {comments.map((comment) => (
+            <div
+              key={comment.id}
+              className="flex flex-col gap-3 rounded-2xl bg-white p-5 border border-[#EDE9FD] transition-all hover:border-[#D8D1FA]"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EDE9FD] text-[#5B4BDB] text-xs font-bold">
+                    {comment.isAnonymous ? "🔒" : "👤"}
+                  </div>
+                  <div>
+                    <span className="text-xs sm:text-sm font-bold text-[#202124]">
+                      {comment.authorAlias}
+                    </span>
+                    <span className="text-[11px] text-gray-400 ml-2">
+                      • {comment.createdAt}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-xs sm:text-sm font-bold text-[#202124]">
-                    {comment.authorAlias}
-                  </span>
-                  <span className="text-[11px] text-gray-400 ml-2">
-                    • {comment.createdAt}
-                  </span>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleUpvote(comment.id)}
+                  aria-label={`Curtir comentário de ${comment.authorAlias}`}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                    comment.isLikedByMe
+                      ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5]"
+                      : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100"
+                  }`}
+                >
+                  {comment.isLikedByMe ? (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  ) : (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  )}
+                  <span>{comment.upvotes}</span>
+                </button>
               </div>
 
-              {/* Botão de Curtir (Coração ❤️) com Atualização Otimista */}
-              <button
-                type="button"
-                onClick={() => handleToggleUpvote(comment.id)}
-                aria-label={`Curtir comentário de ${comment.authorAlias}`}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-                  comment.isLikedByMe
-                    ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5]"
-                    : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100"
-                }`}
-              >
-                {comment.isLikedByMe ? (
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                  </svg>
-                ) : (
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                  </svg>
-                )}
-                <span>{comment.upvotes}</span>
-              </button>
+              <p className="text-xs sm:text-sm text-[#545864] leading-relaxed pl-1">
+                {comment.content}
+              </p>
             </div>
-
-            {/* Texto do Comentário */}
-            <p className="text-xs sm:text-sm text-[#545864] leading-relaxed pl-1">
-              {comment.content}
-            </p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

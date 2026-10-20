@@ -1,4 +1,4 @@
-import CommentsSection from "@/components/CommentsSection";
+import ComentariosFrontend from "@/components/ComentariosFrontend";
 
 "use client";
 
@@ -181,7 +181,7 @@ export default function DisciplineDetailPage() {
 
       <main className="flex-1 pb-16">
         <div className="mx-auto px-4 sm:px-6 lg:px-8 pt-6 max-w-7xl">
-          {/* Breadcrumb de navegação */}
+          
           <nav className="mb-6 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-500" aria-label="Navegação estrutural">
             <Link href="/" className="hover:text-[#5B4BDB] transition-colors">
               Início
@@ -205,11 +205,11 @@ export default function DisciplineDetailPage() {
             <span className="font-semibold text-[#202124]">{discipline.name}</span>
           </nav>
 
-          {/* Banner de cabeçalho da disciplina */}
+          
           <section className="mb-6 rounded-3xl bg-white px-6 sm:px-8 py-8 border border-[#E8E6F8] shadow-xs">
             <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
               <div className="flex-1 min-w-0">
-                {/* Badges de Identificação */}
+                
                 <div className="mb-4 flex flex-wrap gap-2">
                   <span className="rounded-lg bg-[#EDE9FD] px-3 py-1.5 text-xs font-bold text-[#5B4BDB]">
                     {discipline.code}
@@ -235,7 +235,7 @@ export default function DisciplineDetailPage() {
                 </p>
               </div>
 
-              {/* Botões de Ação */}
+              
               <div className="flex flex-wrap sm:flex-nowrap lg:flex-wrap xl:flex-nowrap items-center gap-3 w-full lg:w-auto shrink-0 pt-2 lg:pt-1">
                 <button
                   type="button"
@@ -276,7 +276,7 @@ export default function DisciplineDetailPage() {
             </div>
           </section>
 
-          {/* Modal de confirmação ao adicionar material */}
+          
           {showMaterialModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
               <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl border border-[#EDE9FD]">
@@ -318,10 +318,10 @@ export default function DisciplineDetailPage() {
             </div>
           )}
 
-          {/* Seção Ementa e Objetivos */}
+          
           <section className="mb-6 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-              {/* Ementa Oficial */}
+             
               <div className="md:border-r border-[#E8E6F8] md:pr-8 lg:pr-12">
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EDE9FD] text-[#5B4BDB]">
@@ -345,7 +345,7 @@ export default function DisciplineDetailPage() {
                     "Ementa oficial cadastrada junto ao decanato de graduação e matriz curricular da Universidade de Brasília."}
                 </p>
 
-                {/* Pré-requisitos & Equivalências */}
+                    
                 {(discipline.preRequisitos || discipline.equivalencias) && (
                   <div className="mt-6 pt-5 border-t border-gray-100 flex flex-col gap-3">
                     {discipline.preRequisitos && discipline.preRequisitos.length > 0 && (
@@ -386,7 +386,7 @@ export default function DisciplineDetailPage() {
                 )}
               </div>
 
-              {/* Objetivos do Programa */}
+              
               <div>
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF8D8] text-[#806300]">
@@ -420,9 +420,9 @@ export default function DisciplineDetailPage() {
             </div>
           </section>
 
-          {/* Seção Estatísticas Históricas e Painel de Desempenho */}
+          
           <section className="rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
-            {/* Cabeçalho do Painel */}
+            
             <div className="mb-7 flex flex-col md:flex-row md:items-start justify-between gap-5">
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-[#202124]">
@@ -467,7 +467,7 @@ export default function DisciplineDetailPage() {
               </label>
             </div>
 
-            {/* 4 Cards de Métricas com Dados Reais Centralizados */}
+          
             <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {metrics.map((metric) => (
                 <div
@@ -502,20 +502,20 @@ export default function DisciplineDetailPage() {
               ))}
             </div>
 
-            {/* Visualização de Evolução Semestral (Stacked Bar Chart) */}
+            
             <div className="rounded-2xl bg-[#FAFAFC] p-5 sm:p-6 border border-[#ECEAF5]">
               <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-[#202124]">Evolução semestral</h3>
                   <p className="mt-0.5 text-xs text-gray-500">Distribuição percentual dos resultados por semestre</p>
                 </div>
-                {/* Base acumulada dinâmica com total real */}
+                
                 <span className="self-start sm:self-auto rounded-full bg-[#EDE9FD] px-3 py-1 text-xs font-semibold text-[#5B4BDB]">
                   Base acumulada: {totalMatriculados} {totalMatriculados === 1 ? "matrícula" : "matrículas"}
                 </span>
               </div>
 
-              {/* Área do Gráfico */}
+              
               <div className="flex h-64 gap-3 sm:gap-5">
                 {/* Eixo Y */}
                 <div className="flex w-8 sm:w-10 flex-col justify-between pb-7 text-right text-[11px] font-medium text-gray-500">
@@ -526,7 +526,7 @@ export default function DisciplineDetailPage() {
                   <span>0%</span>
                 </div>
 
-                {/* Linhas de grade e Barras */}
+                
                 <div className="relative flex flex-1 items-end justify-around border-b border-l border-[#DCD9E9] px-2 sm:px-8 pb-7">
                   {[25, 50, 75, 100].map((line) => (
                     <div
@@ -548,12 +548,12 @@ export default function DisciplineDetailPage() {
                         key={item.semester}
                         className="relative z-10 flex h-full w-10 sm:w-16 flex-col items-center justify-end group"
                       >
-                        {/* Tooltip com dados no hover */}
+                        
                         <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-nowrap z-20 shadow-md">
                           {item.semester}: {approvedPct}% aprov. ({item.approved}/{total})
                         </div>
 
-                        {/* Barra empilhada */}
+                        
                         <div
                           className="flex h-full w-8 sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
                           aria-label={`${item.semester}: ${approvedPct}% aprovação, ${failedPct}% reprovação por nota`}
@@ -564,7 +564,7 @@ export default function DisciplineDetailPage() {
                           <div style={{ height: `${withdrawnPct}%`, background: "#94A3B8" }} title={`Trancamento: ${withdrawnPct}% (${item.withdrawn})`} />
                         </div>
 
-                        {/* Rótulo do semestre */}
+                        
                         <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-gray-600">
                           {item.semester}
                         </span>
@@ -574,7 +574,7 @@ export default function DisciplineDetailPage() {
                 </div>
               </div>
 
-              {/* Legenda do Gráfico */}
+              
               <div className="mt-8 flex flex-wrap justify-center gap-4 sm:gap-7 pt-2">
                 {[
                   ["Aprovação", "#10B981"],
@@ -590,7 +590,7 @@ export default function DisciplineDetailPage() {
               </div>
             </div>
 
-            {/* Aviso de Respeito à LGPD */}
+            
             <div className="mt-6 flex items-start gap-3 rounded-2xl bg-[#F7F7FA] border border-gray-100 px-4 py-3">
               <svg
                 className="mt-0.5 flex-shrink-0 text-gray-500"
@@ -609,8 +609,7 @@ export default function DisciplineDetailPage() {
             </div>
           </section>
 
-          {/* Seção da Comunidade e Comentários (Sprint 6) */}
-          <CommentsSection disciplineName={discipline.name} disciplineCode={discipline.code} />
+          <ComentariosFrontend disciplineName={discipline.name} disciplineCode={discipline.code} />
         </div>
       </main>
 
