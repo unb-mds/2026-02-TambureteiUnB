@@ -1,4 +1,6 @@
 "use client";
+import ComentariosFrontend from "@/components/ComentariosFrontend";
+
 
 import React, {
   useState,
@@ -495,11 +497,11 @@ function DisciplineDetailContent() {
             </span>
           </nav>
 
-          {/* Banner de cabeçalho da disciplina */}
+          
           <section className="mb-6 rounded-3xl bg-white px-6 sm:px-8 py-8 border border-[#E8E6F8] shadow-xs">
             <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
               <div className="flex-1 min-w-0">
-                {/* Badges de Identificação */}
+                
                 <div className="mb-4 flex flex-wrap gap-2">
                   <span className="rounded-lg bg-[#EDE9FD] px-3 py-1.5 text-xs font-bold text-[#5B4BDB]">
                     {discipline.code}
@@ -526,7 +528,7 @@ function DisciplineDetailContent() {
                 </p>
               </div>
 
-              {/* Botões de Ação */}
+              
               <div className="flex flex-wrap sm:flex-nowrap lg:flex-wrap xl:flex-nowrap items-center gap-3 w-full lg:w-auto shrink-0 pt-2 lg:pt-1">
                 <button
                   type="button"
@@ -573,17 +575,52 @@ function DisciplineDetailContent() {
             </div>
           </section>
 
-          {/* Modal de confirmação ao adicionar material */}
-          <MaterialModal
-            isOpen={showMaterialModal}
-            disciplineName={discipline.name}
-            onClose={() => setShowMaterialModal(false)}
-          />
+          
+          {showMaterialModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
+              <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl border border-[#EDE9FD]">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                  <h3 className="font-bold text-lg text-[#202124]">Compartilhar Material</h3>
+                  <button
+                    onClick={() => setShowMaterialModal(false)}
+                    className="text-gray-400 hover:text-gray-600 p-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="mt-4 text-xs sm:text-sm text-gray-600 leading-relaxed">
+                  Ajude outros estudantes compartilhando resumos, listas de exercícios ou provas antigas de <strong>{discipline.name}</strong>.
+                </p>
+                <div className="mt-4 rounded-xl bg-[#F7F7FA] p-3 text-xs text-gray-500">
+                  💡 Os materiais passam por revisão da moderação discente para garantir a qualidade acadêmica.
+                </div>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowMaterialModal(false)}
+                    className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Fechar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert("Upload de materiais disponível em breve!");
+                      setShowMaterialModal(false);
+                    }}
+                    className="rounded-xl bg-[#5B4BDB] px-4 py-2 text-xs font-semibold text-white hover:brightness-110"
+                  >
+                    Selecionar Arquivo
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* Seção Ementa e Objetivos */}
+          
           <section className="mb-6 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-              {/* Ementa Oficial */}
+             
               <div className="md:border-r border-[#E8E6F8] md:pr-8 lg:pr-12">
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EDE9FD] text-[#5B4BDB]">
@@ -615,7 +652,7 @@ function DisciplineDetailContent() {
                     "Ementa oficial cadastrada junto ao decanato de graduação e matriz curricular da Universidade de Brasília."}
                 </p>
 
-                {/* Pré-requisitos & Equivalências */}
+                    
                 {(discipline.preRequisitos || discipline.equivalencias) && (
                   <div className="mt-6 pt-5 border-t border-gray-100 flex flex-col gap-3">
                     {discipline.preRequisitos &&
@@ -658,7 +695,7 @@ function DisciplineDetailContent() {
                 )}
               </div>
 
-              {/* Objetivos do Programa */}
+              
               <div>
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF8D8] text-[#806300]">
@@ -862,9 +899,9 @@ function DisciplineDetailContent() {
             )}
           </section>
 
-          {/* Seção Estatísticas Históricas e Painel de Desempenho */}
+          
           <section className="rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
-            {/* Cabeçalho do Painel */}
+            
             <div className="mb-7 flex flex-col md:flex-row md:items-start justify-between gap-5">
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-[#202124]">
@@ -910,7 +947,7 @@ function DisciplineDetailContent() {
               </label>
             </div>
 
-            {/* 4 Cards de Métricas com Dados Reais Centralizados */}
+          
             <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {metrics.map((metric) => (
                 <div
@@ -959,7 +996,7 @@ function DisciplineDetailContent() {
               ))}
             </div>
 
-            {/* Visualização de Evolução Semestral (Stacked Bar Chart) */}
+            
             <div className="rounded-2xl bg-[#FAFAFC] p-5 sm:p-6 border border-[#ECEAF5]">
               <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
@@ -970,13 +1007,13 @@ function DisciplineDetailContent() {
                     Distribuição percentual dos resultados por semestre
                   </p>
                 </div>
-                {/* Base acumulada dinâmica com total real */}
+                
                 <span className="self-start sm:self-auto rounded-full bg-[#EDE9FD] px-3 py-1 text-xs font-semibold text-[#5B4BDB]">
                   Base acumulada: {totalMatriculados} {totalMatriculados === 1 ? "matrícula" : "matrículas"}
                 </span>
               </div>
 
-              {/* Área do Gráfico */}
+              
               <div className="flex h-64 gap-3 sm:gap-5">
                 {/* Eixo Y */}
                 <div className="flex w-8 sm:w-10 flex-col justify-between pb-7 text-right text-[11px] font-medium text-gray-500">
@@ -987,7 +1024,7 @@ function DisciplineDetailContent() {
                   <span>0%</span>
                 </div>
 
-                {/* Linhas de grade e Barras */}
+                
                 <div className="relative flex flex-1 items-end justify-around border-b border-l border-[#DCD9E9] px-2 sm:px-8 pb-7">
                   {[25, 50, 75, 100].map((line) => (
                     <div
@@ -1025,13 +1062,13 @@ function DisciplineDetailContent() {
                         key={item.semester}
                         className="relative z-10 flex h-full w-10 sm:w-16 flex-col items-center justify-end group"
                       >
-                        {/* Tooltip com dados no hover */}
+                        
                         <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-nowrap z-20 shadow-md">
                           {item.semester}: {approvedPct}% aprov. (
                           {item.approved}/{total})
                         </div>
 
-                        {/* Barra empilhada */}
+                        
                         <div
                           className="flex h-full w-8 sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
                           aria-label={`${item.semester}: ${approvedPct}% aprovação, ${failedPct}% reprovação por nota`}
@@ -1066,7 +1103,7 @@ function DisciplineDetailContent() {
                           />
                         </div>
 
-                        {/* Rótulo do semestre */}
+                        
                         <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-gray-600">
                           {item.semester}
                         </span>
@@ -1076,7 +1113,7 @@ function DisciplineDetailContent() {
                 </div>
               </div>
 
-              {/* Legenda do Gráfico */}
+              
               <div className="mt-8 flex flex-wrap justify-center gap-4 sm:gap-7 pt-2">
                 {[
                   ["Aprovação", "#10B981"],
@@ -1098,7 +1135,7 @@ function DisciplineDetailContent() {
               </div>
             </div>
 
-            {/* Aviso de Respeito à LGPD */}
+            
             <div className="mt-6 flex items-start gap-3 rounded-2xl bg-[#F7F7FA] border border-gray-100 px-4 py-3">
               <svg
                 className="mt-0.5 flex-shrink-0 text-gray-500"
@@ -1130,6 +1167,8 @@ function DisciplineDetailContent() {
               </p>
             </div>
           </section>
+
+          <ComentariosFrontend disciplineName={discipline.name} disciplineCode={discipline.code} />
         </div>
       </main>
 
