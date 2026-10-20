@@ -1,6 +1,6 @@
+"use client";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
 
-"use client";
 
 import React, {
   useState,
