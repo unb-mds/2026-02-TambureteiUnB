@@ -94,19 +94,17 @@ export async function getDisciplineBySlug(slug: string): Promise<Discipline> {
  * Lista as turmas/ofertas vinculadas a uma disciplina no semestre letivo.
  */
 export async function getClassesByDiscipline(params: {
-  disciplinaId?: number;
+  disciplinaId: number;
   codigo?: string;
   semestre?: string;
 }): Promise<Class[]> {
   const query = new URLSearchParams();
-  if (typeof params.disciplinaId === "number") {
-    query.set("disciplina_id", String(params.disciplinaId));
-  }
+  query.set("disciplina_id", String(params.disciplinaId));
   if (params.semestre) {
     query.set("semestre", params.semestre);
   }
 
-  const queryStr = query.toString() ? `?${query.toString()}` : "";
+  const queryStr = `?${query.toString()}`;
   const items = await request<BackendTurmaResponse[]>(`/turmas${queryStr}`);
   return items.map((item) => adaptBackendTurma(item, params.codigo));
 }

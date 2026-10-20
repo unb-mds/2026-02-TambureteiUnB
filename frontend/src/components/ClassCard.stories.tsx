@@ -1,12 +1,12 @@
 import React from "react";
-import CardTurma from "@/components/CardTurma";
-import { Turma } from "@/types/turma";
+import ClassCard from "@/components/ClassCard";
+import { Class } from "@/types/turma";
 
 /**
- * Cenários de dados estruturados para validação e testes visuais/unitários do CardTurma.
+ * Cenários de dados estruturados para validação e laboratório visual (stories) do ClassCard.
  */
 
-export const mockTurmaVagasAbertas: Turma = {
+export const mockTurmaVagasAbertas: Class = {
   id: "test-turma-aberta",
   codigoTurma: "Turma 01",
   disciplinaCodigo: "FGA0138",
@@ -18,7 +18,7 @@ export const mockTurmaVagasAbertas: Turma = {
   turno: "Diurno",
 };
 
-export const mockTurmaVagasEsgotadas: Turma = {
+export const mockTurmaVagasEsgotadas: Class = {
   id: "test-turma-esgotada",
   codigoTurma: "Turma 02",
   disciplinaCodigo: "FGA0138",
@@ -30,7 +30,7 @@ export const mockTurmaVagasEsgotadas: Turma = {
   turno: "Vespertino",
 };
 
-export const mockTurmaNoturnoQuaseCheia: Turma = {
+export const mockTurmaNoturnoQuaseCheia: Class = {
   id: "test-turma-noturno",
   codigoTurma: "Turma 03",
   disciplinaCodigo: "FGA0158",
@@ -42,7 +42,7 @@ export const mockTurmaNoturnoQuaseCheia: Turma = {
   turno: "Noturno",
 };
 
-export const mockTurmaSemInscritos: Turma = {
+export const mockTurmaSemInscritos: Class = {
   id: "test-turma-zerada",
   codigoTurma: "Turma 04",
   disciplinaCodigo: "FGA0160",
@@ -54,10 +54,10 @@ export const mockTurmaSemInscritos: Turma = {
   turno: "Diurno",
 };
 
-export interface CardTurmaTestCase {
+export interface ClassCardStoryCase {
   id: string;
   name: string;
-  turma: Turma;
+  turma: Class;
   expected: {
     vagasEsgotadas: boolean;
     percentualOcupacao: number;
@@ -65,7 +65,7 @@ export interface CardTurmaTestCase {
   };
 }
 
-export const cardTurmaTestCases: CardTurmaTestCase[] = [
+export const classCardStoryCases: ClassCardStoryCase[] = [
   {
     id: "TC-01",
     name: "Turma com vagas disponíveis (ocupação parcial)",
@@ -111,7 +111,7 @@ export const cardTurmaTestCases: CardTurmaTestCase[] = [
 /**
  * Função utilitária de asserção para validar as regras do componente sem depender de runner externo.
  */
-export function validateCardTurma(testCase: CardTurmaTestCase): {
+export function validateClassCard(testCase: ClassCardStoryCase): {
   passed: boolean;
   errors: string[];
 } {
@@ -149,14 +149,14 @@ export function validateCardTurma(testCase: CardTurmaTestCase): {
 }
 
 /**
- * Story / Galeria de Teste Visual do CardTurma para validação em tela
+ * Story / Galeria de Laboratório Visual do ClassCard para validação em tela
  */
-export default function CardTurmaTestStory() {
+export default function ClassCardStories() {
   return (
     <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Validação e Stories: CardTurma
+          Validação e Stories: ClassCard
         </h1>
         <p className="text-sm text-gray-600">
           Cenários de validação de layout, responsividade e regras de vagas (abertas vs. esgotadas).
@@ -164,8 +164,8 @@ export default function CardTurmaTestStory() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {cardTurmaTestCases.map(({ id, name, turma, expected }) => {
-          const validation = validateCardTurma({ id, name, turma, expected });
+        {classCardStoryCases.map(({ id, name, turma, expected }) => {
+          const validation = validateClassCard({ id, name, turma, expected });
 
           return (
             <div key={id} className="flex flex-col gap-2">
@@ -179,10 +179,13 @@ export default function CardTurmaTestStory() {
                   {validation.passed ? "✓ Aprovado" : "✕ Falha"}
                 </span>
               </div>
-              <p className="text-xs text-gray-700 font-medium px-1 line-clamp-1" title={name}>
+              <p
+                className="text-xs text-gray-700 font-medium px-1 line-clamp-1"
+                title={name}
+              >
                 {name}
               </p>
-              <CardTurma turma={turma} />
+              <ClassCard classData={turma} />
             </div>
           );
         })}
