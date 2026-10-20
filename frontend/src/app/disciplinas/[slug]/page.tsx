@@ -205,11 +205,15 @@ function DisciplineDetailContent() {
           );
         }
 
-        if (
-          typeof disciplinaId !== "number" ||
-          !Number.isFinite(disciplinaId) ||
-          disciplinaId <= 0
-        ) {
+        const targetSlug = currentDiscipline.slug || slug;
+        const validId =
+          typeof disciplinaId === "number" &&
+          Number.isFinite(disciplinaId) &&
+          disciplinaId > 0
+            ? disciplinaId
+            : undefined;
+
+        if (!targetSlug && !validId) {
           if (isMounted) {
             setClasses([]);
             setClassesError(null);
@@ -218,7 +222,8 @@ function DisciplineDetailContent() {
         }
 
         const loadedClasses = await getClassesByDiscipline({
-          disciplinaId,
+          slug: targetSlug,
+          disciplinaId: validId,
           codigo: currentDiscipline.code,
         });
 

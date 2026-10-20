@@ -24,11 +24,19 @@ def criar_turma(
 
 @router.get("", response_model=List[TurmaResponse])
 def listar_turmas_da_disciplina(
-    disciplina_id: int = Query(..., description="ID da disciplina"),
+    disciplina_id: Optional[int] = Query(None, description="ID da disciplina"),
+    disciplina_slug: Optional[str] = Query(None, description="Slug da disciplina"),
+    slug: Optional[str] = Query(None, description="Slug da disciplina (alias)"),
     semestre: Optional[str] = Query(None, description="Ex.: 2026.1"),
     db: Session = Depends(get_db),
 ):
-    return turma_service.listar_por_disciplina(db, disciplina_id, semestre)
+    target_slug = disciplina_slug or slug
+    return turma_service.listar_turmas(
+        db,
+        disciplina_id=disciplina_id,
+        disciplina_slug=target_slug,
+        semestre=semestre,
+    )
 
 
 @router.get("/{turma_id}", response_model=TurmaResponse)

@@ -119,6 +119,30 @@ class TestListarTurmas:
         assert len(turmas_t1) == 1
         assert len(turmas_t1[0]["professores"]) == 2
 
+    def test_listar_turmas_por_slug(self, client, admin_headers, disciplina, professor_1):
+        client.post(
+            "/turmas",
+            headers=admin_headers,
+            json={
+                "disciplina_id": disciplina.id,
+                "semestre": "2026.1",
+                "codigo_turma": "T_SLUG",
+                "professores_ids": [professor_1.id],
+            },
+        )
+        response = client.get(f"/turmas?disciplina_slug={disciplina.slug}")
+        assert response.status_code == 200
+        codigos = [t["codigo_turma"] for t in response.json()]
+        assert "T_SLUG" in codigos
+
+    def test_listar_turmas_slug_inexistente(self, client):
+        response = client.get("/turmas?disciplina_slug=slug-que-nao-existe")
+        assert response.status_code == 404
+
+    def test_listar_turmas_sem_parametros_retorna_400(self, client):
+        response = client.get("/turmas")
+        assert response.status_code == 400
+
 
 class TestObterTurma:
     def test_obter_turma_existente(self, client, admin_headers, disciplina, professor_1):
