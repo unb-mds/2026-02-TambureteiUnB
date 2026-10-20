@@ -32,19 +32,6 @@ class Settings(BaseSettings):
     AMOSTRAGEM_MINIMA_LGPD: int = 5
 
     @property
-    def SQLALCHEMY_DATABASE_URI(self):
-        from sqlalchemy.engine import URL
-
-        return URL.create(
-            "postgresql+psycopg2",
-            username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD,
-            host=self.POSTGRES_SERVER,
-            port=int(self.POSTGRES_PORT),
-            database=self.POSTGRES_DB,
-        )
-
-    @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
