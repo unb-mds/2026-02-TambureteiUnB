@@ -22,26 +22,30 @@ def get_material_service() -> MaterialService:
 
 @router.post("/cadeiras/{id}/materiais", response_model=MaterialResponse, status_code=201)
 def enviar_material(
-    id: Annotated[int, Path(gt=0)],
+    id: Annotated[str, Path(description="ID ou slug da cadeira")],
     titulo: Annotated[TituloMaterial, Form()],
     arquivo: Annotated[UploadFile, File(description="PDF, PNG ou JPG; máximo padrão de 5 MiB.")],
     usuario: Annotated[Usuario, Depends(require_role("STUDENT"))],
     db: Annotated[Session, Depends(get_db)],
     service: Annotated[MaterialService, Depends(get_material_service)],
+    tipo: Annotated[str, Form(description="Tipo de material (ARQUIVO, RESUMO, PROVA_ANTIGA, DICA)")] = "ARQUIVO",
 ) -> MaterialResponse:
-    return service.enviar(db, usuario.id, id, titulo, arquivo.file, arquivo.filename or "", arquivo.content_type or "")
+    return service.enviar(
+        db, usuario.id, id, titulo, arquivo.file, arquivo.filename or "", arquivo.content_type or "", tipo=tipo
+    )
 
 
 @router.get("/cadeiras/{id}/materiais", response_model=MaterialPage)
 def listar_materiais(
-    id: Annotated[int, Path(gt=0)],
+    id: Annotated[str, Path(description="ID ou slug da cadeira")],
     db: Annotated[Session, Depends(get_db)],
     service: Annotated[MaterialService, Depends(get_material_service)],
     titulo: Annotated[str | None, Query(max_length=200)] = None,
+    tipo: Annotated[str | None, Query(description="Filtro opcional por tipo de material")] = None,
     pagina: Annotated[int, Query(ge=1)] = 1,
     tamanho_pagina: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> MaterialPage:
-    return service.listar(db, id, titulo, pagina, tamanho_pagina)
+    return service.listar(db, id, titulo, pagina, tamanho_pagina, tipo=tipo)
 
 
 @router.get("/materiais/{id}/download", response_class=FileResponse)

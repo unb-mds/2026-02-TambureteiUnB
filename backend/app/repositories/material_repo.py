@@ -10,7 +10,7 @@ class MaterialRepository(BaseRepository[Conteudo]):
         super().__init__(Conteudo)
 
     def get_by_id(self, db: Session, material_id: int) -> Conteudo | None:
-        return db.scalar(select(Conteudo).where(Conteudo.id == material_id, Conteudo.tipo == "ARQUIVO"))
+        return db.scalar(select(Conteudo).where(Conteudo.id == material_id, Conteudo.caminho_arquivo.isnot(None)))
 
     def adicionar(self, db: Session, material: Conteudo) -> None:
         """A transação é concluída pelo serviço junto ao armazenamento do arquivo."""
@@ -19,14 +19,16 @@ class MaterialRepository(BaseRepository[Conteudo]):
         db.refresh(material)
 
     def listar_ativos(
-        self, db: Session, disciplina_id: int, titulo: str | None, pagina: int, tamanho_pagina: int
+        self, db: Session, disciplina_id: int, titulo: str | None, pagina: int, tamanho_pagina: int, tipo: str | None = None
     ) -> tuple[list[Conteudo], int]:
         filtros = [
             Conteudo.disciplina_id == disciplina_id,
-            Conteudo.tipo == "ARQUIVO",
+            Conteudo.caminho_arquivo.isnot(None),
             Conteudo.status_curadoria == "APROVADO",
             Conteudo.status_moderacao == "ativo",
         ]
+        if tipo:
+            filtros.append(Conteudo.tipo == tipo)
         if titulo:
             filtros.append(Conteudo.titulo.icontains(titulo, autoescape=True))
         total = db.scalar(select(func.count()).select_from(Conteudo).where(*filtros)) or 0

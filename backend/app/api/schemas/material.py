@@ -11,6 +11,7 @@ class MaterialResponse(BaseModel):
     id: int
     disciplina_id: int
     titulo: str
+    tipo: str = "ARQUIVO"
     formato: Literal["pdf", "png", "jpg"]
     tamanho_bytes: int
     status_moderacao: str

@@ -198,10 +198,10 @@ CREATE TABLE IF NOT EXISTS conteudos (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_conteudos_caminho_arquivo UNIQUE (caminho_arquivo),
-    CONSTRAINT chk_origem_conteudo CHECK ((tipo = 'ARQUIVO' AND url_origem IS NULL AND caminho_arquivo IS NOT NULL AND formato IS NOT NULL AND tamanho_bytes IS NOT NULL AND status_moderacao IS NOT NULL) OR (tipo <> 'ARQUIVO' AND url_origem IS NOT NULL AND caminho_arquivo IS NULL AND formato IS NULL AND tamanho_bytes IS NULL AND status_moderacao IS NULL)),
+    CONSTRAINT chk_origem_conteudo CHECK ((caminho_arquivo IS NOT NULL AND url_origem IS NULL AND formato IS NOT NULL AND tamanho_bytes IS NOT NULL AND status_moderacao IS NOT NULL) OR (tipo <> 'ARQUIVO' AND url_origem IS NOT NULL AND caminho_arquivo IS NULL AND formato IS NULL AND tamanho_bytes IS NULL AND status_moderacao IS NULL)),
     CONSTRAINT chk_conteudo_formato CHECK (formato IS NULL OR formato IN ('pdf', 'png', 'jpg')),
     CONSTRAINT chk_conteudo_tamanho CHECK (tamanho_bytes IS NULL OR tamanho_bytes > 0),
-    CONSTRAINT chk_conteudo_titulo CHECK (tipo <> 'ARQUIVO' OR length(trim(titulo)) > 0),
+    CONSTRAINT chk_conteudo_titulo CHECK (length(trim(titulo)) > 0),
     CONSTRAINT chk_conteudo_moderacao CHECK (status_moderacao IS NULL OR status_moderacao IN ('ativo', 'em_analise', 'bloqueado', 'excluido'))
 );
 

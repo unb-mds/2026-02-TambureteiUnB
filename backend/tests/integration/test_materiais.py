@@ -207,3 +207,73 @@ def test_schema_openapi(client):
     assert upload_schema["security"]
     assert schema["paths"]["/materiais/{id}/download"]["get"]["security"]
     assert "security" not in schema["paths"]["/cadeiras/{id}/materiais"]["get"]
+
+
+def test_upload_e_listagem_por_slug(client, db, disciplina, headers):
+    resp = client.post(
+        f"/cadeiras/{disciplina.slug}/materiais",
+        headers=headers,
+        data={"titulo": "Prova 1 por slug"},
+        files={"arquivo": ("prova.pdf", PDF, "application/pdf")},
+    )
+    assert resp.status_code == 201
+    payload = resp.json()
+    assert payload["titulo"] == "Prova 1 por slug"
+    assert payload["tipo"] == "ARQUIVO"
+
+    lista = client.get(f"/cadeiras/{disciplina.slug}/materiais")
+    assert lista.status_code == 200
+    assert lista.json()["total"] == 1
+    assert lista.json()["items"][0]["id"] == payload["id"]
+
+
+def test_upload_com_tipos_semanticos_e_filtro(client, db, disciplina, headers):
+    resp_prova = client.post(
+        f"/cadeiras/{disciplina.slug}/materiais",
+        headers=headers,
+        data={"titulo": "Prova 2024.1", "tipo": "PROVA_ANTIGA"},
+        files={"arquivo": ("prova.pdf", PDF, "application/pdf")},
+    )
+    assert resp_prova.status_code == 201
+    assert resp_prova.json()["tipo"] == "PROVA_ANTIGA"
+
+    resp_resumo = client.post(
+        f"/cadeiras/{disciplina.id}/materiais",
+        headers=headers,
+        data={"titulo": "Resumo de Limites", "tipo": "RESUMO"},
+        files={"arquivo": ("resumo.pdf", PDF, "application/pdf")},
+    )
+    assert resp_resumo.status_code == 201
+    assert resp_resumo.json()["tipo"] == "RESUMO"
+
+    # Listar apenas PROVA_ANTIGA
+    lista_provas = client.get(f"/cadeiras/{disciplina.slug}/materiais?tipo=PROVA_ANTIGA")
+    assert lista_provas.status_code == 200
+    assert lista_provas.json()["total"] == 1
+    assert lista_provas.json()["items"][0]["titulo"] == "Prova 2024.1"
+
+    # Listar apenas RESUMO
+    lista_resumos = client.get(f"/cadeiras/{disciplina.id}/materiais?tipo=RESUMO")
+    assert lista_resumos.status_code == 200
+    assert lista_resumos.json()["total"] == 1
+    assert lista_resumos.json()["items"][0]["titulo"] == "Resumo de Limites"
+
+    # Listar todos
+    lista_todos = client.get(f"/cadeiras/{disciplina.slug}/materiais")
+    assert lista_todos.status_code == 200
+    assert lista_todos.json()["total"] == 2
+
+
+def test_upload_com_tipo_invalido(client, disciplina, headers):
+    resp = client.post(
+        f"/cadeiras/{disciplina.id}/materiais",
+        headers=headers,
+        data={"titulo": "Inválido", "tipo": "TIPO_INEXISTENTE"},
+        files={"arquivo": ("teste.pdf", PDF, "application/pdf")},
+    )
+    assert resp.status_code == 422
+
+
+def test_listagem_com_tipo_invalido(client, disciplina):
+    resp = client.get(f"/cadeiras/{disciplina.id}/materiais?tipo=TIPO_INEXISTENTE")
+    assert resp.status_code == 422

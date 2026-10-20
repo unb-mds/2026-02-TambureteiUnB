@@ -11,7 +11,7 @@ TIPOS_ANTIGOS = "tipo IN ('LINK_UTIL', 'RESUMO', 'PROVA_ANTIGA', 'DICA')"
 TIPOS = "tipo IN ('LINK_UTIL', 'RESUMO', 'PROVA_ANTIGA', 'DICA', 'ARQUIVO')"
 CHECKS = {
     "chk_origem_conteudo": (
-        "(tipo = 'ARQUIVO' AND url_origem IS NULL "
+        "(caminho_arquivo IS NOT NULL AND url_origem IS NULL "
         "AND caminho_arquivo IS NOT NULL AND formato IS NOT NULL "
         "AND tamanho_bytes IS NOT NULL AND status_moderacao IS NOT NULL) "
         "OR (tipo <> 'ARQUIVO' AND url_origem IS NOT NULL "
@@ -20,7 +20,7 @@ CHECKS = {
     ),
     "chk_conteudo_formato": "formato IS NULL OR formato IN ('pdf', 'png', 'jpg')",
     "chk_conteudo_tamanho": "tamanho_bytes IS NULL OR tamanho_bytes > 0",
-    "chk_conteudo_titulo": "tipo <> 'ARQUIVO' OR length(trim(titulo)) > 0",
+    "chk_conteudo_titulo": "length(trim(titulo)) > 0",
     "chk_conteudo_moderacao": "status_moderacao IS NULL OR status_moderacao IN ('ativo', 'em_analise', 'bloqueado', 'excluido')",
 }
 
@@ -46,7 +46,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    if op.get_bind().scalar(sa.text("SELECT EXISTS (SELECT 1 FROM conteudos WHERE tipo = 'ARQUIVO')")):
+    if op.get_bind().scalar(sa.text("SELECT EXISTS (SELECT 1 FROM conteudos WHERE caminho_arquivo IS NOT NULL OR tipo = 'ARQUIVO')")):
         raise RuntimeError("Downgrade bloqueado: preserve ou exporte os arquivos antes de remover seus metadados.")
     op.drop_index("ix_conteudos_arquivos_disciplina_status", table_name="conteudos")
     for name in CHECKS:
