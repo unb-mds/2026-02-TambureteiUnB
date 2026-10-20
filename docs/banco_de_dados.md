@@ -1,6 +1,6 @@
 # Dicionário de Dados — Modelo Relacional
 
-Este documento descreve o modelo relacional ativo do **Tamburetei UnB** (PostgreSQL 17), sincronizado integralmente com o script `init.sql` e a cadeia oficial de migrações do Alembic (revisão `007` — Head). O esquema possui **14 tabelas de domínio** e a tabela de controle `alembic_version`.
+Este documento descreve o modelo relacional ativo do **Tamburetei UnB** (PostgreSQL 17), sincronizado integralmente com o script `init.sql` e a cadeia oficial de migrações do Alembic (revisão `008` — Head). O esquema possui **15 tabelas de domínio** e a tabela de controle `alembic_version`.
 
 ---
 
@@ -13,6 +13,7 @@ Para facilitar a visualização clara e objetiva sem distorções de escala em d
 │                                   MÓDULO DE USUÁRIOS E SEGURANÇA                                 │
 │                                                                                                  │
 │   [ usuarios ] (UUID) ──(1:N)──► [ situacoes_disciplinas ] (Registro de aprovação/trancamento)   │
+│                       ──(1:N)──► [ doacoes_estatisticas ]  (Doações de índices de turmas SIGAA)  │
 │                       ──(1:N)──► [ conteudos ]             (Submissão de materiais didáticos)    │
 │                       ──(1:N)──► [ comentarios ]           (Relatos discentes sob pseudônimo)    │
 │                       ──(1:N)──► [ votos_uteis ]           (Upvotes de relevância da comunidade) │
@@ -27,6 +28,7 @@ Para facilitar a visualização clara e objetiva sem distorções de escala em d
 │   [ disciplinas ] ──(1:N)─────────────────┘                                                      │
 │          │                                                                                       │
 │          ├──(1:N)──► [ turmas ] ◄──(N:N)── [ professores ] (via turmas_professores)              │
+│          │               └──(1:N)──► [ doacoes_estatisticas ] (Submissões para Motor de Quórum)  │
 │          │                                                                                       │
 │          ├──(1:N)──► [ metricas_academicas ]   (Séries históricas por ano/semestre do DPO)       │
 │          ├──(1:1)──► [ metricas_consolidadas ] (Totalizador acumulado e supressão LGPD RN07)     │
@@ -52,6 +54,8 @@ Para facilitar a visualização clara e objetiva sem distorções de escala em d
 | `cursos` | `metricas_cursos` | **1 : N** | `curso_id` | `CASCADE` | Séries históricas de vagas, ingressantes e evasão por curso |
 | `usuarios` | `situacoes_disciplinas` | **1 : N** | `usuario_id` | `CASCADE` | Registro anônimo de "Já cursei essa matéria" |
 | `disciplinas` | `situacoes_disciplinas` | **1 : N** | `disciplina_id` | `CASCADE` | Totalizador de experiência discente na disciplina |
+| `turmas` | `doacoes_estatisticas` | **1 : N** | `turma_id` | `CASCADE` | Doações colaborativas de índices de turma extraídos do SIGAA |
+| `usuarios` | `doacoes_estatisticas` | **1 : N** | `usuario_id` | `CASCADE` | Vínculo de autoria e prevenção de doações duplicadas |
 | `disciplinas` | `conteudos` | **1 : N** | `disciplina_id` | `CASCADE` | Repositório colaborativo de materiais |
 | `turmas` | `conteudos` | **1 : N** | `turma_id` | `SET NULL` | Vínculo opcional de material a uma turma específica |
 | `usuarios` | `conteudos` | **1 : N** | `usuario_id` | `SET NULL` | Preserva material didático se a conta for excluída |
@@ -250,6 +254,24 @@ Módulo crowdsourced que permite ao estudante declarar sua experiência com a ma
 
 **Restrição de Unicidade:** `UNIQUE (usuario_id, disciplina_id)` assegura exatamente um registro por aluno em cada matéria (RN02).
 
+### `doacoes_estatisticas`
+Registro de submissões colaborativas de estatísticas de turmas extraídas do SIGAA por estudantes autenticados (Épico 3 — US 3.1.1). Alimenta o Motor de Consenso/Quórum antes da consolidação oficial.
+
+| Coluna | Tipo | Restrições | Descrição |
+|---|---|---|---|
+| `id` | BIGSERIAL | **PK** | Identificador sequencial da doação |
+| `turma_id` | INT | NOT NULL, **FK** → `turmas(id)` ON DELETE CASCADE | Turma referenciada na doação |
+| `usuario_id` | UUID | NOT NULL, **FK** → `usuarios(id)` ON DELETE CASCADE | Estudante autenticado autor da doação |
+| `semestre_referencia` | VARCHAR(10) | NOT NULL | Semestre letivo no padrão canônico UnB (ex.: `'2026.1'`) |
+| `taxa_aprovacao` | NUMERIC(5,2) | NOT NULL, CHECK (`0 <= valor <= 100`) | Percentual de aprovação reportado |
+| `taxa_reprovacao_nota` | NUMERIC(5,2) | NOT NULL, CHECK (`0 <= valor <= 100`) | Percentual de reprovação por nota reportado |
+| `taxa_reprovacao_falta` | NUMERIC(5,2) | NOT NULL, CHECK (`0 <= valor <= 100`) | Percentual de reprovação por falta reportado |
+| `taxa_trancamento` | NUMERIC(5,2) | NOT NULL, CHECK (`0 <= valor <= 100`) | Percentual de trancamento reportado |
+| `status` | VARCHAR(20) | NOT NULL, default `'PENDENTE'`, CHECK (`PENDENTE`, `CONSOLIDADA`, `DESCARTADA`) | Ciclo de vida no Motor de Quórum |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Carimbo de data e hora do envio (`data_envio`) |
+
+**Restrições de Integridade:** `UNIQUE (usuario_id, turma_id, semestre_referencia)` impede doações duplicadas do mesmo aluno para a mesma turma e semestre; `CHECK ((taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00)` garante fechamento percentual exato.
+
 ### `conteudos`
 Repositório colaborativo de materiais didáticos: resumos, links, provas anteriores e dicas de estudo.
 
@@ -306,11 +328,11 @@ Tabela interna utilizada pelo motor do Alembic para controle estrito de migraç�
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `version_num` | VARCHAR(32) | **PK** | Identificador alfanumérico da revisão ativa (revisão `007`) |
+| `version_num` | VARCHAR(32) | **PK** | Identificador alfanumérico da revisão ativa (revisão `008`) |
 
 ### Histórico da Linha de Base (Baseline Unificado)
 
-O script `init.sql` e as migrações versionadas do Alembic encontram-se **100% sincronizados no baseline 007 (Head)**:
+O script `init.sql` e as migrações versionadas do Alembic encontram-se **100% sincronizados no baseline 008 (Head)**:
 
 | Revisão | Identificador Alembic | Responsabilidade Técnica | Status |
 | :---: | :--- | :--- | :---: |
@@ -320,4 +342,5 @@ O script `init.sql` e as migrações versionadas do Alembic encontram-se **100% 
 | **004** | `widen_turma_horario_and_local` | Expansão dos campos de texto de horários e salas para 255 caracteres | Incorporado |
 | **005** | `widen_departamento_columns` | Expansão das colunas de departamento em disciplinas e docentes para 255 caracteres | Incorporado |
 | **006** | `add_requisitos_and_natureza` | Adição de pré/co-requisitos e equivalências em disciplinas e natureza em cursos | Incorporado |
-| **007** | `add_metricas_cursos` | Adição de metadados em cursos e tabela `metricas_cursos` para dados do Censo | **HEAD (Ativo)** |
+| **007** | `add_metricas_cursos` | Adição de metadados em cursos e tabela `metricas_cursos` para dados do Censo | Incorporado |
+| **008** | `add_doacoes_estatisticas` | Criação da tabela `doacoes_estatisticas` para coleta colaborativa de índices de turmas | **HEAD (Ativo)** |
