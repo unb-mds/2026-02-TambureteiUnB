@@ -1,7 +1,7 @@
 -- =====================================================================
 -- PROJETO TAMBURETEI UnB - ESQUEMA RELACIONAL OFICIAL (PostgreSQL 17)
 -- Baseado no PROJECT_CONTEXT.md e na documentação técnica (MDS 2026/2)
--- Sincronizado integralmente com o baseline Alembic revisão 007 (Head)
+-- Sincronizado integralmente com o baseline Alembic revisão 009_arquivos_conteudos (Head)
 -- =====================================================================
 
 -- Extensão para geração nativa de UUIDs
