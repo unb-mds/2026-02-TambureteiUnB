@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.api.schemas.material import MaterialPage, MaterialResponse, validar_titulo
 from app.domain.materiais import ArquivoMuitoGrande, ArquivoVazio, FormatoNaoSuportado
 from app.models.conteudo import Conteudo
+from app.models.disciplina import Disciplina
 from app.repositories.disciplina_repo import disciplina_repo
 from app.repositories.material_repo import material_repo
 from app.services.armazenamento_material import ArmazenamentoMaterial
@@ -19,18 +20,31 @@ logger = logging.getLogger(__name__)
 
 
 class MaterialService:
+    TIPOS_PERMITIDOS = {"ARQUIVO", "RESUMO", "PROVA_ANTIGA", "DICA"}
+
     def __init__(self, armazenamento: ArmazenamentoMaterial):
         self.armazenamento = armazenamento
 
-    def verificar_disciplina(self, db: Session, disciplina_id: int) -> None:
-        if disciplina_repo.get_by_id(db, disciplina_id) is None:
+    def resolver_disciplina(self, db: Session, id_ou_slug: int | str) -> Disciplina:
+        if isinstance(id_ou_slug, int) or (isinstance(id_ou_slug, str) and id_ou_slug.isdigit()):
+            disciplina = disciplina_repo.get_by_id(db, int(id_ou_slug))
+        else:
+            disciplina = disciplina_repo.get_by_slug(db, str(id_ou_slug))
+        if disciplina is None:
             raise HTTPException(404, "Cadeira não encontrada.")
+        return disciplina
+
+    def verificar_disciplina(self, db: Session, id_ou_slug: int | str) -> Disciplina:
+        return self.resolver_disciplina(db, id_ou_slug)
 
     def enviar(
-        self, db: Session, usuario_id: UUID, disciplina_id: int, titulo: str,
-        arquivo: BinaryIO, nome: str, tipo_mime: str,
+        self, db: Session, usuario_id: UUID, id_ou_slug: int | str, titulo: str,
+        arquivo: BinaryIO, nome: str, tipo_mime: str, tipo: str = "ARQUIVO",
     ) -> MaterialResponse:
-        self.verificar_disciplina(db, disciplina_id)
+        disciplina = self.resolver_disciplina(db, id_ou_slug)
+        tipo = tipo.strip().upper() if tipo else "ARQUIVO"
+        if tipo not in self.TIPOS_PERMITIDOS:
+            raise HTTPException(422, f"Tipo inválido. Tipos permitidos: {sorted(self.TIPOS_PERMITIDOS)}")
         try:
             titulo = validar_titulo(titulo)
         except PydanticCustomError as exc:
@@ -49,8 +63,8 @@ class MaterialService:
 
         try:
             material = Conteudo(
-                tipo="ARQUIVO", status_curadoria="APROVADO",
-                usuario_id=usuario_id, disciplina_id=disciplina_id, titulo=titulo,
+                tipo=tipo, status_curadoria="APROVADO",
+                usuario_id=usuario_id, disciplina_id=disciplina.id, titulo=titulo,
                 caminho_arquivo=chave, formato=formato, tamanho_bytes=tamanho,
                 status_moderacao="ativo",
             )
@@ -70,11 +84,14 @@ class MaterialService:
             raise
 
     def listar(
-        self, db: Session, disciplina_id: int, titulo: str | None, pagina: int, tamanho_pagina: int
+        self, db: Session, id_ou_slug: int | str, titulo: str | None, pagina: int, tamanho_pagina: int, tipo: str | None = None
     ) -> MaterialPage:
-        self.verificar_disciplina(db, disciplina_id)
+        disciplina = self.resolver_disciplina(db, id_ou_slug)
+        tipo_filtro = tipo.strip().upper() if tipo else None
+        if tipo_filtro and tipo_filtro not in self.TIPOS_PERMITIDOS:
+            raise HTTPException(422, f"Tipo inválido. Tipos permitidos: {sorted(self.TIPOS_PERMITIDOS)}")
         materiais, total = material_repo.listar_ativos(
-            db, disciplina_id, titulo.strip() if titulo else None, pagina, tamanho_pagina
+            db, disciplina.id, titulo.strip() if titulo else None, pagina, tamanho_pagina, tipo=tipo_filtro
         )
         return MaterialPage(items=materiais, total=total, pagina=pagina, tamanho_pagina=tamanho_pagina)
 

@@ -14,7 +14,7 @@ class ConteudoRepository(BaseRepository[Conteudo]):
         query = db.query(Conteudo).filter(
             Conteudo.disciplina_id == disciplina_id,
             Conteudo.status_curadoria == "APROVADO",
-            or_(Conteudo.tipo != "ARQUIVO", Conteudo.status_moderacao == "ativo")
+            or_(Conteudo.caminho_arquivo.is_(None), Conteudo.status_moderacao == "ativo")
         )
         if tipo:
             query = query.filter(Conteudo.tipo == tipo)

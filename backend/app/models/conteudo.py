@@ -31,7 +31,7 @@ class Conteudo(Base):
         CheckConstraint("tipo IN ('LINK_UTIL', 'RESUMO', 'PROVA_ANTIGA', 'DICA', 'ARQUIVO')", name="chk_tipo_conteudo"),
         CheckConstraint("status_curadoria IN ('PENDENTE', 'APROVADO', 'RECUSADO')", name="chk_status_curadoria"),
         CheckConstraint(
-            "(tipo = 'ARQUIVO' AND url_origem IS NULL "
+            "(caminho_arquivo IS NOT NULL AND url_origem IS NULL "
             "AND caminho_arquivo IS NOT NULL AND formato IS NOT NULL "
             "AND tamanho_bytes IS NOT NULL AND status_moderacao IS NOT NULL) "
             "OR (tipo <> 'ARQUIVO' AND url_origem IS NOT NULL "
@@ -41,7 +41,7 @@ class Conteudo(Base):
         ),
         CheckConstraint("formato IS NULL OR formato IN ('pdf', 'png', 'jpg')", name="chk_conteudo_formato"),
         CheckConstraint("tamanho_bytes IS NULL OR tamanho_bytes > 0", name="chk_conteudo_tamanho"),
-        CheckConstraint("tipo <> 'ARQUIVO' OR length(trim(titulo)) > 0", name="chk_conteudo_titulo"),
+        CheckConstraint("length(trim(titulo)) > 0", name="chk_conteudo_titulo"),
         CheckConstraint("status_moderacao IS NULL OR status_moderacao IN ('ativo', 'em_analise', 'bloqueado', 'excluido')", name="chk_conteudo_moderacao"),
         Index(
             "ix_conteudos_arquivos_disciplina_status", "disciplina_id", "tipo",
