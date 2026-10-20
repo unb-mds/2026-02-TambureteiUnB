@@ -1,0 +1,250 @@
+name: CI — Tamburetei UnB
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # 1. BACKEND: Linting (Ruff) e Análise Estática de Segurança / SAST (Bandit)
+  # ===========================================================================
+  backend-lint-sast:
+    name: Backend — Lint & SAST (Ruff + Bandit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalar ferramentas de análise estática
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "ruff>=0.6,<1.0" "bandit>=1.8,<2.0"
+
+      - name: Verificar sintaxe e qualidade com Ruff
+        run: python -m ruff check app tests
+
+      - name: Análise estática de segurança (SAST) com Bandit
+        run: python -m bandit -r app -ll
+
+  # ===========================================================================
+  # 2. BACKEND: Migrações Alembic, Pytest (Unit + Integração), Cobertura e Mutação
+  # ===========================================================================
+  backend-tests:
+    name: Backend — Testes, Cobertura (>=70%) & Mutação (>=50%)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tamburetei_test
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tamburetei_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_SERVER: localhost
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tamburetei_test
+      POSTGRES_PORT: "5432"
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tamburetei_test
+      SECRET_KEY: chave-exclusiva-de-testes-ci-nao-usar-em-producao
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalar dependências do Backend e Testes
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt "pytest==8.4.2" "pytest-cov>=5.0.0" "mutmut>=2.4.4,<3.0.0"
+
+      - name: Validar migrações Database-as-Code (Alembic)
+        run: alembic upgrade head
+
+      - name: Executar suíte de testes (Unitários + Integração) e validar cobertura (>= 70%)
+        run: >-
+          python -m pytest tests
+          --cov=app
+          --cov-report=term-missing
+          --cov-report=xml:coverage.xml
+          --cov-fail-under=70
+
+      - name: Publicar artefato de cobertura para o SonarQube/SonarCloud
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 5
+
+      - name: Executar testes de mutação nas regras de negócio e métricas (Mutmut >= 50%)
+        run: |
+          python -m mutmut run --paths-to-mutate app/pipeline/transformers/metricas_transformer.py --no-progress || true
+          python -m mutmut junitxml > mutmut-report.xml
+          python - << 'EOF'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          tree = ET.parse("mutmut-report.xml")
+          root = tree.getroot()
+          total = int(root.attrib.get("tests", 0))
+          failures = int(root.attrib.get("failures", 0))
+          errors = int(root.attrib.get("errors", 0))
+          survived = failures + errors
+          killed = max(0, total - survived)
+          score = (killed / total * 100.0) if total > 0 else 100.0
+
+          print(f"Resumo Mutmut -> Total de mutantes: {total} | Mortos: {killed} | Sobreviventes: {survived} | Escore: {score:.2f}%")
+          if score < 50.0:
+              print(f"ERRO: Escore de mutação ({score:.2f}%) abaixo do mínimo exigido (50.0%).")
+              sys.exit(1)
+          EOF
+
+  # ===========================================================================
+  # 3. FRONTEND: ESLint, Typecheck (TypeScript) e Build Next.js
+  # ===========================================================================
+  frontend-ci:
+    name: Frontend — Lint, Typecheck & Build (Next.js)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências (npm ci)
+        run: npm ci
+
+      - name: Executar ESLint
+        run: npm run lint
+
+      - name: Verificar tipagem estática (TypeScript)
+        run: npx tsc --noEmit
+
+      - name: Validar build de produção do Next.js
+        run: npm run build
+
+  # ===========================================================================
+  # 4. DOCKER COMPOSE: Reprodutibilidade e Healthcheck de Infraestrutura (RNF06)
+  # ===========================================================================
+  docker-compose-check:
+    name: Infra — Docker Compose Build & Healthcheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar arquivo .env a partir do .env.example
+        run: cp .env.example .env
+
+      - name: Construir e subir serviços via Docker Compose
+        run: docker compose up -d --build
+
+      - name: Aguardar e validar healthcheck da API FastAPI e PostgreSQL 17
+        run: |
+          echo "Aguardando inicialização do backend em http://localhost:8000/health ..."
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/health | grep -q '"status":"ok"'; then
+              echo "Healthcheck aprovado com sucesso!"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "ERRO: Timeout aguardando healthcheck da API."
+          docker compose ps
+          docker compose logs
+          exit 1
+
+      - name: Encerrar containers e limpar volumes
+        if: always()
+        run: docker compose down -v
+
+  # ===========================================================================
+  # 5. SONARCLOUD / SONARQUBE: Qualidade Contínua e SAST (Executa se SONAR_TOKEN existir)
+  # ===========================================================================
+  sonarcloud:
+    name: Qualidade & SAST — SonarCloud
+    needs:
+      - backend-tests
+      - frontend-ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - name: Checkout do repositório (histórico completo para blame)
+        if: env.SONAR_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Baixar relatório de cobertura do Backend
+        if: env.SONAR_TOKEN != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend
+
+      - name: Executar SonarQube / SonarCloud Scan
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Aviso quando SONAR_TOKEN não está configurado
+        if: env.SONAR_TOKEN == ''
+        run: |
+          echo "::notice title=SonarCloud Opcional::Configure a secret SONAR_TOKEN no repositório GitHub para habilitar o scan automático do SonarCloud."
