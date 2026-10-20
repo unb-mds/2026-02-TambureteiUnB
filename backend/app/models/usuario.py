@@ -20,6 +20,7 @@ class Usuario(Base):
     conteudos = relationship("Conteudo", back_populates="usuario")
     comentarios = relationship("Comentario", back_populates="usuario", cascade="all, delete-orphan")
     votos = relationship("VotoUtil", back_populates="usuario", cascade="all, delete-orphan")
+    doacoes = relationship("DoacaoEstatistica", back_populates="usuario", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Usuario(id={self.id}, email='{self.email}', role='{self.role}')>"
