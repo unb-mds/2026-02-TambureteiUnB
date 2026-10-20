@@ -19,18 +19,16 @@ import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
 import ClassCard from "@/components/ClassCard";
 import ClassCardSkeleton from "@/components/ClassCardSkeleton";
+import ClassEmptyState from "@/components/ClassEmptyState";
 import ClassFilters, {
-  ClassEmptyState,
   CLASS_SHIFT_OPTIONS,
   CLASS_SORT_OPTIONS,
 } from "@/components/ClassFilters";
-import { getFallbackTurmasByDiscipline } from "@/mocks/turmas";
-import { getFallbackDiscipline } from "@/mocks/disciplinas";
+import MaterialModal from "@/components/MaterialModal";
 import {
   getDisciplineBySlug,
   getClassesByDiscipline,
 } from "@/services/disciplineService";
-import { ApiError } from "@/services/httpClient";
 import {
   Discipline,
   DEFAULT_HISTORICAL_PERFORMANCE,
@@ -72,6 +70,8 @@ function DisciplineDetailContent() {
 
   const [discipline, setDiscipline] = useState<Discipline | null>(null);
   const [loading, setLoading] = useState(true);
+  const [disciplineError, setDisciplineError] = useState<string | null>(null);
+  const [disciplineRetryCount, setDisciplineRetryCount] = useState(0);
 
   // Estados da listagem de turmas
   const [classes, setClasses] = useState<Class[]>([]);
@@ -134,6 +134,12 @@ function DisciplineDetailContent() {
     syncUrlParams("Todos", "code_asc");
   }, [syncUrlParams]);
 
+  const handleRetryDiscipline = useCallback(() => {
+    setLoading(true);
+    setDisciplineError(null);
+    setDisciplineRetryCount((prev) => prev + 1);
+  }, []);
+
   // Carregamento dos dados da disciplina
   useEffect(() => {
     let isMounted = true;
@@ -141,21 +147,23 @@ function DisciplineDetailContent() {
       if (!slug) return;
       try {
         setLoading(true);
+        setDisciplineError(null);
         const data = await getDisciplineBySlug(slug);
         if (isMounted) {
           if (data && data.name) {
             setDiscipline(data);
           } else {
-            setDiscipline(getFallbackDiscipline(slug));
+            setDiscipline(null);
           }
         }
       } catch (err) {
-        console.warn(
-          `[Tamburetei] API indisponível ou 404 para "${slug}". Carregando fallback mock:`,
-          err
-        );
         if (isMounted) {
-          setDiscipline(getFallbackDiscipline(slug));
+          setDiscipline(null);
+          const message =
+            err instanceof Error && err.message
+              ? err.message
+              : "Não foi possível carregar os dados da disciplina no momento.";
+          setDisciplineError(message);
         }
       } finally {
         if (isMounted) {
@@ -167,7 +175,7 @@ function DisciplineDetailContent() {
     return () => {
       isMounted = false;
     };
-  }, [slug]);
+  }, [slug, disciplineRetryCount]);
 
   // Contador para permitir re-tentativa (retry) manual da busca de turmas
   const [classesRetryCount, setClassesRetryCount] = useState(0);
@@ -178,15 +186,18 @@ function DisciplineDetailContent() {
     setClassesRetryCount((prev) => prev + 1);
   }, []);
 
-  // Carregamento das turmas vinculadas à disciplina
+  // Carregamento das turmas vinculadas à disciplina somente quando disciplinaId for numérico válido
   useEffect(() => {
     if (!discipline) return;
 
     const currentDiscipline = discipline;
+    const disciplinaId = currentDiscipline.id;
     let isMounted = true;
 
     async function fetchClassesForDiscipline() {
       try {
+        setClassesLoading(true);
+
         // Permite simular estado de erro via query param (?erroTurmas=true) para testes de UI
         if (searchParams.get("erroTurmas") === "true") {
           throw new Error(
@@ -194,33 +205,22 @@ function DisciplineDetailContent() {
           );
         }
 
-        let loadedClasses: Class[] = [];
-
-        if (typeof currentDiscipline.id === "number") {
-          loadedClasses = await getClassesByDiscipline({
-            disciplinaId: currentDiscipline.id,
-            codigo: currentDiscipline.code,
-          });
-        } else {
-          try {
-            loadedClasses = await getClassesByDiscipline({
-              codigo: currentDiscipline.code,
-            });
-          } catch (innerErr) {
-            if (
-              innerErr instanceof ApiError &&
-              (innerErr.status === 0 ||
-                innerErr.status === 404 ||
-                innerErr.status === 422)
-            ) {
-              loadedClasses = getFallbackTurmasByDiscipline(
-                currentDiscipline.code
-              );
-            } else {
-              throw innerErr;
-            }
+        if (
+          typeof disciplinaId !== "number" ||
+          !Number.isFinite(disciplinaId) ||
+          disciplinaId <= 0
+        ) {
+          if (isMounted) {
+            setClasses([]);
+            setClassesError(null);
           }
+          return;
         }
+
+        const loadedClasses = await getClassesByDiscipline({
+          disciplinaId,
+          codigo: currentDiscipline.code,
+        });
 
         if (isMounted) {
           setClasses(loadedClasses);
@@ -228,19 +228,12 @@ function DisciplineDetailContent() {
         }
       } catch (err) {
         if (!isMounted) return;
-        if (err instanceof ApiError && err.status === 0) {
-          console.warn(
-            `[Tamburetei] Servidor offline ao buscar turmas de ${currentDiscipline.code}. Utilizando dados de fallback.`
-          );
-          setClasses(getFallbackTurmasByDiscipline(currentDiscipline.code));
-          setClassesError(null);
-        } else {
-          const message =
-            err instanceof Error
-              ? err.message
-              : "Ocorreu um erro inesperado ao consultar as turmas ofertadas.";
-          setClassesError(message);
-        }
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "Ocorreu um erro inesperado ao consultar as turmas ofertadas.";
+        setClasses([]);
+        setClassesError(message);
       } finally {
         if (isMounted) {
           setClassesLoading(false);
@@ -307,29 +300,55 @@ function DisciplineDetailContent() {
       <div className="min-h-screen bg-[#F7F7FA] flex flex-col font-sans">
         <Navbar />
         <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-16 text-center">
-          <div className="bg-white rounded-3xl border border-[#EDE9FD] p-12 shadow-xs">
+          <div
+            role="alert"
+            className="bg-white rounded-3xl border border-[#EDE9FD] p-12 shadow-xs"
+          >
             <div className="flex justify-center mb-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EDE9FD]">
                 <StoolIllustration size={44} />
               </div>
             </div>
             <h1 className="text-2xl font-bold text-[#202124]">
-              Disciplina não encontrada
+              {disciplineError
+                ? "Não foi possível carregar a disciplina"
+                : "Disciplina não encontrada"}
             </h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Não encontramos uma disciplina correspondente ao código ou slug
-              informado ({slug}).
+            <p className="mt-2 text-sm text-gray-500 max-w-lg mx-auto">
+              {disciplineError ||
+                `Não encontramos uma disciplina correspondente ao código ou slug informado (${slug}).`}
             </p>
-            <div className="mt-6 flex justify-center gap-3">
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleRetryDiscipline}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#5B4BDB] px-6 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 shadow-xs active:scale-95 cursor-pointer"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                Tentar novamente
+              </button>
               <Link
                 href="/disciplinas"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#5B4BDB] px-6 py-3 text-sm font-semibold text-white transition-all hover:brightness-110"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#5B4BDB] bg-white px-6 py-3 text-sm font-semibold text-[#5B4BDB] transition-all hover:bg-[#5B4BDB]/5"
               >
                 ← Voltar para Disciplinas
               </Link>
               <Link
                 href="/cursos"
-                className="inline-flex items-center gap-2 rounded-xl border border-[#5B4BDB] bg-white px-6 py-3 text-sm font-semibold text-[#5B4BDB] transition-all hover:bg-[#5B4BDB]/5"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#E1DFEA] bg-white px-6 py-3 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50"
               >
                 Ver Cursos
               </Link>
@@ -550,51 +569,11 @@ function DisciplineDetailContent() {
           </section>
 
           {/* Modal de confirmação ao adicionar material */}
-          {showMaterialModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-              <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl border border-[#EDE9FD]">
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                  <h3 className="font-bold text-lg text-[#202124]">
-                    Compartilhar Material
-                  </h3>
-                  <button
-                    onClick={() => setShowMaterialModal(false)}
-                    className="text-gray-400 hover:text-gray-600 p-1"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <p className="mt-4 text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Ajude outros estudantes compartilhando resumos, listas de
-                  exercícios ou provas antigas de{" "}
-                  <strong>{discipline.name}</strong>.
-                </p>
-                <div className="mt-4 rounded-xl bg-[#F7F7FA] p-3 text-xs text-gray-500">
-                  💡 Os materiais passam por revisão da moderação discente para
-                  garantir a qualidade acadêmica.
-                </div>
-                <div className="mt-6 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowMaterialModal(false)}
-                    className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                  >
-                    Fechar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      alert("Upload de materiais disponível em breve!");
-                      setShowMaterialModal(false);
-                    }}
-                    className="rounded-xl bg-[#5B4BDB] px-4 py-2 text-xs font-semibold text-white hover:brightness-110"
-                  >
-                    Selecionar Arquivo
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <MaterialModal
+            isOpen={showMaterialModal}
+            disciplineName={discipline.name}
+            onClose={() => setShowMaterialModal(false)}
+          />
 
           {/* Seção Ementa e Objetivos */}
           <section className="mb-6 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">

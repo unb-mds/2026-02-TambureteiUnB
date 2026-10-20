@@ -92,6 +92,7 @@ export interface BackendMetricaAcademica {
 }
 
 export interface BackendDisciplinaResponse extends BackendDisciplinaResumo {
+  id?: number;
   carga_horaria?: number | null;
   ementa?: string | null;
   pre_requisitos?: string | null;
