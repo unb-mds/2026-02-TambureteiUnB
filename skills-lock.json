@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "github-project-triage": {
+      "source": "steipete/agent-scripts",
+      "sourceType": "github",
+      "skillPath": "skills/github-project-triage/SKILL.md",
+      "computedHash": "06338f3ee2615bb94977b87f2993b626dc5e0b9ebf98e81b9a487b6629296cc8"
+    },
+    "prd-to-issues": {
+      "source": "chrislacey89/skills",
+      "sourceType": "github",
+      "skillPath": "prd-to-issues/SKILL.md",
+      "computedHash": "4b9ee2c8cffcac377a38e07be3ce8dee4c11547dbf9d8176b029cb06a7c2ab70"
+    }
+  }
+}
