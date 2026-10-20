@@ -1,3 +1,4 @@
+import os
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -11,8 +12,14 @@ from app.models.usuario import Usuario
 from app.models.professor import Professor
 from app.models.disciplina import Disciplina
 
-engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+DATABASE_URL = os.getenv("TEST_DATABASE_URL") or settings.SQLALCHEMY_DATABASE_URI
+engine = create_engine(DATABASE_URL)
+TestingSessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+    join_transaction_mode="create_savepoint",
+)
 
 
 @pytest.fixture()
