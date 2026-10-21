@@ -215,7 +215,8 @@ situacoes_disciplinas
 
 conteudos
   Materiais de apoio: id, disciplina_id, usuario_id, titulo, descricao,
-  tipo (LINK_UTIL, RESUMO, PROVA_ANTIGA, DICA), url_origem, semestre,
+  tipo (LINK_UTIL, RESUMO, PROVA_ANTIGA, DICA, ARQUIVO), url_origem, semestre,
+  caminho_arquivo, formato, tamanho_bytes, status_moderacao,
   status_curadoria (PENDENTE, APROVADO, RECUSADO), created_at.
 
 comentarios
@@ -259,8 +260,11 @@ recorrentes (como testes semanais ou relatórios laboratoriais vigentes). São
 aceitos apenas enunciados de avaliações públicas anteriores e resumos conceituais.
 
 [RN06] Curadoria de Submissões Externas
-Materiais submetidos por estudantes são gravados com status_curadoria = PENDENTE
-e só são exibidos publicamente após aprovação de um moderador.
+Links e resumos da US 5.1.1 são gravados com status_curadoria = PENDENTE
+e exibidos após aprovação. Uploads da US 5.2.1 compartilham conteudos com tipo ARQUIVO,
+status_curadoria = APROVADO e status_moderacao = ativo, conforme disponibilidade
+imediata prevista nessa história. Listagem e download respeitam ambos os estados.
+Não há tabela separada de materiais.
 
 [RN07] Tratamento de Dados com Baixa Amostragem (LGPD / DPO)
 Agregações históricas oriundas de microdados públicos com menos de 5 alunos por

@@ -1,45 +1,81 @@
+import os
+from unittest.mock import patch
+
 import pytest
+from alembic import command
+from alembic.config import Config
+from sqlalchemy.engine import make_url
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
 from app.main import app
-from app.core.config import settings
+from app.core.config import Settings, settings
 from app.core.database import get_db
 from app.core.security import create_access_token, get_password_hash
 from app.models.usuario import Usuario
 from app.models.professor import Professor
 from app.models.disciplina import Disciplina
 
-engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+@pytest.fixture(scope="session")
+def engine():
+    explicit_url = os.getenv("TEST_DATABASE_URL")
+    url = make_url(explicit_url or settings.SQLALCHEMY_DATABASE_URI)
+    if not explicit_url:
+        # O comando habitual funciona sem migrar ou limpar a base da aplicacao.
+        url = url.set(database=(url.database or "tamburetei") + "_test")
+    if not (url.database or "").endswith("_test"):
+        raise ValueError("TEST_DATABASE_URL deve apontar para banco dedicado com sufixo _test.")
+    if url.get_backend_name() != "postgresql":
+        raise ValueError("Os testes de integração exigem PostgreSQL.")
+    if not explicit_url:
+        admin = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")
+        try:
+            with admin.connect() as connection:
+                exists = connection.scalar(text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": url.database})
+                if not exists:
+                    name = connection.dialect.identifier_preparer.quote_identifier(url.database)
+                    connection.exec_driver_sql(f"CREATE DATABASE {name}")
+        finally:
+            admin.dispose()
+    url = url.render_as_string(hide_password=False)
+    with patch.object(Settings, "SQLALCHEMY_DATABASE_URI", property(lambda _: url)):
+        command.upgrade(Config("alembic.ini"), "head")
+    test_engine = create_engine(url)
+    try:
+        yield test_engine
+    finally:
+        test_engine.dispose()
 
 
 @pytest.fixture()
-def db():
-    """Sessão de teste: tudo roda numa transação que é desfeita no final."""
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = TestingSessionLocal(bind=connection)
-
-    yield session
-
-    session.close()
-    transaction.rollback()
-    connection.close()
+def db(engine):
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        session = Session(bind=connection, join_transaction_mode="create_savepoint")
+        try:
+            yield session
+        finally:
+            session.close()
+            transaction.rollback()
 
 
 @pytest.fixture()
-def client(db):
+def client(db, tmp_path, monkeypatch):
     """TestClient usando a MESMA sessão de teste (via dependency override)."""
 
     def override_get_db():
         yield db
 
+    monkeypatch.setattr(settings, "MATERIALS_DIR", tmp_path / "uploads")
+    previous = app.dependency_overrides.copy()
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
+    try:
+        with TestClient(app) as c:
+            yield c
+    finally:
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(previous)
 
 
 @pytest.fixture()
@@ -120,3 +156,20 @@ def student_token(student_user):
 @pytest.fixture()
 def student_headers(student_token):
     return {"Authorization": f"Bearer {student_token}"}
+
+@pytest.fixture(scope="session")
+def password_hash():
+    return get_password_hash("SenhaDeTeste123!")
+
+
+@pytest.fixture()
+def usuario(db, password_hash):
+    user = Usuario(nome="Aluno Teste", email="aluno@example.com", password_hash=password_hash)
+    db.add(user)
+    db.commit()
+    return user
+
+
+@pytest.fixture()
+def headers(usuario):
+    return {"Authorization": "Bearer " + create_access_token({"sub": usuario.email, "role": usuario.role})}

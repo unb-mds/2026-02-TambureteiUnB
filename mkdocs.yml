@@ -42,4 +42,6 @@ nav:
       - Backend: historias_usuario_backend.md
       - Frontend: historias_usuario_frontend.md
       - Banco de Dados: historias_usuario_database.md
+  - Revisão da Integração de Materiais: revisao_integracao_materiais.md
+  - Materiais de Apoio (Feature 5.2): feature_5_2_materiais.md
   - Guia do Desenvolvedor: desenvolvimento.md

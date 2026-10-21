@@ -110,13 +110,13 @@ Depende de: US 1.1.1, US 2.1.1
 Eu, como Engenheiro de Banco de Dados, desejo modelar a tabela `conteudos`, a fim de persistir materiais de estudo e registrar seu ciclo de aprovação na moderação.
 
 **Nessa issue deve ser feito:**
-- Criar tabela `conteudos`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `titulo` (VARCHAR 200), `descricao` (TEXT), `tipo` (VARCHAR 30), `url_origem` (TEXT nullable), `caminho_arquivo` (TEXT nullable), `formato` (VARCHAR 30 nullable), `semestre` (VARCHAR 10), `status_curadoria` (VARCHAR 20) e carimbos de data
-- Adicionar constraint CHECK para os tipos aceitos: `'LINK_UTIL'`, `'RESUMO'`, `'PROVA_ANTIGA'`, `'DICA'`
+- Criar tabela `conteudos`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `titulo` (VARCHAR 200), `descricao` (TEXT), `tipo` (VARCHAR 30), `url_origem` (TEXT nullable), `caminho_arquivo` (VARCHAR 64 nullable), `formato` (VARCHAR 3 nullable), `tamanho_bytes` (INTEGER nullable), `status_moderacao` (VARCHAR 20 nullable), `semestre` (VARCHAR 10), `status_curadoria` (VARCHAR 20) e carimbos de data
+- Adicionar constraint CHECK para os tipos aceitos: `'LINK_UTIL'`, `'RESUMO'`, `'PROVA_ANTIGA'`, `'DICA'`, `'ARQUIVO'`
 - Adicionar constraint CHECK para os status de curadoria: `'PENDENTE'`, `'APROVADO'`, `'RECUSADO'`, com default `'PENDENTE'`
 - Criar índice composto em `(disciplina_id, tipo, status_curadoria)` para agilizar a listagem de materiais públicos
 
 **Critérios de aceitação:**
-- Toda nova submissão deve nascer obrigatoriamente com o status `PENDENTE`
+- Links e resumos da US 5.1.1 começam como `PENDENTE`; uploads da US 5.2.1 mantêm disponibilidade imediata com `APROVADO` e moderação `ativo`.
 - Preservar os materiais na base mesmo se o autor excluir a conta, tornando `usuario_id` nulo (`ON DELETE SET NULL`)
 - Permitir filtragem imediata apenas de materiais aprovados nas consultas públicas
 
@@ -162,11 +162,17 @@ Eu, como Engenheiro de Banco de Dados, desejo versionar o esquema em migrações
 
 **Nessa issue deve ser feito:**
 - Configurar o arquivo `alembic.ini` e o runner `alembic/env.py` mapeando `Base.metadata`
-- Gerar o arquivo de migração versionada inicial `001_initial_schema.py` com as 9 tabelas e seus índices
-- Criar o script `init.sql` com as definições DDL e inserção de dados de semente (seeds) da UnB FCTE Gama
+- Versionar a estrutura do banco e seus índices por migrações Alembic, preservando revisões publicadas
+- Manter `init.sql` compatível com o baseline `007` da base atual; evoluções posteriores são aplicadas pelo Alembic
 - Configurar volume no `docker-compose.yml` montando o script em `/docker-entrypoint-initdb.d/init.sql`
 
 **Critérios de aceitação:**
-- Subir o contêiner do PostgreSQL 17 com todas as 9 tabelas e dados de teste criados automaticamente
+- Subir o contêiner do PostgreSQL 17 e aplicar as migrações pendentes, incluindo a integração de materiais
 - Executar `alembic upgrade head` sem erros de sintaxe ou conflito de tipos
 - Possibilitar reverter todo o esquema de forma limpa via `alembic downgrade base`
+
+## Arquivos de apoio — integração da Feature 5.2
+
+A tabela `conteudos` também representa arquivos privados com `tipo=ARQUIVO`. Os campos opcionais `caminho_arquivo`, `formato`, `tamanho_bytes` e `status_moderacao` descrevem o upload; os binários ficam no volume privado `materiais_data`. Links e resumos anteriores preservam URL, dados e curadoria. Arquivos seguem a disponibilidade imediata da US 5.2.1, com `status_curadoria=APROVADO` e moderação `ativo`; consultas respeitam ambos os estados.
+
+A migração linear `009_arquivos_conteudos` estende a entidade após `008`, sem criar uma tabela `materiais`. Consulte [os contratos e testes](feature_5_2_materiais.md).
