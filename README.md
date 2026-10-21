@@ -1,9 +1,7 @@
-# G9-2026-2
-Grupo G9 - Metodos de Desenvolvimento de Software 2026/2
 # 📈 Tamburetei UnB
 
-> **Dados para entender o desempenho acadêmico da Universidade de Brasília.**
-> Um projeto de análise de dados acadêmicos baseado em dados abertos e anonimizados obtidos por meio da Lei de Acesso à Informação (LAI).
+> **Dados e métricas abertas para entender e navegar o desempenho acadêmico da Universidade de Brasília.**  
+> Projeto desenvolvido pela equipe **Grupo G9** para a disciplina **Métodos de Desenvolvimento de Software (MDS 2026/2)** — FCTE / Universidade de Brasília (UnB), sob a organização [OpenDevUnB](https://github.com/unb-mds).
 
 ---
 
@@ -11,31 +9,30 @@ Grupo G9 - Metodos de Desenvolvimento de Software 2026/2
 
 O **Tamburetei UnB** é um projeto de análise de dados acadêmicos que tem como objetivo disponibilizar informações sobre o desempenho dos estudantes da Universidade de Brasília de forma **aberta, organizada e reprodutível**.
 
-O projeto trabalha com um **dataset anonimizado**, obtido por meio da **Lei de Acesso à Informação (LAI)**, contendo indicadores relacionados ao desempenho acadêmico, como:
+O projeto trabalha com um **dataset anonimizado**, obtido por meio da **Lei de Acesso à Informação (LAI)**, do **SIGAA** e do **DPO/UnB**, contendo indicadores relacionados ao desempenho acadêmico, como:
 
-* Taxas de aprovação;
-* Taxas de evasão;
-* Tempo médio de formação;
-* Outros indicadores acadêmicos presentes nos dados disponibilizados.
+* Taxas de aprovação e reprovação (por nota e por falta);
+* Índices de trancamento e evasão estudantil;
+* Tempo médio de formação e fluxos curriculares dos cursos;
+* Hub colaborativo de disciplinas com ementas, pré-requisitos navegáveis e relatos sob pseudônimo (*Privacy by Design*).
 
 A proposta é transformar esses dados em informações que possam ser exploradas e analisadas de maneira transparente, permitindo uma melhor compreensão do desempenho acadêmico na UnB.
 
 O projeto é inspirado no **Tamburetei**, desenvolvido pela OpenDevUFCG, que utiliza dados acadêmicos para produzir análises reprodutíveis por meio de notebooks.
 
-🔗 **Referência:** [Tamburetei — OpenDevUFCG](https://github.com/OpenDevUFCG/Tamburetei)
+### 🔗 Links Oficiais do Projeto:
+* 📚 **Portal de Documentação Oficial (MkDocs):** [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/)
+* 🎨 **Protótipo de Interface (Figma):** [Template MDS — Grupo 9](https://www.figma.com/board/coZ3FgGpd5amxJxaanwaTr/Template-MDS---Grupo-9?node-id=2128-1592)
+* 💡 **Referência Conceitual:** [Tamburetei — OpenDevUFCG](https://github.com/OpenDevUFCG/Tamburetei)
 
-*Figma do nosso projeto*: https://www.figma.com/board/coZ3FgGpd5amxJxaanwaTr/Template-MDS---Grupo-9?node-id=2128-1592&t=FLYotQksvnPU1YJJ-0
-
-*Documentação do nosso projeto*: https://unb-mds.github.io/2026-02-TambureteiUnB/
 ---
 
-
-### 👥 Papéis
+### 👥 Papéis e Governança
 
 * **Scrum Master:** Thamires Ellen Souza Araujo — [@thamiresellensa](https://github.com/thamiresellensa)
 * **Product Owner:** Lucas Miranda Souza — [@lucasssmira](https://github.com/lucasssmira)
 
-A **Sprint 0** foi destinada principalmente ao estudo e alinhamento das tecnologias, metodologias e conceitos necessários para o desenvolvimento do projeto. A equipe atualmente está na **Sprint 1**, iniciando a organização das atividades e dos requisitos.
+O projeto concluiu com êxito os entregáveis da **Release 1 (R1)** (Pipeline de ETL e anonimização LGPD, modelagem relacional PostgreSQL 17, autenticação JWT e catálogo curricular integrado). A equipe encontra-se atualmente no ciclo de **Estabilização e Entrega Contínua (Release 2)**, focado em colaboração discente, moderação de conteúdos e consolidação analítica.
 
 ---
 
@@ -203,17 +200,26 @@ docker compose down -v
 
 ## 📚 Documentação do Projeto com MkDocs
 
-A documentação detalhada de arquitetura, requisitos e visão está disponível na pasta `docs/` e publicada em [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/).
+A documentação detalhada de arquitetura, requisitos, modelagem e guias está disponível na pasta `docs/` e publicada em [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/).
 
-Para visualizá-la e editá-la localmente:
+### 🗺️ Principais Documentos e Guias:
+* 📄 **[Documento de Visão](docs/index.md):** Contexto do problema, objetivos, valor entregue e escopo.
+* 📋 **[Requisitos do Sistema](docs/requisitos.md) & [Regras de Negócio](docs/regras_negocio.md):** Requisitos funcionais, não funcionais e políticas de governança e anonimização.
+* 🏛️ **[Arquitetura do Sistema & ADRs](docs/arquitetura.md):** Visão arquitetural C4, Clean Architecture, diagramas de sequência de ponta a ponta e registros de decisões arquiteturais (ADRs 01 a 07).
+* 🗄️ **[Dicionário de Dados Relacional](docs/banco_de_dados.md):** Diagrama ER e detalhamento dos esquemas do PostgreSQL 17.
+* 🔄 **[Pipeline de Dados & ETL](docs/pipeline_etl.md) e [Como Popular o Banco](docs/popular_banco_de_dados.md):** Passo a passo para ingestão, anonimização e carga de dados de turmas, docentes e históricos.
+* 🧪 **[Guia de Desenvolvimento e Smoke Test](docs/desenvolvimento.md):** Configuração de ambiente, comandos de execução, linter, testes e roteiro de validação de fumaça (*smoke test*).
+
+Para visualizá-la e editá-la localmente com live-reload:
 
 ```bash
 # Instalar dependências da documentação
 pip install mkdocs pymdown-extensions
 
-# Iniciar o servidor local da documentação
-mkdocs serve
+# Iniciar o servidor local da documentação na porta 8001 (evitando conflito com o backend na 8000)
+mkdocs serve -a localhost:8001
 ```
-Acesse: [http://127.0.0.1:8000](http://127.0.0.1:8000) *(ou a porta informada no terminal se o backend estiver usando a 8000)*.
+Acesse no seu navegador: [http://localhost:8001](http://localhost:8001).
 
 ---
+

@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+from pydantic import Field
 from typing import List
 from pydantic_settings import BaseSettings
 
@@ -7,6 +9,9 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
     
+    MATERIALS_DIR: Path = Path("storage/materiais")
+    MATERIAL_MAX_BYTES: int = Field(default=5 * 1024 * 1024, gt=0)
+
     # Banco de Dados
     POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")

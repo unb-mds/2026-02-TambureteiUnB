@@ -3,8 +3,11 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_role
+from app.api.schemas.doacao import DoacaoCreate, DoacaoResponse
 from app.api.schemas.turma import TurmaCreate, TurmaResponse
 from app.core.database import get_db
+from app.models.usuario import Usuario
+from app.services.doacao_service import doacao_service
 from app.services.turma_service import turma_service
 
 router = APIRouter(prefix="/turmas", tags=["Turmas"])
@@ -18,15 +21,42 @@ def criar_turma(
 ):
     return turma_service.criar_turma(db, dados)
 
+
 @router.get("", response_model=List[TurmaResponse])
 def listar_turmas_da_disciplina(
-    disciplina_id: int = Query(..., description="ID da disciplina"),
+    disciplina_id: Optional[int] = Query(None, description="ID da disciplina"),
+    disciplina_slug: Optional[str] = Query(None, description="Slug da disciplina"),
+    slug: Optional[str] = Query(None, description="Slug da disciplina (alias)"),
     semestre: Optional[str] = Query(None, description="Ex.: 2026.1"),
     db: Session = Depends(get_db),
 ):
-    return turma_service.listar_por_disciplina(db, disciplina_id, semestre)
+    target_slug = disciplina_slug or slug
+    return turma_service.listar_turmas(
+        db,
+        disciplina_id=disciplina_id,
+        disciplina_slug=target_slug,
+        semestre=semestre,
+    )
 
 
 @router.get("/{turma_id}", response_model=TurmaResponse)
 def obter_turma(turma_id: int, db: Session = Depends(get_db)):
     return turma_service.obter_por_id(db, turma_id)
+
+
+@router.post(
+    "/{turma_id}/doacoes",
+    response_model=DoacaoResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def doar_estatistica_turma(
+    turma_id: int,
+    dados: DoacaoCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role("STUDENT")),
+):
+    """
+    Envia doação colaborativa de estatísticas de turma extraídas do SIGAA (US 3.1.1).
+    Acessível exclusivamente por estudantes autenticados.
+    """
+    return doacao_service.criar_doacao(db, turma_id, current_user.id, dados)

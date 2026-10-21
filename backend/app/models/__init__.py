@@ -9,6 +9,8 @@ from app.models.situacao import SituacaoDisciplina
 from app.models.conteudo import Conteudo
 from app.models.comentario import Comentario
 from app.models.voto import VotoUtil
+from app.models.doacao import DoacaoEstatistica
+
 
 __all__ = [
     "Base",
@@ -25,5 +27,6 @@ __all__ = [
     "SituacaoDisciplina",
     "Conteudo",
     "Comentario",
-    "VotoUtil"
+    "VotoUtil",
+    "DoacaoEstatistica",
 ]
