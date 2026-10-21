@@ -32,6 +32,7 @@ class Turma(Base):
     professores = relationship("Professor", secondary=turmas_professores, back_populates="turmas")
     conteudos = relationship("Conteudo", back_populates="turma")
     comentarios = relationship("Comentario", back_populates="turma")
+    doacoes = relationship("DoacaoEstatistica", back_populates="turma", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Turma(id={self.id}, disc_id={self.disciplina_id}, codigo='{self.codigo_turma}', semestre='{self.semestre}')>"
