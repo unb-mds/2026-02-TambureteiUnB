@@ -19,12 +19,11 @@ while True:
             break
     except Exception:
         if time.time() - start > timeout:
-            print(f"Aviso: Timeout aguardando {host}:{port}. Prosseguindo...")
-            break
+            raise SystemExit(f"Timeout aguardando PostgreSQL em {host}:{port}.")
         time.sleep(1)
 EOF
 
 echo "Aplicando migrações Alembic pendentes (alembic upgrade head)..."
-alembic upgrade head || echo "Aviso: Execução de migração Alembic retornou código diferente de zero."
+alembic upgrade head
 
 exec "$@"

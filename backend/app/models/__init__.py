@@ -11,6 +11,7 @@ from app.models.comentario import Comentario
 from app.models.voto import VotoUtil
 from app.models.doacao import DoacaoEstatistica
 
+
 __all__ = [
     "Base",
     "Curso",

@@ -26,8 +26,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PORT: 5432
       SECRET_KEY: ${SECRET_KEY}
+      MATERIALS_DIR: /app/storage/materiais
+      MATERIAL_MAX_BYTES: ${MATERIAL_MAX_BYTES:-5242880}
     volumes:
       - ./backend:/app
+      - materiais_data:/app/storage/materiais
     depends_on:
       - db
 
@@ -41,3 +44,4 @@ services:
 
 volumes:
   pgdata:
+  materiais_data:
