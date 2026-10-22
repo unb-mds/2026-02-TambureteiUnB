@@ -48,6 +48,28 @@ class TurmaService:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada.")
         return turma_repo.get_by_disciplina(db, disciplina_id, semestre)
 
+    def listar_por_slug(self, db: Session, slug: str, semestre: Optional[str] = None) -> List[Turma]:
+        disciplina = disciplina_repo.get_by_slug(db, slug)
+        if not disciplina:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada.")
+        return turma_repo.get_by_disciplina(db, disciplina.id, semestre)
+
+    def listar_turmas(
+        self,
+        db: Session,
+        disciplina_id: Optional[int] = None,
+        disciplina_slug: Optional[str] = None,
+        semestre: Optional[str] = None,
+    ) -> List[Turma]:
+        if disciplina_slug:
+            return self.listar_por_slug(db, disciplina_slug, semestre)
+        if disciplina_id is not None:
+            return self.listar_por_disciplina(db, disciplina_id, semestre)
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Informe disciplina_slug ou disciplina_id para listar as turmas.",
+        )
+
     def obter_por_id(self, db: Session, turma_id: int) -> Turma:
         turma = turma_repo.get_turma_com_professores(db, turma_id)
         if not turma:

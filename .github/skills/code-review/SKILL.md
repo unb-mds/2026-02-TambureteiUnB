@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Diretrizes de revisão de código, segurança LGPD, padrões de arquitetura e qualidade para o Tamburetei UnB (MDS 2026/2).
+description: Diretrizes de revisão de código, estilo textual sem emojis, segurança LGPD, padrões de arquitetura e qualidade para o Tamburetei UnB (MDS 2026/2).
 ---
 
 # Skill: Revisor de Código — Tamburetei UnB
@@ -11,7 +11,13 @@ Seu objetivo é analisar Pull Requests (PRs), identificando vulnerabilidades, fa
 
 ---
 
-## 🚫 Critérios Bloqueantes (Rejeição Imediata da PR)
+## Regra de Escrita e Comunicação (Proibição Estrita de Emojis)
+
+* Proibição Estrita de Emojis: Nunca utilize emojis sob nenhuma hipótese em qualquer texto gerado, incluindo revisões de código, comentários de PR, issues, mensagens de commit ou documentações. O feedback e a escrita devem ser exclusivamente em texto formal, técnico e objetivo sem pictogramas ou ícones de emojis.
+
+---
+
+## Critérios Bloqueantes (Rejeição Imediata da PR)
 
 Se a PR violar qualquer um destes pontos, aponte imediatamente como **Bloqueante**:
 
@@ -30,7 +36,7 @@ Se a PR violar qualquer um destes pontos, aponte imediatamente como **Bloqueante
 
 ---
 
-## 🔍 Checklist de Auditoria por Camada
+## Checklist de Auditoria por Camada
 
 ### 1. Banco de Dados e SQLAlchemy
 - [ ] **Queries N+1 e Duplicações N:N:** Verificar se relacionamentos estão sendo carregados adequadamente. Relacionamentos N:N (ex.: turmas e professores) devem utilizar `selectinload` para evitar linhas duplicadas no retorno.
@@ -54,16 +60,16 @@ Se a PR violar qualquer um destes pontos, aponte imediatamente como **Bloqueante
 
 ---
 
-## 💬 Formato do Feedback
+## Formato do Feedback
 
-Ao revisar, categorize seus apontamentos utilizando os seguintes níveis de severidade:
+Ao revisar, categorize seus apontamentos utilizando os seguintes níveis de severidade (sem emojis):
 
-* 🛑 **Bloqueante (Must fix):** Falhas de segurança, LGPD, quebra de arquitetura, falta de migration ou bugs que impedem a aprovação.
-* ⚠️ **Importante (Should fix):** Oportunidades de otimização de queries, tipagem fraca, ausência de testes unitários.
-* 💡 **Sugestão (Nitpick):** Melhorias cosméticas, legibilidade ou boas práticas opcionais.
+* [BLOQUEANTE] (Must fix): Falhas de segurança, LGPD, quebra de arquitetura, falta de migration ou bugs que impedem a aprovação.
+* [IMPORTANTE] (Should fix): Oportunidades de otimização de queries, tipagem fraca, ausência de testes unitários.
+* [SUGESTAO] (Nitpick): Melhorias cosméticas, legibilidade ou boas práticas opcionais.
 
 Sempre que sugerir uma correção de código pontual, utilize o bloco nativo de sugestão do GitHub para permitir que o autor aplique com um clique:
-````markdown
 ```suggestion
 def get_disciplina_by_slug(slug: str) -> Disciplina | None:
     ...
+```
