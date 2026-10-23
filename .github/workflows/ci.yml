@@ -54,6 +54,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests
+        run: pytest
         env:
           SECRET_KEY: "secretkey_test_ci"
           POSTGRES_SERVER: "localhost"
@@ -61,4 +62,3 @@ jobs:
           POSTGRES_PASSWORD: "postgres"
           POSTGRES_DB: "tamburetei_test"
           POSTGRES_PORT: "5432"
-        run: pytest
