@@ -576,46 +576,16 @@ function DisciplineDetailContent() {
           </section>
 
           
-          {showMaterialModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-              <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl border border-[#EDE9FD]">
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                  <h3 className="font-bold text-lg text-[#202124]">Compartilhar Material</h3>
-                  <button
-                    onClick={() => setShowMaterialModal(false)}
-                    className="text-gray-400 hover:text-gray-600 p-1"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <p className="mt-4 text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Ajude outros estudantes compartilhando resumos, listas de exercícios ou provas antigas de <strong>{discipline.name}</strong>.
-                </p>
-                <div className="mt-4 rounded-xl bg-[#F7F7FA] p-3 text-xs text-gray-500">
-                  💡 Os materiais passam por revisão da moderação discente para garantir a qualidade acadêmica.
-                </div>
-                <div className="mt-6 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowMaterialModal(false)}
-                    className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                  >
-                    Fechar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      alert("Upload de materiais disponível em breve!");
-                      setShowMaterialModal(false);
-                    }}
-                    className="rounded-xl bg-[#5B4BDB] px-4 py-2 text-xs font-semibold text-white hover:brightness-110"
-                  >
-                    Selecionar Arquivo
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <MaterialModal
+            isOpen={showMaterialModal}
+            disciplineId={discipline.id}
+            disciplineSlug={slug}
+            disciplineName={discipline.name}
+            onClose={() => setShowMaterialModal(false)}
+            onUploadSuccess={() => {
+              // Notificacao ou atualizacao do estado se necessario
+            }}
+          />
 
           
           <section className="mb-6 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
