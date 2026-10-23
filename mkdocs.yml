@@ -45,3 +45,5 @@ nav:
   - Revisão da Integração de Materiais: revisao_integracao_materiais.md
   - Materiais de Apoio (Feature 5.2): feature_5_2_materiais.md
   - Guia do Desenvolvedor: desenvolvimento.md
+  - Releases & Sprints:
+      - Release v0.6.0 (Sprint 6): releases/v0.6.0.md
