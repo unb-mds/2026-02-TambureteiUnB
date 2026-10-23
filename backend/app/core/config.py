@@ -3,6 +3,8 @@ from pathlib import Path
 from pydantic import Field
 from typing import List
 from pydantic_settings import BaseSettings
+from pydantic import Field, field_validator
+from pydantic_core import PydanticCustomError
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Tamburetei UnB API"
@@ -57,5 +59,19 @@ class Settings(BaseSettings):
         case_sensitive = True
         env_file = (".env", "../.env")
         extra = "allow"
+
+        # Quórum mínimo de doações idênticas para consolidar estatísticas de uma turma (US 3.2.1)
+    QUORUM_MINIMO_DOACOES: int = 3
+
+    @field_validator("QUORUM_MINIMO_DOACOES")
+    @classmethod
+    def validar_quorum_minimo(cls, v: int) -> int:
+        if v < 1:
+            raise PydanticCustomError(
+                "quorum_invalido",
+                "O quórum mínimo de doações deve ser um número inteiro maior ou igual a 1 (valor informado: {valor}).",
+                {"valor": v},
+            )
+        return v
 
 settings = Settings()
