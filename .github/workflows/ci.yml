@@ -36,6 +36,20 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tamburetei_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: ./backend
@@ -56,9 +70,9 @@ jobs:
       - name: Run tests
         run: pytest
         env:
-          SECRET_KEY: "secretkey_test_ci"
+          SECRET_KEY: "supersecretkey_unb_tamburetei_2026"
           POSTGRES_SERVER: "localhost"
           POSTGRES_USER: "postgres"
           POSTGRES_PASSWORD: "postgres"
-          POSTGRES_DB: "tamburetei_test"
+          POSTGRES_DB: "tamburetei_db"
           POSTGRES_PORT: "5432"
