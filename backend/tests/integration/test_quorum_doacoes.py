@@ -171,3 +171,23 @@ class TestRegrasDeConsistencia:
         assert data["grupos"][0]["atingiu_quorum"] is True
         assert data["grupos"][0]["consolidado"] is False
         assert data["consolidado"] is False
+
+class TestAtomicidadeDaDoacao:
+    def test_falha_no_consenso_nao_persiste_a_doacao(self, db, turma, monkeypatch):
+        def falhar(*args, **kwargs):
+            raise RuntimeError("falha simulada no consenso")
+
+        monkeypatch.setattr(doacao_service, "avaliar_consenso", falhar)
+
+        dados = DoacaoCreate(
+            semestre_referencia="2026.1",
+            taxa_aprovacao=70,
+            taxa_reprovacao_nota=20,
+            taxa_reprovacao_falta=5,
+            taxa_trancamento=5,
+        )
+        with pytest.raises(RuntimeError):
+            doacao_service.criar_doacao(db, turma.id, _aluno(db, 1).id, dados)
+
+        db.rollback()
+        assert db.query(DoacaoEstatistica).filter_by(turma_id=turma.id).count() == 0
