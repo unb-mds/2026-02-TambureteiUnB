@@ -1,4 +1,5 @@
 from typing import List, Optional
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from app.models.conteudo import Conteudo
 from app.repositories.base import BaseRepository
@@ -12,7 +13,8 @@ class ConteudoRepository(BaseRepository[Conteudo]):
     ) -> List[Conteudo]:
         query = db.query(Conteudo).filter(
             Conteudo.disciplina_id == disciplina_id,
-            Conteudo.status_curadoria == "APROVADO"
+            Conteudo.status_curadoria == "APROVADO",
+            or_(Conteudo.caminho_arquivo.is_(None), Conteudo.status_moderacao == "ativo")
         )
         if tipo:
             query = query.filter(Conteudo.tipo == tipo)

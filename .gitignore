@@ -14,9 +14,14 @@ coverage.xml
 htmlcov/
 .mutmut-cache
 mutmut-report.xml
+.venv/
 
 # Dados locais do pipeline ETL (preserva apenas .gitkeep)
 backend/app/pipeline/data/raw/*
 !backend/app/pipeline/data/raw/.gitkeep
 backend/app/pipeline/data/processed/*
 !backend/app/pipeline/data/processed/.gitkeep
+
+# Arquivos privados e relatorios locais de materiais
+backend/storage/
+backend/mutants/

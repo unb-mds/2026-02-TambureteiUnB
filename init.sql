@@ -1,7 +1,7 @@
 -- =====================================================================
 -- PROJETO TAMBURETEI UnB - ESQUEMA RELACIONAL OFICIAL (PostgreSQL 17)
 -- Baseado no PROJECT_CONTEXT.md e na documentação técnica (MDS 2026/2)
--- Sincronizado integralmente com o baseline Alembic revisão 007 (Head)
+-- Sincronizado integralmente com o baseline Alembic revisão 009_arquivos_conteudos (Head)
 -- =====================================================================
 
 -- Extensão para geração nativa de UUIDs
@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS metricas_cursos (
 );
 
 -- =====================================================================
--- 5. CROWDSOURCING DISCENTE ("JÁ CURSEI ESSA MATÉRIA")
+-- 5. CROWDSOURCING DISCENTE ("JÁ CURSEI" E DOAÇÕES DE ESTATÍSTICAS)
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS situacoes_disciplinas (
     id BIGSERIAL PRIMARY KEY,
@@ -158,6 +158,23 @@ CREATE TABLE IF NOT EXISTS situacoes_disciplinas (
     situacao VARCHAR(20) NOT NULL CHECK (situacao IN ('APROVADO', 'REPROVADO_NOTA', 'REPROVADO_FALTA', 'TRANCOU')),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_usuario_disciplina_situacao UNIQUE (usuario_id, disciplina_id)
+);
+
+CREATE TABLE IF NOT EXISTS doacoes_estatisticas (
+    id BIGSERIAL PRIMARY KEY,
+    turma_id INT NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
+    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    semestre_referencia VARCHAR(10) NOT NULL, -- Ex: '2026.1'
+    taxa_aprovacao NUMERIC(5, 2) NOT NULL CHECK (taxa_aprovacao >= 0 AND taxa_aprovacao <= 100),
+    taxa_reprovacao_nota NUMERIC(5, 2) NOT NULL CHECK (taxa_reprovacao_nota >= 0 AND taxa_reprovacao_nota <= 100),
+    taxa_reprovacao_falta NUMERIC(5, 2) NOT NULL CHECK (taxa_reprovacao_falta >= 0 AND taxa_reprovacao_falta <= 100),
+    taxa_trancamento NUMERIC(5, 2) NOT NULL CHECK (taxa_trancamento >= 0 AND taxa_trancamento <= 100),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDENTE' CHECK (status IN ('PENDENTE', 'CONSOLIDADA', 'DESCARTADA')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_usuario_turma_semestre_doacao UNIQUE (usuario_id, turma_id, semestre_referencia),
+    CONSTRAINT chk_soma_taxas_cem CHECK (
+        (taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00
+    )
 );
 
 -- =====================================================================
@@ -170,12 +187,22 @@ CREATE TABLE IF NOT EXISTS conteudos (
     usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
     titulo VARCHAR(200) NOT NULL,
     descricao TEXT,
-    tipo VARCHAR(30) NOT NULL CHECK (tipo IN ('LINK_UTIL', 'RESUMO', 'PROVA_ANTIGA', 'DICA')),
-    url_origem TEXT NOT NULL,
+    tipo VARCHAR(30) NOT NULL CONSTRAINT chk_tipo_conteudo CHECK (tipo IN ('LINK_UTIL', 'RESUMO', 'PROVA_ANTIGA', 'DICA', 'ARQUIVO')),
+    url_origem TEXT,
+    caminho_arquivo VARCHAR(64),
+    formato VARCHAR(3),
+    tamanho_bytes INTEGER,
+    status_moderacao VARCHAR(20),
     semestre VARCHAR(10), -- Ex: '2024.1'
     status_curadoria VARCHAR(20) NOT NULL DEFAULT 'PENDENTE' CHECK (status_curadoria IN ('PENDENTE', 'APROVADO', 'RECUSADO')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_conteudos_caminho_arquivo UNIQUE (caminho_arquivo),
+    CONSTRAINT chk_origem_conteudo CHECK ((caminho_arquivo IS NOT NULL AND url_origem IS NULL AND formato IS NOT NULL AND tamanho_bytes IS NOT NULL AND status_moderacao IS NOT NULL) OR (tipo <> 'ARQUIVO' AND url_origem IS NOT NULL AND caminho_arquivo IS NULL AND formato IS NULL AND tamanho_bytes IS NULL AND status_moderacao IS NULL)),
+    CONSTRAINT chk_conteudo_formato CHECK (formato IS NULL OR formato IN ('pdf', 'png', 'jpg')),
+    CONSTRAINT chk_conteudo_tamanho CHECK (tamanho_bytes IS NULL OR tamanho_bytes > 0),
+    CONSTRAINT chk_conteudo_titulo CHECK (length(trim(titulo)) > 0),
+    CONSTRAINT chk_conteudo_moderacao CHECK (status_moderacao IS NULL OR status_moderacao IN ('ativo', 'em_analise', 'bloqueado', 'excluido'))
 );
 
 -- =====================================================================
@@ -226,7 +253,10 @@ CREATE INDEX IF NOT EXISTS idx_metricas_disciplina_ano ON metricas_academicas(di
 CREATE INDEX IF NOT EXISTS idx_metricas_consolidadas_disciplina ON metricas_consolidadas(disciplina_id);
 CREATE INDEX IF NOT EXISTS idx_metricas_cursos_curso_ano ON metricas_cursos(curso_id, ano);
 CREATE INDEX IF NOT EXISTS idx_situacoes_disciplina ON situacoes_disciplinas(disciplina_id);
+CREATE INDEX IF NOT EXISTS idx_doacoes_turma_status ON doacoes_estatisticas(turma_id, status);
+CREATE INDEX IF NOT EXISTS idx_doacoes_usuario ON doacoes_estatisticas(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_conteudos_disciplina_tipo ON conteudos(disciplina_id, tipo, status_curadoria);
+CREATE INDEX IF NOT EXISTS ix_conteudos_arquivos_disciplina_status ON conteudos(disciplina_id, tipo, status_curadoria, status_moderacao, id);
 CREATE INDEX IF NOT EXISTS idx_conteudos_turma ON conteudos(turma_id);
 CREATE INDEX IF NOT EXISTS idx_comentarios_disciplina ON comentarios(disciplina_id);
 CREATE INDEX IF NOT EXISTS idx_comentarios_turma ON comentarios(turma_id);
@@ -251,4 +281,4 @@ CREATE TABLE IF NOT EXISTS alembic_version (
     version_num VARCHAR(32) NOT NULL,
     CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
 );
-INSERT INTO alembic_version (version_num) VALUES ('007') ON CONFLICT (version_num) DO UPDATE SET version_num = '007';
+INSERT INTO alembic_version (version_num) VALUES ('009_arquivos_conteudos') ON CONFLICT (version_num) DO UPDATE SET version_num = '009_arquivos_conteudos';
