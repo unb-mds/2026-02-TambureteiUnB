@@ -1,10 +1,18 @@
 import os
 from pathlib import Path
-from pydantic import Field
 from typing import List
 from pydantic_settings import BaseSettings
 from pydantic import Field, field_validator
 from pydantic_core import PydanticCustomError
+
+
+def _erro_quorum(valor) -> PydanticCustomError:
+    return PydanticCustomError(
+        "quorum_invalido",
+        "O quórum mínimo de doações deve ser um número inteiro maior ou igual a 1 (valor informado: {valor}).",
+        {"valor": valor},
+    )
+
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Tamburetei UnB API"
@@ -38,18 +46,23 @@ class Settings(BaseSettings):
     # Limiar para baixa amostragem LGPD / DPO (< 5 alunos)
     AMOSTRAGEM_MINIMA_LGPD: int = 5
 
-    @property
-    def SQLALCHEMY_DATABASE_URI(self):
-        from sqlalchemy.engine import URL
+    # Quórum mínimo de doações idênticas para consolidar uma turma (US 3.2.1)
+    QUORUM_MINIMO_DOACOES: int = 3
 
-        return URL.create(
-            "postgresql+psycopg2",
-            username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD,
-            host=self.POSTGRES_SERVER,
-            port=int(self.POSTGRES_PORT),
-            database=self.POSTGRES_DB,
-        )
+    @field_validator("QUORUM_MINIMO_DOACOES", mode="before")
+    @classmethod
+    def rejeitar_bool_no_quorum(cls, v):
+        # bool é subclasse de int em Python: True passaria como 1.
+        if isinstance(v, bool):
+            raise _erro_quorum(v)
+        return v
+
+    @field_validator("QUORUM_MINIMO_DOACOES")
+    @classmethod
+    def validar_quorum_minimo(cls, v: int) -> int:
+        if v < 1:
+            raise _erro_quorum(v)
+        return v
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
@@ -59,19 +72,5 @@ class Settings(BaseSettings):
         case_sensitive = True
         env_file = (".env", "../.env")
         extra = "allow"
-
-        # Quórum mínimo de doações idênticas para consolidar estatísticas de uma turma (US 3.2.1)
-    QUORUM_MINIMO_DOACOES: int = 3
-
-    @field_validator("QUORUM_MINIMO_DOACOES")
-    @classmethod
-    def validar_quorum_minimo(cls, v: int) -> int:
-        if v < 1:
-            raise PydanticCustomError(
-                "quorum_invalido",
-                "O quórum mínimo de doações deve ser um número inteiro maior ou igual a 1 (valor informado: {valor}).",
-                {"valor": v},
-            )
-        return v
 
 settings = Settings()
