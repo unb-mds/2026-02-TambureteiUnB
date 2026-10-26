@@ -1,6 +1,6 @@
 "use client";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
-
+import MateriaisApoio from "@/components/MateriaisApoio";
 
 import React, {
   useState,
@@ -1137,7 +1137,11 @@ function DisciplineDetailContent() {
               </p>
             </div>
           </section>
-
+          <MateriaisApoio 
+            disciplineName={discipline.name} 
+            disciplineCode={discipline.code}
+            onOpenUploadModal={() => setShowMaterialModal(true)}
+/>
           <ComentariosFrontend disciplineName={discipline.name} disciplineCode={discipline.code} />
         </div>
       </main>
