@@ -15,7 +15,7 @@ select = ["E9", "F63", "F7", "F82", "F811"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-ra -q"
+addopts = "--import-mode=importlib -ra -q"
 
 [tool.coverage.run]
 source = ["app"]

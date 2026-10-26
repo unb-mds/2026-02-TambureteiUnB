@@ -119,7 +119,7 @@ jobs:
 
       - name: Executar testes de mutação nas regras de negócio e métricas (Mutmut >= 50%)
         run: |
-          python -m mutmut run --paths-to-mutate app/pipeline/transformers/metricas_transformer.py --no-progress || true
+          python -m mutmut run --no-progress || true
           python -m mutmut junitxml > mutmut-report.xml
           python - << 'EOF'
           import sys
@@ -189,13 +189,19 @@ jobs:
       - name: Preparar arquivo .env a partir do .env.example
         run: cp .env.example .env
 
+      - name: Liberar porta 5432 do runner (PostgreSQL nativo)
+        run: sudo systemctl stop postgresql.service || true
+
+      - name: Garantir permissão de execução nos scripts
+        run: chmod +x backend/entrypoint.sh
+
       - name: Construir e subir serviços via Docker Compose
         run: docker compose up -d --build
 
       - name: Aguardar e validar healthcheck da API FastAPI e PostgreSQL 17
         run: |
           echo "Aguardando inicialização do backend em http://localhost:8000/health ..."
-          for i in $(seq 1 30); do
+          for i in $(seq 1 45); do
             if curl -fsS http://localhost:8000/health | grep -q '"status":"ok"'; then
               echo "Healthcheck aprovado com sucesso!"
               exit 0
@@ -204,7 +210,8 @@ jobs:
           done
           echo "ERRO: Timeout aguardando healthcheck da API."
           docker compose ps
-          docker compose logs
+          docker compose logs backend
+          docker compose logs db
           exit 1
 
       - name: Encerrar containers e limpar volumes
