@@ -144,3 +144,30 @@ class TestProgressoDoQuorum:
 
     def test_sem_autenticacao_retorna_401(self, client, turma):
         assert client.get(f"/turmas/{turma.id}/doacoes/quorum").status_code == 401
+class TestRegrasDeConsistencia:
+    def test_semestre_invalido_no_progresso_retorna_422(self, client, turma, admin_headers):
+        r = client.get(f"/turmas/{turma.id}/doacoes/quorum?semestre=invalido", headers=admin_headers)
+        assert r.status_code == 422
+        assert "padrão canônico da UnB" in r.json()["detail"]
+
+    def test_doacao_com_semestre_diferente_da_turma_retorna_422(self, db, turma):
+        from fastapi import HTTPException
+
+        dados = DoacaoCreate(
+            semestre_referencia="2025.2",
+            taxa_aprovacao=70, taxa_reprovacao_nota=20, taxa_reprovacao_falta=5, taxa_trancamento=5,
+        )
+        with pytest.raises(HTTPException) as exc:
+            doacao_service.criar_doacao(db, turma.id, _aluno(db, 99).id, dados)
+        assert exc.value.status_code == 422
+
+    def test_progresso_reflete_estado_persistido(self, client, db, turma, admin_headers, monkeypatch):
+        monkeypatch.setattr(settings, "QUORUM_MINIMO_DOACOES", 3)
+        _doar(db, turma, 1, **A)
+        _doar(db, turma, 2, **A)
+        monkeypatch.setattr(settings, "QUORUM_MINIMO_DOACOES", 2)
+
+        data = client.get(f"/turmas/{turma.id}/doacoes/quorum", headers=admin_headers).json()
+        assert data["grupos"][0]["atingiu_quorum"] is True
+        assert data["grupos"][0]["consolidado"] is False
+        assert data["consolidado"] is False
