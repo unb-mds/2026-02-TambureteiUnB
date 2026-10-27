@@ -30,5 +30,15 @@ class CursoRepository(BaseRepository[Curso]):
             .first()
         )
 
+    def get_com_grade_by_id(self, db: Session, curso_id: int) -> Curso | None:
+        return (
+            db.query(Curso)
+            .options(
+                selectinload(Curso.curso_disciplinas).joinedload(CursoDisciplina.disciplina),
+            )
+            .filter(Curso.id == curso_id)
+            .first()
+        )
+
 
 curso_repo = CursoRepository()
