@@ -1,6 +1,3 @@
-from urllib import response
-from xmlrpc import client
-
 from app.models.disciplina import Disciplina
 
 
