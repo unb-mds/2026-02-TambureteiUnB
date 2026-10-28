@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.schemas.curso import CursoResumo, CursoResponse
+from app.api.schemas.curso import CursoResumo, CursoResponse, CursoGradeResponse
 from app.core.database import get_db
 from app.services.curso_service import curso_service
 
@@ -16,6 +16,12 @@ def listar_cursos(
     db: Session = Depends(get_db),
 ):
     return curso_service.listar(db, q=q, campus=campus)
+
+
+@router.get("/{curso_id}/grade", response_model=CursoGradeResponse)
+def obter_grade_curso(curso_id: int, db: Session = Depends(get_db)):
+    """Consulta pública da matriz curricular do curso organizada por período (US 6.1.1)."""
+    return curso_service.obter_grade(db, curso_id)
 
 
 @router.get("/{slug}", response_model=CursoResponse)
