@@ -1,7 +1,7 @@
 -- =====================================================================
 -- PROJETO TAMBURETEI UnB - ESQUEMA RELACIONAL OFICIAL (PostgreSQL 17)
 -- Baseado no PROJECT_CONTEXT.md e na documentação técnica (MDS 2026/2)
--- Sincronizado integralmente com o baseline Alembic revisão 009_arquivos_conteudos (Head)
+-- Sincronizado integralmente com o baseline Alembic revisão 010_curadorias (Head)
 -- =====================================================================
 
 -- Extensão para geração nativa de UUIDs
@@ -277,8 +277,25 @@ ON CONFLICT DO NOTHING;
 -- =====================================================================
 -- 10. CONTROLE DE VERSÃO DE MIGRAÇÕES (ALEMBIC)
 -- =====================================================================
+-- Decisoes de curadoria preservam a autoria administrativa e o historico.
+CREATE TABLE IF NOT EXISTS curadorias (
+    id BIGSERIAL PRIMARY KEY,
+    conteudo_id BIGINT NOT NULL UNIQUE REFERENCES conteudos(id) ON DELETE RESTRICT,
+    moderador_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+    perfil_moderador VARCHAR(20) NOT NULL,
+    status_anterior VARCHAR(20) NOT NULL,
+    status_novo VARCHAR(20) NOT NULL,
+    justificativa TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_curadoria_perfil CHECK (perfil_moderador IN ('MODERATOR', 'ADMIN')),
+    CONSTRAINT chk_curadoria_anterior CHECK (status_anterior = 'PENDENTE'),
+    CONSTRAINT chk_curadoria_novo CHECK (status_novo IN ('APROVADO', 'RECUSADO')),
+    CONSTRAINT chk_curadoria_justificativa CHECK (justificativa IS NULL OR length(justificativa) <= 1000),
+    CONSTRAINT chk_curadoria_recusa CHECK (status_novo <> 'RECUSADO' OR (justificativa IS NOT NULL AND length(trim(justificativa)) > 0))
+);
+
 CREATE TABLE IF NOT EXISTS alembic_version (
     version_num VARCHAR(32) NOT NULL,
     CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
 );
-INSERT INTO alembic_version (version_num) VALUES ('009_arquivos_conteudos') ON CONFLICT (version_num) DO UPDATE SET version_num = '009_arquivos_conteudos';
+INSERT INTO alembic_version (version_num) VALUES ('010_curadorias') ON CONFLICT (version_num) DO UPDATE SET version_num = '010_curadorias';
