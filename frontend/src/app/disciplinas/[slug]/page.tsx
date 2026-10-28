@@ -1140,7 +1140,7 @@ function DisciplineDetailContent() {
           </section>
           <MateriaisApoio 
             disciplineName={discipline.name}
-            disciplineIdOrSlug={discipline.id?.toString() || slug}
+            disciplineIdOrSlug={discipline.code || slug}
             refreshTrigger={materialsReloadTrigger}
             onOpenUploadModal={() => setShowMaterialModal(true)}
 />

@@ -19,6 +19,21 @@ export interface MaterialItem {
   professor?: string;
 }
 
+interface BackendMaterialItem {
+  id: string | number;
+  titulo?: string;
+  tipo: string;
+  formato?: string;
+  tamanho_bytes?: number;
+  created_at?: string;
+  url?: string;
+  arquivo_url?: string;
+  upvotes?: number;
+  usuario?: { nome?: string };
+  authorAlias?: string;
+  professor?: string;
+}
+
 interface MateriaisApoioProps {
   disciplineName: string;
   disciplineIdOrSlug?: string;
@@ -51,8 +66,8 @@ export default function MateriaisApoio({
       try {
         const response = await listMaterials(disciplineIdOrSlug);
         if (isMounted) {
-          const rawItems = response?.items || [];
-          const mappedItems: MaterialItem[] = rawItems.map((item: any) => ({
+          const rawItems: BackendMaterialItem[] = response?.items || [];
+          const mappedItems: MaterialItem[] = rawItems.map((item) => ({
             id: String(item.id),
             titulo: item.titulo || "Material sem título",
             tipo: item.tipo,
