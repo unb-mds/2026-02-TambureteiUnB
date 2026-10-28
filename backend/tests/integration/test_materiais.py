@@ -22,7 +22,7 @@ def upload(client, disciplina_id, headers, titulo="Resumo", content=PDF, nome="r
     )
 
 
-def test_upload_listagem_download_com_login_real(client, db, disciplina, usuario):
+def test_upload_listagem_download_com_login_real(client, db, disciplina, usuario, admin_headers):
     login = client.post("/auth/login", json={"email": usuario.email, "senha": "SenhaDeTeste123!"})
     assert login.status_code == 200
     headers = {"Authorization": "Bearer " + login.json()["access_token"]}
@@ -37,6 +37,10 @@ def test_upload_listagem_download_com_login_real(client, db, disciplina, usuario
     assert material.usuario_id == usuario.id
     assert not material.caminho_arquivo.startswith("/")
     assert (settings.MATERIALS_DIR / material.caminho_arquivo).read_bytes() == PDF
+    assert payload["status_curadoria"] == "PENDENTE"
+    assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["total"] == 0
+    assert client.get(f"/materiais/{material.id}/download", headers=headers).status_code == 403
+    assert client.patch(f"/moderacao/conteudos/{material.id}/curadoria", headers=admin_headers, json={"status": "APROVADO"}).status_code == 200
     lista = client.get(f"/cadeiras/{disciplina.id}/materiais")
     assert lista.status_code == 200
     assert lista.json()["items"][0]["id"] == material.id
@@ -54,9 +58,10 @@ def test_upload_listagem_download_com_login_real(client, db, disciplina, usuario
     ("foto.jpg", "image/jpeg", b"\xff\xd8\xffconteudo"),
     ("foto.jpeg", "image/jpeg", b"\xff\xd8\xffconteudo"),
 ])
-def test_upload_imagens(client, disciplina, headers, nome, mime, content):
+def test_upload_imagens(client, disciplina, headers, nome, mime, content, admin_headers):
     response = upload(client, disciplina.id, headers, content=content, nome=nome, mime=mime)
     assert response.status_code == 201
+    assert client.patch(f"/moderacao/conteudos/{response.json()['id']}/curadoria", headers=admin_headers, json={"status": "APROVADO"}).status_code == 200
     result = client.get(f"/materiais/{response.json()['id']}/download", headers=headers)
     assert result.content == content
     assert result.headers["content-type"] == mime
@@ -82,9 +87,10 @@ def test_apenas_perfil_aluno(client, db, disciplina, usuario, headers, role):
     assert client.get("/materiais/1/download", headers=headers).status_code == 403
 
 
-def test_conta_desativada_preserva_material_e_bloqueia_download(client, db, disciplina, usuario, headers):
+def test_conta_desativada_preserva_material_e_bloqueia_download(client, db, disciplina, usuario, headers, admin_headers):
     response = upload(client, disciplina.id, headers)
     material_id = response.json()["id"]
+    assert client.patch(f"/moderacao/conteudos/{material_id}/curadoria", headers=admin_headers, json={"status": "APROVADO"}).status_code == 200
     assert client.delete("/auth/me", headers=headers).status_code == 200
     assert db.get(Conteudo, material_id) is not None
     assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["total"] == 1
@@ -129,10 +135,12 @@ def test_cadeira_inexistente_e_lista_vazia(client, disciplina, headers):
     assert response.json() == {"items": [], "total": 0, "pagina": 1, "tamanho_pagina": 20}
 
 
-def test_filtro_paginacao_e_moderacao(client, db, disciplina, headers):
+def test_filtro_paginacao_e_moderacao(client, db, disciplina, headers, admin_headers):
     ids = []
     for titulo in ["Resumo A", "RESUMO B", "Outro", "100%_literal", "Resumo oculto"]:
         ids.append(upload(client, disciplina.id, headers, titulo=titulo).json()["id"])
+    for id in ids:
+        assert client.patch(f"/moderacao/conteudos/{id}/curadoria", headers=admin_headers, json={"status": "APROVADO"}).status_code == 200
     db.get(Conteudo, ids[-1]).status_moderacao = "em_analise"
     outra = Disciplina(nome="Outra", slug="outra")
     db.add(outra)
@@ -162,9 +170,10 @@ def test_download_respeita_moderacao(client, db, disciplina, headers, estado, es
     assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["items"] == []
 
 
-def test_download_inexistente_arquivo_ausente_e_caminho_invalido(client, db, disciplina, headers):
+def test_download_inexistente_arquivo_ausente_e_caminho_invalido(client, db, disciplina, headers, admin_headers):
     assert client.get("/materiais/999999/download", headers=headers).status_code == 404
     material_id = upload(client, disciplina.id, headers).json()["id"]
+    assert client.patch(f"/moderacao/conteudos/{material_id}/curadoria", headers=admin_headers, json={"status": "APROVADO"}).status_code == 200
     material = db.get(Conteudo, material_id)
     (settings.MATERIALS_DIR / material.caminho_arquivo).unlink()
     assert client.get(f"/materiais/{material_id}/download", headers=headers).status_code == 404
@@ -209,7 +218,7 @@ def test_schema_openapi(client):
     assert "security" not in schema["paths"]["/cadeiras/{id}/materiais"]["get"]
 
 
-def test_upload_e_listagem_por_slug(client, db, disciplina, headers):
+def test_upload_e_listagem_por_slug(client, db, disciplina, headers, admin_headers):
     resp = client.post(
         f"/cadeiras/{disciplina.slug}/materiais",
         headers=headers,
@@ -221,13 +230,14 @@ def test_upload_e_listagem_por_slug(client, db, disciplina, headers):
     assert payload["titulo"] == "Prova 1 por slug"
     assert payload["tipo"] == "ARQUIVO"
 
+    assert client.patch(f"/moderacao/conteudos/{payload['id']}/curadoria", headers=admin_headers, json={"status": "APROVADO"}).status_code == 200
     lista = client.get(f"/cadeiras/{disciplina.slug}/materiais")
     assert lista.status_code == 200
     assert lista.json()["total"] == 1
     assert lista.json()["items"][0]["id"] == payload["id"]
 
 
-def test_upload_com_tipos_semanticos_e_filtro(client, db, disciplina, headers):
+def test_upload_com_tipos_semanticos_e_filtro(client, db, disciplina, headers, admin_headers):
     resp_prova = client.post(
         f"/cadeiras/{disciplina.slug}/materiais",
         headers=headers,
@@ -247,6 +257,8 @@ def test_upload_com_tipos_semanticos_e_filtro(client, db, disciplina, headers):
     assert resp_resumo.json()["tipo"] == "RESUMO"
 
     # Listar apenas PROVA_ANTIGA
+    for response in (resp_prova, resp_resumo):
+        assert client.patch(f"/moderacao/conteudos/{response.json()['id']}/curadoria", headers=admin_headers, json={"status": "APROVADO"}).status_code == 200
     lista_provas = client.get(f"/cadeiras/{disciplina.slug}/materiais?tipo=PROVA_ANTIGA")
     assert lista_provas.status_code == 200
     assert lista_provas.json()["total"] == 1

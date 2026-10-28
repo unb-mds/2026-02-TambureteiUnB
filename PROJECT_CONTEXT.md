@@ -260,11 +260,10 @@ recorrentes (como testes semanais ou relatórios laboratoriais vigentes). São
 aceitos apenas enunciados de avaliações públicas anteriores e resumos conceituais.
 
 [RN06] Curadoria de Submissões Externas
-Links e resumos da US 5.1.1 são gravados com status_curadoria = PENDENTE
-e exibidos após aprovação. Uploads da US 5.2.1 compartilham conteudos com tipo ARQUIVO,
-status_curadoria = APROVADO e status_moderacao = ativo, conforme disponibilidade
-imediata prevista nessa história. Listagem e download respeitam ambos os estados.
-Não há tabela separada de materiais.
+Novos arquivos, links e resumos em conteudos começam como PENDENTE.
+MODERATOR e ADMIN avaliam arquivos; aprovação/recusa e auditoria são transacionais.
+A consulta pública exige APROVADO e moderação ativo. Não há tabela separada de materiais.
+Arquivos já aprovados são preservados.
 
 [RN07] Tratamento de Dados com Baixa Amostragem (LGPD / DPO)
 Agregações históricas oriundas de microdados públicos com menos de 5 alunos por

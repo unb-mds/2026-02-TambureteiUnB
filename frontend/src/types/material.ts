@@ -9,6 +9,7 @@ export interface MaterialResponse {
   tipo: MaterialType;
   formato: MaterialFormat;
   tamanho_bytes: number;
+  status_curadoria: "PENDENTE" | "APROVADO" | "RECUSADO";
   status_moderacao: string;
   created_at: string;
 }
