@@ -116,7 +116,7 @@ Eu, como Engenheiro de Banco de Dados, desejo modelar a tabela `conteudos`, a fi
 - Criar índice composto em `(disciplina_id, tipo, status_curadoria)` para agilizar a listagem de materiais públicos
 
 **Critérios de aceitação:**
-- Links e resumos da US 5.1.1 começam como `PENDENTE`; uploads da US 5.2.1 mantêm disponibilidade imediata com `APROVADO` e moderação `ativo`.
+- Links e resumos da US 5.1.1 começam como `PENDENTE`; uploads da US 5.2.1 também começam como `PENDENTE` e aguardam curadoria.
 - Preservar os materiais na base mesmo se o autor excluir a conta, tornando `usuario_id` nulo (`ON DELETE SET NULL`)
 - Permitir filtragem imediata apenas de materiais aprovados nas consultas públicas
 
@@ -173,6 +173,6 @@ Eu, como Engenheiro de Banco de Dados, desejo versionar o esquema em migrações
 
 ## Arquivos de apoio — integração da Feature 5.2
 
-A tabela `conteudos` também representa arquivos privados com `tipo=ARQUIVO`. Os campos opcionais `caminho_arquivo`, `formato`, `tamanho_bytes` e `status_moderacao` descrevem o upload; os binários ficam no volume privado `materiais_data`. Links e resumos anteriores preservam URL, dados e curadoria. Arquivos seguem a disponibilidade imediata da US 5.2.1, com `status_curadoria=APROVADO` e moderação `ativo`; consultas respeitam ambos os estados.
+A tabela `conteudos` também representa arquivos privados com `tipo=ARQUIVO`. Os campos opcionais `caminho_arquivo`, `formato`, `tamanho_bytes` e `status_moderacao` descrevem o upload; os binários ficam no volume privado `materiais_data`. Links e resumos anteriores preservam URL, dados e curadoria. Novos arquivos aguardam curadoria com `status_curadoria=PENDENTE`; consultas públicas exigem aprovação e moderação `ativo`.
 
 A migração linear `009_arquivos_conteudos` estende a entidade após `008`, sem criar uma tabela `materiais`. Consulte [os contratos e testes](feature_5_2_materiais.md).
