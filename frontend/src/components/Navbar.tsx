@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Button from "./Button";
 import StoolIllustration from "./StoolIllustration";
 import { authService } from "@/services/authService";
+import { podeModerar } from "@/services/moderacaoService";
 import { UserResponse } from "@/types/auth";
 
 export interface NavbarProps {
@@ -191,6 +192,7 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
 
         {/* Canto Superior Direito: Perfil (Figma) se logado, ou Botões se deslogado */}
         <div className="hidden md:flex items-center gap-3">
+          {isLoggedIn && user && podeModerar(user.role) && <Link href="/moderacao" className="text-sm font-semibold text-[#5B4BDB]">Moderação</Link>}
           {isLoggedIn ? (
             <div className="relative" ref={userMenuRef}>
               <button
@@ -330,6 +332,7 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
       </div>
 
       {/* Menu Dropdown Mobile */}
+      {isLoggedIn && user && podeModerar(user.role) && <Link href="/moderacao" className="px-5 py-2 text-sm font-semibold text-[#5B4BDB] md:hidden">Moderação</Link>}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-[#E8E6F8] bg-white px-4 pt-3 pb-5 shadow-lg animate-in slide-in-from-top-2 duration-150">
           <div className="flex flex-col gap-1.5">
