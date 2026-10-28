@@ -20,7 +20,7 @@ def enviar(client, disciplina, headers):
     return response.json()["id"]
 
 
-def test_link_preservado_e_arquivo_na_mesma_entidade(client, db, disciplina, headers):
+def test_link_preservado_e_arquivo_na_mesma_entidade(client, db, disciplina, headers, admin_headers):
     link = Conteudo(disciplina_id=disciplina.id, titulo="Link existente", tipo="LINK_UTIL",
                    url_origem="https://unb.br", status_curadoria="APROVADO")
     db.add(link)
@@ -28,7 +28,8 @@ def test_link_preservado_e_arquivo_na_mesma_entidade(client, db, disciplina, hea
     arquivo_id = enviar(client, disciplina, headers)
     arquivo = db.get(Conteudo, arquivo_id)
     assert arquivo.tipo == "ARQUIVO" and arquivo.url_origem is None
-    assert arquivo.status_curadoria == "APROVADO"
+    assert arquivo.status_curadoria == "PENDENTE"
+    assert client.patch(f"/moderacao/conteudos/{arquivo_id}/curadoria", headers=admin_headers, json={"status": "APROVADO"}).status_code == 200
     assert link.url_origem == "https://unb.br" and link.caminho_arquivo is None
     assert client.get(f"/materiais/{link.id}/download", headers=headers).status_code == 404
     assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["total"] == 1
@@ -72,7 +73,7 @@ def test_downgrade_impede_perda_de_arquivo(engine):
                 command.downgrade(config, "008")
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT caminho_arquivo FROM conteudos WHERE id = :id"), {"id": arquivo_id}) == "preservar.pdf"
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "009_arquivos_conteudos"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "010_curadorias"
     finally:
         with engine.begin() as connection:
             connection.execute(text("DELETE FROM disciplinas WHERE id = :id"), {"id": disciplina_id})
