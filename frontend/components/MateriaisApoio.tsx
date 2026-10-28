@@ -1,47 +1,38 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { isAuthenticated } from "@/services/authService";
+import { listMaterials } from "@/services/materialService";
 
 export interface MaterialItem {
   id: string;
-  title: string;
-  category: "resumos" | "links" | "provas";
-  format: "pdf" | "link" | "imagem";
-  authorAlias: string;
-  professor?: string;
-  semester?: string;
-  url: string;
+  titulo: string;
+  tipo: "ARQUIVO" | "RESUMO" | "PROVA_ANTIGA" | "DICA" | string;
+  formato: string;
+  tamanho_bytes?: number;
+  created_at: string;
+  url?: string;
   upvotes: number;
   isLikedByMe: boolean;
-  createdAt: string;
+  authorAlias: string;
+  professor?: string;
 }
 
 interface MateriaisApoioProps {
   disciplineName: string;
-  disciplineCode?: string;
+  disciplineIdOrSlug?: string;
+  refreshTrigger?: number;
   onOpenUploadModal?: () => void;
-}
-
-async function fetchMaterialsFromApi(disciplineCode?: string): Promise<MaterialItem[]> {
-  if (!disciplineCode) return [];
-  try {
-    const response = await fetch(`/api/disciplinas/${disciplineCode}/materiais`);
-    if (!response.ok) {
-      return [];
-    }
-    const data = await response.json();
-    return Array.isArray(data) ? data : [];
-  } catch (error) {
-    console.error("Erro ao carregar materiais da disciplina:", error);
-    return [];
-  }
 }
 
 export default function MateriaisApoio({
   disciplineName,
-  disciplineCode,
+  disciplineIdOrSlug,
+  refreshTrigger = 0,
   onOpenUploadModal,
 }: MateriaisApoioProps) {
+  const router = useRouter();
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"resumos" | "links" | "provas">("resumos");
@@ -51,11 +42,42 @@ export default function MateriaisApoio({
     let isMounted = true;
 
     async function loadData() {
-      setLoading(true);
-      const data = await fetchMaterialsFromApi(disciplineCode);
-      if (isMounted) {
-        setMaterials(data);
+      if (!disciplineIdOrSlug) {
         setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await listMaterials(disciplineIdOrSlug);
+        if (isMounted) {
+          const rawItems = response?.items || [];
+          const mappedItems: MaterialItem[] = rawItems.map((item: any) => ({
+            id: String(item.id),
+            titulo: item.titulo || "Material sem título",
+            tipo: item.tipo,
+            formato: item.formato ? String(item.formato).toUpperCase() : "ARQUIVO",
+            tamanho_bytes: item.tamanho_bytes,
+            created_at: item.created_at
+              ? new Date(item.created_at).toLocaleDateString("pt-BR")
+              : "Recente",
+            url: item.url || item.arquivo_url || "#",
+            upvotes: item.upvotes || 0,
+            isLikedByMe: false,
+            authorAlias: item.usuario?.nome || item.authorAlias || "Estudante",
+            professor: item.professor || undefined,
+          }));
+          setMaterials(mappedItems);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar materiais da disciplina:", error);
+        if (isMounted) {
+          setMaterials([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
@@ -64,16 +86,12 @@ export default function MateriaisApoio({
     return () => {
       isMounted = false;
     };
-  }, [disciplineCode]);
+  }, [disciplineIdOrSlug, refreshTrigger]);
 
   const handleShareClick = () => {
-    const isLogged =
-      typeof window !== "undefined" &&
-      (localStorage.getItem("token") || localStorage.getItem("access_token"));
-
-    if (!isLogged) {
+    if (!isAuthenticated()) {
       alert("Apenas estudantes cadastrados podem compartilhar materiais. Faça login na sua conta para colaborar!");
-      window.location.href = "/login";
+      router.push("/login");
       return;
     }
 
@@ -82,7 +100,7 @@ export default function MateriaisApoio({
     }
   };
 
-  const handleToggleUpvote = async (materialId: string) => {
+  const handleToggleUpvote = (materialId: string) => {
     setMaterials((prev) =>
       prev.map((item) => {
         if (item.id === materialId) {
@@ -96,25 +114,28 @@ export default function MateriaisApoio({
         return item;
       })
     );
-
-    try {
-      if (disciplineCode) {
-        await fetch(`/api/disciplinas/${disciplineCode}/materiais/${materialId}/upvote`, {
-          method: "POST",
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao registrar upvote na API:", error);
-    }
   };
 
   const filteredMaterials = materials.filter((item) => {
-    const matchesTab = item.category === activeTab;
+    const matchesTab = (() => {
+      if (activeTab === "resumos") {
+        return item.tipo === "RESUMO" || item.tipo === "DICA";
+      }
+      if (activeTab === "provas") {
+        return item.tipo === "PROVA_ANTIGA";
+      }
+      if (activeTab === "links") {
+        return item.tipo === "ARQUIVO" || item.formato.toLowerCase() === "link";
+      }
+      return true;
+    })();
+
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch =
-      item.title.toLowerCase().includes(searchLower) ||
+      item.titulo.toLowerCase().includes(searchLower) ||
       (item.professor && item.professor.toLowerCase().includes(searchLower)) ||
-      (item.authorAlias && item.authorAlias.toLowerCase().includes(searchLower));
+      item.authorAlias.toLowerCase().includes(searchLower);
+
     return matchesTab && matchesSearch;
   });
 
@@ -161,7 +182,7 @@ export default function MateriaisApoio({
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
-            📄 Resumos & Leites
+            📄 Resumos & Dicas
           </button>
           <button
             type="button"
@@ -172,7 +193,7 @@ export default function MateriaisApoio({
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
-            🔗 Links Úteis
+            🔗 Links & Arquivos
           </button>
           <button
             type="button"
@@ -237,24 +258,21 @@ export default function MateriaisApoio({
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <span className="inline-flex items-center gap-1 rounded-md bg-[#EDE9FD] px-2 py-0.5 text-[11px] font-bold uppercase text-[#5B4BDB]">
-                    {material.format}
+                    {material.formato}
                   </span>
                   <span className="text-[11px] text-gray-400">
-                    {material.createdAt}
+                    {material.created_at}
                   </span>
                 </div>
 
                 <h3 className="text-sm sm:text-base font-bold text-[#202124] line-clamp-2">
-                  {material.title}
+                  {material.titulo}
                 </h3>
 
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                   <span>Por {material.authorAlias}</span>
                   {material.professor && (
                     <span>• Prof: <strong className="text-gray-700">{material.professor}</strong></span>
-                  )}
-                  {material.semester && (
-                    <span>• {material.semester}</span>
                   )}
                 </div>
               </div>
@@ -277,7 +295,7 @@ export default function MateriaisApoio({
                 <button
                   type="button"
                   onClick={() => handleToggleUpvote(material.id)}
-                  aria-label={`Curtir material ${material.title}`}
+                  aria-label={`Curtir material ${material.titulo}`}
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
                     material.isLikedByMe
                       ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5]"

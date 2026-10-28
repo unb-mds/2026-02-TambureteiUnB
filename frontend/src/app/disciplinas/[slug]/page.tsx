@@ -91,6 +91,7 @@ function DisciplineDetailContent() {
   const [period, setPeriod] = useState("Todos os semestres (2020 a 2025)");
   const [completed, setCompleted] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
+  const [materialsReloadTrigger, setMaterialsReloadTrigger] = useState(0);
 
   const syncUrlParams = useCallback(
     (nextShift: ClassShiftFilter, nextSort: ClassSortOption) => {
@@ -1138,8 +1139,9 @@ function DisciplineDetailContent() {
             </div>
           </section>
           <MateriaisApoio 
-            disciplineName={discipline.name} 
-            disciplineCode={discipline.code}
+            disciplineName={discipline.name}
+            disciplineIdOrSlug={discipline.id?.toString() || slug}
+            refreshTrigger={materialsReloadTrigger}
             onOpenUploadModal={() => setShowMaterialModal(true)}
 />
           <ComentariosFrontend disciplineName={discipline.name} disciplineCode={discipline.code} />
