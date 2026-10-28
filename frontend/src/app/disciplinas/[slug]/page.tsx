@@ -1,6 +1,6 @@
 "use client";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
-
+import MateriaisApoio from "@/components/MateriaisApoio";
 
 import React, {
   useState,
@@ -91,6 +91,7 @@ function DisciplineDetailContent() {
   const [period, setPeriod] = useState("Todos os semestres (2020 a 2025)");
   const [completed, setCompleted] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
+  const [materialsReloadTrigger, setMaterialsReloadTrigger] = useState(0);
 
   const syncUrlParams = useCallback(
     (nextShift: ClassShiftFilter, nextSort: ClassSortOption) => {
@@ -1137,7 +1138,12 @@ function DisciplineDetailContent() {
               </p>
             </div>
           </section>
-
+          <MateriaisApoio 
+            disciplineName={discipline.name}
+            disciplineIdOrSlug={discipline.code || slug}
+            refreshTrigger={materialsReloadTrigger}
+            onOpenUploadModal={() => setShowMaterialModal(true)}
+/>
           <ComentariosFrontend disciplineName={discipline.name} disciplineCode={discipline.code} />
         </div>
       </main>
