@@ -27,6 +27,7 @@ import ClassFilters, {
   CLASS_SORT_OPTIONS,
 } from "@/components/ClassFilters";
 import MaterialModal from "@/components/MaterialModal";
+import { isAuthenticated } from "@/services/authService";
 import {
   getDisciplineBySlug,
   getClassesByDiscipline,
@@ -91,6 +92,15 @@ function DisciplineDetailContent() {
   const [period, setPeriod] = useState("Todos os semestres (2020 a 2025)");
   const [completed, setCompleted] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
+  const [materialsReloadTrigger, setMaterialsReloadTrigger] = useState(0);
+
+  const handleOpenMaterialModal = useCallback(() => {
+    if (!isAuthenticated()) {
+      router.push("/login");
+      return;
+    }
+    setShowMaterialModal(true);
+  }, [router]);
 
   const syncUrlParams = useCallback(
     (nextShift: ClassShiftFilter, nextSort: ClassSortOption) => {
@@ -565,7 +575,8 @@ function DisciplineDetailContent() {
 
                 <button
                   type="button"
-                  onClick={() => setShowMaterialModal(true)}
+                  onClick={handleOpenMaterialModal}
+                  data-reload-count={materialsReloadTrigger}
                   className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-[#5B4BDB] px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-all hover:brightness-110 shadow-xs active:scale-95"
                 >
                   <span className="text-base leading-none">+</span>
@@ -583,7 +594,7 @@ function DisciplineDetailContent() {
             disciplineName={discipline.name}
             onClose={() => setShowMaterialModal(false)}
             onUploadSuccess={() => {
-              // Notificacao ou atualizacao do estado se necessario
+              setMaterialsReloadTrigger((prev) => prev + 1);
             }}
           />
 
