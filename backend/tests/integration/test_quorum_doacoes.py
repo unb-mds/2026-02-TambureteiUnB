@@ -63,36 +63,41 @@ class TestMotorDeConsenso:
         _doar(db, turma, 4, **B)
         assert {s for _, s in _status_por_aprovacao(db, turma)} == {"PENDENTE"}
 
-    def test_maior_grupo_vence_quando_dois_atingem_quorum(self, db, turma, monkeypatch):
-        monkeypatch.setattr(settings, "QUORUM_MINIMO_DOACOES", 2)
-        for n in (1, 2, 3):
-            _doar(db, turma, n, **A)
-        for n in (4, 5):
-            _doar(db, turma, n, **B)
-        assert _status_por_aprovacao(db, turma) == [
-            (60.0, "PENDENTE"), (60.0, "PENDENTE"),
-            (70.0, "CONSOLIDADA"), (70.0, "CONSOLIDADA"), (70.0, "CONSOLIDADA"),
-        ]
-
-    def test_empate_nao_consolida_ninguem(self, db, turma, monkeypatch):
+    def test_primeiro_grupo_a_atingir_quorum_congela_a_oficial(self, db, turma, monkeypatch):
         monkeypatch.setattr(settings, "QUORUM_MINIMO_DOACOES", 2)
         for n in (1, 2):
             _doar(db, turma, n, **A)
         for n in (3, 4):
             _doar(db, turma, n, **B)
+        assert _status_por_aprovacao(db, turma) == [
+            (60.0, "PENDENTE"), (60.0, "PENDENTE"),
+            (70.0, "CONSOLIDADA"), (70.0, "CONSOLIDADA"),
+        ]
+
+    def test_empate_nao_consolida_ninguem(self, db, turma, monkeypatch):
+        monkeypatch.setattr(settings, "QUORUM_MINIMO_DOACOES", 3)
+
+        for n in (1, 2):
+            _doar(db, turma, n, **A)
+        for n in (3, 4):
+            _doar(db, turma, n, **B)
+
         assert {s for _, s in _status_por_aprovacao(db, turma)} == {"PENDENTE"}
 
-    def test_rotina_recalcula_quando_outro_grupo_ultrapassa(self, db, turma, monkeypatch):
+        monkeypatch.setattr(settings, "QUORUM_MINIMO_DOACOES", 2)
+        doacao_service.avaliar_consenso(db, turma.id, "2026.1")
+        db.commit()
+
+        assert {s for _, s in _status_por_aprovacao(db, turma)} == {"PENDENTE"}
+    def test_oficial_nao_muda_quando_outro_grupo_ultrapassa(self, db, turma, monkeypatch):
         monkeypatch.setattr(settings, "QUORUM_MINIMO_DOACOES", 2)
         for n in (1, 2):
             _doar(db, turma, n, **A)
-        assert {s for _, s in _status_por_aprovacao(db, turma)} == {"CONSOLIDADA"}
-
         for n in (3, 4, 5):
             _doar(db, turma, n, **B)
         assert _status_por_aprovacao(db, turma) == [
-            (60.0, "CONSOLIDADA"), (60.0, "CONSOLIDADA"), (60.0, "CONSOLIDADA"),
-            (70.0, "PENDENTE"), (70.0, "PENDENTE"),
+            (60.0, "PENDENTE"), (60.0, "PENDENTE"), (60.0, "PENDENTE"),
+            (70.0, "CONSOLIDADA"), (70.0, "CONSOLIDADA"),
         ]
 
     def test_doacoes_descartadas_sao_ignoradas(self, db, turma, monkeypatch):
