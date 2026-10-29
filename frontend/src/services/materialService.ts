@@ -26,26 +26,66 @@ export interface BatchUploadOptions {
   signal?: AbortSignal;
 }
 
+const UPLOAD_ERROR_MESSAGES_BY_STATUS: Record<number, string> = {
+  401: "Sessao expirada ou nao autenticada. Faca login novamente.",
+  403: "Apenas usuarios com perfil de estudante (STUDENT) podem enviar materiais.",
+  404: "Disciplina nao encontrada no sistema.",
+  413: "O arquivo excede o limite maximo de 5 MiB permitido pelo servidor.",
+  415: "Formato de arquivo nao aceito. Envie apenas PDF, PNG ou JPG.",
+  503: "Servico de armazenamento temporariamente indisponivel. Tente novamente mais tarde.",
+};
+
 function mapUploadErrorMessage(status: number, fallbackMessage: string): string {
-  if (status === 401) {
-    return "Sessao expirada ou nao autenticada. Faca login novamente.";
+  return UPLOAD_ERROR_MESSAGES_BY_STATUS[status] ?? fallbackMessage;
+}
+
+function buildMaterialFormData(title: string, type: MaterialType, file: File): FormData {
+  const formData = new FormData();
+  formData.append("titulo", title.trim());
+  formData.append("tipo", type);
+  formData.append("arquivo", file, file.name);
+  return formData;
+}
+
+function normalizeUploadError(err: unknown, signal?: AbortSignal): ApiError {
+  if (signal?.aborted || (err instanceof Error && err.name === "AbortError")) {
+    return new ApiError("Envio cancelado pelo usuario.", 0);
   }
-  if (status === 403) {
-    return "Apenas usuarios com perfil de estudante (STUDENT) podem enviar materiais.";
+
+  if (err instanceof ApiError) {
+    return new ApiError(
+      mapUploadErrorMessage(err.status, err.message),
+      err.status,
+      err.data
+    );
   }
-  if (status === 413) {
-    return "O arquivo excede o limite maximo de 5 MiB permitido pelo servidor.";
-  }
-  if (status === 415) {
-    return "Formato de arquivo nao aceito. Envie apenas PDF, PNG ou JPG.";
-  }
-  if (status === 404) {
-    return "Disciplina nao encontrada no sistema.";
-  }
-  if (status === 503) {
-    return "Servico de armazenamento temporariamente indisponivel. Tente novamente mais tarde.";
-  }
-  return fallbackMessage;
+
+  return new ApiError(
+    "Falha na conexao com o servidor. Verifique sua rede e se a API esta em execucao.",
+    0
+  );
+}
+
+function calculateBatchProgress(
+  fileIndex: number,
+  totalFiles: number,
+  singlePercent: number,
+  loadedPerFile: number[],
+  totalBytesSum: number
+): UploadProgressInfo {
+  const currentTotalLoaded = loadedPerFile.reduce((acc, curr) => acc + curr, 0);
+  const overallPercent =
+    totalBytesSum > 0
+      ? Math.min(100, Math.round((currentTotalLoaded / totalBytesSum) * 100))
+      : Math.round(((fileIndex + singlePercent / 100) / totalFiles) * 100);
+
+  return {
+    currentFileIndex: fileIndex + 1,
+    totalFiles,
+    percent: overallPercent,
+    loadedBytes: currentTotalLoaded,
+    totalBytes: totalBytesSum,
+  };
 }
 
 /**
@@ -61,20 +101,8 @@ export async function uploadMaterial(
     throw new ApiError("Envio cancelado pelo usuario.", 0);
   }
 
-  // Monta o FormData com os campos exigidos pela API.
-  // O httpClient preserva o boundary multipart automático quando body é FormData.
-  const formData = new FormData();
-  formData.append("titulo", title.trim());
-  formData.append("tipo", type);
-  formData.append("arquivo", file, file.name);
-
-  if (onProgress) {
-    onProgress({
-      percent: 0,
-      loadedBytes: 0,
-      totalBytes: file.size,
-    });
-  }
+  const formData = buildMaterialFormData(title, type, file);
+  onProgress?.({ percent: 0, loadedBytes: 0, totalBytes: file.size });
 
   const endpoint = `/cadeiras/${encodeURIComponent(disciplineIdOrSlug)}/materiais`;
 
@@ -85,32 +113,10 @@ export async function uploadMaterial(
       signal,
     });
 
-    if (onProgress) {
-      onProgress({
-        percent: 100,
-        loadedBytes: file.size,
-        totalBytes: file.size,
-      });
-    }
-
+    onProgress?.({ percent: 100, loadedBytes: file.size, totalBytes: file.size });
     return response;
   } catch (err: unknown) {
-    if (signal?.aborted || (err instanceof Error && err.name === "AbortError")) {
-      throw new ApiError("Envio cancelado pelo usuario.", 0);
-    }
-
-    if (err instanceof ApiError) {
-      throw new ApiError(
-        mapUploadErrorMessage(err.status, err.message),
-        err.status,
-        err.data
-      );
-    }
-
-    throw new ApiError(
-      "Falha na conexao com o servidor. Verifique sua rede e se a API esta em execucao.",
-      0
-    );
+    throw normalizeUploadError(err, signal);
   }
 }
 
@@ -128,9 +134,8 @@ export async function uploadMaterialsBatch(
     return results;
   }
 
-  const fileSizes = items.map((it) => it.file.size);
-  const totalBytesSum = fileSizes.reduce((acc, curr) => acc + curr, 0);
-  const loadedPerFile = new Array(totalFiles).fill(0);
+  const totalBytesSum = items.reduce((acc, it) => acc + it.file.size, 0);
+  const loadedPerFile = new Array<number>(totalFiles).fill(0);
 
   for (let i = 0; i < totalFiles; i++) {
     if (signal?.aborted) {
@@ -146,21 +151,9 @@ export async function uploadMaterialsBatch(
       signal,
       onProgress: (singleProg) => {
         loadedPerFile[i] = singleProg.loadedBytes;
-        const currentTotalLoaded = loadedPerFile.reduce((acc, curr) => acc + curr, 0);
-        const overallPercent =
-          totalBytesSum > 0
-            ? Math.min(100, Math.round((currentTotalLoaded / totalBytesSum) * 100))
-            : Math.round(((i + singleProg.percent / 100) / totalFiles) * 100);
-
-        if (onProgress) {
-          onProgress({
-            currentFileIndex: i + 1,
-            totalFiles,
-            percent: overallPercent,
-            loadedBytes: currentTotalLoaded,
-            totalBytes: totalBytesSum,
-          });
-        }
+        onProgress?.(
+          calculateBatchProgress(i, totalFiles, singleProg.percent, loadedPerFile, totalBytesSum)
+        );
       },
     });
 
