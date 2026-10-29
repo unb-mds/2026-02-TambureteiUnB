@@ -4,7 +4,7 @@ import type {
   MaterialType,
   UploadProgressInfo,
 } from "../types/material.ts";
-import { API_BASE_URL, ApiError, getStoredToken, request } from "./httpClient.ts";
+import { ApiError, request } from "./httpClient.ts";
 
 export interface SingleUploadOptions {
   disciplineIdOrSlug: string | number;
@@ -26,122 +26,92 @@ export interface BatchUploadOptions {
   signal?: AbortSignal;
 }
 
+function mapUploadErrorMessage(status: number, fallbackMessage: string): string {
+  if (status === 401) {
+    return "Sessao expirada ou nao autenticada. Faca login novamente.";
+  }
+  if (status === 403) {
+    return "Apenas usuarios com perfil de estudante (STUDENT) podem enviar materiais.";
+  }
+  if (status === 413) {
+    return "O arquivo excede o limite maximo de 5 MiB permitido pelo servidor.";
+  }
+  if (status === 415) {
+    return "Formato de arquivo nao aceito. Envie apenas PDF, PNG ou JPG.";
+  }
+  if (status === 404) {
+    return "Disciplina nao encontrada no sistema.";
+  }
+  if (status === 503) {
+    return "Servico de armazenamento temporariamente indisponivel. Tente novamente mais tarde.";
+  }
+  return fallbackMessage;
+}
+
 /**
  * Envia um único arquivo para o endpoint multipart /cadeiras/{id}/materiais
- * utilizando XMLHttpRequest para permitir medição precisa de bytes transferidos.
+ * utilizando a Fetch API nativa do Next.js via httpClient.
  */
-export function uploadMaterial(options: SingleUploadOptions): Promise<MaterialResponse> {
+export async function uploadMaterial(
+  options: SingleUploadOptions
+): Promise<MaterialResponse> {
   const { disciplineIdOrSlug, title, file, type = "ARQUIVO", onProgress, signal } = options;
 
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const url = `${API_BASE_URL}/cadeiras/${encodeURIComponent(disciplineIdOrSlug)}/materiais`;
+  if (signal?.aborted) {
+    throw new ApiError("Envio cancelado pelo usuario.", 0);
+  }
 
-    xhr.open("POST", url, true);
+  // Monta o FormData com os campos exigidos pela API.
+  // O httpClient preserva o boundary multipart automático quando body é FormData.
+  const formData = new FormData();
+  formData.append("titulo", title.trim());
+  formData.append("tipo", type);
+  formData.append("arquivo", file, file.name);
 
-    // Injeta o token Bearer JWT caso o usuário esteja autenticado
-    const token = getStoredToken();
-    if (token) {
-      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    }
+  if (onProgress) {
+    onProgress({
+      percent: 0,
+      loadedBytes: 0,
+      totalBytes: file.size,
+    });
+  }
 
-    // Monitora o progresso real da transferência via xhr.upload
-    if (xhr.upload && onProgress) {
-      xhr.upload.addEventListener("progress", (event) => {
-        if (event.lengthComputable && event.total > 0) {
-          const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
-          onProgress({
-            percent,
-            loadedBytes: event.loaded,
-            totalBytes: event.total,
-          });
-        }
+  const endpoint = `/cadeiras/${encodeURIComponent(disciplineIdOrSlug)}/materiais`;
+
+  try {
+    const response = await request<MaterialResponse>(endpoint, {
+      method: "POST",
+      body: formData,
+      signal,
+    });
+
+    if (onProgress) {
+      onProgress({
+        percent: 100,
+        loadedBytes: file.size,
+        totalBytes: file.size,
       });
     }
 
-    // Suporte a cancelamento da requisição
-    if (signal) {
-      if (signal.aborted) {
-        xhr.abort();
-        reject(new ApiError("Envio cancelado pelo usuario.", 0));
-        return;
-      }
-      signal.addEventListener("abort", () => {
-        xhr.abort();
-        reject(new ApiError("Envio cancelado pelo usuario.", 0));
-      });
+    return response;
+  } catch (err: unknown) {
+    if (signal?.aborted || (err instanceof Error && err.name === "AbortError")) {
+      throw new ApiError("Envio cancelado pelo usuario.", 0);
     }
 
-    xhr.onload = () => {
-      let responseBody: unknown = null;
-      try {
-        responseBody = xhr.responseText ? JSON.parse(xhr.responseText) : null;
-      } catch {
-        responseBody = xhr.responseText;
-      }
-
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(responseBody as MaterialResponse);
-        return;
-      }
-
-      let errorMessage = `Erro HTTP ${xhr.status}`;
-      const parsed = responseBody as Record<string, unknown> | null;
-
-      if (xhr.status === 401) {
-        errorMessage = "Sessao expirada ou nao autenticada. Faca login novamente.";
-      } else if (xhr.status === 403) {
-        errorMessage = "Apenas usuarios com perfil de estudante (STUDENT) podem enviar materiais.";
-      } else if (xhr.status === 413) {
-        errorMessage = "O arquivo excede o limite maximo de 5 MiB permitido pelo servidor.";
-      } else if (xhr.status === 415) {
-        errorMessage = "Formato de arquivo nao aceito. Envie apenas PDF, PNG ou JPG.";
-      } else if (xhr.status === 404) {
-        errorMessage = "Disciplina nao encontrada no sistema.";
-      } else if (xhr.status === 503) {
-        errorMessage = "Servico de armazenamento temporariamente indisponivel. Tente novamente mais tarde.";
-      } else if (typeof parsed?.detail === "string") {
-        errorMessage = parsed.detail;
-      } else if (Array.isArray(parsed?.detail)) {
-        const msgs = parsed.detail
-          .map((item: unknown) => {
-            if (typeof item === "string") return item;
-            if (item && typeof item === "object" && "msg" in item) {
-              return String((item as { msg: unknown }).msg).replace(/^Value error,\s*/i, "");
-            }
-            return null;
-          })
-          .filter(Boolean);
-        if (msgs.length > 0) errorMessage = msgs.join(" • ");
-      } else if (typeof parsed?.message === "string") {
-        errorMessage = parsed.message;
-      }
-
-      reject(new ApiError(errorMessage, xhr.status, responseBody));
-    };
-
-    xhr.onerror = () => {
-      reject(
-        new ApiError(
-          "Falha na conexao com o servidor. Verifique sua rede e se a API esta em execucao.",
-          0
-        )
+    if (err instanceof ApiError) {
+      throw new ApiError(
+        mapUploadErrorMessage(err.status, err.message),
+        err.status,
+        err.data
       );
-    };
+    }
 
-    xhr.ontimeout = () => {
-      reject(new ApiError("Tempo de conexao esgotado durante o envio do arquivo.", 0));
-    };
-
-    // Monta o FormData com os campos exigidos pela API
-    // ATENCAO: Nao definir manualmente Content-Type; o navegador define com o boundary correto.
-    const formData = new FormData();
-    formData.append("titulo", title.trim());
-    formData.append("tipo", type);
-    formData.append("arquivo", file, file.name);
-
-    xhr.send(formData);
-  });
+    throw new ApiError(
+      "Falha na conexao com o servidor. Verifique sua rede e se a API esta em execucao.",
+      0
+    );
+  }
 }
 
 /**
