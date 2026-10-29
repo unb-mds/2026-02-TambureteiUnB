@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import auth, cursos, disciplinas, turmas, professores, catalogo, comentarios, materiais
 
 from app.core.config import settings
+from app.api.routers import estatisticas_consolidadas
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -27,6 +28,7 @@ app.include_router(professores.router)
 app.include_router(catalogo.router)
 app.include_router(comentarios.router)
 app.include_router(materiais.router)
+app.include_router(estatisticas_consolidadas.router)
 
 
 
