@@ -72,7 +72,7 @@ def test_downgrade_impede_perda_de_arquivo(engine):
                 command.downgrade(config, "008")
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT caminho_arquivo FROM conteudos WHERE id = :id"), {"id": arquivo_id}) == "preservar.pdf"
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "009_arquivos_conteudos"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "010_estatisticas_consolidadas"
     finally:
         with engine.begin() as connection:
             connection.execute(text("DELETE FROM disciplinas WHERE id = :id"), {"id": disciplina_id})
