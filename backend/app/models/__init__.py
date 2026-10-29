@@ -10,6 +10,8 @@ from app.models.conteudo import Conteudo
 from app.models.comentario import Comentario
 from app.models.voto import VotoUtil
 from app.models.doacao import DoacaoEstatistica
+from app.models.estatistica_consolidada import EstatisticaConsolidada
+
 
 
 __all__ = [
@@ -29,4 +31,5 @@ __all__ = [
     "Comentario",
     "VotoUtil",
     "DoacaoEstatistica",
+    "EstatisticaConsolidada",
 ]
