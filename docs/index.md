@@ -37,9 +37,10 @@ Espaço anônimo e seguro para a vivência dos estudantes:
 
 ## 🗓️ Cronograma e Entregas (Releases)
 
-| Release | Data Limite | Foco Principal | Entregáveis Técnicos |
+| Release / Entrega | Data | Foco Principal | Entregáveis Técnicos |
 | :--- | :--- | :--- | :--- |
-| **Release 1 (R1)** | Semana 7 — 28/09/2026 | Engenharia de Dados, Infraestrutura & Modelagem | Pipeline ETL conteinerizado em Docker, anonimização LGPD (Privacy by Design), dataset limpo e modelos relacionais no PostgreSQL 17 versionados com Alembic. |
+| **Release 1 (R1 - v0.1.0)** | 28/09/2026 | Engenharia de Dados, Infraestrutura & Modelagem | Pipeline ETL conteinerizado em Docker, anonimização LGPD (Privacy by Design), dataset limpo e modelos relacionais no PostgreSQL 17 versionados com Alembic. |
+| **Release v0.6.0 (Sprint 6)** | 23/10/2026 | Integração de Turmas, Doações & Padronização FCTE | Conexão de dados reais de turmas e métricas no frontend, endpoint de doação estatística (`POST /turmas/{id}/doacoes`), migração 008, dicionário de dados oficial e identidade FCTE. |
 | **Release 2 (R2)** | Semana 15 — 25/11/2026 | Portal Web & Hub Comunitário | Frontend em Next.js (App Router), dashboards analíticos interativos, hub de disciplinas (`/cadeiras/:slug`), moderação de relatos e pipeline CI/CD com SAST. |
 
 ---

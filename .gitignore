@@ -8,8 +8,13 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+.ruff_cache/
 .coverage
+coverage.xml
 htmlcov/
+.mutmut-cache
+mutmut-report.xml
+.venv/
 
 # Dados locais do pipeline ETL (preserva apenas .gitkeep)
 backend/app/pipeline/data/raw/*

@@ -1,6 +1,29 @@
-[tool.mutmut]
-source_paths = ["app/"]
-only_mutate = ["app/domain/materiais.py"]
-also_copy = ["pytest.ini"]
-pytest_add_cli_args_test_selection = ["tests/unit/test_materiais.py"]
-pytest_add_cli_args = ["-q"]
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+exclude = [
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    "alembic/versions",
+]
+
+[tool.ruff.lint]
+# Verifica erros de sintaxe, variáveis indefinidas e redefinições acidentais
+select = ["E9", "F63", "F7", "F82", "F811"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--import-mode=importlib -ra -q"
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/pipeline/cli.py",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
