@@ -1,5 +1,11 @@
 import pytest
-from app.api.schemas.curso import CursoResumo, CursoResponse, CursoGradeDisciplina
+from app.api.schemas.curso import (
+    CursoResumo,
+    CursoResponse,
+    CursoGradeDisciplina,
+    PeriodoGrade,
+    CursoGradeResponse,
+)
 from app.api.schemas.disciplina import DisciplinaResponse, MetricaConsolidadaSchema, MetricaAcademicaSchema
 
 
@@ -37,6 +43,29 @@ class TestCursoSchemas:
         assert len(curso.disciplinas) == 1
         assert curso.disciplinas[0].codigo == "FGA0168"
         assert curso.disciplinas[0].periodo_sugerido == 3
+
+    def test_curso_grade_response_agrupada_por_periodo(self):
+        d1 = CursoGradeDisciplina(
+            codigo="MAT0025",
+            nome="Cálculo 1",
+            slug="calculo-1",
+            creditos=6,
+            periodo_sugerido=1,
+            is_obrigatoria=True,
+            natureza="Obrigatoria",
+        )
+        periodo_1 = PeriodoGrade(periodo=1, disciplinas=[d1])
+        grade = CursoGradeResponse(
+            curso_id=1,
+            curso_nome="Engenharia de Software",
+            curso_slug="engenharia-de-software",
+            periodos=[periodo_1],
+        )
+        assert grade.curso_id == 1
+        assert grade.curso_nome == "Engenharia de Software"
+        assert len(grade.periodos) == 1
+        assert grade.periodos[0].periodo == 1
+        assert grade.periodos[0].disciplinas[0].codigo == "MAT0025"
 
 
 class TestDisciplinaSchemas:
