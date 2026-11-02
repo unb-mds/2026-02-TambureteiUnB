@@ -545,6 +545,12 @@ Mapeamento explícito entre os épicos de negócio e os componentes arquiteturai
 * **Decisão:** Implementar um motor de consenso no domínio que agrupa doações idênticas por turma e semestre, consolidando a estatística oficial assim que um quórum mínimo parametrizado for alcançado.
 * **Justificativa:** Permite curadoria algorítmica transparente, autônoma e à prova de fraudes para as estatísticas colaborativas.
 
+### ADR 08: Moderação Autônoma Híbrida com LLM Local (Ollama) e Fallback Humano
+* **Status:** Aprovado / Ativo.
+* **Contexto:** O envio colaborativo de arquivos (`conteudos`) e relatos discentes (`comentarios`) exige proteção contínua contra vazamento de dados pessoais (RN01), ataques a docentes (RN04) e gabaritos de avaliações vigentes (RN05), sem gerar custos de APIs comerciais externas, sem violar a privacidade dos alunos e sem introduzir filas externas complexas vedadas pela ADR 01 (Redis/Celery).
+* **Decisão:** Adotar triagem assíncrona via `BackgroundTasks` do FastAPI combinando validação determinística no domínio puro (`app/domain/moderacao.py`), extração local de texto de PDFs (`pypdf`) e inferência estruturada (`temperature: 0.0` + JSON Schema) em instância local do **Ollama** (`POST /api/chat`). Decisões com confiança $\ge 0.80$ aprovam ou bloqueiam automaticamente (`moderado_por = 'IA'`), enquanto casos ambíguos, PDFs digitalizados sem camada de texto ou indisponibilidade do Ollama mantêm o registro como `PENDENTE` na fila `/moderacao` para deliberação de `MODERATOR` ou `ADMIN` (*Human-in-the-Loop*).
+* **Justificativa:** Garante custo financeiro zero, processamento 100% local aderente à LGPD (*Privacy by Design*), desacoplamento do tempo de resposta do `POST` HTTP e degradação graciosa (*fail-safe*) em ambientes de desenvolvimento e CI/CD onde o servidor Ollama não esteja em execução.
+
 ---
 
 ## 9. Diretrizes de Qualidade e Próximas Etapas

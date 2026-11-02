@@ -46,7 +46,7 @@ A aprovação usa `status=APROVADO`; a justificativa é opcional. Nenhuma identi
 
 ## Banco e auditoria
 
-A revisão linear `010_curadorias` sucede `009_arquivos_conteudos` e cria `curadorias`. Cada registro guarda conteúdo, ID do moderador, perfil no momento da decisão, estados anterior e novo, justificativa e data. Não armazena email, matrícula, CPF ou outros dados acadêmicos do aluno.
+A revisão linear `010_curadorias` sucede `009_arquivos_conteudos` e cria `curadorias`. A revisão `011_moderacao_ia` adiciona os campos `motivo_moderacao`, `confianca_ia` e `moderado_por` em `conteudos` e `comentarios`, além de permitir `perfil_moderador = 'IA'` em `curadorias` para decisões automáticas de alta confiança ($\ge 0.80$) via Ollama local. Cada registro guarda conteúdo, ID do moderador (nulo quando `perfil_moderador = 'IA'`), perfil no momento da decisão, estados anterior e novo, justificativa e data. Não armazena email, matrícula, CPF ou outros dados acadêmicos do aluno.
 
 Estado e auditoria são gravados na mesma transação. O repositório bloqueia o conteúdo com `SELECT FOR UPDATE`; apenas a primeira decisão sobre um pendente é aceita, e as demais retornam 409. A unicidade de `conteudo_id` reforça essa regra. Não há endpoints para editar/apagar auditoria ou reabrir decisões.
 

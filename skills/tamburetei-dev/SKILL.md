@@ -59,7 +59,7 @@ Esta skill instrui agentes de IA a seguirem rigorosamente os padrões técnicos,
 * **[RN03] Unicidade de Upvote:** Máximo de 1 voto útil por usuário em cada material ou comentário. Repetir o voto desfaz a curtida.
 * **[RN04] Proteção a Docentes:** Vedada publicação de juízos depreciativos ou difamatórios contra professores. Foco estritamente pedagógico e conteudista.
 * **[RN05] Vedação de Resoluções Ativas:** Proibida a publicação de gabaritos de atividades avaliativas contínuas vigentes. Permitidos apenas enunciados de provas públicas antigas e materiais conceituais.
-* **[RN06] Curadoria de Submissões:** Novos arquivos, links e resumos em `conteudos` começam com `status_curadoria=PENDENTE`. Arquivos exigem aprovação de MODERATOR ou ADMIN antes da publicação; decisões são registradas em `curadorias` na mesma transação. Não criar tabela paralela de materiais.
+* **[RN06] Curadoria Híbrida de Submissões:** Novos arquivos, links e resumos em `conteudos` e novos relatos ou edições em `comentarios` começam como `PENDENTE` e acionam triagem local via Ollama (`BackgroundTasks`). Decisões de alta confiança (>= 0.80) aprovam ou recusam/ocultam automaticamente (`moderado_por=IA`); demais casos permanecem na fila `/moderacao` para `MODERATOR` ou `ADMIN`. Não criar tabela paralela de materiais.
 * **[RN07] Baixa Amostragem:** Dados históricos com menos de 5 alunos por turma são consolidados no acumulado geral.
 * **[RN08] Cálculo de Evasão:** `(total_desligamentos / total_matriculados_ativos) * 100`.
 

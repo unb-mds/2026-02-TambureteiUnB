@@ -7,7 +7,8 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 ## 📌 Regras de Negócio (RN)
 
 ### [RN01] Privacidade por Padrão e Anonimato Discente
-* A plataforma **não** armazena nem processa número de matrícula, CPF ou histórico acadêmico nominal dos estudantes.
+* A plataforma **não** armazena nem processa número de matrícula, CPF ou histórico acadêmico nominal dos estudantes, sendo igualmente vedada a exposição de cabeçalhos identificados em provas e materiais.
+* Toda a inferência de triagem automática por IA ocorre localmente via **Ollama**, sem envio de textos ou arquivos acadêmicos para APIs comerciais de terceiros.
 * Relatos, dúvidas e comentários são exibidos publicamente de forma desvinculada do perfil nominal do aluno (sob pseudônimo ou *alias*).
 * Os votos de situação discente alimentam exclusivamente os contadores estatísticos agregados da disciplina, sem exposição pública do nome de quem votou.
 
@@ -27,11 +28,11 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 * É terminantemente proibida a disponibilização de respostas ou gabaritos de atividades avaliativas contínuas vigentes (como testes semanais ou relatórios laboratoriais recorrentes).
 * São aceitos apenas enunciados de provas públicas de semestres anteriores e materiais conceituais de estudo.
 
-### [RN06] Curadoria de Submissões Externas
-* Novos arquivos, links e resumos em `conteudos` entram com `status_curadoria = PENDENTE`.
-* Somente arquivos aprovados e ativos são listados e baixados publicamente. MODERATOR e ADMIN podem analisar e decidir sobre arquivos pendentes.
-* Recusas exigem justificativa. Aprovação/recusa é registrada com autoria administrativa, data e estados na mesma transação.
-* Arquivos já aprovados permanecem publicados. Moderação de comentários e denúncias é uma entrega separada.
+### [RN06] Curadoria Híbrida de Submissões Externas e Comentários
+* Novos arquivos, links e resumos em `conteudos` e novos relatos ou edições em `comentarios` entram com `status_curadoria = PENDENTE` / `status_moderacao = PENDENTE` e disparam triagem assíncrona via `BackgroundTasks` no **Ollama local**.
+* Com confiança $\ge 0.80$, o item pode ser aprovado automaticamente (`APROVADO` / `PUBLICADO`) ou rejeitado/ocultado automaticamente (`RECUSADO` / `OCULTO`, inclusive por detecção determinística de dados pessoais de `RN01`), registrando `moderado_por = 'IA'` e auditoria em `curadorias`.
+* Em caso de dúvida (`REVISAO_HUMANA`, confiança $< 0.80$, PDF escaneado sem camada de texto ou Ollama indisponível), o item permanece `PENDENTE` na fila `/moderacao` com o parecer prévio (`motivo_moderacao` e `confianca_ia`) visível apenas para `MODERATOR` e `ADMIN`.
+* Somente arquivos aprovados (`APROVADO` e `ativo`) e comentários publicados (`PUBLICADO`) são listados publicamente. Recusas e ocultações exigem justificativa. Arquivos já aprovados permanecem publicados.
 
 ### [RN07] Tratamento de Dados Históricos com Baixa Amostragem (LGPD / DPO)
 * Agregações históricas oriundas de microdados públicos do DPO/INEP com **menos de 5 estudantes** em uma turma devem ser consolidadas no acumulado geral da matéria para inviabilizar qualquer identificação indireta de notas.
