@@ -1,5 +1,6 @@
 "use client";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
+import DificuldadesPanel from "@/components/DificuldadesPanel";
 
 
 import React, {
@@ -1137,6 +1138,14 @@ function DisciplineDetailContent() {
               </p>
             </div>
           </section>
+
+          <DificuldadesPanel
+            disciplineId={discipline.id}
+            disciplineSlug={discipline.slug || slug}
+            disciplineCode={discipline.code}
+            disciplineName={discipline.name}
+            ementa={discipline.ementa}
+          />
 
           <ComentariosFrontend disciplineName={discipline.name} disciplineCode={discipline.code} />
         </div>
