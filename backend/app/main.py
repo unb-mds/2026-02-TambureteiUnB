@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import auth, cursos, disciplinas, turmas, professores, catalogo, comentarios, materiais
+from app.api.routers import auth, cursos, disciplinas, turmas, professores, catalogo, comentarios, materiais, moderacao
 
 from app.core.config import settings
 
@@ -27,6 +27,7 @@ app.include_router(professores.router)
 app.include_router(catalogo.router)
 app.include_router(comentarios.router)
 app.include_router(materiais.router)
+app.include_router(moderacao.router)
 
 
 
