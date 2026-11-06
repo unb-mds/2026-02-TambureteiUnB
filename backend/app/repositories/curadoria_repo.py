@@ -41,11 +41,7 @@ class CuradoriaRepository(BaseRepository[Curadoria]):
         return list(db.scalars(consulta)), total
 
     def obter_comentario(self, db: Session, comentario_id: int, bloquear: bool = False) -> Comentario | None:
-        consulta = (
-            select(Comentario)
-            .options(joinedload(Comentario.disciplina))
-            .where(Comentario.id == comentario_id)
-        )
+        consulta = select(Comentario).where(Comentario.id == comentario_id)
         if bloquear:
             consulta = consulta.with_for_update().execution_options(populate_existing=True)
         return db.scalar(consulta)
