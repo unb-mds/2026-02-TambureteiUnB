@@ -37,7 +37,8 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
   const [loading, setLoading] = useState(true);
   const [newCommentText, setNewCommentText] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [customAlias, setCustomAlias] = useState("@estudante_fcte");
+  const [customAlias] = useState("@estudante_fcte");
+  const [triageNotice, setTriageNotice] = useState<string | null>(null);
 
   const MAX_CHARS = 500;
   const MIN_CHARS = 10;
@@ -93,8 +94,10 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
       isLikedByMe: false,
     };
 
-    setComments((prev) => [newComment, ...prev]);
     setNewCommentText("");
+    setTriageNotice(
+      "[TRIAGEM AUTOMATICA] Seu relato foi recebido e submetido a moderacao automatica. Ele ficara visivel publicamente apos validacao."
+    );
 
     try {
       if (disciplineCode) {
@@ -174,10 +177,19 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
         <textarea
           rows={3}
           value={newCommentText}
-          onChange={(e) => setNewCommentText(e.target.value)}
+          onChange={(e) => {
+            setNewCommentText(e.target.value);
+            if (triageNotice) setTriageNotice(null);
+          }}
           placeholder="Compartilhe dicas sobre as provas, listas de exercícios ou tire uma dúvida sobre a matéria..."
           className="w-full resize-none rounded-xl bg-white border border-[#DDD9F1] p-3 text-xs sm:text-sm text-[#202124] placeholder-gray-400 outline-none focus:border-[#5B4BDB] focus:ring-1 focus:ring-[#5B4BDB]"
         />
+
+        {triageNotice && (
+          <p role="status" className="mt-3 rounded-xl border border-[#EDE9FD] bg-[#FAF9FD] p-3 text-xs font-medium text-[#5B4BDB]">
+            {triageNotice}
+          </p>
+        )}
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <span
@@ -225,7 +237,7 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EDE9FD] text-[#5B4BDB] text-xs font-bold">
-                    {comment.isAnonymous ? "🔒" : "👤"}
+                    {comment.isAnonymous ? "AN" : "AL"}
                   </div>
                   <div>
                     <span className="text-xs sm:text-sm font-bold text-[#202124]">
