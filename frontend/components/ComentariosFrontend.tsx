@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { criarDenuncia, ROTULOS_CATEGORIA_DENUNCIA, validarMotivoDenuncia } from "@/services/moderacaoService";
+import type { CategoriaDenuncia } from "@/types/moderacao";
 
 export interface Comment {
   id: string;
@@ -37,7 +39,14 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
   const [loading, setLoading] = useState(true);
   const [newCommentText, setNewCommentText] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [customAlias, setCustomAlias] = useState("@estudante_fcte");
+  const [customAlias] = useState("@estudante_fcte");
+
+  const [reportingComment, setReportingComment] = useState<Comment | null>(null);
+  const [reportCategory, setReportCategory] = useState<CategoriaDenuncia>("OFENSA_DOCENTE");
+  const [reportReason, setReportReason] = useState("");
+  const [reportError, setReportError] = useState("");
+  const [reportFeedback, setReportFeedback] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   const MAX_CHARS = 500;
   const MIN_CHARS = 10;
@@ -109,6 +118,48 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
     }
   };
 
+  const handleOpenReportModal = (comment: Comment) => {
+    setReportingComment(comment);
+    setReportCategory("OFENSA_DOCENTE");
+    setReportReason("");
+    setReportError("");
+  };
+
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportingComment) return;
+
+    const validacao = validarMotivoDenuncia(reportReason);
+    if (!validacao.valido) {
+      setReportError(validacao.erro || "Informe um motivo válido.");
+      return;
+    }
+
+    setReportSubmitting(true);
+    setReportError("");
+    try {
+      const numericId = Number(reportingComment.id);
+      if (Number.isFinite(numericId) && numericId > 0) {
+        const res = await criarDenuncia({
+          comentario_id: numericId,
+          categoria: reportCategory,
+          motivo: reportReason,
+        });
+        if (res.ocultado_automaticamente) {
+          setComments((prev) => prev.filter((item) => item.id !== reportingComment.id));
+        }
+      }
+      setReportingComment(null);
+      setReportFeedback("Denúncia registrada e encaminhada para revisão da equipe de moderação (RN04).");
+    } catch (error) {
+      setReportError(
+        error instanceof Error ? error.message : "Não foi possível enviar a denúncia no momento."
+      );
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
   return (
     <section className="mt-8 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-5">
@@ -138,6 +189,12 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
           {comments.length} relatos compartilhados
         </span>
       </div>
+
+      {reportFeedback && (
+        <div role="status" className="mb-6 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD] px-4 py-3 text-xs sm:text-sm text-[#5B4BDB]">
+          {reportFeedback}
+        </div>
+      )}
 
       <form onSubmit={handleFormSubmit} className="mb-8 rounded-2xl bg-[#FAFAFC] p-4 sm:p-5 border border-[#ECEAF5]">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -178,6 +235,10 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
           placeholder="Compartilhe dicas sobre as provas, listas de exercícios ou tire uma dúvida sobre a matéria..."
           className="w-full resize-none rounded-xl bg-white border border-[#DDD9F1] p-3 text-xs sm:text-sm text-[#202124] placeholder-gray-400 outline-none focus:border-[#5B4BDB] focus:ring-1 focus:ring-[#5B4BDB]"
         />
+
+        <p className="mt-2 text-[11px] text-gray-500">
+          Conduta ética (RN04): concentre seu relato na ementa, metodologia e dificuldades técnicas da matéria. Ataques pessoais a docentes são vedados.
+        </p>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <span
@@ -225,7 +286,7 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EDE9FD] text-[#5B4BDB] text-xs font-bold">
-                    {comment.isAnonymous ? "🔒" : "👤"}
+                    {comment.isAnonymous ? "AN" : "AL"}
                   </div>
                   <div>
                     <span className="text-xs sm:text-sm font-bold text-[#202124]">
@@ -237,27 +298,38 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleToggleUpvote(comment.id)}
-                  aria-label={`Curtir comentário de ${comment.authorAlias}`}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-                    comment.isLikedByMe
-                      ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5]"
-                      : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100"
-                  }`}
-                >
-                  {comment.isLikedByMe ? (
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                  ) : (
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                  )}
-                  <span>{comment.upvotes}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleUpvote(comment.id)}
+                    aria-label={`Curtir comentário de ${comment.authorAlias}`}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                      comment.isLikedByMe
+                        ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5]"
+                        : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100"
+                    }`}
+                  >
+                    {comment.isLikedByMe ? (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                      </svg>
+                    ) : (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                      </svg>
+                    )}
+                    <span>{comment.upvotes}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenReportModal(comment)}
+                    aria-label={`Denunciar comentário de ${comment.authorAlias}`}
+                    className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                  >
+                    Denunciar
+                  </button>
+                </div>
               </div>
 
               <p className="text-xs sm:text-sm text-[#545864] leading-relaxed pl-1">
@@ -265,6 +337,81 @@ export default function ComentariosFrontend({ disciplineName, disciplineCode }: 
               </p>
             </div>
           ))}
+        </div>
+      )}
+
+      {reportingComment && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-denuncia-comentario-titulo"
+        >
+          <form
+            onSubmit={handleSubmitReport}
+            className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl"
+          >
+            <h3 id="modal-denuncia-comentario-titulo" className="text-lg font-bold text-[#202124]">
+              Denunciar relato à moderação
+            </h3>
+            <p className="mt-1 text-xs text-gray-600">
+              Sinalize conteúdos que violem a proteção a docentes (RN04) ou as diretrizes da comunidade.
+            </p>
+
+            <label className="mt-4 block text-xs font-semibold text-gray-700">
+              Categoria da denúncia
+              <select
+                value={reportCategory}
+                onChange={(e) => setReportCategory(e.target.value as CategoriaDenuncia)}
+                className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-[#202124]"
+              >
+                {Object.entries(ROTULOS_CATEGORIA_DENUNCIA).map(([chave, rotulo]) => (
+                  <option key={chave} value={chave}>
+                    {rotulo}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="mt-4 block text-xs font-semibold text-gray-700">
+              Motivo detalhado
+              <textarea
+                rows={3}
+                maxLength={1000}
+                value={reportReason}
+                onChange={(e) => {
+                  setReportReason(e.target.value);
+                  setReportError("");
+                }}
+                placeholder="Descreva objetivamente por que este relato viola as regras (mínimo 5 caracteres)."
+                className="mt-1.5 w-full rounded-xl border border-gray-300 p-3 text-sm text-[#202124]"
+              />
+            </label>
+
+            {reportError && (
+              <p role="alert" className="mt-2 text-xs font-medium text-red-700">
+                {reportError}
+              </p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={reportSubmitting}
+                onClick={() => setReportingComment(null)}
+                className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={reportSubmitting}
+                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {reportSubmitting ? "Enviando..." : "Enviar denúncia"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </section>

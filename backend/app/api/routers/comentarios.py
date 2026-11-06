@@ -10,9 +10,15 @@ from app.api.schemas.comentario import (
     ComentarioResponse,
     ComentarioUpdate,
 )
+from app.api.schemas.denuncia import (
+    DenunciaComentarioPayload,
+    DenunciaCreate,
+    DenunciaResponse,
+)
 from app.core.database import get_db
 from app.models.usuario import Usuario
 from app.services.comentario_service import comentario_service
+from app.services.denuncia_service import denuncia_service
 
 router = APIRouter(prefix="/comentarios", tags=["Comentários"])
 
@@ -68,3 +74,23 @@ def excluir_comentario(
     Somente o autor do comentário pode excluí-lo.
     """
     comentario_service.excluir_comentario(db, comentario_id, current_user)
+
+
+@router.post(
+    "/{comentario_id}/denuncias",
+    response_model=DenunciaResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def denunciar_comentario(
+    comentario_id: int,
+    dados: DenunciaComentarioPayload,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    """Registra uma denúncia da comunidade para um comentário (RN04)."""
+    payload = DenunciaCreate(
+        comentario_id=comentario_id,
+        categoria=dados.categoria,
+        motivo=dados.motivo,
+    )
+    return denuncia_service.criar(db, payload, current_user)
