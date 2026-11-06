@@ -50,7 +50,7 @@ def test_criar_comentario_disciplina_com_sucesso(client: TestClient, student_hea
     assert response.status_code == 201
     data = response.json()
     assert data["conteudo"] == "Gostei da disciplina"
-    assert data["status_moderacao"] == "PUBLICADO"
+    assert data["status_moderacao"] == "PENDENTE"
     assert data["disciplina_id"] == disciplina.id
 
 
@@ -127,6 +127,7 @@ def test_editar_proprio_comentario(client: TestClient, student_headers, comentar
     response = client.patch(f"/comentarios/{comentario_do_aluno.id}", json={"conteudo": "Editado"}, headers=student_headers)
     assert response.status_code == 200
     assert response.json()["conteudo"] == "Editado"
+    assert response.json()["status_moderacao"] == "PENDENTE"
 
 
 def test_editar_comentario_de_outro_retorna_403(client: TestClient, student_headers, comentario_de_outro):

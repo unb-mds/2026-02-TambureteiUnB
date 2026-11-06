@@ -221,6 +221,8 @@ def processar_moderacao_comentario_bg(
     session_factory: Callable[[], Session] = SessionLocal,
 ) -> None:
     """Wrapper seguro para BackgroundTasks do FastAPI com sessao propria."""
+    if not (settings.OLLAMA_BASE_URL or "").strip():
+        return
     with session_factory() as db:
         try:
             aplicar_triagem_comentario(db, comentario_id)
@@ -237,6 +239,8 @@ def processar_moderacao_material_bg(
     session_factory: Callable[[], Session] = SessionLocal,
 ) -> None:
     """Wrapper seguro para BackgroundTasks do FastAPI com sessao propria."""
+    if not (settings.OLLAMA_BASE_URL or "").strip():
+        return
     with session_factory() as db:
         try:
             aplicar_triagem_material(db, conteudo_id)
