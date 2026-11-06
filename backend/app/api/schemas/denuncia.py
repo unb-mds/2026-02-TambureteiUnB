@@ -85,6 +85,29 @@ class DenunciaCreate(BaseModel):
         return self
 
 
+class DenunciaComentarioPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    categoria: str = "OFENSA_DOCENTE"
+    motivo: str
+
+    @field_validator("categoria", mode="before")
+    @classmethod
+    def validar_categoria(cls, valor: str) -> str:
+        try:
+            return validar_categoria_denuncia(valor)
+        except ValueError as exc:
+            raise PydanticCustomError("categoria_invalida", str(exc)) from exc
+
+    @field_validator("motivo", mode="before")
+    @classmethod
+    def validar_motivo(cls, valor: str) -> str:
+        try:
+            return normalizar_motivo_denuncia(valor)
+        except ValueError as exc:
+            raise PydanticCustomError("motivo_invalido", str(exc)) from exc
+
+
 class DecisaoDenuncia(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
