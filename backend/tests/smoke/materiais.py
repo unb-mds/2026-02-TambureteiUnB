@@ -5,7 +5,8 @@ import sys
 import httpx
 
 from app.core.database import SessionLocal
-from app.models import Disciplina, Conteudo
+from app.models import Disciplina, Conteudo, Usuario
+from app.core.security import get_password_hash
 
 PDF = b"%PDF-1.7\n1 0 obj\n<<>>\nendobj\n%%EOF\n"
 EMAIL = "smoke.materiais@example.com"
@@ -28,6 +29,10 @@ def executar(etapa: str) -> None:
         with SessionLocal() as db:
             disciplina = db.query(Disciplina).filter_by(slug=SLUG).first()
             if etapa == "enviar":
+                moderador = db.query(Usuario).filter_by(email="smoke.moderacao@example.com").first()
+                if moderador is None:
+                    db.add(Usuario(nome="Moderador Smoke", email="smoke.moderacao@example.com", role="MODERATOR", password_hash=get_password_hash(SENHA)))
+                    db.commit()
                 if disciplina is None:
                     disciplina = Disciplina(nome="Disciplina Smoke", slug=SLUG)
                     db.add(disciplina)
@@ -40,6 +45,17 @@ def executar(etapa: str) -> None:
             assert disciplina is not None
             material = db.query(Conteudo).filter_by(disciplina_id=disciplina.id, titulo=TITULO).order_by(Conteudo.id.desc()).first()
             assert material is not None
+            if etapa == "enviar":
+                assert material.status_curadoria == "PENDENTE"
+                assert client.get(f"/materiais/{material.id}/download", headers=headers).status_code == 403
+                login_moderador = client.post("/auth/login", json={"email": "smoke.moderacao@example.com", "senha": SENHA})
+                assert login_moderador.status_code == 200
+                auth_moderador = {"Authorization": "Bearer " + login_moderador.json()["access_token"]}
+                assert client.get(f"/moderacao/materiais/{material.id}/download", headers=auth_moderador).content == PDF
+                decisao = client.patch(f"/moderacao/conteudos/{material.id}/curadoria", headers=auth_moderador, json={"status": "APROVADO"})
+                assert decisao.status_code == 200, decisao.text
+                historico = client.get(f"/moderacao/conteudos/{material.id}/historico", headers=auth_moderador)
+                assert len(historico.json()) == 1
             lista = client.get(f"/cadeiras/{disciplina.id}/materiais").json()
             assert any(item["id"] == material.id for item in lista["items"])
             assert client.get(f"/materiais/{material.id}/download").status_code == 401
