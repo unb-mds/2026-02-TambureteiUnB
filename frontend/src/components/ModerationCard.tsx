@@ -32,6 +32,19 @@ export default function ModerationCard({ material, disabled, onDecision, onDownl
         </div>
         <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-800">Pendente</span>
       </div>
+      {(material.motivo_moderacao || typeof material.confianca_ia === "number") && (
+        <div className="mt-4 rounded-xl border border-[#EDE9FD] bg-[#FAF9FD] p-3 text-sm text-gray-700">
+          <p className="font-semibold text-[#5B4BDB]">
+            [PARECER DA TRIAGEM IA LOCAL]
+            {typeof material.confianca_ia === "number" && (
+              <span className="ml-2 text-xs font-medium text-gray-600">
+                (Confiança: {(material.confianca_ia * 100).toFixed(0)}%)
+              </span>
+            )}
+          </p>
+          {material.motivo_moderacao && <p className="mt-1 text-xs leading-relaxed">{material.motivo_moderacao}</p>}
+        </div>
+      )}
       <p className="mt-4 text-sm text-gray-600">Analise o arquivo antes de decidir. Verifique a pertinência e se o conteúdo respeita as regras de compartilhamento.</p>
       <label htmlFor={`motivo-${material.id}`} className="mt-4 block text-sm font-medium">Justificativa da recusa</label>
       <textarea id={`motivo-${material.id}`} maxLength={1000} rows={3} value={motivo} disabled={disabled}

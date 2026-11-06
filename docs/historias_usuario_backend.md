@@ -356,6 +356,23 @@ Eu, como moderador, desejo revisar, aprovar ou remover conteúdos denunciados, a
 - Visualizar denúncias pendentes em uma lista
 - Filtro de pesquisa por tipo de conteúdo denunciado (Comentário ou Material)
 - Ser acessado somente por usuários de perfil moderador ou administrador
+
+#### User Story 5.3.3: Triagem autônoma híbrida de materiais e comentários via LLM local (Ollama)
+Depende de: US 5.1.1, US 5.1.3, US 5.2.1, US 5.3.2
+
+Eu, como moderador ou administrador, desejo que novos materiais submetidos e comentários criados ou editados passem por uma triagem automática local via LLM (Ollama) em segundo plano, a fim de aprovar ou reter automaticamente casos de alta confiança ($\ge 0.80$) e receber na fila `/moderacao` apenas os casos ambíguos acompanhados do diagnóstico prévio da IA.
+
+**Nessa issue deve ser feito:**
+- Adicionar campos `motivo_moderacao`, `confianca_ia` e `moderado_por` (`IA` ou `HUMANO`) em `conteudos` e `comentarios`, e permitir `perfil_moderador = 'IA'` na auditoria `curadorias` (migração `011_moderacao_ia`).
+- Implementar módulo de domínio puro `app/domain/moderacao.py` com detecção determinística de dados sensíveis (`RN01`: CPF, e-mail, matrícula UnB) e cálculo de veredito por limiar de confiança (`0.80`).
+- Implementar `ModeracaoIAService` com extração de texto de PDFs via `pypdf` e consulta HTTP estruturada ao Ollama local (`POST /api/chat`) acionada por `BackgroundTasks` no envio de materiais e na criação/edição de comentários.
+- Garantir *fallback* seguro (*fail-safe*) mantendo o item como `PENDENTE` na fila `/moderacao` caso o PDF não possua camada de texto ou o serviço Ollama esteja offline.
+
+**Critérios de aceitação:**
+- Aprovar ou recusar/ocultar automaticamente itens com confiança $\ge 0.80$ registrando `moderado_por = 'IA'`
+- Retornar comentários editados (`PATCH /comentarios/{id}`) para `status_moderacao = 'PENDENTE'` e disparar nova triagem
+- Manter como `PENDENTE` na fila humana itens com confiança $< 0.80$, PDFs escaneados sem texto ou falhas de conexão com o Ollama
+- Exibir `motivo_moderacao` e `confianca_ia` exclusivamente para perfis `MODERATOR` e `ADMIN` nas rotas `/moderacao/*`
 ---
  
 ## Épico 6: Dashboard Institucional (Curso e Campus)

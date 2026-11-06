@@ -142,8 +142,13 @@ em menos de 300 ms.
   resumos ou enunciados de provas públicas com status de moderação.
 - [RF11] Voto de Relevância (Upvote): Possibilidade de votar em dicas,
   materiais e comentários úteis para ordenar os mais relevantes.
-- [RF12] Fila de Moderação: Painel administrativo para curadoria de conteúdos.
+- [RF12] Fila de Moderação Humana: Painel administrativo (/moderacao) para
+  curadoria de materiais e comentários pendentes ou escalonados pela IA.
 - [RF13] Exportação de Dados Abertos: Download do dataset público em CSV/JSON.
+- [RF14] Triagem Autônoma Híbrida por IA Local (Ollama): Avaliação assíncrona
+  (BackgroundTasks) de materiais (PDF via pypdf) e comentários (criação/edição)
+  segundo RN01, RN04 e RN05, com aprovação/bloqueio automático quando
+  confiança >= 0.80 e escalonamento humano nos demais casos.
 
 4.2. Requisitos Não-Funcionais (RNF)
 
@@ -163,6 +168,9 @@ em menos de 300 ms.
 - [RNF06] Reprodutibilidade Total: Execução completa do ambiente via
   `docker compose up`, sem dependências manuais no sistema operacional do host.
 - [RNF07] Responsividade: Interface adaptável a dispositivos móveis e desktops.
+- [RNF08] Resiliência da Triagem por IA (Fail-Safe): Indisponibilidade ou
+  timeout do Ollama mantém o conteúdo como PENDENTE para revisão humana sem
+  interromper o fluxo do usuário.
 
 
 5. ARQUITETURA DE SOFTWARE E BANCO DE DADOS
@@ -217,11 +225,19 @@ conteudos
   Materiais de apoio: id, disciplina_id, usuario_id, titulo, descricao,
   tipo (LINK_UTIL, RESUMO, PROVA_ANTIGA, DICA, ARQUIVO), url_origem, semestre,
   caminho_arquivo, formato, tamanho_bytes, status_moderacao,
-  status_curadoria (PENDENTE, APROVADO, RECUSADO), created_at.
+  status_curadoria (PENDENTE, APROVADO, RECUSADO), motivo_moderacao,
+  confianca_ia, moderado_por (IA, HUMANO), created_at.
+
+curadorias
+  Histórico de auditoria de curadoria: id, conteudo_id, moderador_id,
+  perfil_moderador (MODERATOR, ADMIN, IA), status_anterior, status_novo,
+  justificativa, created_at.
 
 comentarios
   Relatos e discussões: id, disciplina_id, usuario_id, autor_alias,
-  topico_dificuldade, conteudo, parent_id, status_moderacao, created_at.
+  topico_dificuldade, conteudo, parent_id, status_moderacao (PENDENTE,
+  PUBLICADO, OCULTO), motivo_moderacao, confianca_ia, moderado_por (IA, HUMANO),
+  created_at.
 
 votos_uteis
   Upvotes de relevância: usuario_id, target_type (CONTEUDO, COMENTARIO),
@@ -236,9 +252,12 @@ Qualquer agente que gerar código deve obedecer obrigatoriamente às regras:
 
 [RN01] Privacidade por Padrão e Anonimato Discente
 A plataforma não armazena nem processa matrícula, CPF ou histórico acadêmico
-individual. Avaliações e comentários exibem apenas autor_alias ou indicação
-anônima. Os votos de situação acadêmica alimentam exclusivamente as métricas
-numéricas agregadas da disciplina.
+individual, vedando também cabeçalhos identificados em provas ou materiais.
+Toda triagem automatizada por IA ocorre exclusivamente em instância local do
+Ollama, sem compartilhamento de textos ou arquivos com APIs externas.
+Avaliações e comentários exibem apenas autor_alias ou indicação anônima. Os
+votos de situação acadêmica alimentam exclusivamente as métricas numéricas
+agregadas da disciplina.
 
 [RN02] Unicidade da Situação Acadêmica por Disciplina
 Cada estudante autenticado pode possuir apenas 1 status ativo por disciplina.
@@ -259,11 +278,15 @@ concentrar estritamente no conteúdo programático e na metodologia da matéria.
 recorrentes (como testes semanais ou relatórios laboratoriais vigentes). São
 aceitos apenas enunciados de avaliações públicas anteriores e resumos conceituais.
 
-[RN06] Curadoria de Submissões Externas
-Novos arquivos, links e resumos em conteudos começam como PENDENTE.
-MODERATOR e ADMIN avaliam arquivos; aprovação/recusa e auditoria são transacionais.
-A consulta pública exige APROVADO e moderação ativo. Não há tabela separada de materiais.
-Arquivos já aprovados são preservados.
+[RN06] Curadoria Híbrida de Submissões Externas e Comentários
+Novos arquivos, links e resumos em conteudos e novos comentários (ou edições)
+em comentarios começam como PENDENTE e acionam triagem assíncrona local via
+Ollama (BackgroundTasks). Quando a confiança da IA for >= 0.80, o item é
+aprovado ou recusado/ocultado automaticamente (registrando auditoria com
+moderado_por = 'IA'); caso contrário, ou se o Ollama estiver indisponível, o
+item permanece PENDENTE na fila /moderacao para decisão de MODERATOR ou ADMIN.
+A consulta pública exige APROVADO/PUBLICADO e moderação ativo. Arquivos já
+aprovados são preservados.
 
 [RN07] Tratamento de Dados com Baixa Amostragem (LGPD / DPO)
 Agregações históricas oriundas de microdados públicos com menos de 5 alunos por

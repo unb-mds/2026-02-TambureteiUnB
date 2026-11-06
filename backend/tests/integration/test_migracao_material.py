@@ -24,10 +24,13 @@ def test_migracao_reversivel_e_indices(engine, revisao):
     inspector = inspect(engine)
     assert "materiais" not in inspector.get_table_names()
     assert {"id", "usuario_id", "disciplina_id", "titulo", "url_origem", "tipo",
-            "caminho_arquivo", "formato", "tamanho_bytes", "status_moderacao", "created_at"}.issubset(
+            "caminho_arquivo", "formato", "tamanho_bytes", "status_moderacao",
+            "motivo_moderacao", "confianca_ia", "moderado_por", "created_at"}.issubset(
         {c["name"] for c in inspector.get_columns("conteudos")})
+    assert {"motivo_moderacao", "confianca_ia", "moderado_por"}.issubset(
+        {c["name"] for c in inspector.get_columns("comentarios")})
     assert "ix_conteudos_arquivos_disciplina_status" in {i["name"] for i in inspector.get_indexes("conteudos")}
-    assert len(inspector.get_check_constraints("conteudos")) == 7
+    assert len(inspector.get_check_constraints("conteudos")) == 9
     assert len(inspector.get_foreign_keys("conteudos")) == 3
 
     assert "metricas_consolidadas" in inspector.get_table_names()
@@ -73,7 +76,8 @@ def test_convergencia_preserva_registros_existentes(engine, revisao):
 
 def test_historico_linear_sem_heads_concorrentes():
     script = ScriptDirectory.from_config(Config("alembic.ini"))
-    assert script.get_heads() == ["010_curadorias"]
+    assert script.get_heads() == ["011_moderacao_ia"]
+    assert script.get_revision("011_moderacao_ia").down_revision == "010_curadorias"
     assert script.get_revision("010_curadorias").down_revision == "009_arquivos_conteudos"
     assert script.get_revision("009_arquivos_conteudos").down_revision == "008"
     assert all(not isinstance(r.down_revision, tuple) for r in script.walk_revisions())

@@ -17,7 +17,7 @@ class Curadoria(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     __table_args__ = (
-        CheckConstraint("perfil_moderador IN ('MODERATOR', 'ADMIN')", name="chk_curadoria_perfil"),
+        CheckConstraint("perfil_moderador IN ('MODERATOR', 'ADMIN', 'IA')", name="chk_curadoria_perfil"),
         CheckConstraint("status_anterior = 'PENDENTE'", name="chk_curadoria_anterior"),
         CheckConstraint("status_novo IN ('APROVADO', 'RECUSADO')", name="chk_curadoria_novo"),
         CheckConstraint("justificativa IS NULL OR length(justificativa) <= 1000", name="chk_curadoria_justificativa"),
