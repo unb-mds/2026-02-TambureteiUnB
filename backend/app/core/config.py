@@ -49,6 +49,17 @@ class Settings(BaseSettings):
     # Quórum mínimo de doações idênticas para consolidar uma turma (US 3.2.1)
     QUORUM_MINIMO_DOACOES: int = 3
 
+    # Moderação Autônoma Híbrida via LLM Local (Ollama - ADR 08)
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+    OLLAMA_VISION_MODEL: str = os.getenv("OLLAMA_VISION_MODEL", "")
+    OLLAMA_TIMEOUT_SECONDS: float = Field(default=float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "30.0")), gt=0)
+    MODERATION_CONFIDENCE_THRESHOLD: float = Field(
+        default=float(os.getenv("MODERATION_CONFIDENCE_THRESHOLD", "0.80")),
+        ge=0.0,
+        le=1.0,
+    )
+
     @field_validator("QUORUM_MINIMO_DOACOES", mode="before")
     @classmethod
     def rejeitar_bool_no_quorum(cls, v):

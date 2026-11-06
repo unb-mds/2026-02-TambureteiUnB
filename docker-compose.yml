@@ -28,6 +28,13 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       MATERIALS_DIR: /app/storage/materiais
       MATERIAL_MAX_BYTES: ${MATERIAL_MAX_BYTES:-5242880}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
+      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-30.0}
+      MODERATION_CONFIDENCE_THRESHOLD: ${MODERATION_CONFIDENCE_THRESHOLD:-0.80}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./backend:/app
       - materiais_data:/app/storage/materiais

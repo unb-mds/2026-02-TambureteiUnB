@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, BigInteger, String, Text, ForeignKey, DateTime, func, CheckConstraint, Index
+from sqlalchemy import Column, Integer, BigInteger, Float, String, Text, ForeignKey, DateTime, func, CheckConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -20,6 +20,9 @@ class Conteudo(Base):
     status_moderacao = Column(String(20), nullable=True)
     semestre = Column(String(10), nullable=True) # Ex: '2024.1'
     status_curadoria = Column(String(20), default="PENDENTE", nullable=False, index=True) # 'PENDENTE', 'APROVADO', 'RECUSADO'
+    motivo_moderacao = Column(Text, nullable=True)
+    confianca_ia = Column(Float, nullable=True)
+    moderado_por = Column(String(20), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -43,6 +46,8 @@ class Conteudo(Base):
         CheckConstraint("tamanho_bytes IS NULL OR tamanho_bytes > 0", name="chk_conteudo_tamanho"),
         CheckConstraint("length(trim(titulo)) > 0", name="chk_conteudo_titulo"),
         CheckConstraint("status_moderacao IS NULL OR status_moderacao IN ('ativo', 'em_analise', 'bloqueado', 'excluido')", name="chk_conteudo_moderacao"),
+        CheckConstraint("confianca_ia IS NULL OR (confianca_ia >= 0.0 AND confianca_ia <= 1.0)", name="chk_conteudo_confianca_ia"),
+        CheckConstraint("moderado_por IS NULL OR moderado_por IN ('IA', 'MODERATOR', 'ADMIN')", name="chk_conteudo_moderado_por"),
         Index(
             "ix_conteudos_arquivos_disciplina_status", "disciplina_id", "tipo",
             "status_curadoria", "status_moderacao", "id",
