@@ -4,7 +4,11 @@ from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.schemas.comentario import ComentarioCreate, ComentarioUpdate
+from app.api.schemas.comentario import (
+    ComentarioCadeiraCreate,
+    ComentarioCreate,
+    ComentarioUpdate,
+)
 from app.models.comentario import Comentario
 from app.models.usuario import Usuario
 from app.repositories.comentario_repo import comentario_repo
@@ -13,6 +17,18 @@ from app.repositories.turma_repo import turma_repo
 
 
 class ComentarioService:
+    @staticmethod
+    def _resolver_disciplina(db: Session, disciplina_id_ou_slug: int | str):
+        if isinstance(disciplina_id_ou_slug, int) or (
+            isinstance(disciplina_id_ou_slug, str) and disciplina_id_ou_slug.isdigit()
+        ):
+            return disciplina_repo.get_by_id(db, int(disciplina_id_ou_slug))
+        termo = str(disciplina_id_ou_slug).strip()
+        disc = disciplina_repo.get_by_slug(db, termo)
+        if not disc:
+            disc = disciplina_repo.get_by_codigo(db, termo.upper())
+        return disc
+
     def criar_comentario(
         self,
         db: Session,
@@ -36,22 +52,47 @@ class ComentarioService:
             disciplina_id=dados.disciplina_id,
             turma_id=dados.turma_id,
             conteudo=dados.conteudo,
-            autor_alias=dados.autor_alias,
+            autor_alias=dados.autor_alias or "Estudante Anônimo",
             topico_dificuldade=dados.topico_dificuldade,
             status_moderacao="PUBLICADO",
         )
         return comentario_repo.create(db, novo_comentario)
 
+    def criar_comentario_por_cadeira(
+        self,
+        db: Session,
+        disciplina_id_ou_slug: int | str,
+        dados: ComentarioCadeiraCreate,
+        current_user: Usuario,
+    ) -> Comentario:
+        disciplina = self._resolver_disciplina(db, disciplina_id_ou_slug)
+        if not disciplina:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada."
+            )
+
+        payload = ComentarioCreate(
+            disciplina_id=disciplina.id,
+            turma_id=dados.turma_id,
+            autor_alias=dados.autor_alias or "Estudante Anônimo",
+            topico_dificuldade=dados.topico_dificuldade,
+            conteudo=dados.conteudo,
+        )
+        return self.criar_comentario(db, payload, current_user)
+
     def listar_comentarios(
         self,
         db: Session,
-        disciplina_id: int,
+        disciplina_id: int | str,
         turma_id: Optional[int],
         page: int,
         size: int,
+        topico: Optional[str] = None,
+        apenas_dificuldades: bool = False,
     ) -> dict:
 
-        if not disciplina_repo.get_by_id(db, disciplina_id):
+        disciplina = self._resolver_disciplina(db, disciplina_id)
+        if not disciplina:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada."
             )
@@ -63,7 +104,13 @@ class ComentarioService:
                 )
 
         items, total = comentario_repo.listar_por_disciplina_paginado(
-            db, disciplina_id, turma_id, page, size
+            db,
+            disciplina.id,
+            turma_id,
+            page,
+            size,
+            topico=topico,
+            apenas_dificuldades=apenas_dificuldades,
         )
 
         return {
