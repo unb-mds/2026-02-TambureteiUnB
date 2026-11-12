@@ -1,6 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { verificarModerador, podeModerar, listarPendentes, decidirCuradoria, baixarParaAnalise } from "../moderacaoService.ts";
+import {
+  verificarModerador,
+  podeModerar,
+  listarPendentes,
+  decidirCuradoria,
+  baixarParaAnalise,
+  validarMotivoDenuncia,
+  criarDenuncia,
+  listarDenunciasPendentes,
+  decidirDenuncia,
+} from "../moderacaoService.ts";
 import { ApiError } from "../httpClient.ts";
 
 const dados = new Map<string, string>();
@@ -71,4 +81,88 @@ test("download usa endpoint protegido e retorna binário", async (t) => {
     return new Response("%PDF-1.7 teste", { status: 200 });
   });
   assert.equal(await (await baixarParaAnalise(12)).text(), "%PDF-1.7 teste");
+});
+
+test("validarMotivoDenuncia aplica limites minimos e maximos", () => {
+  assert.equal(validarMotivoDenuncia("   ").valido, false);
+  assert.match(validarMotivoDenuncia("abcd").erro ?? "", /mínimo 5 caracteres/);
+  assert.match(validarMotivoDenuncia("x".repeat(1001)).erro ?? "", /máximo 1000 caracteres/);
+  assert.deepEqual(validarMotivoDenuncia("  Ataque direto ao docente da disciplina (RN04).  "), {
+    valido: true,
+  });
+});
+
+test("criarDenuncia valida entrada e envia POST para /comunidade/denuncias", async (t) => {
+  dados.set("tamburetei_auth_token", "token-aluno");
+  const chamadas: Array<{ url: string; options: RequestInit }> = [];
+  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
+    chamadas.push({ url, options });
+    return new Response(
+      JSON.stringify({
+        id: 7,
+        tipo_alvo: "COMENTARIO",
+        comentario_id: 42,
+        conteudo_id: null,
+        categoria: "OFENSA_DOCENTE",
+        motivo: "Comentário contém juízo depreciativo contra o docente.",
+        status: "PENDENTE",
+        total_denuncias_alvo: 1,
+        ocultado_automaticamente: false,
+        created_at: "2026-11-06T12:00:00Z",
+      }),
+      { status: 201 },
+    );
+  });
+
+  await assert.rejects(
+    criarDenuncia({ categoria: "OFENSA_DOCENTE", motivo: "Motivo válido com mais de cinco letras" }),
+    /alvo válido/,
+  );
+
+  await assert.rejects(
+    criarDenuncia({ comentario_id: 42, categoria: "OFENSA_DOCENTE", motivo: "abc" }),
+    /mínimo 5 caracteres/,
+  );
+
+  const resposta = await criarDenuncia({
+    comentario_id: 42,
+    categoria: "OFENSA_DOCENTE",
+    motivo: "  Comentário contém juízo depreciativo contra o docente.  ",
+  });
+
+  assert.equal(resposta.id, 7);
+  assert.equal(resposta.status, "PENDENTE");
+  assert.match(chamadas[0].url, /\/comunidade\/denuncias$/);
+  assert.equal(chamadas[0].options.method, "POST");
+  assert.deepEqual(JSON.parse(String(chamadas[0].options.body)), {
+    comentario_id: 42,
+    categoria: "OFENSA_DOCENTE",
+    motivo: "Comentário contém juízo depreciativo contra o docente.",
+  });
+});
+
+test("listarDenunciasPendentes e decidirDenuncia enviam filtros e payload de acao", async (t) => {
+  dados.set("tamburetei_auth_token", "token-mod");
+  const chamadas: Array<{ url: string; options: RequestInit }> = [];
+  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
+    chamadas.push({ url, options });
+    return new Response(JSON.stringify({ items: [], total: 0, pagina: 1, tamanho_pagina: 20 }), { status: 200 });
+  });
+
+  await listarDenunciasPendentes(1, "COMENTARIO", "OFENSA_DOCENTE");
+  assert.match(chamadas[0].url, /\/moderacao\/denuncias\?pagina=1&tamanho_pagina=20&tipo=COMENTARIO&categoria=OFENSA_DOCENTE$/);
+
+  await decidirDenuncia(15, "EXCLUIR_CONTEUDO", "  Violação confirmada da RN04. ");
+  assert.match(chamadas[1].url, /\/moderacao\/denuncias\/15$/);
+  assert.equal(chamadas[1].options.method, "PATCH");
+  assert.deepEqual(JSON.parse(String(chamadas[1].options.body)), {
+    acao: "EXCLUIR_CONTEUDO",
+    justificativa: "Violação confirmada da RN04.",
+  });
+
+  await decidirDenuncia(16, "DESCARTAR_DENUNCIA");
+  assert.deepEqual(JSON.parse(String(chamadas[2].options.body)), {
+    acao: "DESCARTAR_DENUNCIA",
+    justificativa: null,
+  });
 });
