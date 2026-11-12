@@ -18,6 +18,8 @@ class ComentarioRepository(BaseRepository[Comentario]):
         turma_id: Optional[int],
         page: int,
         size: int,
+        topico: Optional[str] = None,
+        apenas_dificuldades: bool = False,
     ) -> Tuple[List[Comentario], int]:
         query = (
             db.query(Comentario)
@@ -29,6 +31,15 @@ class ComentarioRepository(BaseRepository[Comentario]):
 
         if turma_id is not None:
             query = query.filter(Comentario.turma_id == turma_id)
+
+        if apenas_dificuldades:
+            query = query.filter(
+                Comentario.topico_dificuldade.isnot(None),
+                Comentario.topico_dificuldade != "",
+            )
+
+        if topico:
+            query = query.filter(Comentario.topico_dificuldade.ilike(f"%{topico.strip()}%"))
 
         total = query.count()
         items = (
