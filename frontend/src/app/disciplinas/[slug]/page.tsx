@@ -541,38 +541,54 @@ function DisciplineDetailContent() {
 
               
               <div className="flex flex-wrap sm:flex-nowrap lg:flex-wrap xl:flex-nowrap items-center gap-3 w-full lg:w-auto shrink-0 pt-2 lg:pt-1">
-                <button
-                  type="button"
-                  onClick={() => setCompleted(!completed)}
-                  aria-pressed={completed}
-                  className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
-                    completed
-                      ? "bg-[#E9F9F3] text-[#067A59] border border-[#A7E6CF]"
-                      : "bg-[#EDE9FD] text-[#5B4BDB] border border-[#D8D1FA] hover:bg-[#5B4BDB]/15"
-                  }`}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 18 18"
-                    fill="none"
-                    aria-hidden="true"
+                                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!completed) {
+                        const confirmou = window.confirm(
+                          `Confirmar que você já concluiu ${discipline.name}? Essa informação apoia a comunidade na identificação de estudantes veteranos.`
+                        );
+                        if (confirmou) {
+                          setCompleted(true);
+                        }
+                      } else {
+                        setCompleted(false);
+                      }
+                    }}
+                    aria-pressed={completed}
+                    className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                      completed
+                        ? "bg-[#E9F9F3] text-[#067A59] border border-[#A7E6CF]"
+                        : "bg-[#EDE9FD] text-[#5B4BDB] border border-[#D8D1FA] hover:bg-[#5B4BDB]/15"
+                    }`}
                   >
-                    <path
-                      d="M2.5 6.5L9 3l6.5 3.5L9 10 2.5 6.5Z"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M5 8.2v3.3c1.2 1.6 6.8 1.6 8 0V8.2M15.5 7v4"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  {completed ? "Matéria cursada" : "Já cursei essa matéria"}
-                </button>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M2.5 6.5L9 3l6.5 3.5L9 10 2.5 6.5Z"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M5 8.2v3.3c1.2 1.6 6.8 1.6 8 0V8.2M15.5 7v4"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span>{completed ? "Materia cursada" : "Ja cursei essa materia"}</span>
+                    <span className="ml-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
+                      {(discipline.metrica_consolidada?.aprovados || 0) + (completed ? 1 : 0)}
+                    </span>
+                  </button>
+                </div>
 
                 <button
                   type="button"
@@ -1149,7 +1165,7 @@ function DisciplineDetailContent() {
               </p>
             </div>
           </section>
-
+          
           <DificuldadesPanel
             disciplineId={discipline.id}
             disciplineSlug={discipline.slug || slug}
@@ -1165,7 +1181,11 @@ function DisciplineDetailContent() {
             onOpenUploadModal={() => setShowMaterialModal(true)}
           />
 
-          <ComentariosFrontend disciplineName={discipline.name} disciplineCode={discipline.code} />
+          <ComentariosFrontend
+            disciplineName={discipline.name}
+            disciplineCode={discipline.code}
+            disciplineId={discipline.id}
+          />
         </div>
       </main>
 
