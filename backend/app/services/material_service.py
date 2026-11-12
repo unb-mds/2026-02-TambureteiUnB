@@ -63,7 +63,7 @@ class MaterialService:
 
         try:
             material = Conteudo(
-                tipo=tipo, status_curadoria="APROVADO",
+                tipo=tipo, status_curadoria="PENDENTE",
                 usuario_id=usuario_id, disciplina_id=disciplina.id, titulo=titulo,
                 caminho_arquivo=chave, formato=formato, tamanho_bytes=tamanho,
                 status_moderacao="ativo",

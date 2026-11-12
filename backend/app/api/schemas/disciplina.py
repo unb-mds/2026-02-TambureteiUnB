@@ -3,6 +3,7 @@ from typing import List, Optional
 
 
 class DisciplinaResumo(BaseModel):
+    id: Optional[int] = None
     codigo: str
     nome: str
     slug: str

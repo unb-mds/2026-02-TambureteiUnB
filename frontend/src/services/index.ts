@@ -2,18 +2,21 @@ import { courseService } from "./courseService";
 import { disciplineService } from "./disciplineService";
 import { authService } from "./authService";
 import { materialService } from "./materialService";
+import { difficultyService } from "./difficultyService";
 
 export * from "./httpClient";
 export * from "./courseService";
 export * from "./disciplineService";
 export * from "./authService";
 export * from "./materialService";
+export * from "./difficultyService";
 
 export const api = {
   courses: courseService,
   disciplines: disciplineService,
   auth: authService,
   materials: materialService,
+  difficulties: difficultyService,
 
   // Atalhos diretos para compatibilidade e conveniência
   getCourses: courseService.getCourses,
@@ -30,6 +33,8 @@ export const api = {
   uploadMaterial: materialService.uploadMaterial,
   uploadMaterialsBatch: materialService.uploadMaterialsBatch,
   listMaterials: materialService.listMaterials,
+  listDifficultyAlerts: difficultyService.listDifficultyAlerts,
+  submitDifficultyAlert: difficultyService.submitDifficultyAlert,
 };
 
 export default api;

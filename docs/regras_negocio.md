@@ -28,9 +28,10 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 * São aceitos apenas enunciados de provas públicas de semestres anteriores e materiais conceituais de estudo.
 
 ### [RN06] Curadoria de Submissões Externas
-* Links e resumos (tipos anteriores da US 5.1.1) registrados em `conteudos` entram com `status_curadoria = PENDENTE` e são exibidos após aprovação.
-* Arquivos da Feature 5.2 usam a mesma tabela `conteudos`, com `tipo=ARQUIVO`, `status_curadoria=APROVADO` e estado inicial de moderação `ativo`, conforme a disponibilidade imediata da US 5.2.1; listagem e download respeitam curadoria e moderação.
-* Os endpoints administrativos da Feature 5.3 permanecem planejados.
+* Novos arquivos, links e resumos em `conteudos` entram com `status_curadoria = PENDENTE`.
+* Somente arquivos aprovados e ativos são listados e baixados publicamente. MODERATOR e ADMIN podem analisar e decidir sobre arquivos pendentes.
+* Recusas exigem justificativa. Aprovação/recusa é registrada com autoria administrativa, data e estados na mesma transação.
+* Arquivos já aprovados permanecem publicados. Moderação de comentários e denúncias é uma entrega separada.
 
 ### [RN07] Tratamento de Dados Históricos com Baixa Amostragem (LGPD / DPO)
 * Agregações históricas oriundas de microdados públicos do DPO/INEP com **menos de 5 estudantes** em uma turma devem ser consolidadas no acumulado geral da matéria para inviabilizar qualquer identificação indireta de notas.

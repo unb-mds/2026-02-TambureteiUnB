@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.models.usuario import Usuario
 from app.services.doacao_service import doacao_service
 from app.services.turma_service import turma_service
+from app.api.schemas.quorum import QuorumProgressoResponse
 
 router = APIRouter(prefix="/turmas", tags=["Turmas"])
 
@@ -56,7 +57,17 @@ def doar_estatistica_turma(
     current_user: Usuario = Depends(require_role("STUDENT")),
 ):
     """
-    Envia doação colaborativa de estatísticas de turma extraídas do SIGAA (US 3.1.1).
+    Envia doação colaborativa de estatísticas de turma extraídas do SIGAA .
     Acessível exclusivamente por estudantes autenticados.
     """
     return doacao_service.criar_doacao(db, turma_id, current_user.id, dados)
+
+@router.get("/{turma_id}/doacoes/quorum", response_model=QuorumProgressoResponse)
+def consultar_quorum_turma(
+    turma_id: int,
+    semestre: Optional[str] = Query(None, description="Semestre de referência (padrão: semestre da turma)"),
+    db: Session = Depends(get_db),
+    _admin=Depends(require_role("ADMIN")),
+):
+    """Progresso do quórum de doações por valor . Somente administradores."""
+    return doacao_service.consultar_quorum(db, turma_id, semestre)
