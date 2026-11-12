@@ -152,10 +152,11 @@ export default function HomePage() {
                 </svg>
               </div>
               <input
-                type="text"
+                type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar curso por nome ou departamento..."
+                aria-label="Buscar curso por nome ou departamento"
                 className="w-full pl-10 pr-4 py-2.5 bg-[#F7F7FA] border border-[#E8E6F8] rounded-xl text-sm text-[#202124] placeholder-gray-400 focus:bg-white focus:border-[#5B4BDB] focus:ring-4 focus:ring-[#5B4BDB]/15 transition-all outline-none"
               />
               {searchQuery && (
@@ -180,6 +181,7 @@ export default function HomePage() {
                   <button
                     key={campus}
                     type="button"
+                    aria-pressed={active}
                     onClick={() => setSelectedCampus(campus)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                       active
