@@ -28,11 +28,13 @@ import ClassFilters, {
   CLASS_SORT_OPTIONS,
 } from "@/components/ClassFilters";
 import MaterialModal from "@/components/MaterialModal";
+import OpenDataExportBar from "@/components/OpenDataExportBar";
 import { isAuthenticated } from "@/services/authService";
 import {
   getDisciplineBySlug,
   getClassesByDiscipline,
 } from "@/services/disciplineService";
+import { exportDisciplineHistoryOpenData } from "@/services/openDataService";
 import {
   Discipline,
   DEFAULT_HISTORICAL_PERFORMANCE,
@@ -264,7 +266,7 @@ function DisciplineDetailContent() {
     return () => {
       isMounted = false;
     };
-  }, [discipline, searchParams, classesRetryCount]);
+  }, [discipline, slug, searchParams, classesRetryCount]);
 
   // Filtragem por turno e ordenação reativa
   const filteredAndSortedClasses = useMemo(() => {
@@ -1134,6 +1136,23 @@ function DisciplineDetailContent() {
             </div>
 
             
+            <div className="mt-6">
+              <OpenDataExportBar
+                title={`Historico Semestral de ${discipline.code} - ${discipline.name}`}
+                recordCount={performanceList.length}
+                recordLabel="semestres"
+                compact={true}
+                onExport={(format) =>
+                  exportDisciplineHistoryOpenData(
+                    discipline.code,
+                    discipline.name,
+                    performanceList,
+                    format
+                  )
+                }
+              />
+            </div>
+
             <div className="mt-6 flex items-start gap-3 rounded-2xl bg-[#F7F7FA] border border-gray-100 px-4 py-3">
               <svg
                 className="mt-0.5 flex-shrink-0 text-gray-500"

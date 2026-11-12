@@ -6,7 +6,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GuestBanner from "@/components/GuestBanner";
 import Button from "@/components/Button";
+import OpenDataExportBar from "@/components/OpenDataExportBar";
 import { getCourses } from "@/services/courseService";
+import { exportCoursesOpenData } from "@/services/openDataService";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
 
 export default function HomePage() {
@@ -193,7 +195,7 @@ export default function HomePage() {
           </div>
 
           {/* Contador de Resultados */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <p className="text-xs text-gray-500 font-medium">
               Exibindo <span className="font-bold text-[#202124]">{filteredCourses.length}</span> cursos{" "}
               {selectedCampus !== "Todos" && (
@@ -215,6 +217,21 @@ export default function HomePage() {
                 Redefinir filtros
               </button>
             )}
+          </div>
+
+          <div className="mb-6">
+            <OpenDataExportBar
+              title="Exportar Catalogo de Cursos da UnB"
+              recordCount={filteredCourses.length}
+              recordLabel="cursos"
+              disabled={loading}
+              compact={true}
+              onExport={(format) =>
+                exportCoursesOpenData(filteredCourses, format, {
+                  identifier: selectedCampus !== "Todos" ? selectedCampus : null,
+                })
+              }
+            />
           </div>
 
           {/* Grade de Cards de Cursos */}
