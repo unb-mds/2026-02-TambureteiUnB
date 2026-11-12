@@ -1,7 +1,7 @@
 "use client";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
 import DificuldadesPanel from "@/components/DificuldadesPanel";
-
+import MateriaisApoio from "@/components/MateriaisApoio";
 
 import React, {
   useState,
@@ -1173,7 +1173,14 @@ function DisciplineDetailContent() {
             disciplineName={discipline.name}
             ementa={discipline.ementa}
           />
-          
+
+          <MateriaisApoio
+            disciplineName={discipline.name}
+            disciplineIdOrSlug={discipline.code || slug}
+            refreshTrigger={materialsReloadTrigger}
+            onOpenUploadModal={() => setShowMaterialModal(true)}
+          />
+
           <ComentariosFrontend
             disciplineName={discipline.name}
             disciplineCode={discipline.code}
