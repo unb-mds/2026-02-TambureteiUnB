@@ -38,10 +38,10 @@ export interface Turma {
   horarios: string;             // ex: "Seg/Qua 10:00 - 11:50"
   schedule?: Schedule;          // Objeto estruturado de horário
   local: string;                // ex: "FCTE - UAC Sala S-9"
-  vagasOcupadas: number;        // ex: 35
-  totalVagas: number;           // ex: 40
+  vagasOcupadas: number | null; // null quando não informado pela API
+  totalVagas: number | null;    // null quando não informado pela API
   turno: TurnoTurma;            // "Matutino" | "Diurno" | "Vespertino" | "Noturno"
-  occupancy?: OccupancyRate;    // Taxa de ocupação calculada
+  occupancy?: OccupancyRate | null; // Taxa calculada somente com dados conhecidos
 }
 
 export type Class = Turma;
@@ -104,11 +104,12 @@ const SIGAA_TIME_SLOTS: Record<
  * Calcula a taxa de ocupação e classifica o nível de lotação da turma.
  */
 export function calculateOccupancyRate(
-  occupied: number,
-  total: number
-): OccupancyRate {
-  const safeTotal = Math.max(0, total);
-  const safeOccupied = Math.max(0, occupied);
+  occupied: number | null,
+  total: number | null
+): OccupancyRate | null {
+  const safeTotal = normalizeOccupancyCount(total);
+  const safeOccupied = normalizeOccupancyCount(occupied);
+  if (safeTotal === null || safeOccupied === null) return null;
   const percentage =
     safeTotal > 0 ? Math.round((safeOccupied / safeTotal) * 100) : 0;
   const isFull = safeTotal > 0 && safeOccupied >= safeTotal;
@@ -287,14 +288,8 @@ export function adaptBackendTurma(
       ? raw.professores.map((p) => p.nome)
       : ["Docente a definir"];
 
-  const totalVagas =
-    typeof raw.capacidade === "number" && raw.capacidade > 0
-      ? raw.capacidade
-      : 45;
-  const vagasOcupadas =
-    typeof raw.matriculados === "number" && raw.matriculados >= 0
-      ? raw.matriculados
-      : 0;
+  const totalVagas = normalizeOccupancyCount(raw.capacidade);
+  const vagasOcupadas = normalizeOccupancyCount(raw.matriculados);
 
   return {
     id: raw.id,
@@ -312,4 +307,30 @@ export function adaptBackendTurma(
     turno: parsed.shift,
     occupancy: calculateOccupancyRate(vagasOcupadas, totalVagas),
   };
+}
+
+/** Quantidades ausentes ou inválidas não podem virar ocupação fictícia. */
+function normalizeOccupancyCount(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null;
+}
+
+export function formatClassOccupancy(occupied: number | null, total: number | null): string {
+  const occupancy = calculateOccupancyRate(occupied, total);
+  return occupancy
+    ? `Ocupação: ${occupancy.occupied}/${occupancy.total} vagas`
+    : "Ocupação: Não informada";
+}
+
+/** Turmas sem ocupação conhecida ficam no fim em ambas as ordenações. */
+export function compareClassOccupancy(a: Class, b: Class, order: "occupancy_asc" | "occupancy_desc"): number {
+  const left = calculateOccupancyRate(a.vagasOcupadas, a.totalVagas);
+  const right = calculateOccupancyRate(b.vagasOcupadas, b.totalVagas);
+  if (!left && !right) return 0;
+  if (!left) return 1;
+  if (!right) return -1;
+  return order === "occupancy_asc"
+    ? left.percentage - right.percentage
+    : right.percentage - left.percentage;
 }

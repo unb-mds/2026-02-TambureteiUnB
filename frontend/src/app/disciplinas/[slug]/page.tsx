@@ -42,7 +42,7 @@ import {
   ClassShiftFilter,
   ClassSortOption,
   normalizeClassShift,
-  calculateOccupancyRate,
+  compareClassOccupancy,
 } from "@/types/turma";
 
 function parseInitialShift(param: string | null): ClassShiftFilter {
@@ -275,16 +275,8 @@ function DisciplineDetailContent() {
     });
 
     return [...filtered].sort((a, b) => {
-      const occA =
-        a.occupancy ?? calculateOccupancyRate(a.vagasOcupadas, a.totalVagas);
-      const occB =
-        b.occupancy ?? calculateOccupancyRate(b.vagasOcupadas, b.totalVagas);
-
-      if (sortBy === "occupancy_asc") {
-        return occA.percentage - occB.percentage;
-      }
-      if (sortBy === "occupancy_desc") {
-        return occB.percentage - occA.percentage;
+      if (sortBy === "occupancy_asc" || sortBy === "occupancy_desc") {
+        return compareClassOccupancy(a, b, sortBy);
       }
       return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
         numeric: true,
