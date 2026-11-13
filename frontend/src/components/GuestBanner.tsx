@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { authService } from "@/services/authService";
 
 export interface GuestBannerProps {
   className?: string;
@@ -13,37 +12,12 @@ export const GuestBanner: React.FC<GuestBannerProps> = ({
   className = "",
   onDismiss,
 }) => {
-  const [isDismissed, setIsDismissed] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() =>
-    authService.isAuthenticated()
-  );
+  const [isVisible, setIsVisible] = useState(true);
 
-  useEffect(() => {
-    const syncAuth = () => {
-      const authenticated = authService.isAuthenticated();
-      setIsLoggedIn((prevAuthenticated) => {
-        if (prevAuthenticated && !authenticated) {
-          setIsDismissed(false);
-        }
-        return authenticated;
-      });
-    };
-
-    syncAuth();
-
-    window.addEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-    window.addEventListener("storage", syncAuth);
-
-    return () => {
-      window.removeEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-      window.removeEventListener("storage", syncAuth);
-    };
-  }, []);
-
-  if (!authService.shouldShowGuestBanner(isLoggedIn, isDismissed)) return null;
+  if (!isVisible) return null;
 
   const handleClose = () => {
-    setIsDismissed(true);
+    setIsVisible(false);
     if (onDismiss) onDismiss();
   };
 
