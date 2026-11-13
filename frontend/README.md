@@ -118,6 +118,7 @@ src/
 ## Testes Automatizados
 
 A suite de testes unitarios executa via runner nativo do Node.js com suporte a TypeScript (`npm test`) e cobre:
+- `src/services/__tests__/authService.test.ts`: Estado de autenticacao, sincronizacao via `AUTH_CHANGE_EVENT` e exibicao condicional do `GuestBanner`;
 - `src/services/__tests__/difficultyService.test.ts`: Regras de ordenacao, filtragem e votacao de dificuldades;
 - `src/services/__tests__/materialService.test.ts`: Contratos e listagem de materiais de apoio;
 - `src/services/__tests__/moderacaoService.test.ts`: Fluxos de curadoria RN06, retencao preventiva e decisoes da Central de Denuncias RN04;

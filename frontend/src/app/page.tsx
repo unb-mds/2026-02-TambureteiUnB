@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import GuestBanner from "@/components/GuestBanner";
 import Button from "@/components/Button";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
+import { authService } from "@/services/authService";
 import { getCourses } from "@/services/courseService";
 import { exportCoursesOpenData } from "@/services/openDataService";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
@@ -16,6 +17,25 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() =>
+    authService.isAuthenticated()
+  );
+
+  useEffect(() => {
+    const syncAuth = () => {
+      setIsLoggedIn(authService.isAuthenticated());
+    };
+
+    syncAuth();
+
+    window.addEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
+    window.addEventListener("storage", syncAuth);
+
+    return () => {
+      window.removeEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
+      window.removeEventListener("storage", syncAuth);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -82,7 +102,7 @@ export default function HomePage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex flex-col gap-8">
         {/* Faixa de Aviso de Visitante */}
-        <GuestBanner />
+        {!isLoggedIn && <GuestBanner />}
 
         {/* Hero Section */}
         <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-white to-[#EDE9FD]/50 border border-[#E8E6F8] p-8 sm:p-12 shadow-xs">
@@ -112,11 +132,13 @@ export default function HomePage() {
                   Explorar Disciplinas
                 </Button>
               </Link>
-              <Link href="/login">
-                <Button variant="ghost" size="lg">
-                  Entrar na Comunidade
-                </Button>
-              </Link>
+              {!isLoggedIn && (
+                <Link href="/login">
+                  <Button variant="ghost" size="lg">
+                    Entrar na Comunidade
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </section>
