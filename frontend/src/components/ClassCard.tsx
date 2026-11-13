@@ -2,8 +2,7 @@ import React from "react";
 import {
   Class,
   TurnoTurma,
-  OccupancyLevel,
-  calculateOccupancyRate,
+  formatClassOccupancy,
 } from "@/types/turma";
 
 export interface ClassCardProps {
@@ -26,43 +25,6 @@ function getTurnoBadgeClasses(turno: TurnoTurma): string {
   }
 }
 
-function getOccupancyStyles(level: OccupancyLevel): {
-  barColor: string;
-  textColor: string;
-  badgeBg: string;
-  badgeText: string;
-  badgeLabel: string;
-} {
-  switch (level) {
-    case "full":
-      return {
-        barColor: "bg-rose-500",
-        textColor: "text-rose-600",
-        badgeBg: "bg-rose-100",
-        badgeText: "text-rose-700",
-        badgeLabel: "Esgotada",
-      };
-    case "high":
-      return {
-        barColor: "bg-amber-500",
-        textColor: "text-amber-700",
-        badgeBg: "bg-amber-100",
-        badgeText: "text-amber-800",
-        badgeLabel: "Últimas vagas",
-      };
-    case "medium":
-    case "low":
-    default:
-      return {
-        barColor: "bg-[#10B981]",
-        textColor: "text-[#067A59]",
-        badgeBg: "bg-[#E9F9F3]",
-        badgeText: "text-[#067A59]",
-        badgeLabel: "Vagas abertas",
-      };
-  }
-}
-
 export default function ClassCard({
   turma,
   classData,
@@ -73,11 +35,6 @@ export default function ClassCard({
   if (!item) {
     return null;
   }
-
-  const occupancy =
-    item.occupancy ?? calculateOccupancyRate(item.vagasOcupadas, item.totalVagas);
-  const porcentagemBarra = Math.min(Math.max(occupancy.percentage, 0), 100);
-  const occupancyStyles = getOccupancyStyles(occupancy.level);
 
   const codigoFormatado = item.codigoTurma.toLowerCase().startsWith("turma")
     ? item.codigoTurma
@@ -183,35 +140,10 @@ export default function ClassCard({
         </dl>
       </div>
 
-      {/* Barra de Progresso e Ocupação de Vagas */}
       <footer className="mt-4 border-t border-gray-100 pt-3.5">
-        <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
-          <span className="flex items-center gap-1.5 font-medium text-gray-500">
-            Ocupação
-            <span
-              className={`rounded-sm px-1.5 py-0.5 text-[10px] font-bold ${occupancyStyles.badgeBg} ${occupancyStyles.badgeText}`}
-            >
-              {occupancyStyles.badgeLabel}
-            </span>
-          </span>
-          <span className={`font-bold ${occupancyStyles.textColor}`}>
-            {occupancy.occupied}/{occupancy.total} vagas ({occupancy.percentage}%)
-          </span>
-        </div>
-
-        <div
-          className="h-2 w-full overflow-hidden rounded-full bg-gray-100"
-          role="progressbar"
-          aria-label={`Taxa de ocupação das vagas da ${codigoFormatado}: ${occupancy.occupied} de ${occupancy.total} vagas preenchidas (${occupancy.percentage}%)`}
-          aria-valuenow={occupancy.occupied}
-          aria-valuemin={0}
-          aria-valuemax={occupancy.total}
-        >
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${occupancyStyles.barColor}`}
-            style={{ width: `${porcentagemBarra}%` }}
-          />
-        </div>
+        <p className="text-xs font-medium text-gray-700">
+          {formatClassOccupancy(item.vagasOcupadas, item.totalVagas)}
+        </p>
       </footer>
     </article>
   );

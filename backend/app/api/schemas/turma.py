@@ -68,6 +68,8 @@ class TurmaResponse(BaseModel):
     codigo_turma: str
     horario: Optional[str] = None
     local: Optional[str] = None
+    capacidade: Optional[int] = None
+    matriculados: Optional[int] = None
     professores: List[ProfessorResumo] = []
 
     model_config = ConfigDict(from_attributes=True)
