@@ -100,10 +100,10 @@ export async function getClassesByDiscipline(params: {
   semestre?: string;
 }): Promise<Class[]> {
   const query = new URLSearchParams();
-  if (params.slug) {
-    query.set("disciplina_slug", params.slug);
-  } else if (params.disciplinaId) {
+  if (params.disciplinaId) {
     query.set("disciplina_id", String(params.disciplinaId));
+  } else if (params.slug) {
+    query.set("disciplina_slug", params.slug);
   }
   if (params.semestre) {
     query.set("semestre", params.semestre);

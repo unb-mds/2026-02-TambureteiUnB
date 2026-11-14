@@ -316,7 +316,7 @@ export default function MaterialModal({
       setSuccessMessage(
         `${selectedFiles.length} ${
           selectedFiles.length === 1 ? "material compartilhado" : "materiais compartilhados"
-        } com sucesso! O conteudo ja esta disponivel para a comunidade discente.`
+        } com sucesso! O conteúdo foi enviado para moderação e ficará disponível após aprovação.`
       );
 
       if (onUploadSuccess) {

@@ -14,6 +14,7 @@ class MaterialResponse(BaseModel):
     tipo: str = "ARQUIVO"
     formato: Literal["pdf", "png", "jpg"]
     tamanho_bytes: int
+    status_curadoria: Literal["PENDENTE", "APROVADO", "RECUSADO"]
     status_moderacao: str
     created_at: datetime
 

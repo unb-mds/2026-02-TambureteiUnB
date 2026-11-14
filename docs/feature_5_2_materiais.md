@@ -10,7 +10,7 @@ Implementação das US 5.2.1, 5.2.2 e 5.2.3 de [Histórias de Usuário do Backen
 - Arquivos físicos em diretório privado; somente o caminho relativo é persistido.
 - Tabela única `conteudos`: links e resumos existentes são preservados; uploads usam o tipo `ARQUIVO`. Não existe tabela `materiais`.
 
-O status inicial é **`ativo`**, como determina expressamente a US 5.2.1. Uploads entram em `conteudos` como `tipo=ARQUIVO`, `status_curadoria=APROVADO` e `status_moderacao=ativo`, preservando a disponibilidade imediata da US 5.2.1. Links e resumos mantêm a curadoria prévia com padrão `PENDENTE`. Arquivos que posteriormente estejam pendentes, recusados ou bloqueados não são listados nem baixados. O tratamento de denúncias e as ações de moderação pertencem à Feature 5.3. O download já respeita estados `em_analise`, `bloqueado` e `excluido`.
+Com o módulo de curadoria, novos uploads entram como **`PENDENTE`**. Somente após aprovação administrativa ficam disponíveis na listagem pública e no download. O estado `status_moderacao=ativo` é independente da aprovação e não publica um arquivo pendente. Materiais já aprovados são preservados. Consulte [moderação e curadoria](moderacao_curadoria.md).
 
 A integração utiliza as sessões SQLAlchemy síncronas e as dependências de autenticação existentes na branch base. As rotas são funções síncronas, executadas pelo FastAPI fora do event loop. Uma migração global para persistência assíncrona não faz parte desta entrega.
 
@@ -201,14 +201,14 @@ docker compose --env-file .env.example -p materiais-validacao up -d --force-recr
 docker compose --env-file .env.example -p materiais-validacao exec -T -e MATERIAIS_SMOKE_TEST=1 -e PYTHONPATH=. backend python tests/smoke/materiais.py conferir
 ```
 
-Aguarde `/health` responder após cada inicialização. O script cria uma conta e disciplina de teste no ambiente isolado, envia um PDF e verifica listagem pública, autenticação e conteúdo baixado. A etapa `conferir` repete a leitura após a recriação do serviço, verificando a persistência dos metadados e do arquivo. Ao encerrar, `docker compose --env-file .env.example -p materiais-validacao down` preserva os volumes para inspeção.
+Aguarde `/health` responder após cada inicialização. O script provisiona contas fictícias de aluno e moderador e uma disciplina no ambiente isolado, envia um PDF, verifica o bloqueio inicial, aprova pela API de curadoria e confere listagem pública e download. A etapa `conferir` repete a leitura após a recriação do serviço, verificando a persistência dos metadados e do arquivo. Ao encerrar, `docker compose --env-file .env.example -p materiais-validacao down` preserva os volumes para inspeção.
 
 ## Revisão de integração e escopo do frontend
 
-Esta entrega implementa exclusivamente o backend. O botão de upload da página de disciplinas ainda não envia arquivos. A entrega seguinte deve substituir o alerta por formulário multipart, usar `POST /cadeiras/{id}/materiais` com JWT e conectar listagem e download, incluindo erros 401/403/413/415/422.
+O frontend já possui envio multipart e integração com a API. O módulo de curadoria acrescenta `/moderacao` e informa ao aluno que o envio aguarda aprovação, em vez de prometer publicação imediata.
 
 ### Entidade única e contrato HTTP
 
 Por decisão do responsável pela entrega, a implementação usa somente `conteudos`. O tipo `ARQUIVO` distingue armazenamento privado de URLs externas, sem criar um segundo modelo ou gravar cópias da mesma contribuição. As rotas `/cadeiras/{id}/materiais` e `/materiais/{id}/download` permanecem por compatibilidade do contrato HTTP; o nome da rota não representa uma segunda tabela.
 
-A listagem geral do repositório de conteúdos aprovados aceita links e arquivos, mas exclui arquivos bloqueados. A listagem de materiais retorna somente arquivos aprovados e ativos; links existentes não passam pelo download privado. O frontend poderá consumir uma única entidade de negócio, usando os contratos apropriados para cada origem. Sua integração permanece como entrega subsequente.
+A listagem geral do repositório de conteúdos aprovados aceita links e arquivos, mas exclui arquivos bloqueados. A listagem de materiais retorna somente arquivos aprovados e ativos; links existentes não passam pelo download privado. O frontend poderá consumir uma única entidade de negócio, usando os contratos apropriados para cada origem. A interface administrativa e o fluxo de curadoria estão descritos em [moderação e curadoria](moderacao_curadoria.md).

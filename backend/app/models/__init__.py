@@ -7,7 +7,9 @@ from app.models.usuario import Usuario
 from app.models.metrica import MetricaAcademica, MetricaConsolidada, MetricaCurso
 from app.models.situacao import SituacaoDisciplina
 from app.models.conteudo import Conteudo
+from app.models.curadoria import Curadoria
 from app.models.comentario import Comentario
+from app.models.denuncia import Denuncia
 from app.models.voto import VotoUtil
 from app.models.doacao import DoacaoEstatistica
 from app.models.estatistica_consolidada import EstatisticaConsolidada
@@ -28,7 +30,9 @@ __all__ = [
     "MetricaCurso",
     "SituacaoDisciplina",
     "Conteudo",
+    "Curadoria",
     "Comentario",
+    "Denuncia",
     "VotoUtil",
     "DoacaoEstatistica",
     "EstatisticaConsolidada",

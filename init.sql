@@ -1,7 +1,7 @@
 -- =====================================================================
 -- PROJETO TAMBURETEI UnB - ESQUEMA RELACIONAL OFICIAL (PostgreSQL 17)
 -- Baseado no PROJECT_CONTEXT.md e na documentação técnica (MDS 2026/2)
--- Sincronizado integralmente com o baseline Alembic revisão 009_arquivos_conteudos (Head)
+-- Sincronizado integralmente com o baseline Alembic revisão 011_denuncias (Head)
 -- =====================================================================
 
 -- Extensão para geração nativa de UUIDs
@@ -277,8 +277,53 @@ ON CONFLICT DO NOTHING;
 -- =====================================================================
 -- 10. CONTROLE DE VERSÃO DE MIGRAÇÕES (ALEMBIC)
 -- =====================================================================
+-- Decisoes de curadoria preservam a autoria administrativa e o historico.
+CREATE TABLE IF NOT EXISTS curadorias (
+    id BIGSERIAL PRIMARY KEY,
+    conteudo_id BIGINT NOT NULL UNIQUE REFERENCES conteudos(id) ON DELETE RESTRICT,
+    moderador_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+    perfil_moderador VARCHAR(20) NOT NULL,
+    status_anterior VARCHAR(20) NOT NULL,
+    status_novo VARCHAR(20) NOT NULL,
+    justificativa TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_curadoria_perfil CHECK (perfil_moderador IN ('MODERATOR', 'ADMIN')),
+    CONSTRAINT chk_curadoria_anterior CHECK (status_anterior = 'PENDENTE'),
+    CONSTRAINT chk_curadoria_novo CHECK (status_novo IN ('APROVADO', 'RECUSADO')),
+    CONSTRAINT chk_curadoria_justificativa CHECK (justificativa IS NULL OR length(justificativa) <= 1000),
+    CONSTRAINT chk_curadoria_recusa CHECK (status_novo <> 'RECUSADO' OR (justificativa IS NOT NULL AND length(trim(justificativa)) > 0))
+);
+
+CREATE TABLE IF NOT EXISTS denuncias (
+    id BIGSERIAL PRIMARY KEY,
+    comentario_id BIGINT REFERENCES comentarios(id) ON DELETE CASCADE,
+    conteudo_id BIGINT REFERENCES conteudos(id) ON DELETE CASCADE,
+    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    categoria VARCHAR(40) NOT NULL DEFAULT 'OFENSA_DOCENTE',
+    motivo TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDENTE',
+    moderador_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+    perfil_moderador VARCHAR(20),
+    justificativa_decisao TEXT,
+    resolved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_denuncia_alvo_unico CHECK ((comentario_id IS NOT NULL AND conteudo_id IS NULL) OR (comentario_id IS NULL AND conteudo_id IS NOT NULL)),
+    CONSTRAINT chk_denuncia_categoria CHECK (categoria IN ('OFENSA_DOCENTE', 'CONTEUDO_IMPROPRIO', 'GABARITO_ATIVO', 'SPAM', 'OUTRO')),
+    CONSTRAINT chk_denuncia_status CHECK (status IN ('PENDENTE', 'DESCARTADA', 'PROCEDENTE')),
+    CONSTRAINT chk_denuncia_motivo CHECK (length(trim(motivo)) >= 5 AND length(motivo) <= 1000),
+    CONSTRAINT chk_denuncia_justificativa CHECK (justificativa_decisao IS NULL OR length(justificativa_decisao) <= 1000),
+    CONSTRAINT uq_denuncia_usuario_comentario UNIQUE (usuario_id, comentario_id),
+    CONSTRAINT uq_denuncia_usuario_conteudo UNIQUE (usuario_id, conteudo_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_denuncias_comentario_id ON denuncias(comentario_id);
+CREATE INDEX IF NOT EXISTS ix_denuncias_conteudo_id ON denuncias(conteudo_id);
+CREATE INDEX IF NOT EXISTS ix_denuncias_usuario_id ON denuncias(usuario_id);
+CREATE INDEX IF NOT EXISTS ix_denuncias_status ON denuncias(status);
+CREATE INDEX IF NOT EXISTS ix_denuncias_status_created_at ON denuncias(status, created_at, id);
+
 CREATE TABLE IF NOT EXISTS alembic_version (
     version_num VARCHAR(32) NOT NULL,
     CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
 );
-INSERT INTO alembic_version (version_num) VALUES ('009_arquivos_conteudos') ON CONFLICT (version_num) DO UPDATE SET version_num = '009_arquivos_conteudos';
+INSERT INTO alembic_version (version_num) VALUES ('011_denuncias') ON CONFLICT (version_num) DO UPDATE SET version_num = '011_denuncias';
