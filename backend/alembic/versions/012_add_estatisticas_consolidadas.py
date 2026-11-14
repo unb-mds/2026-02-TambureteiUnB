@@ -2,8 +2,8 @@
 from alembic import op
 import sqlalchemy as sa
 
-revision = "010_estatisticas_consolidadas"
-down_revision = "009_arquivos_conteudos"
+revision = "012_estatisticas_consolidadas"
+down_revision = "011_denuncias"
 branch_labels = None
 depends_on = None
 
