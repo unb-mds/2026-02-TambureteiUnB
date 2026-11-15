@@ -31,6 +31,7 @@ app.include_router(dashboard.router)
 app.include_router(moderacao.router)
 
 
+@app.get("/")
 def root():
     return {
         "project": settings.PROJECT_NAME,
