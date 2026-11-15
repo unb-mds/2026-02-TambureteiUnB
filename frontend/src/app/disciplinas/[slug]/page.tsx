@@ -21,6 +21,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
 import ClassCard from "@/components/ClassCard";
+import Pagination from "@/components/Pagination";
+import { CLASSES_PER_PAGE, paginateClasses } from "@/utils/classPagination";
 import ClassCardSkeleton from "@/components/ClassCardSkeleton";
 import ClassEmptyState from "@/components/ClassEmptyState";
 import ClassFilters, {
@@ -82,6 +84,7 @@ function DisciplineDetailContent() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [classesError, setClassesError] = useState<string | null>(null);
+  const [classPage, setClassPage] = useState(1);
 
   // Estados de filtro e ordenação sincronizados com URL query params
   const [selectedShift, setSelectedShift] = useState<ClassShiftFilter>(() =>
@@ -129,6 +132,7 @@ function DisciplineDetailContent() {
   const handleShiftChange = useCallback(
     (shift: ClassShiftFilter) => {
       setSelectedShift(shift);
+      setClassPage(1);
       syncUrlParams(shift, sortBy);
     },
     [sortBy, syncUrlParams]
@@ -137,6 +141,7 @@ function DisciplineDetailContent() {
   const handleSortChange = useCallback(
     (sort: ClassSortOption) => {
       setSortBy(sort);
+      setClassPage(1);
       syncUrlParams(selectedShift, sort);
     },
     [selectedShift, syncUrlParams]
@@ -145,6 +150,7 @@ function DisciplineDetailContent() {
   const handleResetClassFilters = useCallback(() => {
     setSelectedShift("Todos");
     setSortBy("code_asc");
+    setClassPage(1);
     syncUrlParams("Todos", "code_asc");
   }, [syncUrlParams]);
 
@@ -293,6 +299,8 @@ function DisciplineDetailContent() {
       });
     });
   }, [classes, selectedShift, sortBy]);
+
+  const paginatedClasses = paginateClasses(filteredAndSortedClasses, classPage);
 
   if (loading) {
     return (
@@ -879,11 +887,24 @@ function DisciplineDetailContent() {
                 />
 
                 {filteredAndSortedClasses.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                    {filteredAndSortedClasses.map((turma) => (
-                      <ClassCard key={turma.id} classData={turma} />
-                    ))}
-                  </div>
+                  <>
+                    <p role="status" className="mb-4 text-sm text-gray-600">
+                      Mostrando {paginatedClasses.startItem} a {paginatedClasses.endItem}{" "}
+                      de {filteredAndSortedClasses.length}{" "}
+                      {filteredAndSortedClasses.length === 1 ? "turma" : "turmas"}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                      {paginatedClasses.items.map((turma) => (
+                        <ClassCard key={turma.id} classData={turma} />
+                      ))}
+                    </div>
+                    <Pagination
+                      currentPage={paginatedClasses.currentPage}
+                      totalPages={paginatedClasses.totalPages}
+                      onPageChange={setClassPage}
+                      itemsPerPage={CLASSES_PER_PAGE}
+                    />
+                  </>
                 ) : (
                   <ClassEmptyState
                     hasActiveFilters={true}
@@ -1196,6 +1217,7 @@ function DisciplineDetailContent() {
 }
 
 export default function DisciplineDetailPage() {
+  const params = useParams();
   return (
     <Suspense
       fallback={
@@ -1215,7 +1237,7 @@ export default function DisciplineDetailPage() {
         </div>
       }
     >
-      <DisciplineDetailContent />
+      <DisciplineDetailContent key={String(params?.slug ?? "")} />
     </Suspense>
   );
 }
