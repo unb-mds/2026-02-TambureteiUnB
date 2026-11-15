@@ -1,5 +1,8 @@
+import pytest
+
 from app.models.curso import Curso
 from app.models.metrica import MetricaCurso
+from app.repositories.dashboard_repo import dashboard_repo
 
 
 def test_obter_formacao_curso_inexistente_retorna_404(client, db):
@@ -68,3 +71,115 @@ def test_obter_formacao_curso_lista_cronologica_e_taxa_media(client, db):
     assert data["taxa_media_formacao"] == 50.0
     assert [item["ano"] for item in data["serie_historica"]] == [2022, 2023, 2024]
     assert [item["taxa_formacao"] for item in data["serie_historica"]] == [40.0, 50.0, 60.0]
+
+
+@pytest.fixture()
+def cenario_evasao(db):
+    db.query(Curso).delete()
+    software = Curso(nome="Engenharia de Software", slug="es-gama", campus="FCTE - Gama")
+    energia = Curso(nome="Engenharia de Energia", slug="energia-gama", campus="FCTE - Gama")
+    computacao = Curso(nome="Ciência da Computação", slug="cc-darcy", campus="Darcy Ribeiro")
+    agronegocio = Curso(nome="Gestão do Agronegócio", slug="agro-fup", campus="FUP - Planaltina")
+    db.add_all([software, energia, computacao, agronegocio])
+    db.flush()
+
+    db.add_all([
+        MetricaCurso(curso_id=software.id, ano=2023, matriculados=400, desvinculados=40),
+        MetricaCurso(curso_id=software.id, ano=2024, matriculados=500, desvinculados=75),
+        MetricaCurso(curso_id=energia.id, ano=2024, matriculados=500, desvinculados=125),
+        MetricaCurso(curso_id=computacao.id, ano=2024, matriculados=400, desvinculados=20),
+    ])
+    db.commit()
+    dashboard_repo.atualizar_evasao_campus(db)
+
+
+def test_listar_evasao_por_campus_retorna_comparativo_ordenado(client, cenario_evasao):
+    response = client.get("/dashboard/campus/evasao")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_campi"] == 2
+    assert [item["campus"] for item in data["campi"]] == ["FCTE - Gama", "Darcy Ribeiro"]
+
+    gama = data["campi"][0]
+    assert gama["matriculados"] == 1400
+    assert gama["desvinculados"] == 240
+    assert gama["taxa_evasao"] == 17.14
+    assert gama["taxa_media_anual"] == 15.0
+
+    darcy = data["campi"][1]
+    assert darcy["taxa_evasao"] == 5.0
+    assert darcy["taxa_media_anual"] == 5.0
+
+
+def test_listar_evasao_por_campus_aplica_filtro(client, cenario_evasao):
+    response = client.get("/dashboard/campus/evasao", params={"campus": "darcy"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_campi"] == 1
+    assert data["campi"][0]["campus"] == "Darcy Ribeiro"
+
+
+def test_listar_evasao_por_campus_filtro_inexistente_retorna_404(client, cenario_evasao):
+    response = client.get("/dashboard/campus/evasao", params={"campus": "Campus Inexistente"})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Campus não encontrado."
+
+
+def test_listar_evasao_por_campus_sem_metricas_retorna_lista_vazia(client, cenario_evasao):
+    response = client.get("/dashboard/campus/evasao", params={"campus": "Planaltina"})
+    assert response.status_code == 200
+    assert response.json() == {"total_campi": 0, "campi": []}
+
+
+def test_listar_evasao_por_campus_banco_vazio_retorna_lista_vazia(client, db):
+    db.query(Curso).delete()
+    db.commit()
+    dashboard_repo.atualizar_evasao_campus(db)
+
+    response = client.get("/dashboard/campus/evasao")
+    assert response.status_code == 200
+    assert response.json() == {"total_campi": 0, "campi": []}
+
+
+def test_obter_evasao_campus_retorna_serie_historica(client, cenario_evasao):
+    response = client.get("/dashboard/campus/Gama/evasao")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["campus"] == "FCTE - Gama"
+    assert data["matriculados"] == 1400
+    assert data["desvinculados"] == 240
+    assert data["taxa_evasao"] == 17.14
+    assert data["taxa_media_anual"] == 15.0
+    assert [item["ano"] for item in data["serie_historica"]] == [2023, 2024]
+    assert [item["total_cursos"] for item in data["serie_historica"]] == [1, 2]
+    assert [item["taxa_evasao"] for item in data["serie_historica"]] == [10.0, 20.0]
+
+
+def test_obter_evasao_campus_aceita_nome_completo(client, cenario_evasao):
+    response = client.get("/dashboard/campus/FCTE - Gama/evasao")
+    assert response.status_code == 200
+    assert response.json()["campus"] == "FCTE - Gama"
+
+
+def test_obter_evasao_campus_inexistente_retorna_404(client, cenario_evasao):
+    response = client.get("/dashboard/campus/Inexistente/evasao")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Campus não encontrado."
+
+
+def test_obter_evasao_campus_sem_metricas_retorna_404(client, cenario_evasao):
+    response = client.get("/dashboard/campus/Planaltina/evasao")
+    assert response.status_code == 404
+    assert (
+        response.json()["detail"]
+        == "Campus não possui dados públicos suficientes para cálculo da taxa de evasão."
+    )
+
+
+def test_obter_evasao_campus_termo_ambiguo_retorna_400(client, cenario_evasao):
+    response = client.get("/dashboard/campus/a/evasao")
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"]
+        == "Termo de campus ambíguo. Informe o nome completo do campus."
+    )
