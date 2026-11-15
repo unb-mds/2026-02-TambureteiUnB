@@ -64,6 +64,7 @@ function DisciplineDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const simulateClassesError = searchParams.get("erroTurmas") === "true";
 
   const slug =
     typeof params?.slug === "string"
@@ -212,7 +213,7 @@ function DisciplineDetailContent() {
         setClassesLoading(true);
 
         // Permite simular estado de erro via query param (?erroTurmas=true) para testes de UI
-        if (searchParams.get("erroTurmas") === "true") {
+        if (simulateClassesError) {
           throw new Error(
             "Não foi possível carregar as turmas ofertadas no momento."
           );
@@ -264,7 +265,7 @@ function DisciplineDetailContent() {
     return () => {
       isMounted = false;
     };
-  }, [discipline, searchParams, classesRetryCount]);
+  }, [discipline, slug, simulateClassesError, classesRetryCount]);
 
   // Filtragem por turno e ordenação reativa
   const filteredAndSortedClasses = useMemo(() => {
