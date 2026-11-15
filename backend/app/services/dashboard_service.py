@@ -5,8 +5,16 @@ from app.repositories.dashboard_repo import dashboard_repo
 
 
 class DashboardService:
-    def obter_formacao_curso(self, db: Session, curso_id: int) -> dict:
-        curso = dashboard_repo.get_curso_com_metricas(db, curso_id)
+    def obter_formacao_curso(self, db: Session, identificador: int | str) -> dict:
+        if isinstance(identificador, int):
+            curso = dashboard_repo.get_curso_com_metricas(db, identificador)
+        else:
+            termo = str(identificador).strip()
+            if termo.isdigit() and int(termo) <= 2_147_483_647:
+                curso = dashboard_repo.get_curso_com_metricas(db, int(termo))
+            else:
+                curso = dashboard_repo.get_curso_com_metricas_por_slug(db, termo)
+
         if curso is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Curso não encontrado.")
 
