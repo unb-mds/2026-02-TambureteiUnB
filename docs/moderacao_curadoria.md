@@ -1,6 +1,8 @@
-# Moderação e curadoria de arquivos
+# Moderação, Curadoria de Materiais (RN06) e Central de Denúncias (RN04)
 
-Implementação local de RF12/RF15 e da curadoria da US 5.3.2, na branch `feat/moderacao-curadoria`, baseada em `develop` (`fbb9361`). Escopo: arquivos enviados por alunos. Moderação de comentários, denúncias e revisão de decisões anteriores não fazem parte desta entrega.
+Implementação completa do Painel de Moderação e Curadoria (`/moderacao`), abrangendo:
+1. **Guarda de Rotas `/moderacao` e Curadoria de Materiais (RN06):** Fila de aprovação de uploads com download privado para análise, botões de aprovar/recusar, justificativa obrigatória para recusa e auditoria em `curadorias` (`010_curadorias`).
+2. **Central de Denúncias (RN04) e Painel de Ações (US 5.3.1 e US 5.3.2):** Interface de revisão para comentários, relatos e materiais sinalizados pela comunidade, com gatilho automático de retenção preventiva, triagem de prioridade ética RN04 (proteção a docentes), fluxo para exclusão de conteúdo denunciado, descarte de denúncia falsa e modais de confirmação (`011_denuncias`).
 
 ## Fluxo
 
@@ -35,6 +37,10 @@ A fila contém arquivos pendentes, ordenados por envio e ID, em páginas de 20. 
 | GET | `/moderacao/materiais/{id}/download` | Download privado para análise de arquivo pendente. |
 | PATCH | `/moderacao/conteudos/{id}/curadoria` | Decisão e registro de auditoria. |
 | GET | `/moderacao/conteudos/{id}/historico` | Histórico administrativo do arquivo. |
+| POST | `/comunidade/denuncias` | Registro autenticado de denúncia de comentário ou material com gatilho automático em 3 denúncias. |
+| POST | `/comentarios/{id}/denuncias` | Atalho autenticado para denunciar um comentário ou relato da comunidade (RN04). |
+| GET | `/moderacao/denuncias?pagina=1&tamanho_pagina=20&tipo=TODOS&categoria=TODAS` | Fila paginada de denúncias pendentes com filtros por tipo e categoria e indicador de prioridade RN04. |
+| PATCH | `/moderacao/denuncias/{id}` | Decisão administrativa (`EXCLUIR_CONTEUDO` ou `DESCARTAR_DENUNCIA`) com atualização transacional do conteúdo e encerramento das denúncias vinculadas. |
 
 Exemplo de recusa:
 
@@ -93,3 +99,25 @@ Nenhum workflow novo foi criado ou alterado, conforme solicitado. Validação lo
 - Nenhum teste de mutação ou SonarQube foi executado nesta entrega.
 
 ![Fila em celular com dados fictícios](assets/moderacao-mobile.png)
+
+## Central de Denúncias (RN04) e Painel de Ações
+
+```mermaid
+flowchart LR
+    A[Estudante sinaliza relato ou material] --> B[POST /comunidade/denuncias]
+    B --> C{Total pendente >= 3?}
+    C -->|Sim| D[Retenção preventiva automática]
+    C -->|Não| E[Permanece visível em análise]
+    D --> F[Central de Denúncias /moderacao]
+    E --> F
+    F --> G[Modal de Confirmação]
+    G -->|Excluir conteúdo denunciado| H[Conteúdo OCULTO/excluído + Denúncias PROCEDENTES]
+    G -->|Descartar denúncia falsa| I[Conteúdo PUBLICADO/ativo + Denúncias DESCARTADAS]
+```
+
+### Regras de Domínio e Banco (`011_denuncias`)
+
+- **Unicidade e Alvo Exclusivo:** A tabela `denuncias` exige `comentario_id` ou `conteudo_id` (nunca ambos ou nenhum via `chk_denuncia_alvo_unico`) e impede denúncias duplicadas do mesmo usuário sobre o mesmo item (`uq_denuncia_usuario_comentario` e `uq_denuncia_usuario_conteudo`, retornando HTTP 409).
+- **Retenção Preventiva Automática:** Ao atingir 3 denúncias pendentes (`LIMIAR_OCULTACAO_DENUNCIAS = 3`), o comentário passa automaticamente para `status_moderacao = 'PENDENTE'` (ou `em_analise` no caso de material), deixando de aparecer nas listagens públicas até deliberação da equipe.
+- **Triagem de Prioridade Ética (RN04):** O domínio puro (`app/domain/denuncias.py`) destaca denúncias categorizadas como `OFENSA_DOCENTE` ou cujo conteúdo contenha termos depreciativos contra docentes, exibindo alerta de prioridade na fila de revisão sem expor dados pessoais do autor ou do denunciante (RN01).
+- **Painel de Ações com Modal de Confirmação:** No frontend (`/moderacao`), toda ação sobre uma denúncia (`DenunciaModerationCard`) abre o modal de confirmação (`ModerationActionModal`), permitindo registrar justificativa opcional antes de confirmar a exclusão definitiva do conteúdo denunciado (`EXCLUIR_CONTEUDO`) ou o descarte de denúncia falsa (`DESCARTAR_DENUNCIA`).

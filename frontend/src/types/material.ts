@@ -12,6 +12,26 @@ export interface MaterialResponse {
   status_curadoria: "PENDENTE" | "APROVADO" | "RECUSADO";
   status_moderacao: string;
   created_at: string;
+  url?: string;
+  arquivo_url?: string;
+  upvotes?: number;
+  usuario?: { nome?: string };
+  authorAlias?: string;
+  professor?: string;
+}
+
+export interface MaterialItem {
+  id: string;
+  titulo: string;
+  tipo: MaterialType | string;
+  formato: string;
+  tamanho_bytes?: number;
+  created_at: string;
+  url?: string;
+  upvotes: number;
+  isLikedByMe: boolean;
+  authorAlias: string;
+  professor?: string;
 }
 
 export interface MaterialPageResponse {

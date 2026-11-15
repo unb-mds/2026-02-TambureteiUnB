@@ -60,3 +60,20 @@ class CursoResumo(BaseModel):
     total_disciplinas: int = 0
     metricas_2024: Optional[MetricasCurso] = None
     metricas_recentes: Optional[MetricasCurso] = None
+
+
+class PeriodoGrade(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    periodo: Optional[int] = None
+    disciplinas: list[CursoGradeDisciplina] = []
+
+
+class CursoGradeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    curso_id: int
+    curso_nome: str
+    curso_slug: str
+    periodos: list[PeriodoGrade] = []
+
