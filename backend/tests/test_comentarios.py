@@ -158,3 +158,31 @@ def test_editar_sem_autenticacao_retorna_401(client: TestClient, comentario_do_a
 def test_excluir_sem_autenticacao_retorna_401(client: TestClient, comentario_do_aluno):
     response = client.delete(f"/comentarios/{comentario_do_aluno.id}")
     assert response.status_code == 401
+
+
+# --- DIFICULDADES E TÓPICOS CRÍTICOS (SPRINT 8) ---
+
+def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, student_headers, disciplina):
+    payload = {
+        "autor_alias": "Estudante Anônimo",
+        "topico_dificuldade": "[CRITICO] Integrais Múltiplas",
+        "conteudo": "Tópico com cobrança intensa na segunda avaliação.",
+    }
+    post_resp = client.post(
+        f"/cadeiras/{disciplina.slug}/comentarios",
+        json=payload,
+        headers=student_headers,
+    )
+    assert post_resp.status_code == 201
+    created = post_resp.json()
+    assert created["topico_dificuldade"] == "[CRITICO] Integrais Múltiplas"
+    assert created["disciplina_id"] == disciplina.id
+
+    list_resp = client.get(
+        f"/cadeiras/{disciplina.slug}/comentarios?apenas_dificuldades=true&topico=Integrais"
+    )
+    assert list_resp.status_code == 200
+    data = list_resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["topico_dificuldade"] == "[CRITICO] Integrais Múltiplas"
+

@@ -31,7 +31,7 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 * Novos arquivos, links e resumos em `conteudos` entram com `status_curadoria = PENDENTE`.
 * Somente arquivos aprovados e ativos são listados e baixados publicamente. MODERATOR e ADMIN podem analisar e decidir sobre arquivos pendentes.
 * Recusas exigem justificativa. Aprovação/recusa é registrada com autoria administrativa, data e estados na mesma transação.
-* Arquivos já aprovados permanecem publicados. Moderação de comentários e denúncias é uma entrega separada.
+* Arquivos já aprovados permanecem publicados. Comentários e materiais sinalizados pela comunidade são revisados na Central de Denúncias (`/moderacao`), com retenção preventiva ao atingir 3 denúncias pendentes e decisão administrativa para exclusão do conteúdo ou descarte de denúncia falsa.
 
 ### [RN07] Tratamento de Dados Históricos com Baixa Amostragem (LGPD / DPO)
 * Agregações históricas oriundas de microdados públicos do DPO/INEP com **menos de 5 estudantes** em uma turma devem ser consolidadas no acumulado geral da matéria para inviabilizar qualquer identificação indireta de notas.

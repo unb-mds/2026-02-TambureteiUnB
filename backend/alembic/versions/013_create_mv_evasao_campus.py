@@ -1,8 +1,8 @@
 """Cria a visao materializada de evasao agregada por campus (US 6.2.2, ADR 01)."""
 from alembic import op
 
-revision = "011_mv_evasao_campus"
-down_revision = "010_curadorias"
+revision = "013_mv_evasao_campus"
+down_revision = "012_estatisticas_consolidadas"
 branch_labels = None
 depends_on = None
 

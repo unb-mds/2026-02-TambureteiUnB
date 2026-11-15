@@ -35,6 +35,20 @@ class ComentarioCreate(BaseModel):
         return v
 
 
+class ComentarioCadeiraCreate(BaseModel):
+    """Schema de entrada para criação de comentário ou alerta de dificuldade via rota da cadeira."""
+
+    turma_id: Optional[int] = Field(None, description="ID da turma")
+    autor_alias: Optional[str] = Field("Estudante Anônimo", description="Apelido do autor")
+    topico_dificuldade: Optional[str] = Field(None, max_length=150, description="Tópico de dificuldade da ementa")
+    conteudo: str = Field(..., description="Texto do relato ou alerta de dificuldade")
+
+    @field_validator("conteudo")
+    @classmethod
+    def validar_conteudo(cls, v: str) -> str:
+        return ComentarioCreate.validar_conteudo(v)
+
+
 class ComentarioUpdate(BaseModel):
     """Schema de entrada para edição de comentário."""
 

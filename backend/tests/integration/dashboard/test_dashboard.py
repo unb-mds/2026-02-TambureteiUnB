@@ -5,11 +5,26 @@ from app.models.metrica import MetricaCurso
 from app.repositories.dashboard_repo import dashboard_repo
 
 
+def test_root_retorna_status_online(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json()["status"] == "online"
+
+
 def test_obter_formacao_curso_inexistente_retorna_404(client, db):
     db.query(Curso).delete()
     db.commit()
 
     response = client.get("/dashboard/cursos/99999/formacao")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Curso não encontrado."
+
+
+def test_obter_formacao_curso_slug_inexistente_retorna_404(client, db):
+    db.query(Curso).delete()
+    db.commit()
+
+    response = client.get("/dashboard/cursos/curso-inexistente/formacao")
     assert response.status_code == 404
     assert response.json()["detail"] == "Curso não encontrado."
 
@@ -71,6 +86,32 @@ def test_obter_formacao_curso_lista_cronologica_e_taxa_media(client, db):
     assert data["taxa_media_formacao"] == 50.0
     assert [item["ano"] for item in data["serie_historica"]] == [2022, 2023, 2024]
     assert [item["taxa_formacao"] for item in data["serie_historica"]] == [40.0, 50.0, 60.0]
+
+
+def test_obter_formacao_curso_por_slug_retorna_200(client, db):
+    db.query(Curso).delete()
+    curso = Curso(nome="Engenharia de Software", slug="engenharia-de-software")
+    db.add(curso)
+    db.flush()
+
+    db.add(
+        MetricaCurso(
+            curso_id=curso.id,
+            ano=2024,
+            ingressantes=100,
+            matriculados=480,
+            concluintes=60,
+            taxa_sucesso=60.0,
+        )
+    )
+    db.commit()
+
+    response = client.get("/dashboard/cursos/engenharia-de-software/formacao")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["curso_id"] == curso.id
+    assert data["curso_slug"] == "engenharia-de-software"
+    assert data["taxa_media_formacao"] == 60.0
 
 
 @pytest.fixture()
