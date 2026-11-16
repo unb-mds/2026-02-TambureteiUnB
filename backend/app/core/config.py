@@ -16,7 +16,7 @@ def _erro_quorum(valor) -> PydanticCustomError:
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Tamburetei UnB API"
-    VERSION: str = "0.8.0"
+    VERSION: str = "0.9.0"
     API_V1_STR: str = "/api/v1"
     
     MATERIALS_DIR: Path = Path("storage/materiais")
