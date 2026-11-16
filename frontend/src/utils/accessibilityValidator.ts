@@ -225,21 +225,110 @@ export function auditTableMarkup(markup: string): AccessibilityAuditResult {
   };
 }
 
+function extractTagBlocks(markup: string, tagPattern: string): Array<{
+  tagText: string;
+  tagName: string;
+  startIndex: number;
+  endIndex: number;
+}> {
+  const results: Array<{
+    tagText: string;
+    tagName: string;
+    startIndex: number;
+    endIndex: number;
+  }> = [];
+  const regex = new RegExp(`<(${tagPattern})\\b`, "g");
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(markup)) !== null) {
+    const startIndex = match.index;
+    const tagName = match[1];
+    let i = startIndex + match[0].length;
+    let braceDepth = 0;
+    let inQuote: string | null = null;
+
+    while (i < markup.length) {
+      const ch = markup[i];
+      if (inQuote) {
+        if (ch === "\\" && i + 1 < markup.length) {
+          i += 2;
+          continue;
+        }
+        if (ch === inQuote) {
+          inQuote = null;
+        }
+      } else {
+        if (ch === '"' || ch === "'" || ch === "`") {
+          inQuote = ch;
+        } else if (ch === "{") {
+          braceDepth++;
+        } else if (ch === "}") {
+          if (braceDepth > 0) braceDepth--;
+        } else if (ch === ">" && braceDepth === 0) {
+          i++;
+          break;
+        }
+      }
+      i++;
+    }
+
+    results.push({
+      tagText: markup.slice(startIndex, i),
+      tagName,
+      startIndex,
+      endIndex: i,
+    });
+  }
+
+  return results;
+}
+
+function extractAttributeToken(tagText: string, attrName: string): {
+  present: boolean;
+  value: string;
+  isDynamic: boolean;
+} {
+  const staticRegex = new RegExp(`\\b${attrName}\\s*=\\s*["']([^"']*)["']`);
+  const staticMatch = tagText.match(staticRegex);
+  if (staticMatch) {
+    return {
+      present: true,
+      value: staticMatch[1].trim(),
+      isDynamic: false,
+    };
+  }
+
+  const dynamicRegex = new RegExp(`\\b${attrName}\\s*=\\s*\\{([^}]+)\\}`);
+  const dynamicMatch = tagText.match(dynamicRegex);
+  if (dynamicMatch) {
+    return {
+      present: true,
+      value: `{${dynamicMatch[1].trim()}}`,
+      isDynamic: true,
+    };
+  }
+
+  return { present: false, value: "", isDynamic: false };
+}
+
 /**
- * Inspeciona um trecho de marcacao JSX/HTML verificando se elementos de formulario
- * nativos (<input>, <select>, <textarea>) possuem rotulacao semantica ou ARIA
- * e se ha regioes de feedback acessiveis para leitores de tela.
+ * Inspeciona um trecho de marcacao JSX/HTML verificando individualmente cada controle
+ * de formulario (<input>, <select>, <textarea> e <Input>) quanto a associacao efetiva
+ * de rotulo (<label htmlFor/for>, <label> envolvente, aria-label ou aria-labelledby
+ * com IDs validos) e presenca de regiao de feedback para leitores de tela.
  */
 export function auditFormAndScreenReaderMarkup(
   markup: string
 ): AccessibilityAuditResult {
   const violations: string[] = [];
 
+  const nativeControls = extractTagBlocks(markup, "input|select|textarea");
+  const customInputs = extractTagBlocks(markup, "Input");
+
   const hasFormOrInput =
     /<form\b/.test(markup) ||
-    /<input\b/.test(markup) ||
-    /<select\b/.test(markup) ||
-    /<textarea\b/.test(markup);
+    nativeControls.length > 0 ||
+    customInputs.length > 0;
 
   if (!hasFormOrInput) {
     violations.push(
@@ -248,14 +337,135 @@ export function auditFormAndScreenReaderMarkup(
     return { valid: false, violations };
   }
 
-  const hasLabelAssociation =
-    /<label\b/.test(markup) ||
-    /aria-label=/.test(markup) ||
-    /aria-labelledby=/.test(markup);
+  const labelBlocks: Array<{ start: number; end: number; forToken: string }> = [];
+  const labelRegex = /<label\b[\s\S]*?<\/label>/g;
+  let labelMatch: RegExpExecArray | null;
+  while ((labelMatch = labelRegex.exec(markup)) !== null) {
+    const fullLabel = labelMatch[0];
+    const openLabelMatch = extractTagBlocks(fullLabel, "label")[0];
+    const openLabelTag = openLabelMatch ? openLabelMatch.tagText : fullLabel;
+    const htmlForAttr = extractAttributeToken(openLabelTag, "htmlFor");
+    const forAttr = extractAttributeToken(openLabelTag, "for");
+    const forToken = htmlForAttr.present
+      ? htmlForAttr.value
+      : forAttr.present
+      ? forAttr.value
+      : "";
 
-  if (!hasLabelAssociation) {
+    labelBlocks.push({
+      start: labelMatch.index,
+      end: labelMatch.index + fullLabel.length,
+      forToken,
+    });
+  }
+
+  const explicitLabelTargets = new Set(
+    labelBlocks.map((b) => b.forToken).filter((token) => token.length > 0)
+  );
+
+  const allElementIds = new Set<string>();
+  const staticIdRegex = /\bid\s*=\s*["']([^"']+)["']/g;
+  let idMatch: RegExpExecArray | null;
+  while ((idMatch = staticIdRegex.exec(markup)) !== null) {
+    if (idMatch[1].trim()) {
+      allElementIds.add(idMatch[1].trim());
+    }
+  }
+  const dynamicIdRegex = /\bid\s*=\s*\{([^}]+)\}/g;
+  while ((idMatch = dynamicIdRegex.exec(markup)) !== null) {
+    if (idMatch[1].trim()) {
+      allElementIds.add(`{${idMatch[1].trim()}}`);
+    }
+  }
+
+  let auditedControlsCount = 0;
+
+  for (const ctrl of nativeControls) {
+    const typeAttr = extractAttributeToken(ctrl.tagText, "type");
+    if (
+      ctrl.tagName === "input" &&
+      !typeAttr.isDynamic &&
+      ["hidden", "submit", "button", "reset"].includes(typeAttr.value.toLowerCase())
+    ) {
+      continue;
+    }
+
+    auditedControlsCount++;
+
+    const idAttr = extractAttributeToken(ctrl.tagText, "id");
+    const ariaLabelAttr = extractAttributeToken(ctrl.tagText, "aria-label");
+    const ariaLabelledByAttr = extractAttributeToken(ctrl.tagText, "aria-labelledby");
+
+    const isWrappedInLabel = labelBlocks.some(
+      (lb) => ctrl.startIndex > lb.start && ctrl.endIndex <= lb.end
+    );
+
+    const hasMatchingExplicitLabel =
+      idAttr.present &&
+      idAttr.value.length > 0 &&
+      explicitLabelTargets.has(idAttr.value);
+
+    let validAriaLabelledBy: string | undefined = undefined;
+    if (ariaLabelledByAttr.present && ariaLabelledByAttr.value.length > 0) {
+      if (ariaLabelledByAttr.isDynamic) {
+        validAriaLabelledBy = ariaLabelledByAttr.value;
+      } else {
+        const refIds = ariaLabelledByAttr.value.split(/\s+/).filter(Boolean);
+        const allExist =
+          refIds.length > 0 && refIds.every((refId) => allElementIds.has(refId));
+        if (allExist) {
+          validAriaLabelledBy = ariaLabelledByAttr.value;
+        } else {
+          violations.push(
+            `Controle <${ctrl.tagName}> possui aria-labelledby="${ariaLabelledByAttr.value}" referenciando ID inexistente na marcacao.`
+          );
+        }
+      }
+    }
+
+    const controlCheck = validateFormControlSemantics({
+      id: idAttr.value || undefined,
+      tagName: ctrl.tagName as "input" | "select" | "textarea",
+      hasExplicitLabel: hasMatchingExplicitLabel,
+      isWrappedInLabel,
+      ariaLabel: ariaLabelAttr.value || undefined,
+      ariaLabelledBy: validAriaLabelledBy,
+    });
+
+    if (!controlCheck.valid) {
+      const idDescription = idAttr.value ? ` (id=${idAttr.value})` : "";
+      violations.push(
+        `Controle <${ctrl.tagName}>${idDescription} sem rotulo associado valido (<label htmlFor/for> correspondente, <label> envolvente, aria-label ou aria-labelledby).`
+      );
+    }
+  }
+
+  for (const customCtrl of customInputs) {
+    auditedControlsCount++;
+    const labelProp = extractAttributeToken(customCtrl.tagText, "label");
+    const ariaLabelProp = extractAttributeToken(customCtrl.tagText, "aria-label");
+    const ariaLabelledByProp = extractAttributeToken(
+      customCtrl.tagText,
+      "aria-labelledby"
+    );
+
+    const hasCustomLabel =
+      (labelProp.present && labelProp.value.length > 0) ||
+      (ariaLabelProp.present && ariaLabelProp.value.length > 0) ||
+      (ariaLabelledByProp.present && ariaLabelledByProp.value.length > 0);
+
+    if (!hasCustomLabel) {
+      const idAttr = extractAttributeToken(customCtrl.tagText, "id");
+      const idDescription = idAttr.value ? ` (id=${idAttr.value})` : "";
+      violations.push(
+        `Componente <Input>${idDescription} sem propriedade label, aria-label ou aria-labelledby.`
+      );
+    }
+  }
+
+  if (auditedControlsCount === 0) {
     violations.push(
-      "Marcacao de formulario nao contem associacao de rotulos (<label>, aria-label ou aria-labelledby)."
+      "Marcacao de formulario nao contem controles de entrada auditaveis (<input>, <select>, <textarea> ou <Input>)."
     );
   }
 

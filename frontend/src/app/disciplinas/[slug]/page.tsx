@@ -34,7 +34,11 @@ import {
   getDisciplineBySlug,
   getClassesByDiscipline,
 } from "@/services/disciplineService";
-import { exportDisciplineHistoryOpenData } from "@/services/openDataService";
+import {
+  exportDisciplineHistoryOpenData,
+  filterPublicHistoricalPerformance,
+  mapHistoricalPerformanceToOpenData,
+} from "@/services/openDataService";
 import {
   Discipline,
   DEFAULT_HISTORICAL_PERFORMANCE,
@@ -380,8 +384,25 @@ function DisciplineDetailContent() {
     );
   }
 
+  const realHistoricalPerformance =
+    discipline.historicalPerformance ?? [];
+  const publicRealPerformance = filterPublicHistoricalPerformance(
+    realHistoricalPerformance
+  );
+  const exportableHistoryRows = mapHistoricalPerformanceToOpenData(
+    discipline.code,
+    discipline.name,
+    realHistoricalPerformance,
+    discipline.metrica_consolidada
+  );
+  const hasRealExportableHistory = exportableHistoryRows.length > 0;
+
   const performanceList =
-    discipline.historicalPerformance || DEFAULT_HISTORICAL_PERFORMANCE;
+    publicRealPerformance.length > 0
+      ? publicRealPerformance
+      : realHistoricalPerformance.length > 0
+      ? []
+      : DEFAULT_HISTORICAL_PERFORMANCE;
 
   // Extração dos dados consolidados reais da disciplina
   const metrica = discipline.metrica_consolidada;
@@ -1191,15 +1212,18 @@ function DisciplineDetailContent() {
             <div className="mt-6">
               <OpenDataExportBar
                 title={`Historico Semestral de ${discipline.code} - ${discipline.name}`}
-                recordCount={performanceList.length}
+                recordCount={exportableHistoryRows.length}
                 recordLabel="semestres"
+                disabled={!hasRealExportableHistory}
+                emptyMessage="Exportacao indisponivel: nao ha historico semestral publico real retornado pela API para esta disciplina (ou os registros possuem baixa amostragem suprimida pela LGPD)."
                 compact={true}
                 onExport={(format) =>
                   exportDisciplineHistoryOpenData(
                     discipline.code,
                     discipline.name,
-                    performanceList,
-                    format
+                    realHistoricalPerformance,
+                    format,
+                    { consolidatedMetric: discipline.metrica_consolidada }
                   )
                 }
               />

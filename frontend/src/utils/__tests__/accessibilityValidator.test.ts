@@ -126,6 +126,50 @@ test("auditFormAndScreenReaderMarkup valida formularios e leitores de tela nos c
   }
 });
 
+test("auditFormAndScreenReaderMarkup rejeita formulario com um controle rotulado e outro sem rotulo ou IDs divergentes", () => {
+  const partialLabeledForm = `
+    <form>
+      <label htmlFor="campo-rotulado">E-mail</label>
+      <input id="campo-rotulado" type="email" />
+      <input id="campo-sem-rotulo" type="text" />
+      <div role="status">Pronto</div>
+    </form>
+  `;
+  const partialResult = auditFormAndScreenReaderMarkup(partialLabeledForm);
+  assert.equal(partialResult.valid, false);
+  assert.equal(
+    partialResult.violations.some((v) => v.includes("campo-sem-rotulo")),
+    true
+  );
+
+  const mismatchedIdForm = `
+    <form>
+      <label htmlFor="id-diferente">Nome</label>
+      <input id="id-real" type="text" />
+      <div role="alert">Erro</div>
+    </form>
+  `;
+  const mismatchedResult = auditFormAndScreenReaderMarkup(mismatchedIdForm);
+  assert.equal(mismatchedResult.valid, false);
+  assert.equal(
+    mismatchedResult.violations.some((v) => v.includes("id-real")),
+    true
+  );
+
+  const brokenAriaLabelledByForm = `
+    <form>
+      <input id="campo-busca" aria-labelledby="titulo-inexistente" type="search" />
+      <div role="status">Ativo</div>
+    </form>
+  `;
+  const brokenAriaResult = auditFormAndScreenReaderMarkup(brokenAriaLabelledByForm);
+  assert.equal(brokenAriaResult.valid, false);
+  assert.equal(
+    brokenAriaResult.violations.some((v) => v.includes("titulo-inexistente")),
+    true
+  );
+});
+
 test("OpenDataExportBar e catalogos possuem regioes vivas e rotulos ARIA para leitores de tela", () => {
   const exportBarPath = path.join(
     FRONTEND_ROOT,

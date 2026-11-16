@@ -6,13 +6,23 @@ import {
   serializeToCsv,
   serializeToJson,
   buildOpenDataFilename,
+  isSemesterSuppressedByLgpd,
+  filterPublicHistoricalPerformance,
+  mapCoursesToOpenData,
+  mapHistoricalPerformanceToOpenData,
   exportCoursesOpenData,
   exportDisciplinesOpenData,
   exportDisciplineHistoryOpenData,
   exportDisciplineClassesOpenData,
 } from "../openDataService.ts";
 import type { Course } from "../../types/curso.ts";
-import type { Discipline, HistoricalPerformance } from "../../types/disciplina.ts";
+import {
+  DEFAULT_HISTORICAL_PERFORMANCE,
+  adaptBackendDisciplina,
+  type BackendDisciplinaResponse,
+  type Discipline,
+  type HistoricalPerformance,
+} from "../../types/disciplina.ts";
 import type { Class } from "../../types/turma.ts";
 
 test("escapeCsvCell aplica escape RFC 4180 e neutraliza injecao de formulas", () => {
@@ -189,4 +199,177 @@ test("exportDisciplineHistoryOpenData e exportDisciplineClassesOpenData calculam
   });
   assert.equal(classRes.content.includes("Turma 01"), true);
   assert.equal(classRes.content.includes("90"), true);
+});
+
+test("RN07: adaptBackendDisciplina preserva amostragem_suprimida_lgpd e exportacao suprime semestre com menos de 5 discentes", () => {
+  const apiResponse: BackendDisciplinaResponse = {
+    id: 42,
+    codigo: "FGA0999",
+    nome: "Topicos Especiais",
+    slug: "fga0999-topicos",
+    departamento: "FCTE",
+    creditos: 4,
+    carga_horaria: 60,
+    ementa: "Unidade 1.",
+    pre_requisitos_itens: [],
+    equivalencias_itens: [],
+    cursos: [],
+    metrica_consolidada: {
+      matriculados: 3,
+      aprovados: 2,
+      reprovados_nota: 1,
+      reprovados_falta: 0,
+      trancamentos: 0,
+      taxa_aprovacao_acumulada: 66.7,
+      total_turmas_suprimidas: 1,
+    },
+    metricas: [
+      {
+        ano: 2025,
+        semestre: 1,
+        matriculados: 3,
+        aprovados: 2,
+        reprovados_nota: 1,
+        reprovados_falta: 0,
+        trancamentos: 0,
+        taxa_aprovacao: 66.7,
+        amostragem_suprimida_lgpd: true,
+      },
+    ],
+  };
+
+  const adapted = adaptBackendDisciplina(apiResponse);
+  assert.equal(adapted.historicalPerformance?.length, 1);
+  assert.equal(adapted.historicalPerformance?.[0].amostragem_suprimida_lgpd, true);
+  assert.equal(isSemesterSuppressedByLgpd(adapted.historicalPerformance![0]), true);
+
+  let downloadTriggered = false;
+  const exportRes = exportDisciplineHistoryOpenData(
+    adapted.code,
+    adapted.name,
+    adapted.historicalPerformance,
+    "json",
+    {
+      consolidatedMetric: adapted.metrica_consolidada,
+      downloadHandler: () => {
+        downloadTriggered = true;
+      },
+    }
+  );
+
+  const parsed = JSON.parse(exportRes.content);
+  assert.equal(exportRes.recordCount, 0);
+  assert.equal(parsed.total_registros, 0);
+  assert.deepEqual(parsed.dados, []);
+  assert.equal(downloadTriggered, false);
+});
+
+test("RN07: semestres suprimidos sao omitidos individualmente e consolidados no acumulado quando o total >= 5", () => {
+  const history: HistoricalPerformance[] = [
+    {
+      semester: "2024/2",
+      matriculados: 30,
+      approved: 24,
+      failed: 3,
+      absent: 2,
+      withdrawn: 1,
+      amostragem_suprimida_lgpd: false,
+    },
+    {
+      semester: "2025/1",
+      matriculados: 3,
+      approved: 2,
+      failed: 1,
+      absent: 0,
+      withdrawn: 0,
+      amostragem_suprimida_lgpd: true,
+    },
+  ];
+
+  const rows = mapHistoricalPerformanceToOpenData(
+    "FGA0138",
+    "Metodos de Desenvolvimento de Software",
+    history,
+    {
+      matriculados: 33,
+      aprovados: 26,
+      reprovados_nota: 4,
+      reprovados_falta: 2,
+      trancamentos: 1,
+      taxa_aprovacao_acumulada: 78.8,
+      total_turmas_suprimidas: 1,
+    }
+  );
+
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].semestre_letivo, "2024/2");
+  assert.equal(rows[0].total_avaliados, 30);
+  assert.equal(rows.some((r) => r.semestre_letivo === "2025/1"), false);
+  assert.equal(rows[1].semestre_letivo, "Acumulado Consolidado (LGPD)");
+  assert.equal(rows[1].total_avaliados, 33);
+  assert.equal(rows[1].aprovados, 26);
+});
+
+test("Impede exportacao de DEFAULT_HISTORICAL_PERFORMANCE ou metricas vazias como dados reais", () => {
+  assert.deepEqual(
+    filterPublicHistoricalPerformance(DEFAULT_HISTORICAL_PERFORMANCE),
+    []
+  );
+  assert.deepEqual(
+    mapHistoricalPerformanceToOpenData(
+      "FGA0138",
+      "Metodos de Desenvolvimento de Software",
+      DEFAULT_HISTORICAL_PERFORMANCE
+    ),
+    []
+  );
+  assert.deepEqual(
+    mapHistoricalPerformanceToOpenData(
+      "FGA0138",
+      "Metodos de Desenvolvimento de Software",
+      []
+    ),
+    []
+  );
+});
+
+test("mapCoursesToOpenData preserva metadados ausentes como null no JSON e vazio no CSV, sem usar id como codigo_mec", () => {
+  const incompleteCourse: Course = {
+    id: "curso-interno-99",
+    nome: "Engenharia Aeroespacial",
+    slug: "engenharia-aeroespacial",
+    campus: "FCTE",
+  };
+
+  const rows = mapCoursesToOpenData([incompleteCourse]);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].id, "curso-interno-99");
+  assert.equal(rows[0].codigo_mec, null);
+  assert.equal(rows[0].semestres, null);
+  assert.equal(rows[0].total_disciplinas, null);
+  assert.equal(rows[0].departamento, null);
+  assert.equal(rows[0].grau, null);
+  assert.equal(rows[0].turno, null);
+
+  const jsonExport = exportCoursesOpenData([incompleteCourse], "json", {
+    downloadHandler: null,
+  });
+  const parsed = JSON.parse(jsonExport.content);
+  assert.equal(parsed.dados[0].id, "curso-interno-99");
+  assert.equal(parsed.dados[0].codigo_mec, null);
+  assert.equal(parsed.dados[0].semestres, null);
+  assert.equal(parsed.dados[0].total_disciplinas, null);
+
+  const csvExport = exportCoursesOpenData([incompleteCourse], "csv", {
+    downloadHandler: null,
+  });
+  const csvLines = csvExport.content.slice(UTF8_BOM.length).split("\r\n");
+  assert.equal(
+    csvLines[0],
+    "id,codigo_mec,nome,slug,campus,departamento,grau,turno,semestres,total_disciplinas,matriculados_recentes,concluintes_recentes,taxa_sucesso_pct,taxa_evasao_pct"
+  );
+  assert.equal(
+    csvLines[1],
+    "curso-interno-99,,Engenharia Aeroespacial,engenharia-aeroespacial,FCTE,,,,,,,,,"
+  );
 });

@@ -6,6 +6,7 @@ import type { OpenDataExportResult, OpenDataFormat } from "@/types/openData";
 export interface OpenDataExportBarProps {
   title: string;
   description?: string;
+  emptyMessage?: string;
   recordCount: number;
   recordLabel?: string;
   disabled?: boolean;
@@ -16,6 +17,7 @@ export interface OpenDataExportBarProps {
 export default function OpenDataExportBar({
   title,
   description = "Conjunto de dados publicos agregados da UnB (RF06/RF13) em conformidade com a LGPD.",
+  emptyMessage = "Nenhum registro publico real disponivel para exportacao no momento.",
   recordCount,
   recordLabel = "registros",
   disabled = false,
@@ -27,10 +29,11 @@ export default function OpenDataExportBar({
   const handleExportClick = (format: OpenDataFormat) => {
     if (disabled || recordCount === 0) return;
     const result = onExport(format);
+    const exportedCount = result?.recordCount ?? recordCount;
     const upperFormat = format.toUpperCase();
     const filenameInfo = result?.filename ? ` (${result.filename})` : "";
     setStatusMessage(
-      `Exportacao em ${upperFormat} concluida com ${recordCount} ${recordLabel}${filenameInfo}.`
+      `Exportacao em ${upperFormat} concluida com ${exportedCount} ${recordLabel}${filenameInfo}.`
     );
   };
 
@@ -59,6 +62,11 @@ export default function OpenDataExportBar({
             {description}
           </p>
         )}
+        {recordCount === 0 && (
+          <p className="mt-1 text-xs font-medium text-amber-700 leading-relaxed">
+            {emptyMessage}
+          </p>
+        )}
         <div
           role="status"
           aria-live="polite"
@@ -66,7 +74,9 @@ export default function OpenDataExportBar({
           className={statusMessage ? "mt-1.5 text-xs font-semibold text-[#067A59]" : "sr-only"}
         >
           {statusMessage ||
-            `Pronto para exportar ${recordCount} ${recordLabel} em CSV ou JSON.`}
+            (recordCount === 0
+              ? emptyMessage
+              : `Pronto para exportar ${recordCount} ${recordLabel} em CSV ou JSON.`)}
         </div>
       </div>
 

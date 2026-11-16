@@ -1,5 +1,10 @@
 import type { Course } from "../types/curso.ts";
-import type { Discipline, HistoricalPerformance } from "../types/disciplina.ts";
+import {
+  DEFAULT_HISTORICAL_PERFORMANCE,
+  type BackendMetricaConsolidada,
+  type Discipline,
+  type HistoricalPerformance,
+} from "../types/disciplina.ts";
 import type { Class } from "../types/turma.ts";
 import type {
   ClassOpenDataRow,
@@ -15,10 +20,13 @@ import type {
 
 export const UTF8_BOM = "\uFEFF";
 
+export const MIN_PUBLIC_SAMPLE_SIZE = 5;
+
 export const LGPD_COMPLIANCE_STATEMENT =
   "Dados agregados publicos em conformidade com a LGPD (RN01/RN07). Sem identificacao nominal ou matricula discente; turmas com menos de 5 estudantes sao consolidadas no acumulado.";
 
 export const COURSE_OPEN_DATA_COLUMNS: OpenDataColumnDefinition<CourseOpenDataRow>[] = [
+  { key: "id", header: "id" },
   { key: "codigo_mec", header: "codigo_mec" },
   { key: "nome", header: "nome" },
   { key: "slug", header: "slug" },
@@ -190,25 +198,38 @@ export function buildOpenDataFilename(
 }
 
 /**
- * Mapeia cursos do catalogo para linhas tabulares de Dados Abertos.
+ * Mapeia cursos do catalogo para linhas tabulares de Dados Abertos,
+ * preservando campos ausentes como null (JSON) ou vazio (CSV), sem
+ * preencher valores ficticios nem usar o ID interno como codigo MEC.
  */
 export function mapCoursesToOpenData(courses: Course[]): CourseOpenDataRow[] {
+  const normalizeText = (value?: string | null): string | null =>
+    typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  const normalizeNumber = (value?: number | null): number | null =>
+    typeof value === "number" && Number.isFinite(value) ? value : null;
+
   return courses.map((course) => {
     const metrics = course.metricas_recentes ?? course.metricas_2024 ?? null;
+    const rawId =
+      course.id !== undefined && course.id !== null && String(course.id).trim().length > 0
+        ? String(course.id).trim()
+        : null;
+
     return {
-      codigo_mec: course.codigo_mec || course.id || "",
+      id: rawId,
+      codigo_mec: normalizeText(course.codigo_mec),
       nome: course.nome,
       slug: course.slug,
-      campus: course.campus || "Darcy Ribeiro",
-      departamento: course.departamento || "UnB",
-      grau: course.grau || "Graduacao",
-      turno: course.turno || "Diurno",
-      semestres: course.semestres ?? 8,
-      total_disciplinas: course.total_disciplinas ?? 45,
-      matriculados_recentes: metrics?.matriculados ?? null,
-      concluintes_recentes: metrics?.concluintes ?? null,
-      taxa_sucesso_pct: metrics?.taxa_sucesso ?? null,
-      taxa_evasao_pct: metrics?.taxa_evasao ?? null,
+      campus: normalizeText(course.campus),
+      departamento: normalizeText(course.departamento),
+      grau: normalizeText(course.grau),
+      turno: normalizeText(course.turno),
+      semestres: normalizeNumber(course.semestres),
+      total_disciplinas: normalizeNumber(course.total_disciplinas),
+      matriculados_recentes: normalizeNumber(metrics?.matriculados),
+      concluintes_recentes: normalizeNumber(metrics?.concluintes),
+      taxa_sucesso_pct: normalizeNumber(metrics?.taxa_sucesso),
+      taxa_evasao_pct: normalizeNumber(metrics?.taxa_evasao),
     };
   });
 }
@@ -238,38 +259,174 @@ export function mapDisciplinesToOpenData(
 }
 
 /**
- * Mapeia a serie historica de desempenho de uma disciplina para Dados Abertos.
+ * Verifica se um registro semestral deve ter seus numeros individuais suprimidos
+ * em respeito a RN07 (amostragem_suprimida_lgpd=true ou menos de 5 estudantes).
+ */
+export function isSemesterSuppressedByLgpd(item: HistoricalPerformance): boolean {
+  if (item.amostragem_suprimida_lgpd === true) {
+    return true;
+  }
+  const outcomesTotal =
+    Math.max(0, item.approved || 0) +
+    Math.max(0, item.failed || 0) +
+    Math.max(0, item.absent || 0) +
+    Math.max(0, item.withdrawn || 0);
+  const sampleSize =
+    typeof item.matriculados === "number" && Number.isFinite(item.matriculados)
+      ? Math.max(0, item.matriculados)
+      : outcomesTotal;
+  return sampleSize < MIN_PUBLIC_SAMPLE_SIZE || outcomesTotal < MIN_PUBLIC_SAMPLE_SIZE;
+}
+
+/**
+ * Filtra apenas os semestres reais publicos (nao suprimidos pela LGPD e que nao
+ * sejam a constante estatica de demonstracao DEFAULT_HISTORICAL_PERFORMANCE).
+ */
+export function filterPublicHistoricalPerformance(
+  history?: HistoricalPerformance[] | null
+): HistoricalPerformance[] {
+  if (!history || !Array.isArray(history) || history === DEFAULT_HISTORICAL_PERFORMANCE) {
+    return [];
+  }
+  return history.filter((item) => !isSemesterSuppressedByLgpd(item));
+}
+
+function buildHistoricalPerformanceRow(
+  disciplineCode: string,
+  disciplineName: string,
+  semesterLabel: string,
+  counts: {
+    approved: number;
+    failed: number;
+    absent: number;
+    withdrawn: number;
+    total?: number;
+  }
+): HistoricalPerformanceOpenDataRow {
+  const approved = Math.max(0, counts.approved || 0);
+  const failed = Math.max(0, counts.failed || 0);
+  const absent = Math.max(0, counts.absent || 0);
+  const withdrawn = Math.max(0, counts.withdrawn || 0);
+  const outcomesTotal = approved + failed + absent + withdrawn;
+  const total =
+    typeof counts.total === "number" && counts.total >= outcomesTotal
+      ? counts.total
+      : outcomesTotal;
+
+  const pct = (value: number) =>
+    total > 0 ? Number(((value / total) * 100).toFixed(1)) : 0;
+
+  return {
+    codigo_disciplina: disciplineCode,
+    nome_disciplina: disciplineName,
+    semestre_letivo: semesterLabel,
+    total_avaliados: total,
+    aprovados: approved,
+    reprovados_nota: failed,
+    reprovados_falta: absent,
+    trancamentos: withdrawn,
+    taxa_aprovacao_pct: pct(approved),
+    taxa_reprovacao_nota_pct: pct(failed),
+    taxa_reprovacao_falta_pct: pct(absent),
+    taxa_trancamento_pct: pct(withdrawn),
+  };
+}
+
+/**
+ * Mapeia a serie historica real de desempenho de uma disciplina para Dados Abertos.
+ * Suprime linhas individuais com baixa amostragem (< 5 estudantes ou amostragem_suprimida_lgpd=true)
+ * e consolida os dados no acumulado apenas quando o total consolidado atinge o minimo da LGPD (RN07).
+ * Nunca exporta o historico ficticio de demonstracao (DEFAULT_HISTORICAL_PERFORMANCE).
  */
 export function mapHistoricalPerformanceToOpenData(
   disciplineCode: string,
   disciplineName: string,
-  history: HistoricalPerformance[]
+  history?: HistoricalPerformance[] | null,
+  consolidatedMetric?: BackendMetricaConsolidada | null
 ): HistoricalPerformanceOpenDataRow[] {
-  return history.map((item) => {
-    const approved = Math.max(0, item.approved || 0);
-    const failed = Math.max(0, item.failed || 0);
-    const absent = Math.max(0, item.absent || 0);
-    const withdrawn = Math.max(0, item.withdrawn || 0);
-    const total = approved + failed + absent + withdrawn;
+  if (!history || !Array.isArray(history) || history === DEFAULT_HISTORICAL_PERFORMANCE) {
+    return [];
+  }
 
-    const pct = (value: number) =>
-      total > 0 ? Number(((value / total) * 100).toFixed(1)) : 0;
+  const publicSemesters = filterPublicHistoricalPerformance(history);
+  const suppressedSemesters = history.filter((item) => isSemesterSuppressedByLgpd(item));
 
-    return {
-      codigo_disciplina: disciplineCode,
-      nome_disciplina: disciplineName,
-      semestre_letivo: item.semester,
-      total_avaliados: total,
-      aprovados: approved,
-      reprovados_nota: failed,
-      reprovados_falta: absent,
-      trancamentos: withdrawn,
-      taxa_aprovacao_pct: pct(approved),
-      taxa_reprovacao_nota_pct: pct(failed),
-      taxa_reprovacao_falta_pct: pct(absent),
-      taxa_trancamento_pct: pct(withdrawn),
-    };
-  });
+  const rows: HistoricalPerformanceOpenDataRow[] = publicSemesters.map((item) =>
+    buildHistoricalPerformanceRow(disciplineCode, disciplineName, item.semester, {
+      approved: item.approved,
+      failed: item.failed,
+      absent: item.absent,
+      withdrawn: item.withdrawn,
+      total: item.matriculados,
+    })
+  );
+
+  const hasSuppressedRecords =
+    suppressedSemesters.length > 0 ||
+    Boolean(consolidatedMetric && consolidatedMetric.total_turmas_suprimidas > 0);
+
+  if (hasSuppressedRecords) {
+    const fallbackConsolidated = history.reduce(
+      (acc, item) => {
+        const itemOutcomes =
+          Math.max(0, item.approved || 0) +
+          Math.max(0, item.failed || 0) +
+          Math.max(0, item.absent || 0) +
+          Math.max(0, item.withdrawn || 0);
+        const itemTotal =
+          typeof item.matriculados === "number" && Number.isFinite(item.matriculados)
+            ? Math.max(item.matriculados, itemOutcomes)
+            : itemOutcomes;
+        return {
+          approved: acc.approved + Math.max(0, item.approved || 0),
+          failed: acc.failed + Math.max(0, item.failed || 0),
+          absent: acc.absent + Math.max(0, item.absent || 0),
+          withdrawn: acc.withdrawn + Math.max(0, item.withdrawn || 0),
+          total: acc.total + itemTotal,
+        };
+      },
+      { approved: 0, failed: 0, absent: 0, withdrawn: 0, total: 0 }
+    );
+
+    const consolidatedSource = consolidatedMetric
+      ? {
+          approved: consolidatedMetric.aprovados,
+          failed: consolidatedMetric.reprovados_nota,
+          absent: consolidatedMetric.reprovados_falta,
+          withdrawn: consolidatedMetric.trancamentos,
+          total: consolidatedMetric.matriculados,
+        }
+      : fallbackConsolidated;
+
+    const consolidatedOutcomes =
+      Math.max(0, consolidatedSource.approved || 0) +
+      Math.max(0, consolidatedSource.failed || 0) +
+      Math.max(0, consolidatedSource.absent || 0) +
+      Math.max(0, consolidatedSource.withdrawn || 0);
+    const consolidatedTotal = Math.max(
+      consolidatedSource.total || 0,
+      consolidatedOutcomes
+    );
+
+    if (
+      consolidatedTotal >= MIN_PUBLIC_SAMPLE_SIZE &&
+      consolidatedOutcomes >= MIN_PUBLIC_SAMPLE_SIZE
+    ) {
+      rows.push(
+        buildHistoricalPerformanceRow(
+          disciplineCode,
+          disciplineName,
+          "Acumulado Consolidado (LGPD)",
+          {
+            ...consolidatedSource,
+            total: consolidatedTotal,
+          }
+        )
+      );
+    }
+  }
+
+  return rows;
 }
 
 /**
@@ -289,7 +446,10 @@ export function mapClassesToOpenData(
     return {
       codigo_disciplina: disciplineCode || turma.disciplinaCodigo,
       codigo_turma: turma.codigoTurma,
-      semestre_letivo: turma.semestre || "Atual",
+      semestre_letivo:
+        typeof turma.semestre === "string" && turma.semestre.trim().length > 0
+          ? turma.semestre.trim()
+          : null,
       docentes: turma.professor,
       turno: turma.turno,
       horarios: turma.horarios,
@@ -431,9 +591,10 @@ export function exportDisciplinesOpenData(
 export function exportDisciplineHistoryOpenData(
   disciplineCode: string,
   disciplineName: string,
-  history: HistoricalPerformance[],
+  history: HistoricalPerformance[] | null | undefined,
   format: OpenDataFormat,
   options?: {
+    consolidatedMetric?: BackendMetricaConsolidada | null;
     referenceDate?: Date;
     downloadHandler?: BrowserDownloadHandler | null;
   }
@@ -441,7 +602,8 @@ export function exportDisciplineHistoryOpenData(
   const rows = mapHistoricalPerformanceToOpenData(
     disciplineCode,
     disciplineName,
-    history
+    history,
+    options?.consolidatedMetric
   );
   return createOpenDataExport({
     scope: "historico_disciplina",
@@ -450,7 +612,7 @@ export function exportDisciplineHistoryOpenData(
     rows,
     identifier: disciplineCode,
     referenceDate: options?.referenceDate,
-    downloadHandler: options?.downloadHandler,
+    downloadHandler: rows.length > 0 ? options?.downloadHandler : null,
   });
 }
 
@@ -480,6 +642,8 @@ export const openDataService = {
   serializeToCsv,
   serializeToJson,
   buildOpenDataFilename,
+  isSemesterSuppressedByLgpd,
+  filterPublicHistoricalPerformance,
   mapCoursesToOpenData,
   mapDisciplinesToOpenData,
   mapHistoricalPerformanceToOpenData,

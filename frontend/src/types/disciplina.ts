@@ -1,9 +1,11 @@
 export interface HistoricalPerformance {
   semester: string;
+  matriculados?: number;
   approved: number;
   failed: number;
   absent: number;
   withdrawn: number;
+  amostragem_suprimida_lgpd?: boolean;
 }
 
 export interface DisciplineMetric {
@@ -220,10 +222,12 @@ export function adaptBackendDisciplina(
   if (full?.metricas && full.metricas.length > 0) {
     historicalPerf = full.metricas.map((m) => ({
       semester: `${m.ano}/${m.semestre}`,
+      matriculados: m.matriculados,
       approved: m.aprovados,
       failed: m.reprovados_nota,
       absent: m.reprovados_falta,
       withdrawn: m.trancamentos,
+      amostragem_suprimida_lgpd: Boolean(m.amostragem_suprimida_lgpd),
     }));
   }
 

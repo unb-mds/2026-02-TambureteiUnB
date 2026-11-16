@@ -12,15 +12,16 @@ export interface OpenDataColumnDefinition<T> {
 }
 
 export interface CourseOpenDataRow {
-  codigo_mec: string;
+  id: string | null;
+  codigo_mec: string | null;
   nome: string;
   slug: string;
-  campus: string;
-  departamento: string;
-  grau: string;
-  turno: string;
-  semestres: number;
-  total_disciplinas: number;
+  campus: string | null;
+  departamento: string | null;
+  grau: string | null;
+  turno: string | null;
+  semestres: number | null;
+  total_disciplinas: number | null;
   matriculados_recentes: number | null;
   concluintes_recentes: number | null;
   taxa_sucesso_pct: number | null;
@@ -62,7 +63,7 @@ export interface HistoricalPerformanceOpenDataRow {
 export interface ClassOpenDataRow {
   codigo_disciplina: string;
   codigo_turma: string;
-  semestre_letivo: string;
+  semestre_letivo: string | null;
   docentes: string;
   turno: string;
   horarios: string;
