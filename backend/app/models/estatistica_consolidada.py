@@ -1,6 +1,6 @@
 from sqlalchemy import (
     BigInteger, CheckConstraint, Column, DateTime, ForeignKey,
-    Integer, Numeric, String, UniqueConstraint, func,
+    Index, Integer, Numeric, String, UniqueConstraint, func,
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -13,6 +13,7 @@ class EstatisticaConsolidada(Base):
 
     id = Column(BigInteger, primary_key=True)
     turma_id = Column(Integer, ForeignKey("turmas.id", ondelete="CASCADE"), nullable=False)
+    disciplina_id = Column(Integer, ForeignKey("disciplinas.id", ondelete="CASCADE"), nullable=False)
     semestre_referencia = Column(String(10), nullable=False)
 
     taxa_aprovacao = Column(Numeric(5, 2), nullable=False)
@@ -28,6 +29,7 @@ class EstatisticaConsolidada(Base):
 
     __table_args__ = (
         UniqueConstraint("turma_id", "semestre_referencia", name="uq_estatistica_turma_semestre"),
+        Index("ix_estatisticas_disciplina_semestre", "disciplina_id", "semestre_referencia"),
         CheckConstraint("status IN ('VALIDADO')", name="chk_status_estatistica"),
         CheckConstraint(
             "taxa_aprovacao >= 0 AND taxa_reprovacao_nota >= 0 "
