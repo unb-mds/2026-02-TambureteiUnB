@@ -16,6 +16,8 @@ import {
   GLOBAL_DEPARTMENTS,
   Discipline,
 } from "@/types/disciplina";
+import ApprovalBadge from "@/components/ApprovalBadge";
+import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -73,7 +75,17 @@ function DisciplinasContent() {
 
       return matchesQuery && matchesCampus && matchesDepartment && matchesArea;
     }).sort((a, b) => {
-      if (sort === "Menor taxa de aprovação") return a.approval - b.approval;
+      if (sort === "Menor taxa de aprovação") {
+        const approvalA =
+          typeof a.approval === "number" && a.approval > 0
+            ? a.approval
+            : Number.POSITIVE_INFINITY;
+        const approvalB =
+          typeof b.approval === "number" && b.approval > 0
+            ? b.approval
+            : Number.POSITIVE_INFINITY;
+        return approvalA - approvalB;
+      }
       if (sort === "Mais materiais") return b.resources - a.resources;
       return b.popularity - a.popularity;
     });
@@ -86,6 +98,7 @@ function DisciplinasContent() {
     const start = (activePage - 1) * ITEMS_PER_PAGE;
     return filteredResults.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredResults, activePage]);
+  const approvalMetrics = useDisciplineApprovalMetrics(paginatedResults);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -369,15 +382,12 @@ function DisciplinasContent() {
                         <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
                           {discipline.code}
                         </span>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            discipline.approval >= 70
-                              ? "bg-[#E9F9F3] text-[#067A59]"
-                              : "bg-[#FFF7E8] text-[#925600]"
-                          }`}
-                        >
-                          {discipline.approval}% de aprovação
-                        </span>
+                        <ApprovalBadge
+                          approval={
+                            approvalMetrics[discipline.slug] ??
+                            discipline.approval
+                          }
+                        />
                       </div>
 
                       <h2 className="text-base sm:text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">

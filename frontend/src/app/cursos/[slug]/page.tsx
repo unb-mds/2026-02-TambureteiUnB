@@ -11,6 +11,8 @@ import { getDisciplines } from "@/services/disciplineService";
 import { CourseDetail } from "@/types/curso";
 import { Discipline, SEMESTER_FILTERS } from "@/types/disciplina";
 import Pagination from "@/components/Pagination";
+import ApprovalBadge from "@/components/ApprovalBadge";
+import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
 
 const ITEMS_PER_PAGE = 24;
 
@@ -72,7 +74,7 @@ export default function CourseDisciplinesPage() {
         area: "Tecnologia",
         credits: `${cd.creditos || 4} créditos • ${cd.carga_horaria || (cd.creditos ? cd.creditos * 15 : 60)}h`,
         hours: cd.carga_horaria || (cd.creditos ? cd.creditos * 15 : 60),
-        approval: 76.5,
+        approval: null,
         resources: 14,
         popularity: 85,
         semester: cd.periodo_sugerido ? `${cd.periodo_sugerido}º Semestre` : "Optativas",
@@ -135,6 +137,7 @@ export default function CourseDisciplinesPage() {
     const start = (activePage - 1) * ITEMS_PER_PAGE;
     return filteredDisciplines.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredDisciplines, activePage]);
+  const approvalMetrics = useDisciplineApprovalMetrics(paginatedDisciplines);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -506,10 +509,12 @@ export default function CourseDisciplinesPage() {
                         <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold tracking-wide text-[#5B4BDB]">
                           {discipline.code}
                         </span>
-                        <span className="flex items-center gap-1.5 rounded-full bg-[#EAF8EF] px-2.5 py-1 text-xs font-semibold text-[#287A45]">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#42A866]" />
-                          {discipline.approval}% de aprovação
-                        </span>
+                        <ApprovalBadge
+                          approval={
+                            approvalMetrics[discipline.slug] ??
+                            discipline.approval
+                          }
+                        />
                       </div>
 
                       {/* Nome da Disciplina */}

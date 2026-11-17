@@ -36,7 +36,7 @@ export interface Discipline {
   area: "Exatas" | "Tecnologia" | "Saúde" | "Humanas";
   credits: string;
   hours: number;
-  approval: number;
+  approval?: number | null;
   failedGrade?: number;
   failedAttendance?: number;
   withdrawn?: number;
@@ -201,7 +201,7 @@ export function adaptBackendDisciplina(
   const creditosNum = raw.creditos || 4;
   const cargaHoraria = full?.carga_horaria || creditosNum * 15;
 
-  let approval = 0;
+  let approval: number | null = null;
   let failedGrade = 0;
   let failedAttendance = 0;
   let withdrawn = 0;
@@ -210,7 +210,7 @@ export function adaptBackendDisciplina(
     const mc = full.metrica_consolidada;
     approval = mc.taxa_aprovacao_acumulada !== null && mc.taxa_aprovacao_acumulada !== undefined
       ? Number(mc.taxa_aprovacao_acumulada)
-      : (mc.matriculados > 0 ? Number(((mc.aprovados / mc.matriculados) * 100).toFixed(1)) : 0);
+      : (mc.matriculados > 0 ? Number(((mc.aprovados / mc.matriculados) * 100).toFixed(1)) : null);
     if (mc.matriculados > 0) {
       failedGrade = Number(((mc.reprovados_nota / mc.matriculados) * 100).toFixed(1));
       failedAttendance = Number(((mc.reprovados_falta / mc.matriculados) * 100).toFixed(1));
