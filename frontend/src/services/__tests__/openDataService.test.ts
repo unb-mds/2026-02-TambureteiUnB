@@ -9,6 +9,7 @@ import {
   isSemesterSuppressedByLgpd,
   filterPublicHistoricalPerformance,
   mapCoursesToOpenData,
+  mapDisciplinesToOpenData,
   mapHistoricalPerformanceToOpenData,
   exportCoursesOpenData,
   exportDisciplinesOpenData,
@@ -160,6 +161,10 @@ test("exportCoursesOpenData e exportDisciplinesOpenData acionam handler de downl
   assert.equal(disciplineExport.recordCount, 1);
   assert.equal(disciplineExport.filename, "tamburetei-unb-disciplinas-2026-11-12.json");
   assert.equal(disciplineExport.content.includes("FGA0138"), true);
+  const [disciplineWithoutMetric] = mapDisciplinesToOpenData([
+    { ...disciplines[0], approval: null },
+  ]);
+  assert.equal(disciplineWithoutMetric.taxa_aprovacao_pct, null);
   assert.equal(captured.length, 2);
 });
 
@@ -242,6 +247,7 @@ test("RN07: adaptBackendDisciplina preserva amostragem_suprimida_lgpd e exportac
   assert.equal(adapted.historicalPerformance?.length, 1);
   assert.equal(adapted.historicalPerformance?.[0].amostragem_suprimida_lgpd, true);
   assert.equal(isSemesterSuppressedByLgpd(adapted.historicalPerformance![0]), true);
+  assert.equal(adapted.approval, 66.7);
 
   let downloadTriggered = false;
   const exportRes = exportDisciplineHistoryOpenData(
@@ -262,6 +268,39 @@ test("RN07: adaptBackendDisciplina preserva amostragem_suprimida_lgpd e exportac
   assert.equal(parsed.total_registros, 0);
   assert.deepEqual(parsed.dados, []);
   assert.equal(downloadTriggered, false);
+});
+
+test("adaptBackendDisciplina mantém aprovação indisponível distinta de zero e calcula taxa consolidada", () => {
+  const summary = adaptBackendDisciplina({
+    codigo: "FGA0001",
+    nome: "Disciplina sem métricas",
+    slug: "fga0001-sem-metricas",
+  });
+  assert.equal(summary.approval, null);
+
+  const withoutConsolidatedRate: BackendDisciplinaResponse = {
+    id: 43,
+    codigo: "FGA0002",
+    nome: "Disciplina com métricas",
+    slug: "fga0002-com-metricas",
+    pre_requisitos_itens: [],
+    equivalencias_itens: [],
+    cursos: [],
+    metrica_consolidada: {
+      matriculados: 8,
+      aprovados: 6,
+      reprovados_nota: 1,
+      reprovados_falta: 1,
+      trancamentos: 0,
+      taxa_aprovacao_acumulada: null,
+      total_turmas_suprimidas: 0,
+    },
+    metricas: [],
+  };
+  assert.equal(
+    adaptBackendDisciplina(withoutConsolidatedRate).approval,
+    75
+  );
 });
 
 test("RN07: semestres suprimidos sao omitidos individualmente e consolidados no acumulado quando o total >= 5", () => {

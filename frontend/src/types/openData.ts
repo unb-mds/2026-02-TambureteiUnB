@@ -38,7 +38,7 @@ export interface DisciplineOpenDataRow {
   grande_area: string;
   creditos_descricao: string;
   carga_horaria_h: number;
-  taxa_aprovacao_pct: number;
+  taxa_aprovacao_pct: number | null;
   taxa_reprovacao_nota_pct: number;
   taxa_reprovacao_falta_pct: number;
   taxa_trancamento_pct: number;

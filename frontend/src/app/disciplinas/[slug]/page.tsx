@@ -418,7 +418,10 @@ function DisciplineDetailContent() {
   const metrics = [
     {
       label: "Taxa de Aprovação",
-      value: `${discipline.approval}%`,
+      value:
+        typeof discipline.approval === "number" && discipline.approval > 0
+          ? `${discipline.approval}%`
+          : "Sem dados",
       count: formatAlunos(metrica?.aprovados),
       color: "#067A59",
       iconColor: "#10B981",

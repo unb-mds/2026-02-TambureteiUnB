@@ -250,7 +250,8 @@ export function mapDisciplinesToOpenData(
     grande_area: d.area,
     creditos_descricao: d.credits,
     carga_horaria_h: d.hours,
-    taxa_aprovacao_pct: Number((d.approval ?? 0).toFixed(1)),
+    taxa_aprovacao_pct:
+      d.approval == null ? null : Number(d.approval.toFixed(1)),
     taxa_reprovacao_nota_pct: Number((d.failedGrade ?? 0).toFixed(1)),
     taxa_reprovacao_falta_pct: Number((d.failedAttendance ?? 0).toFixed(1)),
     taxa_trancamento_pct: Number((d.withdrawn ?? 0).toFixed(1)),
