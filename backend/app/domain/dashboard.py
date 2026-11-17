@@ -1,9 +1,17 @@
-def calcular_taxa_evasao(desvinculados: int, matriculados: int) -> float | None:
-    if desvinculados < 0 or matriculados < 0:
+def _calcular_percentual(numerador: int, denominador: int) -> float | None:
+    if numerador < 0 or denominador < 0:
         raise ValueError("Quantidades de alunos não podem ser negativas.")
-    if matriculados == 0:
+    if denominador == 0:
         return None
-    return round(desvinculados / matriculados * 100, 2)
+    return round(numerador / denominador * 100, 2)
+
+
+def calcular_taxa_evasao(desvinculados: int, matriculados: int) -> float | None:
+    return _calcular_percentual(desvinculados, matriculados)
+
+
+def calcular_taxa_formacao(concluintes: int, ingressantes: int) -> float | None:
+    return _calcular_percentual(concluintes, ingressantes)
 
 
 def calcular_media(valores: list[float]) -> float | None:
