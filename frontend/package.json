@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --no-warnings --experimental-strip-types --test 'src/**/__tests__/*.test.ts'"
+    "test": "node --no-warnings --import tsx --test 'src/**/__tests__/*.test.ts' 'src/**/__tests__/*.test.tsx'"
   },
   "dependencies": {
     "next": "16.3.4",
@@ -22,6 +22,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
