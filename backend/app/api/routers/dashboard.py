@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.schemas.dashboard import (
     CursoFormacaoResponse,
+    DashboardGeralResponse,
     EvasaoCampusComparativoResponse,
     EvasaoCampusDetalheResponse,
 )
@@ -33,3 +34,8 @@ def listar_evasao_por_campus(
 @router.get("/campus/{campus}/evasao", response_model=EvasaoCampusDetalheResponse)
 def obter_evasao_campus(campus: str, db: Session = Depends(get_db)):
     return dashboard_service.obter_evasao_campus(db, campus)
+
+
+@router.get("/geral", response_model=DashboardGeralResponse)
+def obter_dashboard_geral(db: Session = Depends(get_db)):
+    return dashboard_service.obter_visao_geral(db)
