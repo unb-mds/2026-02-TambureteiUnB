@@ -6,7 +6,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Button from "@/components/Button";
 import Pagination from "@/components/Pagination";
+import OpenDataExportBar from "@/components/OpenDataExportBar";
 import { getCourses } from "@/services/courseService";
+import { exportCoursesOpenData } from "@/services/openDataService";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
 
 const ITEMS_PER_PAGE = 25;
@@ -139,10 +141,11 @@ export default function CursosPage() {
               </svg>
             </div>
             <input
-              type="text"
+              type="search"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Buscar curso por nome ou departamento..."
+              aria-label="Buscar curso por nome ou departamento"
               className="w-full pl-10 pr-4 py-2.5 bg-[#F7F7FA] border border-[#E8E6F8] rounded-xl text-sm text-[#202124] placeholder-gray-400 focus:bg-white focus:border-[#5B4BDB] focus:ring-4 focus:ring-[#5B4BDB]/15 transition-all outline-none"
             />
             {searchQuery && (
@@ -167,6 +170,7 @@ export default function CursosPage() {
                 <button
                   key={campus}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => handleCampusChange(campus)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                     active
@@ -182,7 +186,7 @@ export default function CursosPage() {
         </div>
 
         {/* Contador de Resultados */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <p className="text-xs text-gray-500 font-medium">
             Exibindo <span className="font-bold text-[#202124]">{filteredCourses.length}</span> cursos{" "}
             {selectedCampus !== "Todos" && (
@@ -204,6 +208,21 @@ export default function CursosPage() {
               Redefinir filtros
             </button>
           )}
+        </div>
+
+        <div className="mb-6">
+          <OpenDataExportBar
+            title="Exportar Dados Abertos de Cursos"
+            recordCount={filteredCourses.length}
+            recordLabel="cursos"
+            disabled={loading}
+            compact={true}
+            onExport={(format) =>
+              exportCoursesOpenData(filteredCourses, format, {
+                identifier: selectedCampus !== "Todos" ? selectedCampus : null,
+              })
+            }
+          />
         </div>
 
         {/* Grade de Cards de Cursos */}

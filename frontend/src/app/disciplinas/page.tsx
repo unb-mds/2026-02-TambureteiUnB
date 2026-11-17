@@ -7,7 +7,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
 import Pagination from "@/components/Pagination";
+import OpenDataExportBar from "@/components/OpenDataExportBar";
 import { getDisciplines } from "@/services/disciplineService";
+import { exportDisciplinesOpenData } from "@/services/openDataService";
 import {
   GLOBAL_CAMPUSES,
   GLOBAL_AREAS,
@@ -274,7 +276,7 @@ function DisciplinasContent() {
           </section>
 
           {/* Barra de Ordenação e Contador */}
-          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="text-xs sm:text-sm text-gray-600">
               Exibindo <strong className="text-[#202124]">{filteredResults.length} disciplinas</strong>{" "}
               {appliedQuery && (
@@ -317,6 +319,21 @@ function DisciplinasContent() {
                 </svg>
               </div>
             </label>
+          </div>
+
+          <div className="mb-6">
+            <OpenDataExportBar
+              title="Exportar Catalogo Analitico de Disciplinas"
+              recordCount={filteredResults.length}
+              recordLabel="disciplinas"
+              disabled={loading}
+              compact={true}
+              onExport={(format) =>
+                exportDisciplinesOpenData(filteredResults, format, {
+                  identifier: department !== "Todos os Departamentos" ? department : null,
+                })
+              }
+            />
           </div>
 
           {/* Grade de Disciplinas */}

@@ -334,11 +334,18 @@ export default function ComentariosFrontend({
         </div>
       )}
 
-      <form onSubmit={handleMainSubmit} className="mb-8 rounded-2xl bg-[#FAFAFC] p-4 sm:p-5 border border-[#ECEAF5]">
+      <form
+        onSubmit={handleMainSubmit}
+        aria-label={`Publicar relato ou duvida sobre ${disciplineName}`}
+        className="mb-8 rounded-2xl bg-[#FAFAFC] p-4 sm:p-5 border border-[#ECEAF5]"
+      >
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+          <label
+            htmlFor="novo-relato-disciplina"
+            className="text-xs font-bold uppercase tracking-wider text-gray-500"
+          >
             Deixar um relato ou duvida
-          </span>
+          </label>
 
           <div className="flex items-center gap-2">
             <button
@@ -367,19 +374,24 @@ export default function ComentariosFrontend({
         </div>
 
         <textarea
+          id="novo-relato-disciplina"
           rows={3}
           value={newCommentText}
           onChange={(e) => setNewCommentText(e.target.value)}
+          aria-label={`Relato ou duvida sobre ${disciplineName}`}
+          aria-describedby="conduta-etica-rn04 contador-caracteres-relato"
           placeholder="Compartilhe dicas sobre as provas, listas de exercicios ou tire uma duvida sobre a materia..."
           className="w-full resize-none rounded-xl bg-white border border-[#DDD9F1] p-3 text-xs sm:text-sm text-[#202124] placeholder-gray-400 outline-none focus:border-[#5B4BDB] focus:ring-1 focus:ring-[#5B4BDB]"
         />
 
-        <p className="mt-2 text-[11px] text-gray-500">
+        <p id="conduta-etica-rn04" className="mt-2 text-[11px] text-gray-500">
           Conduta ética (RN04): concentre seu relato na ementa, metodologia e dificuldades técnicas da matéria. Ataques pessoais a docentes são vedados.
         </p>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <span
+            id="contador-caracteres-relato"
+            aria-live="polite"
             className={`text-xs ${
               newCommentText.length > MAX_CHARS
                 ? "text-red-500 font-bold"
@@ -489,6 +501,7 @@ export default function ComentariosFrontend({
                       rows={2}
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
+                      aria-label={`Responder ao relato de ${comment.authorAlias}`}
                       placeholder="Escreva uma resposta para este comentario..."
                       className="w-full resize-none rounded-xl bg-[#FAFAFC] border border-[#DDD9F1] p-2.5 text-xs text-[#202124] placeholder-gray-400 outline-none focus:border-[#5B4BDB]"
                     />

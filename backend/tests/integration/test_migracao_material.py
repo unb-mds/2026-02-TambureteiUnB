@@ -73,7 +73,9 @@ def test_convergencia_preserva_registros_existentes(engine, revisao):
 
 def test_historico_linear_sem_heads_concorrentes():
     script = ScriptDirectory.from_config(Config("alembic.ini"))
-    assert script.get_heads() == ["011_denuncias"]
+
+    assert script.get_heads() == ["012_estatisticas_consolidadas"]
+    assert script.get_revision("012_estatisticas_consolidadas").down_revision == "011_denuncias"
     assert script.get_revision("011_denuncias").down_revision == "010_curadorias"
     assert script.get_revision("010_curadorias").down_revision == "009_arquivos_conteudos"
     assert script.get_revision("009_arquivos_conteudos").down_revision == "008"
