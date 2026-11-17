@@ -1,8 +1,9 @@
-from sqlalchemy import RowMapping, select, text
+from sqlalchemy import RowMapping, func, select, text
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.curso import Curso
 from app.models.evasao_campus_view import mv_evasao_campus
+from app.models.metrica import MetricaCurso
 from app.repositories.base import BaseRepository
 
 
@@ -43,6 +44,24 @@ class DashboardRepository(BaseRepository[Curso]):
 
     def atualizar_evasao_campus(self, db: Session) -> None:
         db.execute(text("REFRESH MATERIALIZED VIEW mv_evasao_campus"))
+
+    def contar_cursos(self, db: Session) -> int:
+        return int(db.scalar(select(func.count(Curso.id))) or 0)
+
+    def listar_fluxo_institucional(self, db: Session) -> list[RowMapping]:
+        stmt = (
+            select(
+                MetricaCurso.ano.label("ano"),
+                func.coalesce(func.sum(MetricaCurso.ingressantes), 0).label("ingressantes"),
+                func.coalesce(func.sum(MetricaCurso.matriculados), 0).label("matriculados"),
+                func.coalesce(func.sum(MetricaCurso.concluintes), 0).label("concluintes"),
+                func.coalesce(func.sum(MetricaCurso.trancados), 0).label("trancados"),
+                func.coalesce(func.sum(MetricaCurso.desvinculados), 0).label("evadidos"),
+            )
+            .group_by(MetricaCurso.ano)
+            .order_by(MetricaCurso.ano.asc())
+        )
+        return list(db.execute(stmt).mappings().all())
 
 
 dashboard_repo = DashboardRepository()
