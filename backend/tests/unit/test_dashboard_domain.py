@@ -1,6 +1,10 @@
 import pytest
 
-from app.domain.dashboard import calcular_media, calcular_taxa_evasao
+from app.domain.dashboard import (
+    calcular_media,
+    calcular_taxa_evasao,
+    calcular_taxa_formacao,
+)
 
 
 class TestCalcularTaxaEvasao:
@@ -40,3 +44,28 @@ class TestCalcularMedia:
 
     def test_lista_vazia_retorna_none(self):
         assert calcular_media([]) is None
+
+
+class TestCalcularTaxaFormacao:
+    def test_calcula_percentual_valido(self):
+        assert calcular_taxa_formacao(concluintes=60, ingressantes=100) == 60.0
+
+    def test_arredonda_em_duas_casas(self):
+        assert calcular_taxa_formacao(concluintes=1, ingressantes=3) == 33.33
+
+    def test_sem_concluintes_retorna_zero(self):
+        assert calcular_taxa_formacao(concluintes=0, ingressantes=80) == 0.0
+
+    def test_sem_ingressantes_retorna_none(self):
+        assert calcular_taxa_formacao(concluintes=10, ingressantes=0) is None
+
+    def test_um_ingressante_e_calculado(self):
+        assert calcular_taxa_formacao(concluintes=1, ingressantes=1) == 100.0
+
+    def test_concluintes_negativos_lancam_erro(self):
+        with pytest.raises(ValueError, match="não podem ser negativas"):
+            calcular_taxa_formacao(concluintes=-1, ingressantes=100)
+
+    def test_ingressantes_negativos_lancam_erro(self):
+        with pytest.raises(ValueError, match="não podem ser negativas"):
+            calcular_taxa_formacao(concluintes=10, ingressantes=-1)
