@@ -221,5 +221,9 @@ mkdocs serve -a localhost:8001
 ```
 Acesse no seu navegador: [http://localhost:8001](http://localhost:8001).
 
+
+## Fontes DPO/Anuário
+[https://repositoriodpo.unb.br/anuarios/anuario-estatistico-2025/]
+Caso deseje buscar por um ano em específico, basta alterar o ano na URL do link anexado.
 ---
 

@@ -89,6 +89,11 @@ def main():
         action="store_true",
         help="Extrai a matriz curricular de todos os cursos descobertos",
     )
+    parser.add_argument(
+        "--from-processed",
+        action="store_true",
+        help="Carrega diretamente os dados salvos em app/pipeline/data/processed no banco sem reexecutar o scraping",
+    )
 
     args = parser.parse_args()
     runner = ETLRunner()
@@ -98,6 +103,10 @@ def main():
     cursos_ids = [args.curso] if args.curso else None
 
     try:
+        if args.from_processed:
+            runner.run_from_processed(dry_run=args.dry_run)
+            print("\nCarga dos dados processados concluída com sucesso.")
+            sys.exit(0)
         if args.source in ("sigaa", "all"):
             deptos = [args.departamento] if args.departamento else None
             runner.run_sigaa_pipeline(
@@ -133,9 +142,12 @@ def main():
             if not cursos_input and args.source == "metricas-cursos":
                 cursos_input = args.input_file
 
+            ano_ref = args.ano_fim if args.ano_fim and args.ano_fim <= 2024 else 2024
             runner.run_metricas_cursos_pipeline(
+                ano=ano_ref,
                 input_file=cursos_input,
                 dry_run=args.dry_run,
+                export=export,
             )
 
         print("\nPipeline executado com sucesso.")
