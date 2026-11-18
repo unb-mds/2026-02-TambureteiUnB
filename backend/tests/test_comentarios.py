@@ -163,7 +163,7 @@ def test_excluir_sem_autenticacao_retorna_401(client: TestClient, comentario_do_
 
 # --- DIFICULDADES E TÓPICOS CRÍTICOS (SPRINT 8) ---
 
-def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, student_headers, disciplina):
+def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, db: Session, student_headers, disciplina):
     payload = {
         "autor_alias": "Estudante Anônimo",
         "topico_dificuldade": "[CRITICO] Integrais Múltiplas",
@@ -178,6 +178,12 @@ def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, student
     created = post_resp.json()
     assert created["topico_dificuldade"] == "[CRITICO] Integrais Múltiplas"
     assert created["disciplina_id"] == disciplina.id
+    assert created["status_moderacao"] == "PENDENTE"
+
+    comentario = db.get(Comentario, created["id"])
+    assert comentario is not None
+    comentario.status_moderacao = "PUBLICADO"
+    db.commit()
 
     list_resp = client.get(
         f"/cadeiras/{disciplina.slug}/comentarios?apenas_dificuldades=true&topico=Integrais"

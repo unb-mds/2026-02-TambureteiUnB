@@ -16,7 +16,6 @@ from app.api.schemas.denuncia import (
     FilaDenuncias,
     ResumoDecisaoDenuncia,
 )
-)
 from app.core.config import settings
 from app.core.database import get_db
 from app.domain.materiais import TIPOS_MIME
