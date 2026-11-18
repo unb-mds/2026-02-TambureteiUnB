@@ -5,24 +5,7 @@ import { useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import AcademicProfileDashboard from "@/components/AcademicProfileDashboard";
-import {
-  AUTH_CHANGE_EVENT,
-  isAuthenticated,
-} from "@/services/authService";
-
-function subscribeToAuthChanges(onChange: () => void) {
-  if (typeof window === "undefined") {
-    return () => {};
-  }
-
-  window.addEventListener(AUTH_CHANGE_EVENT, onChange);
-  window.addEventListener("storage", onChange);
-
-  return () => {
-    window.removeEventListener(AUTH_CHANGE_EVENT, onChange);
-    window.removeEventListener("storage", onChange);
-  };
-}
+import { isAuthenticated, subscribeAuthChange } from "@/services/authService";
 
 const profileDemo = {
   name: "Marina Oliveira",
@@ -53,7 +36,7 @@ function ProfileLoading() {
 export default function ProfilePage() {
   const router = useRouter();
   const authenticated = useSyncExternalStore(
-    subscribeToAuthChanges,
+    subscribeAuthChange,
     isAuthenticated,
     () => null
   );
