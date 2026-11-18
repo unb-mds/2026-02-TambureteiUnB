@@ -7,7 +7,7 @@ import Button from "@/components/Button";
 import ModerationCard from "@/components/ModerationCard";
 import DenunciaModerationCard from "@/components/DenunciaModerationCard";
 import ModerationActionModal from "@/components/ModerationActionModal";
-import { AUTH_CHANGE_EVENT } from "@/services/authService";
+import { subscribeAuthChange } from "@/services/authService";
 import { ApiError } from "@/services/httpClient";
 import {
   ROTULOS_CATEGORIA_DENUNCIA,
@@ -93,20 +93,19 @@ export default function ModeracaoPage() {
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void carregar(), 0);
     const sessaoAlterada = () => {
       setFila(null);
       setFilaDenuncias(null);
       setAcesso("loading");
       void carregar();
     };
-    window.addEventListener(AUTH_CHANGE_EVENT, sessaoAlterada);
-    window.addEventListener("storage", sessaoAlterada);
+    const unsubscribeAuthChanges = subscribeAuthChange(sessaoAlterada);
+    const timer = window.setTimeout(() => void carregar(), 0);
+
     return () => {
       window.clearTimeout(timer);
       invalidarConsultas();
-      window.removeEventListener(AUTH_CHANGE_EVENT, sessaoAlterada);
-      window.removeEventListener("storage", sessaoAlterada);
+      unsubscribeAuthChanges();
     };
   }, [carregar, invalidarConsultas]);
 
