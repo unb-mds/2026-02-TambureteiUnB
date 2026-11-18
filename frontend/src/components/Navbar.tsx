@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Button from "./Button";
 import StoolIllustration from "./StoolIllustration";
-import { authService } from "@/services/authService";
+import { authService, subscribeAuthChange } from "@/services/authService";
 import { podeModerar } from "@/services/moderacaoService";
 import { UserResponse } from "@/types/auth";
 
@@ -57,15 +57,9 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
       }
     };
 
+    const unsubscribe = subscribeAuthChange(syncAuth);
     syncAuth();
-
-    window.addEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-    window.addEventListener("storage", syncAuth);
-
-    return () => {
-      window.removeEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-      window.removeEventListener("storage", syncAuth);
-    };
+    return unsubscribe;
   }, []);
 
   // Fechar dropdown ao clicar fora
@@ -267,6 +261,14 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
                     </div>
                   </div>
 
+                  <Link
+                    href="/perfil"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-[#F7F7FA] hover:text-[#5B4BDB]"
+                  >
+                    Meu perfil
+                  </Link>
+
                   {/* Ação de Logout */}
                   <div className="pt-1">
                     <button
@@ -390,6 +392,13 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
                     </p>
                   </div>
                 </div>
+                <Link
+                  href="/perfil"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#5B4BDB] hover:bg-[#5B4BDB]/5"
+                >
+                  Meu perfil
+                </Link>
                 <Button
                   variant="outline"
                   fullWidth

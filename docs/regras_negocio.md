@@ -33,6 +33,7 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 * Com confiança $\ge 0.80$, o item pode ser aprovado automaticamente (`APROVADO` / `PUBLICADO`) ou rejeitado/ocultado automaticamente (`RECUSADO` / `OCULTO`, inclusive por detecção determinística de dados pessoais de `RN01`), registrando `moderado_por = 'IA'` e auditoria em `curadorias`.
 * Em caso de dúvida (`REVISAO_HUMANA`, confiança $< 0.80$, PDF escaneado sem camada de texto ou Ollama indisponível), o item permanece `PENDENTE` na fila `/moderacao` com o parecer prévio (`motivo_moderacao` e `confianca_ia`) visível apenas para `MODERATOR` e `ADMIN`.
 * Somente arquivos aprovados (`APROVADO` e `ativo`) e comentários publicados (`PUBLICADO`) são listados publicamente. Recusas e ocultações exigem justificativa. Arquivos já aprovados permanecem publicados.
+* Comentários e materiais sinalizados pela comunidade são revisados na Central de Denúncias (`/moderacao`), com retenção preventiva ao atingir 3 denúncias pendentes e decisão administrativa para exclusão do conteúdo ou descarte de denúncia falsa.
 
 ### [RN07] Tratamento de Dados Históricos com Baixa Amostragem (LGPD / DPO)
 * Agregações históricas oriundas de microdados públicos do DPO/INEP com **menos de 5 estudantes** em uma turma devem ser consolidadas no acumulado geral da matéria para inviabilizar qualquer identificação indireta de notas.

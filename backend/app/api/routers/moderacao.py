@@ -11,12 +11,19 @@ from app.api.schemas.curadoria import (
     FilaCuradoria,
     RegistroCuradoria,
 )
+from app.api.schemas.denuncia import (
+    DecisaoDenuncia,
+    FilaDenuncias,
+    ResumoDecisaoDenuncia,
+)
+)
 from app.core.config import settings
 from app.core.database import get_db
 from app.domain.materiais import TIPOS_MIME
 from app.models.usuario import Usuario
 from app.services.armazenamento_material import ArmazenamentoMaterial
 from app.services.curadoria_service import CuradoriaService
+from app.services.denuncia_service import denuncia_service
 
 router = APIRouter(prefix="/moderacao", tags=["Moderação"])
 Moderador = Annotated[Usuario, Depends(require_role("MODERATOR", "ADMIN"))]
@@ -75,3 +82,25 @@ def decidir_comentario(
     servico: Servico,
 ):
     return servico.decidir_comentario(db, id, dados, moderador)
+
+
+@router.get("/denuncias", response_model=FilaDenuncias)
+def fila_denuncias(
+    db: Banco,
+    moderador: Moderador,
+    pagina: Annotated[int, Query(ge=1)] = 1,
+    tamanho_pagina: Annotated[int, Query(ge=1, le=100)] = 20,
+    tipo: Annotated[str | None, Query()] = None,
+    categoria: Annotated[str | None, Query()] = None,
+) -> FilaDenuncias:
+    return denuncia_service.listar_fila(db, pagina, tamanho_pagina, tipo, categoria)
+
+
+@router.patch("/denuncias/{id}", response_model=ResumoDecisaoDenuncia)
+def decidir_denuncia(
+    id: Identificador,
+    dados: DecisaoDenuncia,
+    db: Banco,
+    moderador: Moderador,
+) -> ResumoDecisaoDenuncia:
+    return denuncia_service.decidir(db, id, dados, moderador)

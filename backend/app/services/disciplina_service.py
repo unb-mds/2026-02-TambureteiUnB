@@ -120,6 +120,7 @@ class DisciplinaService:
                 )
 
         return DisciplinaResponse(
+            id=disciplina.id,
             codigo=disciplina.codigo or "",
             nome=disciplina.nome,
             slug=disciplina.slug,

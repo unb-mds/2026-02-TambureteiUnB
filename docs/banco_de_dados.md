@@ -325,6 +325,26 @@ Mecanismo de avaliação da relevância de conteúdos e comentários por *upvote
 
 **Restrição de Unicidade:** `UNIQUE (usuario_id, target_type, target_id)` impede votos duplicados no mesmo item pelo mesmo usuário (RN03).
 
+### `denuncias`
+Registro de sinalizações comunitárias sobre comentários/relatos ou materiais de apoio (US 5.3.1 e US 5.3.2 — Central de Denúncias RN04).
+
+| Coluna | Tipo | Restrições | Descrição |
+|---|---|---|---|
+| `id` | BIGSERIAL | **PK** | Identificador sequencial da denúncia |
+| `comentario_id` | BIGINT | **FK** → `comentarios(id)` ON DELETE CASCADE | Comentário denunciado (mutuamente exclusivo com `conteudo_id`) |
+| `conteudo_id` | BIGINT | **FK** → `conteudos(id)` ON DELETE CASCADE | Material denunciado (mutuamente exclusivo com `comentario_id`) |
+| `usuario_id` | UUID | NOT NULL, **FK** → `usuarios(id)` ON DELETE CASCADE | Estudante autor da denúncia (oculto nas listagens para preservar RN01) |
+| `categoria` | VARCHAR(40) | NOT NULL, default `'OFENSA_DOCENTE'`, CHECK (`OFENSA_DOCENTE`, `CONTEUDO_IMPROPRIO`, `GABARITO_ATIVO`, `SPAM`, `OUTRO`) | Categoria de enquadramento da denúncia |
+| `motivo` | TEXT | NOT NULL, CHECK (`5 <= length <= 1000`) | Descrição objetiva do motivo reportado |
+| `status` | VARCHAR(20) | NOT NULL, default `'PENDENTE'`, CHECK (`PENDENTE`, `DESCARTADA`, `PROCEDENTE`) | Estado da denúncia no fluxo de moderação |
+| `moderador_id` | UUID | **FK** → `usuarios(id)` ON DELETE SET NULL | Moderador ou administrador responsável pela decisão |
+| `perfil_moderador` | VARCHAR(20) | — | Perfil administrativo no momento da decisão |
+| `justificativa_decisao` | TEXT | CHECK (`<= 1000`) | Observação ou justificativa registrada na decisão |
+| `resolved_at` | TIMESTAMPTZ | — | Data e hora da resolução |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data e hora do envio da denúncia |
+
+**Restrições de Integridade:** `CHECK ((comentario_id IS NOT NULL AND conteudo_id IS NULL) OR (comentario_id IS NULL AND conteudo_id IS NOT NULL))` garante alvo único; `UNIQUE (usuario_id, comentario_id)` e `UNIQUE (usuario_id, conteudo_id)` impedem denúncias duplicadas pelo mesmo usuário.
+
 ---
 
 ## 6. Governança e Controle de Migrações (Database-as-Code)
@@ -350,6 +370,9 @@ O script `init.sql` e as migrações versionadas do Alembic encontram-se **100% 
 | **006** | `add_requisitos_and_natureza` | Adição de pré/co-requisitos e equivalências em disciplinas e natureza em cursos | Incorporado |
 | **007** | `add_metricas_cursos` | Adição de metadados em cursos e tabela `metricas_cursos` para dados do Censo | Incorporado |
 | **008** | `add_doacoes_estatisticas` | Criação da tabela `doacoes_estatisticas` para coleta colaborativa de índices de turmas | Incorporado |
-| **009** | `009_arquivos_conteudos` | Extensão da tabela `conteudos` para armazenamento privado de arquivos (`ARQUIVO`) | Incorporado |
-| **010** | `010_curadorias` | Criação da tabela `curadorias` para auditoria das decisões sobre arquivos | Incorporado |
-| **011** | `011_moderacao_ia` | Adição de `motivo_moderacao`, `confianca_ia` e `moderado_por` em `conteudos` e `comentarios` e suporte a `perfil_moderador = 'IA'` em `curadorias` | **HEAD (Ativo)** |
+| **009** | `009_arquivos_conteudos` | Extensão da tabela `conteudos` para armazenamento privado de arquivos submetidos (`ARQUIVO`) | Incorporado |
+| **010** | `010_curadorias` | Criação da tabela `curadorias` para auditoria das decisões sobre materiais | Incorporado |
+| **011** | `011_denuncias` | Criação da tabela `denuncias` para a Central de Denúncias (RN04) e Painel de Ações | Incorporado |
+| **012** | `012_estatisticas_consolidadas` | Criação da tabela `estatisticas_consolidadas` para métricas oficiais consolidadas | Incorporado |
+| **013** | `013_estat_disciplina_semestre` | Adição de `disciplina_id` e índice composto em `estatisticas_consolidadas` | Incorporado |
+| **014** | `014_moderacao_ia` | Adição de `motivo_moderacao`, `confianca_ia` e `moderado_por` em `conteudos` e `comentarios` e suporte a `perfil_moderador = 'IA'` em `curadorias` | **HEAD (Ativo)** |

@@ -1,19 +1,24 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, Suspense } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
 import Pagination from "@/components/Pagination";
+import OpenDataExportBar from "@/components/OpenDataExportBar";
 import { getDisciplines } from "@/services/disciplineService";
+import { exportDisciplinesOpenData } from "@/services/openDataService";
+import useAsyncList from "@/hooks/useAsyncList";
 import {
   GLOBAL_CAMPUSES,
   GLOBAL_AREAS,
   GLOBAL_DEPARTMENTS,
   Discipline,
 } from "@/types/disciplina";
+import ApprovalBadge from "@/components/ApprovalBadge";
+import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -21,8 +26,10 @@ function DisciplinasContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
 
-  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: disciplines, loading } = useAsyncList(
+    getDisciplines,
+    "Erro ao carregar catálogo de disciplinas:"
+  );
 
   const [query, setQuery] = useState(initialQuery);
   const [appliedQuery, setAppliedQuery] = useState(initialQuery);
@@ -31,29 +38,6 @@ function DisciplinasContent() {
   const [area, setArea] = useState("Todas");
   const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
   const [currentPage, setCurrentPage] = useState(1);
-
-  useEffect(() => {
-    let isMounted = true;
-    async function loadDisciplines() {
-      try {
-        setLoading(true);
-        const data = await getDisciplines();
-        if (isMounted) {
-          setDisciplines(data);
-        }
-      } catch (err) {
-        console.error("Erro ao carregar catálogo de disciplinas:", err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-    loadDisciplines();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const filteredResults: Discipline[] = useMemo(() => {
     const normalizedQuery = appliedQuery.trim().toLocaleLowerCase("pt-BR");
@@ -71,7 +55,17 @@ function DisciplinasContent() {
 
       return matchesQuery && matchesCampus && matchesDepartment && matchesArea;
     }).sort((a, b) => {
-      if (sort === "Menor taxa de aprovação") return a.approval - b.approval;
+      if (sort === "Menor taxa de aprovação") {
+        const approvalA =
+          typeof a.approval === "number" && a.approval > 0
+            ? a.approval
+            : Number.POSITIVE_INFINITY;
+        const approvalB =
+          typeof b.approval === "number" && b.approval > 0
+            ? b.approval
+            : Number.POSITIVE_INFINITY;
+        return approvalA - approvalB;
+      }
       if (sort === "Mais materiais") return b.resources - a.resources;
       return b.popularity - a.popularity;
     });
@@ -84,6 +78,7 @@ function DisciplinasContent() {
     const start = (activePage - 1) * ITEMS_PER_PAGE;
     return filteredResults.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredResults, activePage]);
+  const approvalMetrics = useDisciplineApprovalMetrics(paginatedResults);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -274,7 +269,7 @@ function DisciplinasContent() {
           </section>
 
           {/* Barra de Ordenação e Contador */}
-          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="text-xs sm:text-sm text-gray-600">
               Exibindo <strong className="text-[#202124]">{filteredResults.length} disciplinas</strong>{" "}
               {appliedQuery && (
@@ -319,6 +314,21 @@ function DisciplinasContent() {
             </label>
           </div>
 
+          <div className="mb-6">
+            <OpenDataExportBar
+              title="Exportar Catalogo Analitico de Disciplinas"
+              recordCount={filteredResults.length}
+              recordLabel="disciplinas"
+              disabled={loading}
+              compact={true}
+              onExport={(format) =>
+                exportDisciplinesOpenData(filteredResults, format, {
+                  identifier: department !== "Todos os Departamentos" ? department : null,
+                })
+              }
+            />
+          </div>
+
           {/* Grade de Disciplinas */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -352,15 +362,12 @@ function DisciplinasContent() {
                         <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
                           {discipline.code}
                         </span>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            discipline.approval >= 70
-                              ? "bg-[#E9F9F3] text-[#067A59]"
-                              : "bg-[#FFF7E8] text-[#925600]"
-                          }`}
-                        >
-                          {discipline.approval}% de aprovação
-                        </span>
+                        <ApprovalBadge
+                          approval={
+                            approvalMetrics[discipline.slug] ??
+                            discipline.approval
+                          }
+                        />
                       </div>
 
                       <h2 className="text-base sm:text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
