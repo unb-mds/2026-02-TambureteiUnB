@@ -246,6 +246,11 @@ export default function CursosPage() {
                       const m = course.metricas_recentes || course.metricas_2024;
                       if (!m) return null;
 
+                      const hasSuccessRate =
+                        m.taxa_sucesso !== null &&
+                        m.taxa_sucesso !== undefined &&
+                        Number(m.taxa_sucesso) > 0;
+
                       return (
                         <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
                           <div className="grid grid-cols-2 gap-2">
@@ -259,14 +264,32 @@ export default function CursosPage() {
                               </span>
                             </div>
 
-                            <div className="bg-[#EAF8EF] rounded-xl p-2.5 flex flex-col justify-between border border-[#D1F0DC]">
-                              <span className="text-[10px] uppercase font-bold tracking-wider text-[#287A45]">
+                            <div
+                              className={`rounded-xl p-2.5 flex flex-col justify-between border ${
+                                hasSuccessRate
+                                  ? "bg-[#EAF8EF] border-[#D1F0DC]"
+                                  : "bg-[#F8F7FD] border-[#EDE9FD]/70"
+                              }`}
+                            >
+                              <span
+                                className={`text-[10px] uppercase font-bold tracking-wider ${
+                                  hasSuccessRate ? "text-[#287A45]" : "text-gray-500"
+                                }`}
+                              >
                                 Taxa de Sucesso
                               </span>
-                              <span className="text-sm font-extrabold text-[#1B6634] mt-0.5 flex items-center gap-1">
-                                {m.taxa_sucesso !== null && m.taxa_sucesso !== undefined
+                              <span
+                                className={`mt-0.5 flex items-center gap-1 ${
+                                  hasSuccessRate
+                                    ? "text-sm font-extrabold text-[#1B6634]"
+                                    : "text-xs font-bold text-gray-500 mt-1"
+                                }`}
+                              >
+                                {hasSuccessRate
                                   ? `${m.taxa_sucesso}%`
-                                  : `${m.concluintes} formados`}
+                                  : m.concluintes > 0
+                                  ? `${m.concluintes} formados`
+                                  : "Sem dados"}
                               </span>
                             </div>
                           </div>

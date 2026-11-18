@@ -331,22 +331,67 @@ export default function CourseDisciplinesPage() {
                     </div>
 
                     {/* KPI 3: Concluintes / Sucesso */}
-                    <div className="bg-[#EAF8EF] rounded-2xl p-4 border border-[#D1F0DC] flex flex-col justify-between shadow-xs">
-                      <div className="flex items-center justify-between text-[#287A45] mb-1">
-                        <span className="text-[11px] font-bold uppercase tracking-wider">Taxa de Sucesso</span>
-                        <svg className="w-4 h-4 text-[#287A45]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div className="text-2xl font-black text-[#1B6634] tracking-tight">
-                        {m.taxa_sucesso !== null && m.taxa_sucesso !== undefined
-                          ? `${m.taxa_sucesso}%`
-                          : `${m.concluintes} formados`}
-                      </div>
-                      <span className="text-[11px] text-[#287A45] mt-1 font-medium">
-                        {m.concluintes} concluintes no ano
-                      </span>
-                    </div>
+                    {(() => {
+                      const hasSuccessRate =
+                        m.taxa_sucesso !== null &&
+                        m.taxa_sucesso !== undefined &&
+                        Number(m.taxa_sucesso) > 0;
+
+                      return (
+                        <div
+                          className={`rounded-2xl p-4 border flex flex-col justify-between shadow-xs ${
+                            hasSuccessRate
+                              ? "bg-[#EAF8EF] border-[#D1F0DC]"
+                              : "bg-[#F8F7FD] border-[#EDE9FD]"
+                          }`}
+                        >
+                          <div
+                            className={`flex items-center justify-between mb-1 ${
+                              hasSuccessRate ? "text-[#287A45]" : "text-gray-500"
+                            }`}
+                          >
+                            <span className="text-[11px] font-bold uppercase tracking-wider">
+                              Taxa de Sucesso
+                            </span>
+                            <svg
+                              className={`w-4 h-4 ${hasSuccessRate ? "text-[#287A45]" : "text-gray-400"}`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.8}
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </div>
+                          <div
+                            className={`tracking-tight ${
+                              hasSuccessRate
+                                ? "text-2xl font-black text-[#1B6634]"
+                                : "text-xl font-bold text-gray-500 my-0.5"
+                            }`}
+                          >
+                            {hasSuccessRate
+                              ? `${m.taxa_sucesso}%`
+                              : m.concluintes > 0
+                              ? `${m.concluintes} formados`
+                              : "Sem dados"}
+                          </div>
+                          <span
+                            className={`text-[11px] mt-1 font-medium ${
+                              hasSuccessRate ? "text-[#287A45]" : "text-gray-500"
+                            }`}
+                          >
+                            {m.concluintes > 0
+                              ? `${m.concluintes} concluintes no ano`
+                              : "Sem concluintes registrados"}
+                          </span>
+                        </div>
+                      );
+                    })()}
 
                     {/* KPI 4: Evasão / Desvinculados */}
                     <div className="bg-[#FFF5F5] rounded-2xl p-4 border border-[#FED7D7] flex flex-col justify-between shadow-xs">

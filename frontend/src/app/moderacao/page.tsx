@@ -199,7 +199,7 @@ export default function ModeracaoPage() {
         <p className="text-sm font-semibold text-[#5B4BDB]">Área da equipe</p>
         <h1 className="mt-2 text-3xl font-bold">Painel de Moderação e Curadoria</h1>
         <p className="mt-3 text-gray-600">
-          Revise os arquivos enviados pelos alunos (RN06) e avalie relatos ou comentários sinalizados pela comunidade na Central de Denúncias (RN04).
+          Revise os arquivos enviados pelos alunos e avalie relatos ou comentários sinalizados pela comunidade na Central de Denúncias.
         </p>
 
         {acesso === "loading" && (
@@ -245,7 +245,7 @@ export default function ModeracaoPage() {
                     : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
                 }`}
               >
-                Curadoria de Materiais (RN06)
+                Curadoria de Materiais
                 {fila && (
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
@@ -268,7 +268,7 @@ export default function ModeracaoPage() {
                     : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
                 }`}
               >
-                Central de Denúncias (RN04)
+                Central de Denúncias
                 {filaDenuncias && (
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
