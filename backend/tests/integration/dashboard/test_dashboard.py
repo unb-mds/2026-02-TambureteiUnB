@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.curso import Curso
 from app.models.metrica import MetricaCurso
@@ -223,4 +224,127 @@ def test_obter_evasao_campus_termo_ambiguo_retorna_400(client, cenario_evasao):
     assert (
         response.json()["detail"]
         == "Termo de campus ambíguo. Informe o nome completo do campus."
+    )
+
+
+@pytest.fixture()
+def cenario_dashboard_geral(db):
+    db.query(Curso).delete()
+    software = Curso(nome="Engenharia de Software", slug="es-gama", campus="FCTE - Gama")
+    energia = Curso(nome="Engenharia de Energia", slug="energia-gama", campus="FCTE - Gama")
+    computacao = Curso(nome="Ciência da Computação", slug="cc-darcy", campus="Darcy Ribeiro")
+    agronegocio = Curso(nome="Gestão do Agronegócio", slug="agro-fup", campus="FUP - Planaltina")
+    db.add_all([software, energia, computacao, agronegocio])
+    db.flush()
+
+    db.add_all([
+        MetricaCurso(
+            curso_id=software.id,
+            ano=2023,
+            ingressantes=100,
+            matriculados=400,
+            concluintes=40,
+            trancados=20,
+            desvinculados=40,
+        ),
+        MetricaCurso(
+            curso_id=software.id,
+            ano=2024,
+            ingressantes=100,
+            matriculados=500,
+            concluintes=60,
+            trancados=30,
+            desvinculados=75,
+        ),
+        MetricaCurso(
+            curso_id=energia.id,
+            ano=2024,
+            ingressantes=100,
+            matriculados=500,
+            concluintes=50,
+            trancados=25,
+            desvinculados=125,
+        ),
+        MetricaCurso(
+            curso_id=computacao.id,
+            ano=2024,
+            ingressantes=200,
+            matriculados=400,
+            concluintes=90,
+            trancados=15,
+            desvinculados=20,
+        ),
+    ])
+    db.commit()
+    dashboard_repo.atualizar_evasao_campus(db)
+
+
+def test_obter_dashboard_geral_retorna_consolidado_e_fluxo(client, cenario_dashboard_geral):
+    response = client.get("/dashboard/geral")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["total_cursos"] == 4
+    assert data["total_campi"] == 2
+    assert data["ingressantes"] == 500
+    assert data["matriculados"] == 1800
+    assert data["concluintes"] == 240
+    assert data["trancados"] == 90
+    assert data["evadidos"] == 260
+    assert data["taxa_media_formacao"] == 45.0
+    assert data["taxa_media_evasao"] == 12.86
+
+    assert [item["campus"] for item in data["resumo_campi"]] == ["FCTE - Gama", "Darcy Ribeiro"]
+    assert data["resumo_campi"][0]["taxa_evasao"] == 17.14
+
+    assert [item["ano"] for item in data["fluxo_estudantes"]] == [2023, 2024]
+    ano_2023, ano_2024 = data["fluxo_estudantes"]
+    assert ano_2023 == {
+        "ano": 2023,
+        "ingressantes": 100,
+        "matriculados": 400,
+        "concluintes": 40,
+        "trancados": 20,
+        "evadidos": 40,
+        "taxa_formacao": 40.0,
+        "taxa_evasao": 10.0,
+    }
+    assert ano_2024 == {
+        "ano": 2024,
+        "ingressantes": 400,
+        "matriculados": 1400,
+        "concluintes": 200,
+        "trancados": 70,
+        "evadidos": 220,
+        "taxa_formacao": 50.0,
+        "taxa_evasao": 15.71,
+    }
+
+
+def test_obter_dashboard_geral_sem_dados_consolidados_retorna_404(client, db):
+    db.query(Curso).delete()
+    db.commit()
+    dashboard_repo.atualizar_evasao_campus(db)
+
+    response = client.get("/dashboard/geral")
+    assert response.status_code == 404
+    assert (
+        response.json()["detail"]
+        == "Dados consolidados institucionais ainda não estão disponíveis."
+    )
+
+
+def test_obter_dashboard_geral_erro_indisponibilidade_retorna_503(
+    client, cenario_dashboard_geral, monkeypatch
+):
+    def simular_indisponibilidade(*args, **kwargs):
+        raise SQLAlchemyError("visao materializada indisponivel")
+
+    monkeypatch.setattr(dashboard_repo, "listar_evasao_campus", simular_indisponibilidade)
+
+    response = client.get("/dashboard/geral")
+    assert response.status_code == 503
+    assert (
+        response.json()["detail"]
+        == "Dados consolidados temporariamente indisponíveis. Tente novamente em instantes."
     )
