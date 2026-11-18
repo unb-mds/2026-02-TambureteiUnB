@@ -1,62 +1,35 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Button from "@/components/Button";
 import Pagination from "@/components/Pagination";
+import OpenDataExportBar from "@/components/OpenDataExportBar";
 import { getCourses } from "@/services/courseService";
+import { exportCoursesOpenData } from "@/services/openDataService";
+import useAsyncList from "@/hooks/useAsyncList";
+import {
+  filterCourses,
+  getCampusBadgeClasses,
+} from "@/utils/courseCatalog";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
 
 const ITEMS_PER_PAGE = 25;
 
 export default function CursosPage() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: courses, loading } = useAsyncList(
+    getCourses,
+    "Erro ao carregar catálogo de cursos da API:"
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadCourses() {
-      try {
-        setLoading(true);
-        const data = await getCourses();
-        if (isMounted) {
-          setCourses(data);
-        }
-      } catch (err) {
-        console.error("Erro ao carregar catálogo de cursos da API:", err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-    loadCourses();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   // Filtro e busca em tempo real
   const filteredCourses = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return courses.filter((course) => {
-      const matchCampus =
-        selectedCampus === "Todos" ||
-        (course.campus && course.campus.toLowerCase().includes(selectedCampus.toLowerCase()));
-
-      const matchQuery =
-        !query ||
-        course.nome.toLowerCase().includes(query) ||
-        (course.departamento && course.departamento.toLowerCase().includes(query)) ||
-        (course.campus && course.campus.toLowerCase().includes(query));
-
-      return matchCampus && matchQuery;
-    });
+    return filterCourses(courses, searchQuery, selectedCampus);
   }, [courses, searchQuery, selectedCampus]);
 
   const handleSearchChange = (val: string) => {
@@ -82,23 +55,6 @@ export default function CursosPage() {
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 200, behavior: "smooth" });
     }
-  };
-
-  const campusBadgeColor = (campus: string) => {
-    if (!campus) return "bg-gray-100 text-gray-700 border-gray-200";
-    if (campus.includes("FCTE") || campus.includes("FGA")) {
-      return "bg-indigo-50 text-indigo-700 border-indigo-200";
-    }
-    if (campus.includes("Darcy") || campus.includes("Darcy Ribeiro")) {
-      return "bg-purple-50 text-purple-700 border-purple-200";
-    }
-    if (campus.includes("FCE") || campus.includes("Ceilândia") || campus.includes("Ceilandia")) {
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    }
-    if (campus.includes("FUP") || campus.includes("Planaltina")) {
-      return "bg-amber-50 text-amber-800 border-amber-200";
-    }
-    return "bg-gray-100 text-gray-700 border-gray-200";
   };
 
   return (
@@ -139,10 +95,11 @@ export default function CursosPage() {
               </svg>
             </div>
             <input
-              type="text"
+              type="search"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Buscar curso por nome ou departamento..."
+              aria-label="Buscar curso por nome ou departamento"
               className="w-full pl-10 pr-4 py-2.5 bg-[#F7F7FA] border border-[#E8E6F8] rounded-xl text-sm text-[#202124] placeholder-gray-400 focus:bg-white focus:border-[#5B4BDB] focus:ring-4 focus:ring-[#5B4BDB]/15 transition-all outline-none"
             />
             {searchQuery && (
@@ -167,6 +124,7 @@ export default function CursosPage() {
                 <button
                   key={campus}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => handleCampusChange(campus)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                     active
@@ -182,7 +140,7 @@ export default function CursosPage() {
         </div>
 
         {/* Contador de Resultados */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <p className="text-xs text-gray-500 font-medium">
             Exibindo <span className="font-bold text-[#202124]">{filteredCourses.length}</span> cursos{" "}
             {selectedCampus !== "Todos" && (
@@ -204,6 +162,21 @@ export default function CursosPage() {
               Redefinir filtros
             </button>
           )}
+        </div>
+
+        <div className="mb-6">
+          <OpenDataExportBar
+            title="Exportar Dados Abertos de Cursos"
+            recordCount={filteredCourses.length}
+            recordLabel="cursos"
+            disabled={loading}
+            compact={true}
+            onExport={(format) =>
+              exportCoursesOpenData(filteredCourses, format, {
+                identifier: selectedCampus !== "Todos" ? selectedCampus : null,
+              })
+            }
+          />
         </div>
 
         {/* Grade de Cards de Cursos */}
@@ -238,7 +211,7 @@ export default function CursosPage() {
                     {/* Badges superiores: Campus e Grau */}
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${campusBadgeColor(
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getCampusBadgeClasses(
                           course.campus
                         )}`}
                       >

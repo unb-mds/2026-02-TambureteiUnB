@@ -21,6 +21,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
 import ClassCard from "@/components/ClassCard";
+import Pagination from "@/components/Pagination";
+import { CLASSES_PER_PAGE, paginateClasses } from "@/utils/classPagination";
 import ClassCardSkeleton from "@/components/ClassCardSkeleton";
 import ClassEmptyState from "@/components/ClassEmptyState";
 import ClassFilters, {
@@ -28,11 +30,17 @@ import ClassFilters, {
   CLASS_SORT_OPTIONS,
 } from "@/components/ClassFilters";
 import MaterialModal from "@/components/MaterialModal";
+import OpenDataExportBar from "@/components/OpenDataExportBar";
 import { isAuthenticated } from "@/services/authService";
 import {
   getDisciplineBySlug,
   getClassesByDiscipline,
 } from "@/services/disciplineService";
+import {
+  exportDisciplineHistoryOpenData,
+  filterPublicHistoricalPerformance,
+  mapHistoricalPerformanceToOpenData,
+} from "@/services/openDataService";
 import {
   Discipline,
   DEFAULT_HISTORICAL_PERFORMANCE,
@@ -42,7 +50,7 @@ import {
   ClassShiftFilter,
   ClassSortOption,
   normalizeClassShift,
-  calculateOccupancyRate,
+  compareClassOccupancy,
 } from "@/types/turma";
 
 function parseInitialShift(param: string | null): ClassShiftFilter {
@@ -64,6 +72,7 @@ function DisciplineDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const simulateClassesError = searchParams.get("erroTurmas") === "true";
 
   const slug =
     typeof params?.slug === "string"
@@ -81,6 +90,7 @@ function DisciplineDetailContent() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [classesError, setClassesError] = useState<string | null>(null);
+  const [classPage, setClassPage] = useState(1);
 
   // Estados de filtro e ordenação sincronizados com URL query params
   const [selectedShift, setSelectedShift] = useState<ClassShiftFilter>(() =>
@@ -128,6 +138,7 @@ function DisciplineDetailContent() {
   const handleShiftChange = useCallback(
     (shift: ClassShiftFilter) => {
       setSelectedShift(shift);
+      setClassPage(1);
       syncUrlParams(shift, sortBy);
     },
     [sortBy, syncUrlParams]
@@ -136,6 +147,7 @@ function DisciplineDetailContent() {
   const handleSortChange = useCallback(
     (sort: ClassSortOption) => {
       setSortBy(sort);
+      setClassPage(1);
       syncUrlParams(selectedShift, sort);
     },
     [selectedShift, syncUrlParams]
@@ -144,6 +156,7 @@ function DisciplineDetailContent() {
   const handleResetClassFilters = useCallback(() => {
     setSelectedShift("Todos");
     setSortBy("code_asc");
+    setClassPage(1);
     syncUrlParams("Todos", "code_asc");
   }, [syncUrlParams]);
 
@@ -212,7 +225,7 @@ function DisciplineDetailContent() {
         setClassesLoading(true);
 
         // Permite simular estado de erro via query param (?erroTurmas=true) para testes de UI
-        if (searchParams.get("erroTurmas") === "true") {
+        if (simulateClassesError) {
           throw new Error(
             "Não foi possível carregar as turmas ofertadas no momento."
           );
@@ -264,7 +277,7 @@ function DisciplineDetailContent() {
     return () => {
       isMounted = false;
     };
-  }, [discipline, searchParams, classesRetryCount]);
+  }, [discipline, slug, simulateClassesError, classesRetryCount]);
 
   // Filtragem por turno e ordenação reativa
   const filteredAndSortedClasses = useMemo(() => {
@@ -275,16 +288,8 @@ function DisciplineDetailContent() {
     });
 
     return [...filtered].sort((a, b) => {
-      const occA =
-        a.occupancy ?? calculateOccupancyRate(a.vagasOcupadas, a.totalVagas);
-      const occB =
-        b.occupancy ?? calculateOccupancyRate(b.vagasOcupadas, b.totalVagas);
-
-      if (sortBy === "occupancy_asc") {
-        return occA.percentage - occB.percentage;
-      }
-      if (sortBy === "occupancy_desc") {
-        return occB.percentage - occA.percentage;
+      if (sortBy === "occupancy_asc" || sortBy === "occupancy_desc") {
+        return compareClassOccupancy(a, b, sortBy);
       }
       return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
         numeric: true,
@@ -292,6 +297,8 @@ function DisciplineDetailContent() {
       });
     });
   }, [classes, selectedShift, sortBy]);
+
+  const paginatedClasses = paginateClasses(filteredAndSortedClasses, classPage);
 
   if (loading) {
     return (
@@ -378,8 +385,25 @@ function DisciplineDetailContent() {
     );
   }
 
+  const realHistoricalPerformance =
+    discipline.historicalPerformance ?? [];
+  const publicRealPerformance = filterPublicHistoricalPerformance(
+    realHistoricalPerformance
+  );
+  const exportableHistoryRows = mapHistoricalPerformanceToOpenData(
+    discipline.code,
+    discipline.name,
+    realHistoricalPerformance,
+    discipline.metrica_consolidada
+  );
+  const hasRealExportableHistory = exportableHistoryRows.length > 0;
+
   const performanceList =
-    discipline.historicalPerformance || DEFAULT_HISTORICAL_PERFORMANCE;
+    publicRealPerformance.length > 0
+      ? publicRealPerformance
+      : realHistoricalPerformance.length > 0
+      ? []
+      : DEFAULT_HISTORICAL_PERFORMANCE;
 
   // Extração dos dados consolidados reais da disciplina
   const metrica = discipline.metrica_consolidada;
@@ -395,7 +419,10 @@ function DisciplineDetailContent() {
   const metrics = [
     {
       label: "Taxa de Aprovação",
-      value: `${discipline.approval}%`,
+      value:
+        typeof discipline.approval === "number" && discipline.approval > 0
+          ? `${discipline.approval}%`
+          : "Sem dados",
       count: formatAlunos(metrica?.aprovados),
       color: "#067A59",
       iconColor: "#10B981",
@@ -878,11 +905,24 @@ function DisciplineDetailContent() {
                 />
 
                 {filteredAndSortedClasses.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                    {filteredAndSortedClasses.map((turma) => (
-                      <ClassCard key={turma.id} classData={turma} />
-                    ))}
-                  </div>
+                  <>
+                    <p role="status" className="mb-4 text-sm text-gray-600">
+                      Mostrando {paginatedClasses.startItem} a {paginatedClasses.endItem}{" "}
+                      de {filteredAndSortedClasses.length}{" "}
+                      {filteredAndSortedClasses.length === 1 ? "turma" : "turmas"}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                      {paginatedClasses.items.map((turma) => (
+                        <ClassCard key={turma.id} classData={turma} />
+                      ))}
+                    </div>
+                    <Pagination
+                      currentPage={paginatedClasses.currentPage}
+                      totalPages={paginatedClasses.totalPages}
+                      onPageChange={setClassPage}
+                      itemsPerPage={CLASSES_PER_PAGE}
+                    />
+                  </>
                 ) : (
                   <ClassEmptyState
                     hasActiveFilters={true}
@@ -1131,9 +1171,81 @@ function DisciplineDetailContent() {
                   </div>
                 ))}
               </div>
+
+              <div className="mt-6 overflow-x-auto rounded-xl border border-[#ECEAF5] bg-white">
+                <table
+                  aria-label={`Tabela de desempenho historico semestral de ${discipline.name}`}
+                  className="w-full text-left text-xs text-gray-700"
+                >
+                  <caption className="sr-only">
+                    Distribuicao semestral de aprovados, reprovados por nota, reprovados por falta e trancamentos da disciplina {discipline.code} - {discipline.name}
+                  </caption>
+                  <thead className="bg-[#F7F7FA] text-[11px] font-bold uppercase tracking-wider text-gray-600 border-b border-[#ECEAF5]">
+                    <tr>
+                      <th scope="col" className="px-3.5 py-2.5">Semestre</th>
+                      <th scope="col" className="px-3.5 py-2.5">Avaliados</th>
+                      <th scope="col" className="px-3.5 py-2.5">Aprovacao</th>
+                      <th scope="col" className="px-3.5 py-2.5">Reprov. Nota</th>
+                      <th scope="col" className="px-3.5 py-2.5">Reprov. Falta</th>
+                      <th scope="col" className="px-3.5 py-2.5">Trancamentos</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0EFF8]">
+                    {performanceList.map((item) => {
+                      const total =
+                        (item.approved || 0) +
+                        (item.failed || 0) +
+                        (item.absent || 0) +
+                        (item.withdrawn || 0);
+                      const pct = (val: number) =>
+                        total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
+                      return (
+                        <tr key={`row-${item.semester}`} className="hover:bg-[#FAFAFC]">
+                          <th scope="row" className="px-3.5 py-2 font-bold text-[#202124]">
+                            {item.semester}
+                          </th>
+                          <td className="px-3.5 py-2">{total}</td>
+                          <td className="px-3.5 py-2 font-semibold text-[#067A59]">
+                            {pct(item.approved || 0)}% ({item.approved || 0})
+                          </td>
+                          <td className="px-3.5 py-2 text-[#C52C2C]">
+                            {pct(item.failed || 0)}% ({item.failed || 0})
+                          </td>
+                          <td className="px-3.5 py-2 text-[#9A5700]">
+                            {pct(item.absent || 0)}% ({item.absent || 0})
+                          </td>
+                          <td className="px-3.5 py-2 text-[#526174]">
+                            {pct(item.withdrawn || 0)}% ({item.withdrawn || 0})
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             
+            <div className="mt-6">
+              <OpenDataExportBar
+                title={`Historico Semestral de ${discipline.code} - ${discipline.name}`}
+                recordCount={exportableHistoryRows.length}
+                recordLabel="semestres"
+                disabled={!hasRealExportableHistory}
+                emptyMessage="Exportacao indisponivel: nao ha historico semestral publico real retornado pela API para esta disciplina (ou os registros possuem baixa amostragem suprimida pela LGPD)."
+                compact={true}
+                onExport={(format) =>
+                  exportDisciplineHistoryOpenData(
+                    discipline.code,
+                    discipline.name,
+                    realHistoricalPerformance,
+                    format,
+                    { consolidatedMetric: discipline.metrica_consolidada }
+                  )
+                }
+              />
+            </div>
+
             <div className="mt-6 flex items-start gap-3 rounded-2xl bg-[#F7F7FA] border border-gray-100 px-4 py-3">
               <svg
                 className="mt-0.5 flex-shrink-0 text-gray-500"
@@ -1195,6 +1307,7 @@ function DisciplineDetailContent() {
 }
 
 export default function DisciplineDetailPage() {
+  const params = useParams();
   return (
     <Suspense
       fallback={
@@ -1214,7 +1327,7 @@ export default function DisciplineDetailPage() {
         </div>
       }
     >
-      <DisciplineDetailContent />
+      <DisciplineDetailContent key={String(params?.slug ?? "")} />
     </Suspense>
   );
 }
