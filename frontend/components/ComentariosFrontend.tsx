@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "@/services/authService";
 import { request } from "@/services/httpClient";
@@ -69,74 +69,82 @@ export default function ComentariosFrontend({
   const isMainLengthValid = newCommentText.length >= MIN_CHARS && newCommentText.length <= MAX_CHARS;
   const isReplyLengthValid = replyText.length >= MIN_CHARS && replyText.length <= MAX_CHARS;
 
-  useEffect(() => {
-    let isMounted = true;
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
-    async function loadComments() {
-      const identifier = disciplineId || disciplineCode;
-      if (!identifier) {
-        setLoading(false);
-        return;
+  const fetchComments = useCallback(async (): Promise<CommentItem[]> => {
+    const identifier = disciplineId || disciplineCode;
+    if (!identifier) {
+      return [];
+    }
+
+    try {
+      const response = await request<BackendCommentResponse | BackendCommentItem[]>(
+        `/cadeiras/${identifier}/comentarios`,
+        { cache: "no-store" }
+      );
+
+      const rawItems: BackendCommentItem[] = Array.isArray(response)
+        ? response
+        : response?.items || [];
+
+      const mapped: CommentItem[] = rawItems.map((item) => ({
+        id: String(item.id),
+        authorAlias: item.autor_alias || "@estudante_fcte",
+        isAnonymous: !item.autor_alias || item.autor_alias.includes("Anonimo"),
+        content: item.conteudo,
+        createdAt: item.created_at
+          ? new Date(item.created_at).toLocaleDateString("pt-BR")
+          : "Recente",
+        upvotes: item.upvotes || 0,
+        isLikedByMe: false,
+        parentId: item.parent_id ? String(item.parent_id) : null,
+        replies: [],
+      }));
+
+      const roots: CommentItem[] = [];
+      const lookup = new Map<string, CommentItem>();
+
+      mapped.forEach((c) => lookup.set(c.id, { ...c, replies: [] }));
+
+      mapped.forEach((c) => {
+        if (c.parentId && lookup.has(c.parentId)) {
+          lookup.get(c.parentId)!.replies!.push(lookup.get(c.id)!);
+        } else {
+          roots.push(lookup.get(c.id)!);
+        }
+      });
+
+      if (isMountedRef.current) {
+        setComments(roots);
       }
+      return mapped;
+    } catch (err) {
+      console.error("Erro ao carregar comentarios:", err);
+      return [];
+    }
+  }, [disciplineId, disciplineCode]);
 
-      setLoading(true);
-      try {
-        const response = await request<BackendCommentResponse | BackendCommentItem[]>(
-          `/cadeiras/${identifier}/comentarios`
-        );
+  useEffect(() => {
+    isMountedRef.current = true;
 
-        if (isMounted) {
-          const rawItems: BackendCommentItem[] = Array.isArray(response)
-            ? response
-            : response?.items || [];
-
-          const mapped: CommentItem[] = rawItems.map((item) => ({
-            id: String(item.id),
-            authorAlias: item.autor_alias || "@estudante_fcte",
-            isAnonymous: !item.autor_alias || item.autor_alias.includes("Anonimo"),
-            content: item.conteudo,
-            createdAt: item.created_at
-              ? new Date(item.created_at).toLocaleDateString("pt-BR")
-              : "Recente",
-            upvotes: item.upvotes || 0,
-            isLikedByMe: false,
-            parentId: item.parent_id ? String(item.parent_id) : null,
-            replies: [],
-          }));
-
-          const roots: CommentItem[] = [];
-          const lookup = new Map<string, CommentItem>();
-
-          mapped.forEach((c) => lookup.set(c.id, { ...c, replies: [] }));
-
-          mapped.forEach((c) => {
-            if (c.parentId && lookup.has(c.parentId)) {
-              lookup.get(c.parentId)!.replies!.push(lookup.get(c.id)!);
-            } else {
-              roots.push(lookup.get(c.id)!);
-            }
-          });
-
-          setComments(roots);
-        }
-      } catch (err) {
-        console.error("Erro ao carregar comentarios:", err);
-        if (isMounted) {
-          setComments([]);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+    async function loadInitial() {
+      await fetchComments();
+      if (isMountedRef.current) {
+        setLoading(false);
       }
     }
 
-    loadComments();
+    void loadInitial();
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
     };
-  }, [disciplineId, disciplineCode]);
+  }, [fetchComments]);
 
   const toggleExpand = (commentId: string) => {
     setExpandedThreads((prev) => ({
@@ -193,7 +201,7 @@ export default function ComentariosFrontend({
 
     try {
       const targetId = disciplineId || 1;
-      await request("/comentarios", {
+      const created = await request<{ id?: number | string }>("/comentarios", {
         method: "POST",
         body: JSON.stringify({
           disciplina_id: targetId,
@@ -201,6 +209,38 @@ export default function ComentariosFrontend({
           autor_alias: newComment.authorAlias,
         }),
       });
+
+      const createdId = created?.id != null ? String(created.id) : null;
+      if (createdId) {
+        if (pollTimerRef.current) {
+          clearTimeout(pollTimerRef.current);
+        }
+        let attempts = 0;
+        const maxAttempts = 10;
+        const pollForPublication = async () => {
+          if (!isMountedRef.current) return;
+          attempts += 1;
+          const items = await fetchComments();
+          if (!isMountedRef.current) return;
+          if (items.some((item) => item.id === createdId)) {
+            setTriageNotice(
+              "[PUBLICADO] Seu relato foi aprovado pela moderacao automatica e ja esta visivel abaixo."
+            );
+            pollTimerRef.current = null;
+            return;
+          }
+          if (attempts < maxAttempts) {
+            pollTimerRef.current = setTimeout(() => {
+              void pollForPublication();
+            }, 3000);
+          } else {
+            pollTimerRef.current = null;
+          }
+        };
+        pollTimerRef.current = setTimeout(() => {
+          void pollForPublication();
+        }, 3000);
+      }
     } catch (err) {
       console.error("Erro ao registrar comentario no backend:", err);
     }

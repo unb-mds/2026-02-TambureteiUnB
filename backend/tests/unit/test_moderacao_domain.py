@@ -105,6 +105,9 @@ def test_interpretar_resposta_ollama_valida_e_invalida():
     assert veredito.categoria_violacao == "NENHUMA"
     assert veredito.motivo == "Conteudo estritamente academico e sem dados pessoais."
 
+    schema = VereditoModIA.model_json_schema()
+    assert set(schema["required"]) == {"decisao", "confianca", "categoria_violacao", "motivo"}
+
     with pytest.raises(ValueError, match="vazia"):
         interpretar_resposta_ollama("   ")
     with pytest.raises(ValueError, match="malformado"):

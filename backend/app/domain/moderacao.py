@@ -28,7 +28,14 @@ PROMPT_SISTEMA_MODERACAO = (  # pragma: no mutate
     "3. OFENSA_DIFAMACAO: proibido discurso de odio, xingamentos, assedio ou ataques pessoais a docentes e discentes. "  # pragma: no mutate
     "4. DIREITOS_AUTORAIS: proibido reproduzir livros inteiros protegidos por copyright. "  # pragma: no mutate
     "5. SPAM_IRRELEVANTE: proibido propaganda comercial, links maliciosos ou texto sem relacao academica. "  # pragma: no mutate
-    "Responda estritamente em JSON valido conforme o schema solicitado."  # pragma: no mutate
+    "REGRA PADRAO: apenas escolha 'REJEITAR' se houver violacao explicita de uma das 5 regras acima. "  # pragma: no mutate
+    "Se o comentario for um elogio curto ou longo (ex.: 'Professor bacana e didatica boa'), relato de experiencia, "  # pragma: no mutate
+    "dica de estudo ou critica respeitosa sem xingamentos nem dados pessoais, escolha 'APROVAR' com categoria_violacao 'NENHUMA'. "  # pragma: no mutate
+    "Responda estritamente em JSON valido conforme o schema solicitado, preenchendo todos os campos: "  # pragma: no mutate
+    "decisao ('APROVAR', 'REJEITAR' ou 'REVISAO_HUMANA'), "  # pragma: no mutate
+    "confianca (numero decimal entre 0.0 e 1.0, por exemplo 0.95; nunca use escala de 0 a 100), "  # pragma: no mutate
+    "categoria_violacao ('NENHUMA' ao aprovar, ou uma das 5 categorias acima ao rejeitar/escalonar) "  # pragma: no mutate
+    "e motivo (justificativa breve em portugues)."  # pragma: no mutate
 )
 
 
@@ -39,7 +46,7 @@ class VereditoModIA(BaseModel):
 
     decisao: DecisaoIA
     confianca: float = Field(ge=0.0, le=1.0)
-    categoria_violacao: CategoriaViolacao = "NENHUMA"
+    categoria_violacao: CategoriaViolacao
     motivo: str = Field(min_length=1, max_length=1000)
 
 
