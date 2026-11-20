@@ -1,5 +1,9 @@
+import pytest
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.models.curso import Curso
 from app.models.metrica import MetricaCurso
+from app.repositories.dashboard_repo import dashboard_repo
 
 
 def test_root_retorna_status_online(client):
@@ -109,3 +113,238 @@ def test_obter_formacao_curso_por_slug_retorna_200(client, db):
     assert data["curso_id"] == curso.id
     assert data["curso_slug"] == "engenharia-de-software"
     assert data["taxa_media_formacao"] == 60.0
+
+
+@pytest.fixture()
+def cenario_evasao(db):
+    db.query(Curso).delete()
+    software = Curso(nome="Engenharia de Software", slug="es-gama", campus="FCTE - Gama")
+    energia = Curso(nome="Engenharia de Energia", slug="energia-gama", campus="FCTE - Gama")
+    computacao = Curso(nome="Ciência da Computação", slug="cc-darcy", campus="Darcy Ribeiro")
+    agronegocio = Curso(nome="Gestão do Agronegócio", slug="agro-fup", campus="FUP - Planaltina")
+    db.add_all([software, energia, computacao, agronegocio])
+    db.flush()
+
+    db.add_all([
+        MetricaCurso(curso_id=software.id, ano=2023, matriculados=400, desvinculados=40),
+        MetricaCurso(curso_id=software.id, ano=2024, matriculados=500, desvinculados=75),
+        MetricaCurso(curso_id=energia.id, ano=2024, matriculados=500, desvinculados=125),
+        MetricaCurso(curso_id=computacao.id, ano=2024, matriculados=400, desvinculados=20),
+    ])
+    db.commit()
+    dashboard_repo.atualizar_evasao_campus(db)
+
+
+def test_listar_evasao_por_campus_retorna_comparativo_ordenado(client, cenario_evasao):
+    response = client.get("/dashboard/campus/evasao")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_campi"] == 2
+    assert [item["campus"] for item in data["campi"]] == ["FCTE - Gama", "Darcy Ribeiro"]
+
+    gama = data["campi"][0]
+    assert gama["matriculados"] == 1400
+    assert gama["desvinculados"] == 240
+    assert gama["taxa_evasao"] == 17.14
+    assert gama["taxa_media_anual"] == 15.0
+
+    darcy = data["campi"][1]
+    assert darcy["taxa_evasao"] == 5.0
+    assert darcy["taxa_media_anual"] == 5.0
+
+
+def test_listar_evasao_por_campus_aplica_filtro(client, cenario_evasao):
+    response = client.get("/dashboard/campus/evasao", params={"campus": "darcy"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_campi"] == 1
+    assert data["campi"][0]["campus"] == "Darcy Ribeiro"
+
+
+def test_listar_evasao_por_campus_filtro_inexistente_retorna_404(client, cenario_evasao):
+    response = client.get("/dashboard/campus/evasao", params={"campus": "Campus Inexistente"})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Campus não encontrado."
+
+
+def test_listar_evasao_por_campus_sem_metricas_retorna_lista_vazia(client, cenario_evasao):
+    response = client.get("/dashboard/campus/evasao", params={"campus": "Planaltina"})
+    assert response.status_code == 200
+    assert response.json() == {"total_campi": 0, "campi": []}
+
+
+def test_listar_evasao_por_campus_banco_vazio_retorna_lista_vazia(client, db):
+    db.query(Curso).delete()
+    db.commit()
+    dashboard_repo.atualizar_evasao_campus(db)
+
+    response = client.get("/dashboard/campus/evasao")
+    assert response.status_code == 200
+    assert response.json() == {"total_campi": 0, "campi": []}
+
+
+def test_obter_evasao_campus_retorna_serie_historica(client, cenario_evasao):
+    response = client.get("/dashboard/campus/Gama/evasao")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["campus"] == "FCTE - Gama"
+    assert data["matriculados"] == 1400
+    assert data["desvinculados"] == 240
+    assert data["taxa_evasao"] == 17.14
+    assert data["taxa_media_anual"] == 15.0
+    assert [item["ano"] for item in data["serie_historica"]] == [2023, 2024]
+    assert [item["total_cursos"] for item in data["serie_historica"]] == [1, 2]
+    assert [item["taxa_evasao"] for item in data["serie_historica"]] == [10.0, 20.0]
+
+
+def test_obter_evasao_campus_aceita_nome_completo(client, cenario_evasao):
+    response = client.get("/dashboard/campus/FCTE - Gama/evasao")
+    assert response.status_code == 200
+    assert response.json()["campus"] == "FCTE - Gama"
+
+
+def test_obter_evasao_campus_inexistente_retorna_404(client, cenario_evasao):
+    response = client.get("/dashboard/campus/Inexistente/evasao")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Campus não encontrado."
+
+
+def test_obter_evasao_campus_sem_metricas_retorna_404(client, cenario_evasao):
+    response = client.get("/dashboard/campus/Planaltina/evasao")
+    assert response.status_code == 404
+    assert (
+        response.json()["detail"]
+        == "Campus não possui dados públicos suficientes para cálculo da taxa de evasão."
+    )
+
+
+def test_obter_evasao_campus_termo_ambiguo_retorna_400(client, cenario_evasao):
+    response = client.get("/dashboard/campus/a/evasao")
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"]
+        == "Termo de campus ambíguo. Informe o nome completo do campus."
+    )
+
+
+@pytest.fixture()
+def cenario_dashboard_geral(db):
+    db.query(Curso).delete()
+    software = Curso(nome="Engenharia de Software", slug="es-gama", campus="FCTE - Gama")
+    energia = Curso(nome="Engenharia de Energia", slug="energia-gama", campus="FCTE - Gama")
+    computacao = Curso(nome="Ciência da Computação", slug="cc-darcy", campus="Darcy Ribeiro")
+    agronegocio = Curso(nome="Gestão do Agronegócio", slug="agro-fup", campus="FUP - Planaltina")
+    db.add_all([software, energia, computacao, agronegocio])
+    db.flush()
+
+    db.add_all([
+        MetricaCurso(
+            curso_id=software.id,
+            ano=2023,
+            ingressantes=100,
+            matriculados=400,
+            concluintes=40,
+            trancados=20,
+            desvinculados=40,
+        ),
+        MetricaCurso(
+            curso_id=software.id,
+            ano=2024,
+            ingressantes=100,
+            matriculados=500,
+            concluintes=60,
+            trancados=30,
+            desvinculados=75,
+        ),
+        MetricaCurso(
+            curso_id=energia.id,
+            ano=2024,
+            ingressantes=100,
+            matriculados=500,
+            concluintes=50,
+            trancados=25,
+            desvinculados=125,
+        ),
+        MetricaCurso(
+            curso_id=computacao.id,
+            ano=2024,
+            ingressantes=200,
+            matriculados=400,
+            concluintes=90,
+            trancados=15,
+            desvinculados=20,
+        ),
+    ])
+    db.commit()
+    dashboard_repo.atualizar_evasao_campus(db)
+
+
+def test_obter_dashboard_geral_retorna_consolidado_e_fluxo(client, cenario_dashboard_geral):
+    response = client.get("/dashboard/geral")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["total_cursos"] == 4
+    assert data["total_campi"] == 2
+    assert data["ingressantes"] == 500
+    assert data["matriculados"] == 1800
+    assert data["concluintes"] == 240
+    assert data["trancados"] == 90
+    assert data["evadidos"] == 260
+    assert data["taxa_media_formacao"] == 45.0
+    assert data["taxa_media_evasao"] == 12.86
+
+    assert [item["campus"] for item in data["resumo_campi"]] == ["FCTE - Gama", "Darcy Ribeiro"]
+    assert data["resumo_campi"][0]["taxa_evasao"] == 17.14
+
+    assert [item["ano"] for item in data["fluxo_estudantes"]] == [2023, 2024]
+    ano_2023, ano_2024 = data["fluxo_estudantes"]
+    assert ano_2023 == {
+        "ano": 2023,
+        "ingressantes": 100,
+        "matriculados": 400,
+        "concluintes": 40,
+        "trancados": 20,
+        "evadidos": 40,
+        "taxa_formacao": 40.0,
+        "taxa_evasao": 10.0,
+    }
+    assert ano_2024 == {
+        "ano": 2024,
+        "ingressantes": 400,
+        "matriculados": 1400,
+        "concluintes": 200,
+        "trancados": 70,
+        "evadidos": 220,
+        "taxa_formacao": 50.0,
+        "taxa_evasao": 15.71,
+    }
+
+
+def test_obter_dashboard_geral_sem_dados_consolidados_retorna_404(client, db):
+    db.query(Curso).delete()
+    db.commit()
+    dashboard_repo.atualizar_evasao_campus(db)
+
+    response = client.get("/dashboard/geral")
+    assert response.status_code == 404
+    assert (
+        response.json()["detail"]
+        == "Dados consolidados institucionais ainda não estão disponíveis."
+    )
+
+
+def test_obter_dashboard_geral_erro_indisponibilidade_retorna_503(
+    client, cenario_dashboard_geral, monkeypatch
+):
+    def simular_indisponibilidade(*args, **kwargs):
+        raise SQLAlchemyError("visao materializada indisponivel")
+
+    monkeypatch.setattr(dashboard_repo, "listar_evasao_campus", simular_indisponibilidade)
+
+    response = client.get("/dashboard/geral")
+    assert response.status_code == 503
+    assert (
+        response.json()["detail"]
+        == "Dados consolidados temporariamente indisponíveis. Tente novamente em instantes."
+    )

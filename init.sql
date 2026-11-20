@@ -1,7 +1,7 @@
 -- =====================================================================
 -- PROJETO TAMBURETEI UnB - ESQUEMA RELACIONAL OFICIAL (PostgreSQL 17)
 -- Baseado no PROJECT_CONTEXT.md e na documentação técnica (MDS 2026/2)
--- Sincronizado integralmente com o baseline Alembic revisão 014_moderacao_ia (Head)
+-- Sincronizado integralmente com o baseline Alembic revisão 015_moderacao_ia (Head)
 -- =====================================================================
 
 -- Extensão para geração nativa de UUIDs
@@ -332,8 +332,22 @@ CREATE INDEX IF NOT EXISTS ix_denuncias_usuario_id ON denuncias(usuario_id);
 CREATE INDEX IF NOT EXISTS ix_denuncias_status ON denuncias(status);
 CREATE INDEX IF NOT EXISTS ix_denuncias_status_created_at ON denuncias(status, created_at, id);
 
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_evasao_campus AS
+SELECT
+    c.campus AS campus,
+    m.ano AS ano,
+    COUNT(DISTINCT c.id)::integer AS total_cursos,
+    COALESCE(SUM(m.matriculados), 0)::integer AS matriculados,
+    COALESCE(SUM(m.desvinculados), 0)::integer AS desvinculados
+FROM cursos c
+JOIN metricas_cursos m ON m.curso_id = c.id
+GROUP BY c.campus, m.ano
+WITH DATA;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_mv_evasao_campus_campus_ano ON mv_evasao_campus(campus, ano);
+
 CREATE TABLE IF NOT EXISTS alembic_version (
     version_num VARCHAR(32) NOT NULL,
     CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
 );
-INSERT INTO alembic_version (version_num) VALUES ('014_moderacao_ia') ON CONFLICT (version_num) DO UPDATE SET version_num = '014_moderacao_ia';
+INSERT INTO alembic_version (version_num) VALUES ('015_moderacao_ia') ON CONFLICT (version_num) DO UPDATE SET version_num = '015_moderacao_ia';

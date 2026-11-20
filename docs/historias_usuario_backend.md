@@ -363,7 +363,7 @@ Depende de: US 5.1.1, US 5.1.3, US 5.2.1, US 5.3.2
 Eu, como moderador ou administrador, desejo que novos materiais submetidos e comentários criados ou editados passem por uma triagem automática local via LLM (Ollama) em segundo plano, a fim de aprovar ou reter automaticamente casos de alta confiança ($\ge 0.80$) e receber na fila `/moderacao` apenas os casos ambíguos acompanhados do diagnóstico prévio da IA.
 
 **Nessa issue deve ser feito:**
-- Adicionar campos `motivo_moderacao`, `confianca_ia` e `moderado_por` (`IA`, `MODERATOR` ou `ADMIN`) em `conteudos` e `comentarios`, e permitir `perfil_moderador = 'IA'` na auditoria `curadorias` (migração `014_add_moderacao_ia`).
+- Adicionar campos `motivo_moderacao`, `confianca_ia` e `moderado_por` (`IA`, `MODERATOR` ou `ADMIN`) em `conteudos` e `comentarios`, e permitir `perfil_moderador = 'IA'` na auditoria `curadorias` (migração `015_add_moderacao_ia`).
 - Implementar módulo de domínio puro `app/domain/moderacao.py` com detecção determinística de dados sensíveis (`RN01`: CPF, e-mail, matrícula UnB) e cálculo de veredito por limiar de confiança (`0.80`).
 - Implementar `ModeracaoIAService` com extração de texto de PDFs via `pypdf` e consulta HTTP estruturada ao Ollama local (`POST /api/chat`) acionada por `BackgroundTasks` no envio de materiais e na criação/edição de comentários.
 - Garantir *fallback* seguro (*fail-safe*) mantendo o item como `PENDENTE` na fila `/moderacao` caso o PDF não possua camada de texto ou o serviço Ollama esteja offline.

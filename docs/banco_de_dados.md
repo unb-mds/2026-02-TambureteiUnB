@@ -375,4 +375,5 @@ O script `init.sql` e as migrações versionadas do Alembic encontram-se **100% 
 | **011** | `011_denuncias` | Criação da tabela `denuncias` para a Central de Denúncias (RN04) e Painel de Ações | Incorporado |
 | **012** | `012_estatisticas_consolidadas` | Criação da tabela `estatisticas_consolidadas` para métricas oficiais consolidadas | Incorporado |
 | **013** | `013_estat_disciplina_semestre` | Adição de `disciplina_id` e índice composto em `estatisticas_consolidadas` | Incorporado |
-| **014** | `014_moderacao_ia` | Adição de `motivo_moderacao`, `confianca_ia` e `moderado_por` em `conteudos` e `comentarios` e suporte a `perfil_moderador = 'IA'` em `curadorias` | **HEAD (Ativo)** |
+| **014** | `014_mv_evasao_campus` | Criação da visão materializada `mv_evasao_campus` para evasão agregada por campus | Incorporado |
+| **015** | `015_moderacao_ia` | Adição de `motivo_moderacao`, `confianca_ia` e `moderado_por` em `conteudos` e `comentarios` e suporte a `perfil_moderador = 'IA'` em `curadorias` | **HEAD (Ativo)** |
