@@ -35,12 +35,12 @@ def main():
     parser.add_argument(
         "--ano",
         type=int,
-        help="Ano-base específico para extração de métricas de cursos do DPO (ex: 2024, 2023, 2022, 2021)",
+        help="Ano-base específico para extração de métricas de cursos do DPO (ex: 2024, 2023, 2022, 2021, 2020)",
     )
     parser.add_argument(
         "--todos-anos",
         action="store_true",
-        help="Extrai métricas de cursos de todos os anos disponíveis no DPO (2021 a 2024)",
+        help="Extrai métricas de cursos de todos os anos disponíveis no DPO (2020 a 2024)",
     )
     parser.add_argument(
         "--input-file",
@@ -153,7 +153,7 @@ def main():
                 cursos_input = args.input_file
 
             if args.todos_anos:
-                anos_alvo = [2021, 2022, 2023, 2024]
+                anos_alvo = [2020, 2021, 2022, 2023, 2024]
             elif args.ano:
                 anos_alvo = [args.ano]
             elif args.ano_inicio and args.ano_fim and (args.ano_fim - args.ano_inicio >= 1):

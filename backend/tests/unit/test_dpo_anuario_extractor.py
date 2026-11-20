@@ -163,6 +163,7 @@ class TestDPOAnuarioExtractor:
         assert extractor.YEAR_URLS[2023] == "https://anuario2024.netlify.app/grad.html"
         assert extractor.YEAR_URLS[2022] == "https://anuario2023.netlify.app/grad.html"
         assert extractor.YEAR_URLS[2021] == "https://anuario2022.netlify.app/grad.html"
+        assert extractor.YEAR_URLS[2020] == "https://anuario2021.netlify.app/grad.html"
 
     def test_curso_metricas_historicas_property(self):
         from unittest.mock import MagicMock
