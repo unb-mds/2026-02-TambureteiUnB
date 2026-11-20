@@ -1,12 +1,19 @@
 """Regras puras de dominio para moderacao autonoma hibrida via LLM local (Ollama)."""
 from dataclasses import dataclass
 import json
+import re
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 LIMIAR_CONFIANCA_PADRAO: float = 0.80
-MAX_CARACTERES_PDF: int = 8000
+MAX_CARACTERES_PDF: int = 3500
+
+_REGEX_CPF_FORMATADO = re.compile(r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b")  # pragma: no mutate
+_REGEX_ONZE_DIGITOS = re.compile(r"(?<!\d)\d{11}(?!\d)")  # pragma: no mutate
+_REGEX_EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")  # pragma: no mutate
+_REGEX_MATRICULA_BARRA = re.compile(r"\b(?:1[0-9]|2[0-9])/\d{7}\b")  # pragma: no mutate
+_REGEX_MATRICULA_COMPACTA = re.compile(r"\b(?:1[5-9]|2[0-9])[012]\d{6}\b")  # pragma: no mutate
 
 CategoriaViolacao = Literal[  # pragma: no mutate
     "LGPD_DADOS_PESSOAIS",  # pragma: no mutate
@@ -21,16 +28,19 @@ DecisaoIA = Literal["APROVAR", "REJEITAR", "REVISAO_HUMANA"]  # pragma: no mutat
 
 PROMPT_SISTEMA_MODERACAO = (  # pragma: no mutate
     "Voce e o sistema de triagem academica do Tamburetei UnB (Universidade de Brasilia). "  # pragma: no mutate
-    "Avalie se o conteudo enviado por estudantes respeita as regras de governanca (RN01 e RN06): "  # pragma: no mutate
-    "1. LGPD_DADOS_PESSOAIS: proibido conter nomes completos de alunos, numeros de matricula, CPF, "  # pragma: no mutate
-    "e-mails pessoais, telefones ou cabecalhos de provas identificando discentes. "  # pragma: no mutate
+    "Avalie se o comentario ou material de apoio enviado por estudantes respeita as regras de governanca (RN01, RN04, RN05 e RN06): "  # pragma: no mutate
+    "1. LGPD_DADOS_PESSOAIS: proibido conter dados pessoais preenchidos de estudantes reais (nomes completos de alunos, "  # pragma: no mutate
+    "numeros de matricula preenchidos, CPF, e-mails pessoais, telefones ou cabecalhos de provas identificados com dados de alunos). "  # pragma: no mutate
+    "Atencao: nome de professor no cabecalho oficial da prova/lista e campos em branco para preenchimento (ex.: 'Nome:', 'Nomes:', 'Matricula:') NAO violam LGPD. "  # pragma: no mutate
     "2. GABARITO_VIGENTE: proibido publicar resolucoes ou gabaritos de avaliacoes ainda vigentes. "  # pragma: no mutate
+    "Atencao (RN05): enunciados de provas antigas, listas de exercicios sem gabarito, resumos conceituais e dicas de estudo sao PERMITIDOS. "  # pragma: no mutate
     "3. OFENSA_DIFAMACAO: proibido discurso de odio, xingamentos, assedio ou ataques pessoais a docentes e discentes. "  # pragma: no mutate
     "4. DIREITOS_AUTORAIS: proibido reproduzir livros inteiros protegidos por copyright. "  # pragma: no mutate
     "5. SPAM_IRRELEVANTE: proibido propaganda comercial, links maliciosos ou texto sem relacao academica. "  # pragma: no mutate
     "REGRA PADRAO: apenas escolha 'REJEITAR' se houver violacao explicita de uma das 5 regras acima. "  # pragma: no mutate
-    "Se o comentario for um elogio curto ou longo (ex.: 'Professor bacana e didatica boa'), relato de experiencia, "  # pragma: no mutate
-    "dica de estudo ou critica respeitosa sem xingamentos nem dados pessoais, escolha 'APROVAR' com categoria_violacao 'NENHUMA'. "  # pragma: no mutate
+    "Se for um comentario respeitoso (elogio, relato de experiencia, dica de estudo ou critica construtiva sem xingamentos nem dados pessoais) "  # pragma: no mutate
+    "ou um material academico legitimo (enunciado de prova antiga, lista de exercicios, resumo autoral ou dica da disciplina sem dados pessoais de alunos nem gabarito vigente), "  # pragma: no mutate
+    "escolha 'APROVAR' com categoria_violacao 'NENHUMA'. "  # pragma: no mutate
     "Responda estritamente em JSON valido conforme o schema solicitado, preenchendo todos os campos: "  # pragma: no mutate
     "decisao ('APROVAR', 'REJEITAR' ou 'REVISAO_HUMANA'), "  # pragma: no mutate
     "confianca (numero decimal entre 0.0 e 1.0, por exemplo 0.95; nunca use escala de 0 a 100), "  # pragma: no mutate
@@ -78,6 +88,51 @@ def truncar_texto_pdf(texto: str, limite: int = MAX_CARACTERES_PDF) -> str:
     if len(limpo) <= limite:
         return limpo
     return limpo[:limite].rstrip() + "..."
+
+
+def _cpf_valido_digitos(digitos: str) -> bool:
+    """Valida digitos verificadores de um CPF brasileiro de 11 digitos."""
+    if len(digitos) != 11 or not digitos.isdigit() or len(set(digitos)) == 1:
+        return False
+    numeros = [int(ch) for ch in digitos]
+    soma1 = sum(numeros[i] * (10 - i) for i in range(9))
+    dv1 = (soma1 * 10) % 11
+    dv1 = 0 if dv1 == 10 else dv1
+    if numeros[9] != dv1:
+        return False
+    soma2 = sum(numeros[i] * (11 - i) for i in range(10))
+    dv2 = (soma2 * 10) % 11
+    dv2 = 0 if dv2 == 10 else dv2
+    return numeros[10] == dv2
+
+
+def detectar_dados_pessoais_rn01(texto: str | None) -> VereditoModIA | None:
+    """Detecta deterministicamente dados pessoais sensiveis (RN01/LGPD): CPF, e-mail e matricula UnB."""
+    conteudo = (texto or "").strip()
+    if not conteudo:
+        return None
+
+    achados: list[str] = []
+    if _REGEX_CPF_FORMATADO.search(conteudo) or any(
+        _cpf_valido_digitos(m.group(0)) for m in _REGEX_ONZE_DIGITOS.finditer(conteudo)
+    ):
+        achados.append("CPF")  # pragma: no mutate
+
+    if _REGEX_EMAIL.search(conteudo):
+        achados.append("e-mail")  # pragma: no mutate
+
+    if _REGEX_MATRICULA_BARRA.search(conteudo) or _REGEX_MATRICULA_COMPACTA.search(conteudo):
+        achados.append("matricula UnB")  # pragma: no mutate
+
+    if not achados:
+        return None
+
+    return VereditoModIA(
+        decisao="REJEITAR",
+        confianca=1.0,
+        categoria_violacao="LGPD_DADOS_PESSOAIS",
+        motivo=f"Deteccao deterministica RN01 (LGPD): possivel exposicao de {', '.join(achados)}."[:1000],  # pragma: no mutate
+    )
 
 
 def construir_prompt_comentario(

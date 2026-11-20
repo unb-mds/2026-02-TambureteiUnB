@@ -11,6 +11,7 @@ from app.domain.moderacao import (
     VereditoModIA,
     construir_prompt_comentario,
     construir_prompt_material,
+    detectar_dados_pessoais_rn01,
     interpretar_resposta_ollama,
     resolver_moderacao_comentario,
     resolver_moderacao_material,
@@ -21,7 +22,7 @@ from app.domain.moderacao import (
 
 def test_constantes_padrao():
     assert LIMIAR_CONFIANCA_PADRAO == 0.80
-    assert MAX_CARACTERES_PDF == 8000
+    assert MAX_CARACTERES_PDF == 3500
 
 
 @pytest.mark.parametrize("valor,esperado", [(0.0, 0.0), (0.8, 0.8), (1.0, 1.0), (1, 1.0), (0, 0.0)])
@@ -46,6 +47,48 @@ def test_truncar_texto_pdf_limites_exatos():
         truncar_texto_pdf("abc", limite=0)
     with pytest.raises(ValueError, match="positivo"):
         truncar_texto_pdf("abc", limite=-5)
+
+
+def test_detectar_dados_pessoais_rn01():
+    assert detectar_dados_pessoais_rn01("") is None
+    assert detectar_dados_pessoais_rn01("   ") is None
+    assert (
+        detectar_dados_pessoais_rn01(
+            "Universidade de Brasilia - Lista P3 - Professor: Fulano - Nomes: Matriculas: 2026"
+        )
+        is None
+    )
+    # 11 digitos aleatorios sem digitos verificadores validos de CPF nao geram falso positivo
+    assert detectar_dados_pessoais_rn01("Codigo de referencia 12345678900 da biblioteca") is None
+    assert detectar_dados_pessoais_rn01("Sequencia repetida 11111111111 sem significado") is None
+
+    veredito_cpf_fmt = detectar_dados_pessoais_rn01("Meu CPF e 123.456.789-00 para contato")
+    assert veredito_cpf_fmt is not None
+    assert veredito_cpf_fmt.decisao == "REJEITAR"
+    assert veredito_cpf_fmt.confianca == 1.0
+    assert veredito_cpf_fmt.categoria_violacao == "LGPD_DADOS_PESSOAIS"
+    assert "CPF" in veredito_cpf_fmt.motivo
+
+    # CPF valido sem pontuacao (52998224725)
+    veredito_cpf_num = detectar_dados_pessoais_rn01("Documento 52998224725 anexado")
+    assert veredito_cpf_num is not None
+    assert veredito_cpf_num.categoria_violacao == "LGPD_DADOS_PESSOAIS"
+    assert "CPF" in veredito_cpf_num.motivo
+
+    veredito_email = detectar_dados_pessoais_rn01("Me manda no joao.silva@aluno.unb.br")
+    assert veredito_email is not None
+    assert veredito_email.categoria_violacao == "LGPD_DADOS_PESSOAIS"
+    assert "e-mail" in veredito_email.motivo
+
+    veredito_mat_barra = detectar_dados_pessoais_rn01("Matricula 22/1008543 na prova")
+    assert veredito_mat_barra is not None
+    assert veredito_mat_barra.categoria_violacao == "LGPD_DADOS_PESSOAIS"
+    assert "matricula UnB" in veredito_mat_barra.motivo
+
+    veredito_mat_compacta = detectar_dados_pessoais_rn01("Aluno 232014567 entregou a lista")
+    assert veredito_mat_compacta is not None
+    assert veredito_mat_compacta.categoria_violacao == "LGPD_DADOS_PESSOAIS"
+    assert "matricula UnB" in veredito_mat_compacta.motivo
 
 
 def test_construir_prompt_comentario():
@@ -80,6 +123,8 @@ def test_construir_prompt_material():
     )
     assert len(mensagens) == 2
     assert mensagens[0]["role"] == "system"
+    assert "RN05" in mensagens[0]["content"]
+    assert "provas antigas" in mensagens[0]["content"]
     assert "MATERIAL DE APOIO (RESUMO)" in mensagens[1]["content"]
     assert "Formato do arquivo: PDF" in mensagens[1]["content"]
     assert "Resumo de Calculo 1" in mensagens[1]["content"]
