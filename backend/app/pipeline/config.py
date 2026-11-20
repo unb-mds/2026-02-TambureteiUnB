@@ -116,7 +116,7 @@ FCTE_CURSOS = {
     },
     414915: {
         "nome": "Engenharia",
-        "slug": "engenharia-abi",
+        "slug": "engenharia",
         "codigo_mec": "115999",
         "campus": "FCTE - Gama",
         "grau": "Bacharelado",

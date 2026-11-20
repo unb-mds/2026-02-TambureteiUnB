@@ -67,7 +67,6 @@ class DPOAnuarioExtractor(BaseExtractor):
         "letras-lingua estrang. aplic.": "linguas estrangeiras aplicadas - msi",
         "psicologia-psicologo": "psicologia",
         "letras-portugues do brasil como segunda lingua": "lingua de sinais brasileira/portugues como segunda lingua",
-        "engenharia": "engenharia - abi",
     }
 
     def __init__(self, target_url: Optional[str] = None):
