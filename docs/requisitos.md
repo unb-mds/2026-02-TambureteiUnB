@@ -40,7 +40,8 @@ Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, de
 ### Módulo 4: Colaboração e Curadoria
 * **[RF13] Submissão de Materiais:** O sistema deve fornecer formulário para alunos autenticados enviarem novos links úteis, resumos ou enunciados de provas públicas.
 * **[RF14] Voto Útil (Upvotes):** O sistema deve permitir que usuários votem em dicas, resumos e comentários úteis, servindo como critério de ordenação dos materiais mais relevantes.
-* **[RF15] Fila de Moderação:** O sistema deve fornecer aos moderadores uma interface administrativa para aprovar ou rejeitar materiais submetidos e moderar relatos sinalizados.
+* **[RF15] Fila de Moderação Humana (*Human-in-the-Loop*):** O sistema deve fornecer aos moderadores (`MODERATOR` e `ADMIN`) uma interface administrativa (`/moderacao`) para analisar, aprovar ou recusar/ocultar materiais e comentários pendentes ou escalonados pela triagem automática, exibindo o parecer prévio e o grau de confiança da IA (`motivo_moderacao` e `confianca_ia`).
+* **[RF16] Triagem Autônoma Híbrida por IA Local (Ollama):** O sistema deve avaliar de forma assíncrona (`BackgroundTasks`) novos arquivos submetidos (`PDF`, `PNG`, `JPG`, com extração local de texto via `pypdf`) e comentários criados ou editados, combinando regras determinísticas (`RN01`) e inferência local via **Ollama** para aprovar ou bloquear automaticamente conteúdos com confiança $\ge 0.80$ (`RN01`, `RN04`, `RN05`) e encaminhar casos ambíguos para a fila humana (`RF15`).
 
 ---
 
@@ -56,6 +57,7 @@ Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, de
 * **[RNF05] Versionamento Database-as-Code:** Toda e qualquer evolução do esquema do banco de dados deve ser executada através de migrações versionadas do **Alembic**.
 * **[RNF06] Reprodutibilidade em Containers:** Toda a aplicação deve ser executável via `docker compose up` sem comandos manuais no sistema operacional do desenvolvedor.
 * **[RNF07] Responsividade:** A interface web (Next.js + Tailwind CSS) deve ser adaptável para smartphones, tablets e desktops.
+* **[RNF08] Resiliência e Degradação Graciosa da Triagem por IA (*Fail-Safe*):** Caso o servidor local do Ollama esteja desligado, inacessível ou exceda o tempo limite (*timeout*), o envio de materiais ou comentários não deve falhar; o registro deve permanecer com status `PENDENTE` na fila de moderação humana (`RF15`) acompanhado do motivo do escalonamento.
 
 ---
 
@@ -67,5 +69,5 @@ Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, de
 | **RF04, RF05, RF06** | Catálogo, busca de disciplinas e exportação de dados | R1 | Em andamento |
 | **RF07, RF08** | Ementas oficiais e painéis de indicadores DPO/INEP | R1 | Em andamento |
 | **RF09, RF10, RF11** | Crowdsourcing de situação, resumos e dificuldades | R2 | Planejado |
-| **RF12, RF13, RF14, RF15** | Comentários anônimos, submissões, upvotes e moderação | R2 | Planejado |
-| **RNF01 a RNF07** | Desempenho, LGPD, camadas, Alembic e Docker | R1 & R2 | Ativo |
+| **RF12, RF13, RF14, RF15, RF16** | Comentários anônimos, submissões, upvotes, curadoria humana e triagem autônoma via Ollama local | R2 | Em andamento |
+| **RNF01 a RNF08** | Desempenho, LGPD, camadas, Alembic, Docker e resiliência *fail-safe* da IA local | R1 & R2 | Ativo |

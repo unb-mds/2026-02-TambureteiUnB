@@ -1,8 +1,22 @@
-import { UserLoginInput, UserRegisterInput, AuthToken, UserResponse } from "@/types/auth";
-import { request, setStoredToken, removeStoredToken, hasStoredToken } from "./httpClient";
+import type { UserLoginInput, UserRegisterInput, AuthToken, UserResponse } from "../types/auth.ts";
+import { request, setStoredToken, removeStoredToken, hasStoredToken } from "./httpClient.ts";
 
 export const AUTH_CHANGE_EVENT = "tamburetei-auth-change";
 const USER_STORAGE_KEY = "tamburetei_user";
+
+export function subscribeAuthChange(onChange: () => void): () => void {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  window.addEventListener(AUTH_CHANGE_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+
+  return () => {
+    window.removeEventListener(AUTH_CHANGE_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
 
 export function getStoredUser(): UserResponse | null {
   if (typeof window === "undefined") return null;
@@ -73,7 +87,7 @@ export async function login(credentials: UserLoginInput): Promise<AuthToken> {
     } catch {
       // Ignora falha inicial de perfil
     }
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
       window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
     }
   }
@@ -96,7 +110,7 @@ export async function register(data: UserRegisterInput): Promise<UserResponse> {
 export function logout(): void {
   removeStoredToken();
   removeStoredUser();
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
     window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
   }
 }
@@ -108,16 +122,48 @@ export function isAuthenticated(): boolean {
   return hasStoredToken();
 }
 
+/**
+ * Determina se o banner de acesso visitante deve ser exibido com base
+ * no estado de autenticacao atual e no estado de dispensa manual.
+ */
+export function shouldShowGuestBanner(
+  authenticated: boolean = isAuthenticated(),
+  dismissed: boolean = false
+): boolean {
+  return !authenticated && !dismissed;
+}
+
+/**
+ * Registra um listener para mudancas no estado de autenticacao
+ * (AUTH_CHANGE_EVENT e storage) e retorna a funcao de limpeza.
+ */
+export function subscribeAuthChange(listener: () => void): () => void {
+  if (typeof window === "undefined" || typeof window.addEventListener !== "function") {
+    return () => {};
+  }
+  window.addEventListener(AUTH_CHANGE_EVENT, listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    if (typeof window.removeEventListener === "function") {
+      window.removeEventListener(AUTH_CHANGE_EVENT, listener);
+      window.removeEventListener("storage", listener);
+    }
+  };
+}
+
 export const authService = {
   login,
   register,
   logout,
   isAuthenticated,
+  shouldShowGuestBanner,
+  subscribeAuthChange,
   getCurrentUser,
   getStoredUser,
   setStoredUser,
   removeStoredUser,
   AUTH_CHANGE_EVENT,
+  subscribeAuthChange,
 };
 
 export default authService;

@@ -50,7 +50,7 @@ def test_criar_comentario_disciplina_com_sucesso(client: TestClient, student_hea
     assert response.status_code == 201
     data = response.json()
     assert data["conteudo"] == "Gostei da disciplina"
-    assert data["status_moderacao"] == "PUBLICADO"
+    assert data["status_moderacao"] == "PENDENTE"
     assert data["disciplina_id"] == disciplina.id
 
 
@@ -127,6 +127,7 @@ def test_editar_proprio_comentario(client: TestClient, student_headers, comentar
     response = client.patch(f"/comentarios/{comentario_do_aluno.id}", json={"conteudo": "Editado"}, headers=student_headers)
     assert response.status_code == 200
     assert response.json()["conteudo"] == "Editado"
+    assert response.json()["status_moderacao"] == "PENDENTE"
 
 
 def test_editar_comentario_de_outro_retorna_403(client: TestClient, student_headers, comentario_de_outro):
@@ -162,7 +163,7 @@ def test_excluir_sem_autenticacao_retorna_401(client: TestClient, comentario_do_
 
 # --- DIFICULDADES E TÓPICOS CRÍTICOS (SPRINT 8) ---
 
-def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, student_headers, disciplina):
+def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, db: Session, student_headers, disciplina):
     payload = {
         "autor_alias": "Estudante Anônimo",
         "topico_dificuldade": "[CRITICO] Integrais Múltiplas",
@@ -177,6 +178,12 @@ def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, student
     created = post_resp.json()
     assert created["topico_dificuldade"] == "[CRITICO] Integrais Múltiplas"
     assert created["disciplina_id"] == disciplina.id
+    assert created["status_moderacao"] == "PENDENTE"
+
+    comentario = db.get(Comentario, created["id"])
+    assert comentario is not None
+    comentario.status_moderacao = "PUBLICADO"
+    db.commit()
 
     list_resp = client.get(
         f"/cadeiras/{disciplina.slug}/comentarios?apenas_dificuldades=true&topico=Integrais"

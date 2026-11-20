@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, Suspense } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
@@ -10,6 +10,7 @@ import Pagination from "@/components/Pagination";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
 import { getDisciplines } from "@/services/disciplineService";
 import { exportDisciplinesOpenData } from "@/services/openDataService";
+import useAsyncList from "@/hooks/useAsyncList";
 import {
   GLOBAL_CAMPUSES,
   GLOBAL_AREAS,
@@ -25,8 +26,10 @@ function DisciplinasContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
 
-  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: disciplines, loading } = useAsyncList(
+    getDisciplines,
+    "Erro ao carregar catálogo de disciplinas:"
+  );
 
   const [query, setQuery] = useState(initialQuery);
   const [appliedQuery, setAppliedQuery] = useState(initialQuery);
@@ -35,29 +38,6 @@ function DisciplinasContent() {
   const [area, setArea] = useState("Todas");
   const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
   const [currentPage, setCurrentPage] = useState(1);
-
-  useEffect(() => {
-    let isMounted = true;
-    async function loadDisciplines() {
-      try {
-        setLoading(true);
-        const data = await getDisciplines();
-        if (isMounted) {
-          setDisciplines(data);
-        }
-      } catch (err) {
-        console.error("Erro ao carregar catálogo de disciplinas:", err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-    loadDisciplines();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const filteredResults: Discipline[] = useMemo(() => {
     const normalizedQuery = appliedQuery.trim().toLocaleLowerCase("pt-BR");

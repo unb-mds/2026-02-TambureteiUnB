@@ -5,6 +5,8 @@ import {
   podeModerar,
   listarPendentes,
   decidirCuradoria,
+  listarComentariosPendentes,
+  decidirComentarioCuradoria,
   baixarParaAnalise,
   validarMotivoDenuncia,
   criarDenuncia,
@@ -62,10 +64,15 @@ test("fila e decisão usam Bearer e contrato correto", async (t) => {
   });
   await listarPendentes(2);
   await decidirCuradoria(12, "RECUSADO", "  Material inadequado.  ");
-  assert.match(chamadas[0].url, /pagina=2&tamanho_pagina=20/);
+  await listarComentariosPendentes(3);
+  await decidirComentarioCuradoria(44, "OCULTO", "  Ofensa detectada.  ");
+  assert.match(chamadas[0].url, /moderacao\/materiais\?pagina=2&tamanho_pagina=20/);
   assert.equal(new Headers(chamadas[0].options.headers).get("Authorization"), "Bearer token");
   assert.equal(chamadas[1].options.method, "PATCH");
   assert.deepEqual(JSON.parse(String(chamadas[1].options.body)), { status: "RECUSADO", justificativa: "Material inadequado." });
+  assert.match(chamadas[2].url, /moderacao\/comentarios\?pagina=3&tamanho_pagina=20/);
+  assert.equal(chamadas[3].options.method, "PATCH");
+  assert.deepEqual(JSON.parse(String(chamadas[3].options.body)), { status: "OCULTO", justificativa: "Ofensa detectada." });
 });
 
 test("conflito de outro moderador é propagado", async (t) => {

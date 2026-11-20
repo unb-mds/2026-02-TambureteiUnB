@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Button from "./Button";
 import StoolIllustration from "./StoolIllustration";
-import { authService } from "@/services/authService";
+import { authService, subscribeAuthChange } from "@/services/authService";
 import { podeModerar } from "@/services/moderacaoService";
 import { UserResponse } from "@/types/auth";
 
@@ -57,15 +57,9 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
       }
     };
 
+    const unsubscribe = subscribeAuthChange(syncAuth);
     syncAuth();
-
-    window.addEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-    window.addEventListener("storage", syncAuth);
-
-    return () => {
-      window.removeEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-      window.removeEventListener("storage", syncAuth);
-    };
+    return unsubscribe;
   }, []);
 
   // Fechar dropdown ao clicar fora
@@ -195,51 +189,57 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
           {isLoggedIn && user && podeModerar(user.role) && <Link href="/moderacao" className="text-sm font-semibold text-[#5B4BDB]">Moderação</Link>}
           {isLoggedIn ? (
             <div className="relative" ref={userMenuRef}>
-              <button
-                type="button"
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 rounded-2xl px-2.5 py-1.5 transition-all hover:bg-purple-50/80 border border-transparent hover:border-[#EDE9FD] focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]/30"
-                aria-expanded={userMenuOpen}
-                aria-label={`Abrir menu de ${user?.nome || "usuário"}`}
-              >
-                {/* Avatar circular com iniciais no padrão Figma */}
-                <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs select-none"
-                  style={{ background: "#5B4BDB", fontFamily: "Poppins, sans-serif" }}
+              <div className="flex items-center gap-2 rounded-2xl px-2.5 py-1.5 transition-all hover:bg-purple-50/80 border border-transparent hover:border-[#EDE9FD]">
+                <Link
+                  href="/perfil"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]/30"
+                  aria-label={`Acessar perfil de ${user?.nome || "usuário"}`}
                 >
-                  {getInitials(user?.nome, user?.email)}
-                </span>
-
-                {/* Nome e Papel (Figma) */}
-                <span className="text-left hidden lg:block">
-                  <span className="block text-xs font-semibold text-[#202124] leading-tight">
-                    {getShortName(user?.nome, user?.email)}
+                  <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs select-none"
+                    style={{ background: "#5B4BDB", fontFamily: "Poppins, sans-serif" }}
+                  >
+                    {getInitials(user?.nome, user?.email)}
                   </span>
-                  <span className="block text-[11px] text-[#6B7280] font-medium leading-tight">
-                    {getRoleLabel(user?.role)}
-                  </span>
-                </span>
 
-                {/* Seta Chevron */}
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  aria-hidden="true"
-                  className={`transition-transform duration-200 text-[#6B7280] ${
-                    userMenuOpen ? "rotate-180 text-[#5B4BDB]" : ""
-                  }`}
+                  <span className="text-left hidden lg:block">
+                    <span className="block text-xs font-semibold text-[#202124] leading-tight">
+                      {getShortName(user?.nome, user?.email)}
+                    </span>
+                    <span className="block text-[11px] text-[#6B7280] font-medium leading-tight">
+                      {getRoleLabel(user?.role)}
+                    </span>
+                  </span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex h-8 w-7 items-center justify-center rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]/30"
+                  aria-expanded={userMenuOpen}
+                  aria-label={`Abrir menu de ${user?.nome || "usuário"}`}
                 >
-                  <path
-                    d="M3.5 5.5L7 9l3.5-3.5"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    aria-hidden="true"
+                    className={`transition-transform duration-200 text-[#6B7280] ${
+                      userMenuOpen ? "rotate-180 text-[#5B4BDB]" : ""
+                    }`}
+                  >
+                    <path
+                      d="M3.5 5.5L7 9l3.5-3.5"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
 
               {/* Menu Suspenso (Dropdown) */}
               {userMenuOpen && (
@@ -266,6 +266,14 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
                       {getRoleLabel(user?.role)}
                     </div>
                   </div>
+
+                  <Link
+                    href="/perfil"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-[#F7F7FA] hover:text-[#5B4BDB]"
+                  >
+                    Meu perfil
+                  </Link>
 
                   {/* Ação de Logout */}
                   <div className="pt-1">
@@ -390,6 +398,13 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
                     </p>
                   </div>
                 </div>
+                <Link
+                  href="/perfil"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#5B4BDB] hover:bg-[#5B4BDB]/5"
+                >
+                  Meu perfil
+                </Link>
                 <Button
                   variant="outline"
                   fullWidth
