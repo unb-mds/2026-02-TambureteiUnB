@@ -1,4 +1,4 @@
-# 🔄 Pipeline de Dados e Ingestão ETL (SIGAA e Dados Abertos)
+# Pipeline de Dados e Ingestão ETL (SIGAA e Dados Abertos)
 
 Este documento descreve a especificação técnica, a arquitetura em camadas, as políticas de conformidade com a LGPD e os procedimentos operacionais do **Pipeline de Dados e ETL** do **Tamburetei UnB**, atendendo aos entregáveis técnicos da **Release 1 (R1)** da disciplina Métodos de Desenvolvimento de Software (MDS 2026/2 — FCTE/UnB).
 

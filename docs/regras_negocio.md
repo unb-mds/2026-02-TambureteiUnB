@@ -1,10 +1,10 @@
-# ⚖️ Regras de Negócio e Governança
+# Regras de Negócio e Governança
 
 O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conformidade legal com a LGPD e ética acadêmica na Universidade de Brasília (UnB).
 
 ---
 
-## 📌 Regras de Negócio (RN)
+## Regras de Negócio (RN)
 
 ### [RN01] Privacidade por Padrão e Anonimato Discente
 * A plataforma **não** armazena nem processa número de matrícula, CPF ou histórico acadêmico nominal dos estudantes, sendo igualmente vedada a exposição de cabeçalhos identificados em provas e materiais.
@@ -44,7 +44,7 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 
 ---
 
-## 🎯 Critérios de Qualidade da Disciplina (MDS 2026/2)
+## Critérios de Qualidade da Disciplina (MDS 2026/2)
 
 1. **Cobertura de Código:** Mínimo de **70% de cobertura** de linhas no módulo de domínio (`app/domain/`).
 2. **Escore de Mutação:** Mínimo de **50% de mortes** de mutantes nas regras de negócio com Mutmut.

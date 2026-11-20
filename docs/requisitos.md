@@ -1,10 +1,10 @@
-# 📋 Engenharia de Requisitos
+# Engenharia de Requisitos
 
 Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, definindo o escopo funcional, os atributos de qualidade do sistema e a priorização das entregas no modelo ágil de MDS 2026/2.
 
 ---
 
-## 👥 Perfis de Usuários (Atores)
+## Perfis de Usuários (Atores)
 
 | Perfil | Descrição | Permissões no Sistema |
 | :--- | :--- | :--- |
@@ -14,7 +14,7 @@ Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, de
 
 ---
 
-## ⚙️ Requisitos Funcionais (RF)
+## Requisitos Funcionais (RF)
 
 ### Módulo 1: Autenticação e Gestão de Acesso
 * **[RF01] Cadastro Enxuto e Seguro:** O sistema deve permitir o cadastro de usuários solicitando apenas `Nome`, `E-mail` e `Senha`. Em conformidade com a LGPD e Privacy by Design, **não** serão solicitados matrícula, CPF ou histórico acadêmico nominal.
@@ -45,7 +45,7 @@ Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, de
 
 ---
 
-## 🛡️ Requisitos Não-Funcionais (RNF)
+## Requisitos Não-Funcionais (RNF)
 
 * **[RNF01] Desempenho e Latência:** Consultas de busca e carregamento de dados analíticos devem responder em menos de **300 ms** em condições normais, utilizando consultas otimizadas e índices no PostgreSQL 17 (sem Redis).
 * **[RNF02] Privacidade e LGPD (Privacy by Design):**
@@ -61,7 +61,7 @@ Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, de
 
 ---
 
-## 🗺️ Matriz de Rastreabilidade por Release
+## Matriz de Rastreabilidade por Release
 
 | Requisito | Descrição | Release | Status |
 | :--- | :--- | :--- | :--- |

@@ -4,7 +4,7 @@ Este documento descreve o modelo relacional ativo do **Tamburetei UnB** (Postgre
 
 ---
 
-## 🗺️ Mapa de Relacionamentos do Modelo Relacional
+## Mapa de Relacionamentos do Modelo Relacional
 
 Para facilitar a visualização clara e objetiva sem distorções de escala em diferentes resoluções, as dependências relacionais do banco estão estruturadas por módulos de domínio:
 
