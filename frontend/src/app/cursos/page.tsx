@@ -210,22 +210,50 @@ export default function CursosPage() {
                   <div>
                     {/* Badges superiores: Campus e Grau */}
                     <div className="flex items-center justify-between gap-2 mb-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getCampusBadgeClasses(
-                          course.campus
-                        )}`}
-                      >
-                        {course.campus}
-                      </span>
-                      <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
-                        {course.grau} • {course.turno}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getCampusBadgeClasses(
+                            course.campus
+                          )}`}
+                        >
+                          {course.campus}
+                        </span>
+                        {course.modalidade === "A Distância" && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            EaD
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {course.total_creditos && (
+                          <span className="text-[10px] font-bold text-[#5B4BDB] bg-[#EDE9FD] px-2 py-0.5 rounded-md">
+                            {course.total_creditos} cr
+                          </span>
+                        )}
+                        <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                          {course.grau} • {course.modalidade === "A Distância" ? "A Distância" : course.turno}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Nome do Curso */}
                     <h2 className="text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
                       {course.nome}
                     </h2>
+
+                    {/* Identificador de Estrutura Curricular / Matriz (Estilo NoFluxo) */}
+                    {course.matriz_curricular && (
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mt-1">
+                        <svg className="w-3.5 h-3.5 text-[#5B4BDB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span>
+                          Matriz <strong className="font-semibold text-gray-700">{course.matriz_curricular}</strong>
+                          {course.ano_vigencia ? ` • Vigência ${course.ano_vigencia}` : ""}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Departamento / Faculdade */}
                     {course.departamento && (

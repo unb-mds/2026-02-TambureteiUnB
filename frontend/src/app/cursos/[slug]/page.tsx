@@ -237,17 +237,38 @@ export default function CourseDisciplinesPage() {
                   <StoolIllustration size={44} />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span className="text-xs font-bold text-[#5B4BDB] bg-[#5B4BDB]/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                       {course.campus}
                     </span>
+                    {course.modalidade === "A Distância" && (
+                      <span className="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                        EaD • A Distância
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500">
-                      {course.grau} • {course.turno}
+                      {course.grau} • {course.modalidade === "A Distância" ? "A Distância" : course.turno}
                     </span>
+                    {course.total_creditos && (
+                      <span className="text-xs font-semibold text-[#5B4BDB] bg-[#EDE9FD] px-2 py-0.5 rounded-md">
+                        {course.total_creditos} créditos
+                      </span>
+                    )}
                   </div>
                   <h1 className="text-2xl sm:text-4xl font-extrabold text-[#202124] tracking-tight">
                     Disciplinas de {course.nome}
                   </h1>
+                  {course.matriz_curricular && (
+                    <div className="flex items-center gap-2 text-sm text-[#5B4BDB] font-semibold mt-1">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                      <span>
+                        Estrutura Curricular {course.matriz_curricular}
+                        {course.ano_vigencia ? ` • Vigência ${course.ano_vigencia}` : ""}
+                      </span>
+                    </div>
+                  )}
                   <p className="mt-2 text-sm text-gray-500">
                     Campus {course.campus} <span className="mx-2 text-[#C4C1D8]">•</span>
                     {course.semestres || 8} semestres sugeridos <span className="mx-2 text-[#C4C1D8]">•</span>

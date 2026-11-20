@@ -232,11 +232,11 @@ class DPOAnuarioExtractor(BaseExtractor):
             return val if val is not None else default
 
         for (nome_dpo, turno_dpo), stats in dpo_data.items():
-            # Resolve aliases
+            # Resolve aliases com normalização sem acentos e espaços
             search_name = nome_dpo
-            raw_lower = nome_dpo.strip().lower()
+            norm_raw = normalize_text(nome_dpo)
             for alias_from, alias_to in self.COURSE_ALIASES.items():
-                if alias_from in raw_lower:
+                if normalize_text(alias_from) in norm_raw:
                     search_name = alias_to
                     break
 

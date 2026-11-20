@@ -9,6 +9,10 @@ export function filterCourses(
   const normalizedCampus = selectedCampus.toLocaleLowerCase("pt-BR");
 
   return courses.filter((course) => {
+    // Filtra cursos extintos / inativos do SIGAA com 0 disciplinas
+    const isAtivo = course.total_disciplinas === undefined || course.total_disciplinas > 0;
+    if (!isAtivo) return false;
+
     const matchesCampus =
       selectedCampus === "Todos" ||
       course.campus?.toLocaleLowerCase("pt-BR").includes(normalizedCampus);
@@ -17,7 +21,11 @@ export function filterCourses(
       !query ||
       course.nome.toLocaleLowerCase("pt-BR").includes(query) ||
       course.departamento?.toLocaleLowerCase("pt-BR").includes(query) ||
-      course.campus?.toLocaleLowerCase("pt-BR").includes(query);
+      course.campus?.toLocaleLowerCase("pt-BR").includes(query) ||
+      course.grau?.toLocaleLowerCase("pt-BR").includes(query) ||
+      course.turno?.toLocaleLowerCase("pt-BR").includes(query) ||
+      course.modalidade?.toLocaleLowerCase("pt-BR").includes(query) ||
+      course.matriz_curricular?.toLocaleLowerCase("pt-BR").includes(query);
 
     return matchesCampus && matchesQuery;
   });

@@ -13,9 +13,10 @@ router = APIRouter(prefix="/cursos", tags=["Cursos"])
 def listar_cursos(
     q: Optional[str] = Query(None, description="Busca por nome do curso"),
     campus: Optional[str] = Query(None, description="Filtro por campus"),
+    apenas_ativos: bool = Query(False, description="Filtra apenas cursos com grade e matriz curricular ativa"),
     db: Session = Depends(get_db),
 ):
-    return curso_service.listar(db, q=q, campus=campus)
+    return curso_service.listar(db, q=q, campus=campus, apenas_ativos=apenas_ativos)
 
 
 @router.get("/{curso_id}/grade", response_model=CursoGradeResponse)
