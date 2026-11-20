@@ -68,6 +68,7 @@ def client(db, tmp_path, monkeypatch):
         yield db
 
     monkeypatch.setattr(settings, "MATERIALS_DIR", tmp_path / "uploads")
+    monkeypatch.setattr(settings, "OLLAMA_BASE_URL", "")
     previous = app.dependency_overrides.copy()
     app.dependency_overrides[get_db] = override_get_db
     try:

@@ -181,7 +181,7 @@ export async function listMaterials(
   const endpoint = `/cadeiras/${encodeURIComponent(disciplineIdOrSlug)}/materiais${
     qs ? `?${qs}` : ""
   }`;
-  return request<MaterialPageResponse>(endpoint);
+  return request<MaterialPageResponse>(endpoint, { cache: "no-store" });
 }
 
 export const materialService = {

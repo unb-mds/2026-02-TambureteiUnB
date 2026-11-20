@@ -104,6 +104,7 @@ function DisciplineDetailContent() {
   const [completed, setCompleted] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [materialsReloadTrigger, setMaterialsReloadTrigger] = useState(0);
+  const [pendingMaterialIds, setPendingMaterialIds] = useState<string[]>([]);
 
   const handleOpenMaterialModal = useCallback(() => {
     if (!isAuthenticated()) {
@@ -637,7 +638,10 @@ function DisciplineDetailContent() {
             disciplineSlug={slug}
             disciplineName={discipline.name}
             onClose={() => setShowMaterialModal(false)}
-            onUploadSuccess={() => {
+            onUploadSuccess={(uploadedIds) => {
+              if (uploadedIds && uploadedIds.length > 0) {
+                setPendingMaterialIds(uploadedIds);
+              }
               setMaterialsReloadTrigger((prev) => prev + 1);
             }}
           />
@@ -1288,8 +1292,9 @@ function DisciplineDetailContent() {
 
           <MateriaisApoio
             disciplineName={discipline.name}
-            disciplineIdOrSlug={discipline.code || slug}
+            disciplineIdOrSlug={discipline.slug || slug}
             refreshTrigger={materialsReloadTrigger}
+            pendingMaterialIds={pendingMaterialIds}
             onOpenUploadModal={() => setShowMaterialModal(true)}
           />
 

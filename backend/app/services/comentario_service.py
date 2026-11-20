@@ -54,7 +54,7 @@ class ComentarioService:
             conteudo=dados.conteudo,
             autor_alias=dados.autor_alias or "Estudante Anônimo",
             topico_dificuldade=dados.topico_dificuldade,
-            status_moderacao="PUBLICADO",
+            status_moderacao="PENDENTE",
         )
         return comentario_repo.create(db, novo_comentario)
 
@@ -142,6 +142,10 @@ class ComentarioService:
             )
 
         comentario.conteudo = dados.conteudo
+        comentario.status_moderacao = "PENDENTE"
+        comentario.motivo_moderacao = None
+        comentario.confianca_ia = None
+        comentario.moderado_por = None
         return comentario_repo.update(db, comentario)
 
     def excluir_comentario(

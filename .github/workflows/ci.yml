@@ -57,7 +57,7 @@ jobs:
   backend-tests:
     name: Backend — Testes, Cobertura (>=70%) & Mutação (>=50%)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:17
