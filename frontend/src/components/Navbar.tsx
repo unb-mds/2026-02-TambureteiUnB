@@ -187,7 +187,6 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
 
         {/* Canto Superior Direito: Perfil (Figma) se logado, ou Botões se deslogado */}
         <div className="hidden md:flex items-center gap-3">
-          <ThemeSelector />
           {isLoggedIn && user && podeModerar(user.role) && <Link href="/moderacao" className="text-sm font-semibold text-[#5B4BDB]">Moderação</Link>}
           {isLoggedIn ? (
             <div className="relative" ref={userMenuRef}>
@@ -267,6 +266,10 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
                     <div className="mt-2 inline-flex items-center rounded-md bg-[#5B4BDB]/10 px-2 py-0.5 text-[10px] font-bold text-[#5B4BDB] tracking-wide uppercase">
                       {getRoleLabel(user?.role)}
                     </div>
+                  </div>
+
+                  <div className="border-b border-gray-100 py-1">
+                    <ThemeSelector />
                   </div>
 
                   <Link
