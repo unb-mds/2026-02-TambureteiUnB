@@ -49,14 +49,25 @@ class DPOAnuarioExtractor(BaseExtractor):
     MIRROR_URL = "https://repositoriodpo.unb.br/anuarios/anuario-estatistico-2025/"
 
     COURSE_ALIASES = {
+        "artes plasticas": "artes visuais",
         "comunicacao social - public. propaganda": "publicidade e propaganda",
         "comunicacao social - audiovisual": "audiovisual",
-        "artes plasticas": "artes visuais",
-        "linguas estrangeiras aplicadas ao multilinguismo e a sociedade da informacao": "linguas estrangeiras aplicadas",
+        "comunicacao social-jornalismo": "jornalismo",
+        "gestao do agronegocio": "gestao de agronegocios",
+        "ciencias farmaceuticas": "farmacia",
+        "desenho industrial-prog. visual": "design - programacao visual",
+        "desenho industrial-proj. produto": "design - projeto do produto",
+        "engenharia mecatronica": "engenharia mecatronica - controle e automacao",
+        "engenharia ambiental": "engenharia ambiental e sanitaria",
+        "letras-japones": "letras - lingua e literatura japonesa",
+        "letras-espanhol": "letras - lingua espanhola e literatura espanhola e hispano-americana",
+        "letras-frances": "letras - lingua francesa e respectiva literatura",
+        "letras-ingles": "letras - lingua inglesa e respectiva literatura",
+        "letras-portugues": "letras - lingua portuguesa e respectiva literatura",
+        "letras-lingua estrang. aplic.": "linguas estrangeiras aplicadas - msi",
+        "psicologia-psicologo": "psicologia",
+        "letras-portugues do brasil como segunda lingua": "lingua de sinais brasileira/portugues como segunda lingua",
         "engenharia": "engenharia - abi",
-        "letras - traducao - espanhol": "letras - traducao",
-        "letras - traducao - frances": "letras - traducao",
-        "letras - traducao - ingles": "letras - traducao",
     }
 
     def __init__(self, target_url: Optional[str] = None):
@@ -232,11 +243,11 @@ class DPOAnuarioExtractor(BaseExtractor):
             return val if val is not None else default
 
         for (nome_dpo, turno_dpo), stats in dpo_data.items():
-            # Resolve aliases com normalização sem acentos e espaços
+            # Resolve aliases por correspondência exata do nome normalizado
             search_name = nome_dpo
             norm_raw = normalize_text(nome_dpo)
             for alias_from, alias_to in self.COURSE_ALIASES.items():
-                if normalize_text(alias_from) in norm_raw:
+                if normalize_text(alias_from) == norm_raw:
                     search_name = alias_to
                     break
 
@@ -274,7 +285,7 @@ class DPOAnuarioExtractor(BaseExtractor):
                     best_match = c
                     break
 
-            # 2. Fallback de substring de nome com turno idêntico
+            # 2. DPO name é substring de DB name (ex.: 'Engenharia Mecatrônica' dentro de 'Engenharia Mecatrônica - Controle e Automação')
             if not best_match:
                 for c in db_courses:
                     c_id = get_val(c, "id", None)
@@ -284,7 +295,21 @@ class DPOAnuarioExtractor(BaseExtractor):
                     c_nome = get_val(c, "nome", "")
                     norm_db_nome = normalize_text(c_nome)
 
-                    if (norm_dpo_nome in norm_db_nome or norm_db_nome in norm_dpo_nome) and turno_matches(c):
+                    if norm_dpo_nome in norm_db_nome and turno_matches(c):
+                        best_match = c
+                        break
+
+            # 3. DB name é substring de DPO name (evita termos curtos genéricos como 'engenharia')
+            if not best_match:
+                for c in db_courses:
+                    c_id = get_val(c, "id", None)
+                    if c_id and c_id in already_matched_course_ids:
+                        continue
+
+                    c_nome = get_val(c, "nome", "")
+                    norm_db_nome = normalize_text(c_nome)
+
+                    if len(norm_db_nome) > 10 and norm_db_nome in norm_dpo_nome and turno_matches(c):
                         best_match = c
                         break
 
