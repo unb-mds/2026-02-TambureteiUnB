@@ -119,10 +119,10 @@ export function validateClassCard(testCase: ClassCardStoryCase): {
   const errors: string[] = [];
 
   const computedPercentual =
-    turma.totalVagas > 0
+    turma.totalVagas !== null && turma.vagasOcupadas !== null && turma.totalVagas > 0
       ? Math.round((turma.vagasOcupadas / turma.totalVagas) * 100)
       : 0;
-  const computedVagasEsgotadas = turma.vagasOcupadas >= turma.totalVagas;
+  const computedVagasEsgotadas = turma.vagasOcupadas !== null && turma.totalVagas !== null && turma.totalVagas > 0 && turma.vagasOcupadas >= turma.totalVagas;
 
   if (computedPercentual !== expected.percentualOcupacao) {
     errors.push(
