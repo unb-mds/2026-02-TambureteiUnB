@@ -33,6 +33,16 @@ def main():
         help="Ano final para métricas do DPO/INEP (padrão: 2026)",
     )
     parser.add_argument(
+        "--ano",
+        type=int,
+        help="Ano-base específico para extração de métricas de cursos do DPO (ex: 2024, 2023, 2022, 2021)",
+    )
+    parser.add_argument(
+        "--todos-anos",
+        action="store_true",
+        help="Extrai métricas de cursos de todos os anos disponíveis no DPO (2021 a 2024)",
+    )
+    parser.add_argument(
         "--input-file",
         help="Caminho opcional para arquivo local bruto de turmas do SIGAA (CSV/JSON)",
     )
@@ -142,9 +152,17 @@ def main():
             if not cursos_input and args.source == "metricas-cursos":
                 cursos_input = args.input_file
 
-            ano_ref = args.ano_fim if args.ano_fim and args.ano_fim <= 2024 else 2024
+            if args.todos_anos:
+                anos_alvo = [2021, 2022, 2023, 2024]
+            elif args.ano:
+                anos_alvo = [args.ano]
+            elif args.ano_inicio and args.ano_fim and (args.ano_fim - args.ano_inicio >= 1):
+                anos_alvo = list(range(args.ano_inicio, min(args.ano_fim, 2024) + 1))
+            else:
+                anos_alvo = [args.ano_fim if args.ano_fim and args.ano_fim <= 2024 else 2024]
+
             runner.run_metricas_cursos_pipeline(
-                ano=ano_ref,
+                anos=anos_alvo,
                 input_file=cursos_input,
                 dry_run=args.dry_run,
                 export=export,

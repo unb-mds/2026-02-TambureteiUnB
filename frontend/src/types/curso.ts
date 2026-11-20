@@ -34,6 +34,7 @@ export interface Course {
   area_especifica?: string;
   metricas_2024?: CourseMetrics | null;
   metricas_recentes?: CourseMetrics | null;
+  metricas_historicas?: CourseMetrics[];
 }
 
 export interface CourseGradeDisciplina {
@@ -57,6 +58,7 @@ export interface CourseDetail extends Course {
   area_especifica?: string;
   metricas_2024?: CourseMetrics | null;
   metricas_recentes?: CourseMetrics | null;
+  metricas_historicas?: CourseMetrics[];
   disciplinas?: CourseGradeDisciplina[];
 }
 

@@ -156,3 +156,26 @@ class TestDPOAnuarioExtractor:
         assert "pedagogia-ead" in matched_by_slug
         assert matched_by_slug["pedagogia-ead"]["matriculados"] == 50
         assert "pedagogia-diurno" not in matched_by_slug
+
+    def test_year_urls_mapping(self):
+        extractor = DPOAnuarioExtractor()
+        assert extractor.YEAR_URLS[2024] == "https://anuariounb2025.netlify.app/grad.html"
+        assert extractor.YEAR_URLS[2023] == "https://anuario2024.netlify.app/grad.html"
+        assert extractor.YEAR_URLS[2022] == "https://anuario2023.netlify.app/grad.html"
+        assert extractor.YEAR_URLS[2021] == "https://anuario2022.netlify.app/grad.html"
+
+    def test_curso_metricas_historicas_property(self):
+        from unittest.mock import MagicMock
+        from app.models.curso import Curso
+
+        curso = Curso(id=1, nome="Administração", slug="administracao-diurno")
+        m2024 = MagicMock(ano=2024, matriculados=1193)
+        m2023 = MagicMock(ano=2023, matriculados=1185)
+        m2022 = MagicMock(ano=2022, matriculados=1150)
+        curso.metricas = [m2022, m2024, m2023]
+
+        historicas = curso.metricas_historicas
+        assert len(historicas) == 3
+        assert [m.ano for m in historicas] == [2024, 2023, 2022]
+        assert curso.metricas_recentes.ano == 2024
+        assert curso.metricas_2024.ano == 2024

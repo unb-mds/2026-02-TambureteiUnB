@@ -43,6 +43,12 @@ class Curso(Base):
         return None
 
     @property
+    def metricas_historicas(self):
+        if self.metricas:
+            return sorted(self.metricas, key=lambda m: m.ano, reverse=True)
+        return []
+
+    @property
     def disciplinas(self):
         items = []
         if self.curso_disciplinas:

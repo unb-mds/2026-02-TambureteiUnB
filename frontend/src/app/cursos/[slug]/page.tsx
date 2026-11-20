@@ -30,6 +30,7 @@ export default function CourseDisciplinesPage() {
   const [semester, setSemester] = useState("Todos");
   const [department, setDepartment] = useState("Todos os departamentos");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedMetricYear, setSelectedMetricYear] = useState<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -144,6 +145,39 @@ export default function CourseDisciplinesPage() {
     const deps = Array.from(new Set(courseDisciplines.map((d) => d.department)));
     return ["Todos os departamentos", ...deps];
   }, [courseDisciplines]);
+
+  // Anos disponíveis para as métricas do curso (DPO)
+  const availableMetricYears = useMemo(() => {
+    if (course?.metricas_historicas && course.metricas_historicas.length > 0) {
+      const years = Array.from(new Set(course.metricas_historicas.map((m) => m.ano || 2024)));
+      return years.sort((a, b) => b - a);
+    }
+    const fallback: number[] = [];
+    if (course?.metricas_recentes?.ano) fallback.push(course.metricas_recentes.ano);
+    if (course?.metricas_2024?.ano && !fallback.includes(course.metricas_2024.ano)) {
+      fallback.push(course.metricas_2024.ano);
+    }
+    return fallback.length > 0 ? fallback : [2024];
+  }, [course]);
+
+  const activeMetricYear =
+    selectedMetricYear && availableMetricYears.includes(selectedMetricYear)
+      ? selectedMetricYear
+      : availableMetricYears[0];
+
+  const currentMetrics = useMemo(() => {
+    if (course?.metricas_historicas && course.metricas_historicas.length > 0) {
+      const found = course.metricas_historicas.find((m) => m.ano === activeMetricYear);
+      if (found) return found;
+    }
+    if (course?.metricas_recentes && course.metricas_recentes.ano === activeMetricYear) {
+      return course.metricas_recentes;
+    }
+    if (course?.metricas_2024 && (course.metricas_2024.ano === activeMetricYear || activeMetricYear === 2024)) {
+      return course.metricas_2024;
+    }
+    return course?.metricas_recentes || course?.metricas_2024 || null;
+  }, [course, activeMetricYear]);
 
   // Filtro de disciplinas por query, semestre e departamento
   const filteredDisciplines = useMemo(() => {
@@ -332,7 +366,7 @@ export default function CourseDisciplinesPage() {
 
             {/* Painel de Indicadores Institucionais do Curso (DPO / INEP / LAI) */}
             {(() => {
-              const m = course.metricas_recentes || course.metricas_2024;
+              const m = currentMetrics;
               if (!m) {
                 return (
                   <div className="mt-8 pt-6 border-t border-[#EDE9FD]">
@@ -353,7 +387,7 @@ export default function CourseDisciplinesPage() {
                         </div>
                       </div>
                       <span className="text-[11px] font-semibold text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-[#EDE9FD] whitespace-nowrap">
-                        DPO / Anuário 2024
+                        DPO / Anuário {activeMetricYear}
                       </span>
                     </div>
                   </div>
@@ -366,14 +400,41 @@ export default function CourseDisciplinesPage() {
               return (
                 <div className="mt-8 pt-6 border-t border-[#EDE9FD]">
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-2 w-2 rounded-full bg-[#5B4BDB]" />
-                      <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#202124]">
-                        Indicadores Oficiais do Curso
-                      </h2>
-                      <span className="rounded-full bg-[#EDE9FD] px-2.5 py-0.5 text-[11px] font-semibold text-[#5B4BDB]">
-                        Ano {m.ano || 2024}
-                      </span>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-2 w-2 rounded-full bg-[#5B4BDB]" />
+                        <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#202124]">
+                          Indicadores Oficiais do Curso
+                        </h2>
+                      </div>
+
+                      {/* Seletor Interativo de Anos-Base (ex: 2024, 2023, 2022, 2021) */}
+                      {availableMetricYears.length > 1 ? (
+                        <div
+                          className="flex items-center gap-1 bg-[#F0EEFB] p-1 rounded-xl"
+                          role="group"
+                          aria-label="Filtro de ano das métricas do curso"
+                        >
+                          {availableMetricYears.map((yr) => (
+                            <button
+                              key={yr}
+                              type="button"
+                              onClick={() => setSelectedMetricYear(yr)}
+                              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                                activeMetricYear === yr
+                                  ? "bg-[#5B4BDB] text-white shadow-xs"
+                                  : "text-gray-600 hover:text-[#5B4BDB] hover:bg-white/60"
+                              }`}
+                            >
+                              Ano {yr}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="rounded-full bg-[#EDE9FD] px-2.5 py-0.5 text-[11px] font-semibold text-[#5B4BDB]">
+                          Ano {m.ano || 2024}
+                        </span>
+                      )}
                     </div>
                     <span className="text-[11px] text-gray-500 font-medium">
                       Fonte: DPO / Anuário Estatístico UnB &bull; Dados Abertos LAI

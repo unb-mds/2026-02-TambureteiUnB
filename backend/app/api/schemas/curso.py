@@ -46,6 +46,7 @@ class CursoResponse(BaseModel):
     total_disciplinas: int = 0
     metricas_2024: Optional[MetricasCurso] = None
     metricas_recentes: Optional[MetricasCurso] = None
+    metricas_historicas: list[MetricasCurso] = []
     disciplinas: list[CursoGradeDisciplina] = []
 
 class CursoResumo(BaseModel):
@@ -66,6 +67,7 @@ class CursoResumo(BaseModel):
     total_disciplinas: int = 0
     metricas_2024: Optional[MetricasCurso] = None
     metricas_recentes: Optional[MetricasCurso] = None
+    metricas_historicas: list[MetricasCurso] = []
 
 
 class PeriodoGrade(BaseModel):

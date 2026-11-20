@@ -48,6 +48,13 @@ class DPOAnuarioExtractor(BaseExtractor):
     DEFAULT_URL = "https://anuariounb2025.netlify.app/grad.html"
     MIRROR_URL = "https://repositoriodpo.unb.br/anuarios/anuario-estatistico-2025/"
 
+    YEAR_URLS = {
+        2024: "https://anuariounb2025.netlify.app/grad.html",
+        2023: "https://anuario2024.netlify.app/grad.html",
+        2022: "https://anuario2023.netlify.app/grad.html",
+        2021: "https://anuario2022.netlify.app/grad.html",
+    }
+
     COURSE_ALIASES = {
         "artes plasticas": "artes visuais",
         "comunicacao social - public. propaganda": "publicidade e propaganda",
@@ -71,6 +78,7 @@ class DPOAnuarioExtractor(BaseExtractor):
 
     def __init__(self, target_url: Optional[str] = None):
         super().__init__(name="DPOAnuarioExtractor")
+        self.custom_target_url = target_url
         self.target_url = target_url or self.DEFAULT_URL
 
     def fetch_html(self, url: Optional[str] = None, timeout: int = 30) -> str:
@@ -412,7 +420,8 @@ class DPOAnuarioExtractor(BaseExtractor):
                 return records
         else:
             try:
-                html_content = self.fetch_html()
+                fetch_url = self.custom_target_url or self.YEAR_URLS.get(ano, self.DEFAULT_URL)
+                html_content = self.fetch_html(url=fetch_url)
             except Exception as e:
                 self.logger.error(f"Falha ao buscar Anuário online ({e}). Recorrendo ao espelho local.")
                 mirror_file = Path(__file__).resolve().parent.parent / "data" / "sample_metricas_cursos.csv"

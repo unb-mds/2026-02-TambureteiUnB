@@ -228,7 +228,8 @@ class ETLRunner:
 
     def run_metricas_cursos_pipeline(
         self,
-        ano: int = 2024,
+        ano: Optional[int] = 2024,
+        anos: Optional[List[int]] = None,
         input_file: Optional[str] = None,
         dry_run: bool = False,
         export: bool = True,
@@ -236,33 +237,38 @@ class ETLRunner:
         """
         Executa o pipeline de métricas anuais e metadados dos cursos de graduação (DPO).
         Extrai diretamente do Anuário Estatístico oficial da UnB (grad.html) ou consome input_file local.
+        Suporta múltiplos anos em lote (ex: anos=[2021, 2022, 2023, 2024]).
         """
-        logger.info(f"=== Iniciando Pipeline de Métricas de Cursos DPO (Ano: {ano}) ===")
+        target_years = anos if anos else ([ano] if ano else [2024])
+        logger.info(f"=== Iniciando Pipeline de Métricas de Cursos DPO (Anos: {target_years}) ===")
 
-        # 1. Extração
-        records = self.dpo_anuario_extractor.extract(
-            ano=ano,
-            input_file=input_file,
-        )
-
-        logger.info(f"Extração DPO concluída: {len(records)} cursos com métricas mapeadas.")
+        all_records = []
+        for y in sorted(target_years):
+            logger.info(f"Processando métricas de cursos para o ano-base {y}...")
+            records = self.dpo_anuario_extractor.extract(
+                ano=y,
+                input_file=input_file,
+            )
+            logger.info(f"Ano {y}: {len(records)} cursos com métricas mapeadas.")
+            all_records.extend(records)
 
         # 2. Exportação em arquivos se solicitado
-        if export and records:
-            self.export_loader.load({"metricas_cursos": records})
+        if export and all_records:
+            self.export_loader.load({"metricas_cursos": all_records})
 
         # 3. Carga no banco de dados (se não for dry-run)
         load_stats = {}
-        if not dry_run and records:
+        if not dry_run and all_records:
             self.db_loader.ensure_schema_up_to_date()
-            load_stats = self.db_loader.load({"metricas_cursos": records})
+            load_stats = self.db_loader.load({"metricas_cursos": all_records})
         else:
             logger.info("Modo Dry-Run ativo ou nenhum registro: nenhuma persistência no banco.")
 
-        logger.info(f"=== Métricas de Cursos finalizadas: {len(records)} processadas ===")
+        logger.info(f"=== Métricas de Cursos finalizadas: {len(all_records)} registros em {len(target_years)} anos ===")
         return {
             "status": "success",
-            "metricas_cursos_processadas": len(records),
+            "metricas_cursos_processadas": len(all_records),
+            "anos_processados": target_years,
             "loaded": load_stats,
         }
 
