@@ -8,6 +8,7 @@ import StoolIllustration from "./StoolIllustration";
 import { authService, subscribeAuthChange } from "@/services/authService";
 import { podeModerar } from "@/services/moderacaoService";
 import { UserResponse } from "@/types/auth";
+import ThemeSelector from "@/components/ThemeSelector";
 
 export interface NavbarProps {
   className?: string;
@@ -267,6 +268,10 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
                     </div>
                   </div>
 
+                  <div className="border-b border-gray-100 py-1">
+                    <ThemeSelector />
+                  </div>
+
                   <Link
                     href="/perfil"
                     onClick={() => setUserMenuOpen(false)}
@@ -377,6 +382,10 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
             >
               Disciplinas
             </Link>
+          </div>
+
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <ThemeSelector className="justify-between text-sm" />
           </div>
 
           <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
