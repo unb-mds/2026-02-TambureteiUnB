@@ -9,11 +9,12 @@ import StoolIllustration from "@/components/StoolIllustration";
 import { getCourseBySlug } from "@/services/courseService";
 import { getDisciplines } from "@/services/disciplineService";
 import { CourseDetail } from "@/types/curso";
-import { Discipline, SEMESTER_FILTERS } from "@/types/disciplina";
+import { Discipline } from "@/types/disciplina";
 import Pagination from "@/components/Pagination";
 import ApprovalBadge from "@/components/ApprovalBadge";
 import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
 import { normalizeSearchTerm } from "@/utils/search";
+import { calculateCourseSemesters, generateSemesterFilters } from "@/utils/courseCatalog";
 
 const ITEMS_PER_PAGE = 24;
 
@@ -32,6 +33,7 @@ export default function CourseDisciplinesPage() {
 
   useEffect(() => {
     let isMounted = true;
+
     async function loadData() {
       if (!slug) return;
       try {
@@ -84,24 +86,58 @@ export default function CourseDisciplinesPage() {
     }
 
     // Fallback associando disciplinas gerais pelo campus ou departamento do curso
+    const courseSlugLower = course.slug.toLowerCase();
     const courseNameLower = course.nome.toLowerCase();
-    return allDisciplines.filter((d) => {
-      const hasCourseLink = d.courses?.some(
-        (c) =>
-          c.slug.toLowerCase() === course.slug.toLowerCase() ||
-          c.name.toLowerCase() === courseNameLower
-      );
-      if (hasCourseLink) return true;
+    return allDisciplines
+      .filter((d) => {
+        const hasCourseLink = d.courses?.some(
+          (c) =>
+            c.slug.toLowerCase() === courseSlugLower ||
+            c.name.toLowerCase() === courseNameLower
+        );
+        if (hasCourseLink) return true;
 
-      if (courseNameLower.includes("software")) {
-        return d.campus === "FCTE" || d.campus === "FGA" || d.department === "MAT" || d.department === "CIC";
-      }
-      if (courseNameLower.includes("computação") || courseNameLower.includes("computacao")) {
-        return d.department === "CIC" || d.department === "MAT" || d.department === "IF";
-      }
-      return Boolean(d.campus && course.campus && (course.campus.includes(d.campus) || d.campus.includes(course.campus)));
-    });
+        if (courseNameLower.includes("software")) {
+          return d.campus === "FCTE" || d.campus === "FGA" || d.department === "MAT" || d.department === "CIC";
+        }
+        if (courseNameLower.includes("computação") || courseNameLower.includes("computacao")) {
+          return d.department === "CIC" || d.department === "MAT" || d.department === "IF";
+        }
+        return Boolean(d.campus && course.campus && (course.campus.includes(d.campus) || d.campus.includes(course.campus)));
+      })
+      .map((d) => {
+        const matchingCourse = d.courses?.find(
+          (c) =>
+            c.slug.toLowerCase() === courseSlugLower ||
+            c.name.toLowerCase() === courseNameLower
+        );
+        if (matchingCourse) {
+          const sem = matchingCourse.semester === "Optativa" ? "Optativas" : matchingCourse.semester;
+          return {
+            ...d,
+            semester: sem,
+            type: matchingCourse.type,
+          };
+        }
+        return d;
+      });
   }, [course, allDisciplines]);
+
+  // Quantidade total de semestres sugeridos do curso (ex.: 8 para Administração, 10 para Engenharias)
+  const totalSemestres = useMemo(() => {
+    return calculateCourseSemesters(courseDisciplines, course?.semestres);
+  }, [courseDisciplines, course?.semestres]);
+
+  // Lista dinâmica de abas de semestres para o curso
+  const semesterFilters = useMemo(() => {
+    const hasOptativas = courseDisciplines.some(
+      (d) => d.type === "Optativa" || d.semester === "Optativas"
+    );
+    return generateSemesterFilters(totalSemestres, hasOptativas);
+  }, [totalSemestres, courseDisciplines]);
+
+  // Semestre ativo (cai para "Todos" caso o filtro selecionado anteriormente não exista no curso atual)
+  const activeSemester = semesterFilters.includes(semester) ? semester : "Todos";
 
   // Departamentos disponíveis para filtro
   const departmentsList = useMemo(() => {
@@ -118,16 +154,17 @@ export default function CourseDisciplinesPage() {
       const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
 
       const matchesSemester =
-        semester === "Todos" ||
-        discipline.semester === semester ||
-        (semester === "Optativas" && discipline.type === "Optativa");
+        activeSemester === "Todos" ||
+        discipline.semester === activeSemester ||
+        (activeSemester === "Optativas" &&
+          (discipline.semester === "Optativas" || discipline.type === "Optativa"));
 
       const matchesDepartment =
         department === "Todos os departamentos" || discipline.department === department;
 
       return matchesQuery && matchesSemester && matchesDepartment;
     });
-  }, [courseDisciplines, disciplineQuery, semester, department]);
+  }, [courseDisciplines, disciplineQuery, activeSemester, department]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDisciplines.length / ITEMS_PER_PAGE));
   const activePage = Math.min(currentPage, totalPages);
@@ -270,7 +307,7 @@ export default function CourseDisciplinesPage() {
                   )}
                   <p className="mt-2 text-sm text-gray-500">
                     Campus {course.campus} <span className="mx-2 text-[#C4C1D8]">•</span>
-                    {course.semestres || 8} semestres sugeridos <span className="mx-2 text-[#C4C1D8]">•</span>
+                    {totalSemestres} semestres sugeridos <span className="mx-2 text-[#C4C1D8]">•</span>
                     {courseDisciplines.length} disciplinas cadastradas na grade
                   </p>
                 </div>
@@ -481,8 +518,8 @@ export default function CourseDisciplinesPage() {
                   Período sugerido
                 </p>
                 <div className="flex flex-wrap gap-2" aria-label="Filtrar por período sugerido">
-                  {SEMESTER_FILTERS.map((item) => {
-                    const selected = semester === item;
+                  {semesterFilters.map((item) => {
+                    const selected = activeSemester === item;
                     return (
                       <button
                         type="button"
