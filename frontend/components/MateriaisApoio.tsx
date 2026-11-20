@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "@/services/authService";
 import { listMaterials } from "@/services/materialService";
@@ -38,6 +38,7 @@ interface MateriaisApoioProps {
   disciplineName: string;
   disciplineIdOrSlug?: string;
   refreshTrigger?: number;
+  pendingMaterialIds?: string[];
   onOpenUploadModal?: () => void;
 }
 
@@ -45,6 +46,7 @@ export default function MateriaisApoio({
   disciplineName,
   disciplineIdOrSlug,
   refreshTrigger = 0,
+  pendingMaterialIds = [],
   onOpenUploadModal,
 }: MateriaisApoioProps) {
   const router = useRouter();
@@ -52,56 +54,134 @@ export default function MateriaisApoio({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"resumos" | "links" | "provas">("resumos");
   const [searchQuery, setSearchQuery] = useState("");
+  const [triageNotice, setTriageNotice] = useState<string | null>(null);
+
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
+
+  const fetchMaterials = useCallback(async (): Promise<MaterialItem[]> => {
+    if (!disciplineIdOrSlug) {
+      return [];
+    }
+
+    try {
+      const response = await listMaterials(disciplineIdOrSlug);
+      const rawItems: BackendMaterialItem[] = response?.items || [];
+      const mappedItems: MaterialItem[] = rawItems.map((item) => ({
+        id: String(item.id),
+        titulo: item.titulo || "Material sem título",
+        tipo: item.tipo,
+        formato: item.formato ? String(item.formato).toUpperCase() : "ARQUIVO",
+        tamanho_bytes: item.tamanho_bytes,
+        created_at: item.created_at
+          ? new Date(item.created_at).toLocaleDateString("pt-BR")
+          : "Recente",
+        url: item.url || item.arquivo_url || "#",
+        upvotes: item.upvotes || 0,
+        isLikedByMe: false,
+        authorAlias: item.usuario?.nome || item.authorAlias || "Estudante",
+        professor: item.professor || undefined,
+      }));
+
+      if (isMountedRef.current) {
+        setMaterials(mappedItems);
+      }
+      return mappedItems;
+    } catch (error) {
+      console.error("Erro ao carregar materiais da disciplina:", error);
+      return [];
+    }
+  }, [disciplineIdOrSlug]);
 
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
 
-    async function loadData() {
-      if (!disciplineIdOrSlug) {
-        setLoading(false);
-        return;
-      }
-
+    async function loadInitial() {
       setLoading(true);
-      try {
-        const response = await listMaterials(disciplineIdOrSlug);
-        if (isMounted) {
-          const rawItems: BackendMaterialItem[] = response?.items || [];
-          const mappedItems: MaterialItem[] = rawItems.map((item) => ({
-            id: String(item.id),
-            titulo: item.titulo || "Material sem título",
-            tipo: item.tipo,
-            formato: item.formato ? String(item.formato).toUpperCase() : "ARQUIVO",
-            tamanho_bytes: item.tamanho_bytes,
-            created_at: item.created_at
-              ? new Date(item.created_at).toLocaleDateString("pt-BR")
-              : "Recente",
-            url: item.url || item.arquivo_url || "#",
-            upvotes: item.upvotes || 0,
-            isLikedByMe: false,
-            authorAlias: item.usuario?.nome || item.authorAlias || "Estudante",
-            professor: item.professor || undefined,
-          }));
-          setMaterials(mappedItems);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar materiais da disciplina:", error);
-        if (isMounted) {
-          setMaterials([]);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      await fetchMaterials();
+      if (isMountedRef.current) {
+        setLoading(false);
       }
     }
 
-    loadData();
+    void loadInitial();
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
     };
-  }, [disciplineIdOrSlug, refreshTrigger]);
+  }, [fetchMaterials]);
+
+  useEffect(() => {
+    if (refreshTrigger <= 0 || !disciplineIdOrSlug) {
+      return;
+    }
+
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+
+    setTriageNotice(
+      "[TRIAGEM EM ANDAMENTO] Seu material foi enviado para verificacao automatica. A lista sera atualizada assim que for aprovado."
+    );
+
+    const targetIds = pendingMaterialIds.filter(Boolean);
+    let attempts = 0;
+    const maxAttempts = 15;
+
+    const pollForPublication = async () => {
+      if (!isMountedRef.current) return;
+      attempts += 1;
+      const items = await fetchMaterials();
+      if (!isMountedRef.current) return;
+
+      const published =
+        targetIds.length > 0
+          ? items.find((item) => targetIds.includes(item.id))
+          : undefined;
+
+      if (published) {
+        if (published.tipo === "PROVA_ANTIGA") {
+          setActiveTab("provas");
+        } else if (published.tipo === "ARQUIVO") {
+          setActiveTab("links");
+        } else {
+          setActiveTab("resumos");
+        }
+        setTriageNotice(
+          "[PUBLICADO] Seu material foi aprovado pela moderacao automatica e ja esta disponivel abaixo."
+        );
+        pollTimerRef.current = null;
+        return;
+      }
+
+      if (attempts < maxAttempts) {
+        pollTimerRef.current = setTimeout(() => {
+          void pollForPublication();
+        }, 3000);
+      } else {
+        setTriageNotice(
+          "[AGUARDANDO REVISAO] Seu material segue em analise ou foi encaminhado para curadoria humana."
+        );
+        pollTimerRef.current = null;
+      }
+    };
+
+    pollTimerRef.current = setTimeout(() => {
+      void pollForPublication();
+    }, 3000);
+
+    return () => {
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, [refreshTrigger, pendingMaterialIds, disciplineIdOrSlug, fetchMaterials]);
 
   const handleShareClick = () => {
     if (!isAuthenticated()) {
@@ -185,6 +265,15 @@ export default function MateriaisApoio({
           Compartilhar Material
         </button>
       </div>
+
+      {triageNotice && (
+        <div
+          role="status"
+          className="mb-6 rounded-2xl border border-[#DDD9F1] bg-[#FAF9FD] px-4 py-3 text-xs sm:text-sm text-[#3F3A60]"
+        >
+          {triageNotice}
+        </div>
+      )}
 
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-1.5 rounded-2xl bg-[#F4F3FA] p-1.5 border border-[#ECEAF5]">
