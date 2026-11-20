@@ -13,6 +13,7 @@ import { Discipline, SEMESTER_FILTERS } from "@/types/disciplina";
 import Pagination from "@/components/Pagination";
 import ApprovalBadge from "@/components/ApprovalBadge";
 import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
+import { normalizeSearchTerm } from "@/utils/search";
 
 const ITEMS_PER_PAGE = 24;
 
@@ -110,13 +111,11 @@ export default function CourseDisciplinesPage() {
 
   // Filtro de disciplinas por query, semestre e departamento
   const filteredDisciplines = useMemo(() => {
-    const normalizedQuery = disciplineQuery.trim().toLocaleLowerCase("pt-BR");
+    const normalizedQuery = normalizeSearchTerm(disciplineQuery);
 
     return courseDisciplines.filter((discipline) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        discipline.name.toLocaleLowerCase("pt-BR").includes(normalizedQuery) ||
-        discipline.code.toLocaleLowerCase("pt-BR").includes(normalizedQuery);
+      const searchable = normalizeSearchTerm(`${discipline.name} ${discipline.code}`);
+      const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
 
       const matchesSemester =
         semester === "Todos" ||

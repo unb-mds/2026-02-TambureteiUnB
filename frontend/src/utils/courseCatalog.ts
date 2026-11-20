@@ -1,12 +1,13 @@
 import type { CampusFilter, Course } from "@/types/curso";
+import { normalizeSearchTerm } from "./search";
 
 export function filterCourses(
   courses: Course[],
   searchQuery: string,
   selectedCampus: CampusFilter
 ): Course[] {
-  const query = searchQuery.trim().toLocaleLowerCase("pt-BR");
-  const normalizedCampus = selectedCampus.toLocaleLowerCase("pt-BR");
+  const query = normalizeSearchTerm(searchQuery);
+  const normalizedCampus = normalizeSearchTerm(selectedCampus);
 
   return courses.filter((course) => {
     // Filtra cursos extintos / inativos do SIGAA com 0 disciplinas
@@ -15,17 +16,13 @@ export function filterCourses(
 
     const matchesCampus =
       selectedCampus === "Todos" ||
-      course.campus?.toLocaleLowerCase("pt-BR").includes(normalizedCampus);
+      normalizeSearchTerm(course.campus).includes(normalizedCampus);
 
-    const matchesQuery =
-      !query ||
-      course.nome.toLocaleLowerCase("pt-BR").includes(query) ||
-      course.departamento?.toLocaleLowerCase("pt-BR").includes(query) ||
-      course.campus?.toLocaleLowerCase("pt-BR").includes(query) ||
-      course.grau?.toLocaleLowerCase("pt-BR").includes(query) ||
-      course.turno?.toLocaleLowerCase("pt-BR").includes(query) ||
-      course.modalidade?.toLocaleLowerCase("pt-BR").includes(query) ||
-      course.matriz_curricular?.toLocaleLowerCase("pt-BR").includes(query);
+    const searchable = normalizeSearchTerm(
+      `${course.nome} ${course.departamento || ""} ${course.campus || ""} ${course.grau || ""} ${course.turno || ""} ${course.modalidade || ""} ${course.matriz_curricular || ""}`
+    );
+
+    const matchesQuery = !query || searchable.includes(query);
 
     return matchesCampus && matchesQuery;
   });

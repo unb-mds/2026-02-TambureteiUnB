@@ -17,6 +17,7 @@ import {
   GLOBAL_DEPARTMENTS,
   Discipline,
 } from "@/types/disciplina";
+import { normalizeSearchTerm } from "@/utils/search";
 import ApprovalBadge from "@/components/ApprovalBadge";
 import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
 
@@ -32,18 +33,24 @@ function DisciplinasContent() {
   );
 
   const [query, setQuery] = useState(initialQuery);
-  const [appliedQuery, setAppliedQuery] = useState(initialQuery);
   const [campus, setCampus] = useState("Todos os Campi");
   const [department, setDepartment] = useState("Todos os Departamentos");
   const [area, setArea] = useState("Todas");
   const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
   const [currentPage, setCurrentPage] = useState(1);
 
+  const handleQueryChange = (newQuery: string) => {
+    setQuery(newQuery);
+    setCurrentPage(1);
+  };
+
   const filteredResults: Discipline[] = useMemo(() => {
-    const normalizedQuery = appliedQuery.trim().toLocaleLowerCase("pt-BR");
+    const normalizedQuery = normalizeSearchTerm(query);
 
     return disciplines.filter((discipline) => {
-      const searchable = `${discipline.name} ${discipline.code} ${discipline.departmentName} ${discipline.department}`.toLocaleLowerCase("pt-BR");
+      const searchable = normalizeSearchTerm(
+        `${discipline.name} ${discipline.code} ${discipline.departmentName} ${discipline.department}`
+      );
       const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
       const matchesCampus =
         campus === "Todos os Campi" ||
@@ -69,7 +76,7 @@ function DisciplinasContent() {
       if (sort === "Mais materiais") return b.resources - a.resources;
       return b.popularity - a.popularity;
     });
-  }, [disciplines, appliedQuery, campus, department, area, sort]);
+  }, [disciplines, query, campus, department, area, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filteredResults.length / ITEMS_PER_PAGE));
   const activePage = Math.min(currentPage, totalPages);
@@ -108,13 +115,11 @@ function DisciplinasContent() {
   };
 
   const executeSearch = () => {
-    setAppliedQuery(query);
     setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
     setQuery("");
-    setAppliedQuery("");
     setCampus("Todos os Campi");
     setDepartment("Todos os Departamentos");
     setArea("Todas");
@@ -164,7 +169,7 @@ function DisciplinasContent() {
                 <input
                   type="search"
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => handleQueryChange(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") executeSearch();
                   }}
@@ -172,6 +177,18 @@ function DisciplinasContent() {
                   aria-label="Pesquisar disciplinas da UnB"
                   className="flex-1 bg-transparent py-2 text-sm text-[#202124] outline-none placeholder-gray-400"
                 />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => handleQueryChange("")}
+                    className="p-1 text-gray-400 hover:text-gray-600 transition-colors mr-2"
+                    aria-label="Limpar busca"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
               <button
                 type="button"
@@ -272,9 +289,9 @@ function DisciplinasContent() {
           <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="text-xs sm:text-sm text-gray-600">
               Exibindo <strong className="text-[#202124]">{filteredResults.length} disciplinas</strong>{" "}
-              {appliedQuery && (
+              {query.trim() && (
                 <>
-                  para <strong className="text-[#5B4BDB]">&quot;{appliedQuery}&quot;</strong>
+                  para <strong className="text-[#5B4BDB]">&quot;{query.trim()}&quot;</strong>
                 </>
               )}{" "}
               em toda a UnB
