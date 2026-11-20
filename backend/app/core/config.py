@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
     OLLAMA_VISION_MODEL: str = os.getenv("OLLAMA_VISION_MODEL", "")
-    OLLAMA_TIMEOUT_SECONDS: float = Field(default=float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "30.0")), gt=0)
+    OLLAMA_TIMEOUT_SECONDS: float = Field(default=float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "90.0")), gt=0)
     MODERATION_CONFIDENCE_THRESHOLD: float = Field(
         default=float(os.getenv("MODERATION_CONFIDENCE_THRESHOLD", "0.80")),
         ge=0.0,
