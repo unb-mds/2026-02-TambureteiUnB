@@ -7,6 +7,11 @@ export interface ClassPerformancePieFormProps {
   classes: Class[];
 }
 
+interface ClassOccupancyPieProps {
+  classData: Class;
+  compact?: boolean;
+}
+
 type PieSlice = {
   label: string;
   value: number;
@@ -45,23 +50,15 @@ function describePieSlice(
   ].join(" ");
 }
 
-export default function ClassPerformancePieForm({
-  classes,
-}: ClassPerformancePieFormProps) {
-  const [selectedClassId, setSelectedClassId] = useState(
-    classes[0] ? String(classes[0].id) : ""
-  );
+export function ClassOccupancyPie({
+  classData,
+  compact = false,
+}: ClassOccupancyPieProps) {
   const [activeSlice, setActiveSlice] = useState<PieSlice | null>(null);
 
-  const selectedClass = classes.find(
-    (item) => String(item.id) === selectedClassId
-  );
-
   const slices = useMemo<PieSlice[]>(() => {
-    if (!selectedClass) return [];
-
-    const occupied = selectedClass.vagasOcupadas;
-    const total = selectedClass.totalVagas;
+    const occupied = classData.vagasOcupadas;
+    const total = classData.totalVagas;
     if (
       typeof occupied !== "number" ||
       typeof total !== "number" ||
@@ -75,152 +72,205 @@ export default function ClassPerformancePieForm({
     const availableCount = Math.max(0, total - occupiedCount);
 
     return [
-      {
-        label: "Ocupadas",
-        value: occupiedCount,
-        color: "#5B4BDB",
-      },
-      {
-        label: "Disponíveis",
-        value: availableCount,
-        color: "#E8E6F8",
-      },
+      { label: "Ocupadas", value: occupiedCount, color: "#5B4BDB" },
+      { label: "Disponíveis", value: availableCount, color: "#E8E6F8" },
     ].filter((slice) => slice.value > 0);
-  }, [selectedClass]);
+  }, [classData.vagasOcupadas, classData.totalVagas]);
 
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
-
+  const chartSize = compact ? "h-20 w-20" : "h-52 w-52";
+  const center = 120;
+  const radius = 112;
   let currentAngle = 0;
 
   return (
-    <section
-      aria-label="Ocupação da turma"
-      className="mb-6 flex min-h-72 items-center justify-center rounded-3xl border border-[#E8E6F8] bg-white p-6 shadow-xs"
+    <div
+      className="relative shrink-0"
+      onMouseLeave={() => setActiveSlice(null)}
     >
-      {classes.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          Não há turmas disponíveis para esta disciplina.
-        </p>
-      ) : (
-        <div className="flex w-full flex-col items-center gap-5">
-          {classes.length > 1 && (
-            <select
-              aria-label="Selecionar turma"
-              value={selectedClassId}
-              onChange={(event) => {
-                setSelectedClassId(event.target.value);
-                setActiveSlice(null);
-              }}
-              className="w-full max-w-xs rounded-xl border border-[#DDD9F1] bg-[#F7F7FA] px-4 py-2.5 text-sm font-semibold text-[#202124] outline-none focus:border-[#5B4BDB]"
-            >
-              {classes.map((item) => (
-                <option key={item.id} value={String(item.id)}>
-                  {item.codigoTurma}
-                </option>
-              ))}
-            </select>
-          )}
+      <svg
+        viewBox="0 0 240 240"
+        role="img"
+        aria-label={
+          total > 0
+            ? `Ocupação da ${classData.codigoTurma}: ${classData.occupancy?.percentage ?? 0}%`
+            : `Ocupação da ${classData.codigoTurma} não informada`
+        }
+        className={chartSize}
+      >
+        {total === 0 ? (
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="#ECEAF5"
+            tabIndex={0}
+            aria-label="Ocupação não informada"
+            onMouseEnter={() =>
+              setActiveSlice({
+                label: "Ocupação não informada",
+                value: 0,
+                color: "#ECEAF5",
+              })
+            }
+            onFocus={() =>
+              setActiveSlice({
+                label: "Ocupação não informada",
+                value: 0,
+                color: "#ECEAF5",
+              })
+            }
+            onBlur={() => setActiveSlice(null)}
+          />
+        ) : (
+          slices.map((slice) => {
+            const startAngle = currentAngle;
+            const endAngle = currentAngle + (slice.value / total) * 360;
+            currentAngle = endAngle;
+            const isFullCircle = slices.length === 1;
 
-          {total === 0 ? (
-            <div
-              role="img"
-              aria-label="Dados de ocupação não informados"
-              className="flex h-48 w-48 items-center justify-center rounded-full border-[24px] border-[#ECEAF5] bg-white text-center"
-            >
-              <span className="max-w-24 text-xs font-semibold text-gray-500">
-                Dados não informados
-              </span>
-            </div>
-          ) : (
-            <div
-              className="relative"
-              onMouseLeave={() => setActiveSlice(null)}
-            >
-              <svg
-                viewBox="0 0 240 240"
-                role="img"
-                aria-label={`Distribuição de ocupação da ${selectedClass?.codigoTurma ?? "turma"}`}
-                className="h-52 w-52"
-              >
-                {slices.map((slice) => {
-                  const startAngle = currentAngle;
-                  const endAngle =
-                    currentAngle + (slice.value / total) * 360;
-                  currentAngle = endAngle;
+            return isFullCircle ? (
+              <circle
+                key={slice.label}
+                cx={center}
+                cy={center}
+                r={radius}
+                fill={slice.color}
+                tabIndex={0}
+                aria-label={`${slice.label}: ${slice.value} vagas, 100%`}
+                className="cursor-pointer outline-none transition-opacity hover:opacity-80 focus:opacity-80"
+                onMouseEnter={() => setActiveSlice(slice)}
+                onFocus={() => setActiveSlice(slice)}
+                onBlur={() => setActiveSlice(null)}
+              />
+            ) : (
+              <path
+                key={slice.label}
+                d={describePieSlice(
+                  center,
+                  center,
+                  radius,
+                  startAngle,
+                  endAngle
+                )}
+                fill={slice.color}
+                stroke="#FFFFFF"
+                strokeWidth="3"
+                tabIndex={0}
+                aria-label={`${slice.label}: ${slice.value} vagas, ${Math.round(
+                  (slice.value / total) * 100
+                )}%`}
+                className="cursor-pointer outline-none transition-opacity hover:opacity-80 focus:opacity-80"
+                onMouseEnter={() => setActiveSlice(slice)}
+                onFocus={() => setActiveSlice(slice)}
+                onBlur={() => setActiveSlice(null)}
+              />
+            );
+          })
+        )}
 
-                  return (
-                    <path
-                      key={slice.label}
-                      d={describePieSlice(
-                        120,
-                        120,
-                        112,
-                        startAngle,
-                        endAngle
-                      )}
-                      fill={slice.color}
-                      stroke="#FFFFFF"
-                      strokeWidth="3"
-                      tabIndex={0}
-                      aria-label={`${slice.label}: ${slice.value} vagas, ${Math.round(
-                        (slice.value / total) * 100
-                      )}%`}
-                      className="cursor-pointer outline-none transition-opacity hover:opacity-80 focus:opacity-80"
-                      onMouseEnter={() => setActiveSlice(slice)}
-                      onFocus={() => setActiveSlice(slice)}
-                      onBlur={() => setActiveSlice(null)}
-                    />
-                  );
-                })}
+        <circle
+          cx={center}
+          cy={center}
+          r="58"
+          fill="#FFFFFF"
+          pointerEvents="none"
+        />
+        <text
+          x={center}
+          y={compact ? 126 : 116}
+          textAnchor="middle"
+          fill="#202124"
+          fontSize={compact ? 38 : 24}
+          fontWeight="800"
+          pointerEvents="none"
+        >
+          {total > 0 ? `${classData.occupancy?.percentage ?? 0}%` : "—"}
+        </text>
+        {!compact && (
+          <text
+            x={center}
+            y="138"
+            textAnchor="middle"
+            fill="#6B7280"
+            fontSize="11"
+            fontWeight="600"
+            pointerEvents="none"
+          >
+            ocupação
+          </text>
+        )}
+      </svg>
 
-                <circle
-                  cx="120"
-                  cy="120"
-                  r="58"
-                  fill="#FFFFFF"
-                  pointerEvents="none"
-                />
-                <text
-                  x="120"
-                  y="116"
-                  textAnchor="middle"
-                  fill="#202124"
-                  fontSize="24"
-                  fontWeight="800"
-                  pointerEvents="none"
-                >
-                  {selectedClass?.occupancy?.percentage ?? 0}%
-                </text>
-                <text
-                  x="120"
-                  y="138"
-                  textAnchor="middle"
-                  fill="#6B7280"
-                  fontSize="11"
-                  fontWeight="600"
-                  pointerEvents="none"
-                >
-                  ocupação
-                </text>
-              </svg>
-
-              {activeSlice && (
-                <div
-                  role="tooltip"
-                  className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-xl bg-[#202124] px-3 py-2 text-center text-xs text-white shadow-lg"
-                >
-                  <strong className="block">{activeSlice.label}</strong>
-                  <span>
-                    {activeSlice.value} vaga
-                    {activeSlice.value === 1 ? "" : "s"} ·{" "}
-                    {Math.round((activeSlice.value / total) * 100)}%
-                  </span>
-                </div>
-              )}
-            </div>
+      {activeSlice && (
+        <div
+          role="tooltip"
+          className={`pointer-events-none absolute z-10 rounded-xl bg-[#202124] px-3 py-2 text-center text-xs text-white shadow-lg ${
+            compact
+              ? "bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap"
+              : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          }`}
+        >
+          <strong className="block">{activeSlice.label}</strong>
+          {activeSlice.value > 0 && (
+            <span>
+              {activeSlice.value} vaga{activeSlice.value === 1 ? "" : "s"} ·{" "}
+              {Math.round((activeSlice.value / total) * 100)}%
+            </span>
           )}
         </div>
       )}
-    </section>
+    </div>
+  );
+}
+
+export default function ClassPerformancePieForm({
+  classes,
+}: ClassPerformancePieFormProps) {
+  const [selectedClassId, setSelectedClassId] = useState(
+    classes[0] ? String(classes[0].id) : ""
+  );
+
+  const selectedClass = classes.find(
+    (item) => String(item.id) === selectedClassId
+  );
+
+  return (
+    <div className="mb-8 rounded-2xl border border-[#ECEAF5] bg-[#FAFAFC] p-5 sm:p-6">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-base font-bold text-[#202124] sm:text-lg">
+            Ocupação por turma
+          </h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Passe o cursor sobre o gráfico para ver os detalhes.
+          </p>
+        </div>
+        {classes.length > 1 && (
+          <select
+            aria-label="Selecionar turma para ver ocupação"
+            value={selectedClassId}
+            onChange={(event) => setSelectedClassId(event.target.value)}
+            className="w-full max-w-xs rounded-xl border border-[#DDD9F1] bg-white px-4 py-2.5 text-sm font-semibold text-[#202124] outline-none focus:border-[#5B4BDB]"
+          >
+            {classes.map((item) => (
+              <option key={item.id} value={String(item.id)}>
+                {item.codigoTurma}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {selectedClass ? (
+        <div className="flex justify-center">
+          <ClassOccupancyPie classData={selectedClass} />
+        </div>
+      ) : (
+        <p className="py-6 text-center text-sm text-gray-500">
+          Não há turmas disponíveis para esta disciplina.
+        </p>
+      )}
+    </div>
   );
 }
