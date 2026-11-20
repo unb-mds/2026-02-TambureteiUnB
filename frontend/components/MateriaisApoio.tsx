@@ -54,7 +54,14 @@ export default function MateriaisApoio({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"resumos" | "links" | "provas">("resumos");
   const [searchQuery, setSearchQuery] = useState("");
-  const [triageNotice, setTriageNotice] = useState<string | null>(null);
+  const [triageState, setTriageState] = useState<{ trigger: number; message: string } | null>(null);
+
+  const displayedTriageNotice =
+    triageState && triageState.trigger === refreshTrigger
+      ? triageState.message
+      : refreshTrigger > 0
+      ? "[TRIAGEM EM ANDAMENTO] Seu material foi enviado para verificacao automatica. A lista sera atualizada assim que for aprovado."
+      : null;
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
@@ -125,10 +132,7 @@ export default function MateriaisApoio({
       pollTimerRef.current = null;
     }
 
-    setTriageNotice(
-      "[TRIAGEM EM ANDAMENTO] Seu material foi enviado para verificacao automatica. A lista sera atualizada assim que for aprovado."
-    );
-
+    const currentTrigger = refreshTrigger;
     const targetIds = pendingMaterialIds.filter(Boolean);
     let attempts = 0;
     const maxAttempts = 15;
@@ -152,9 +156,11 @@ export default function MateriaisApoio({
         } else {
           setActiveTab("resumos");
         }
-        setTriageNotice(
-          "[PUBLICADO] Seu material foi aprovado pela moderacao automatica e ja esta disponivel abaixo."
-        );
+        setTriageState({
+          trigger: currentTrigger,
+          message:
+            "[PUBLICADO] Seu material foi aprovado pela moderacao automatica e ja esta disponivel abaixo.",
+        });
         pollTimerRef.current = null;
         return;
       }
@@ -164,9 +170,11 @@ export default function MateriaisApoio({
           void pollForPublication();
         }, 3000);
       } else {
-        setTriageNotice(
-          "[AGUARDANDO REVISAO] Seu material segue em analise ou foi encaminhado para curadoria humana."
-        );
+        setTriageState({
+          trigger: currentTrigger,
+          message:
+            "[AGUARDANDO REVISAO] Seu material segue em analise ou foi encaminhado para curadoria humana.",
+        });
         pollTimerRef.current = null;
       }
     };
@@ -266,17 +274,17 @@ export default function MateriaisApoio({
         </button>
       </div>
 
-      {triageNotice && (
+      {displayedTriageNotice && (
         <div
           role="status"
           className="mb-6 rounded-2xl border border-[#DDD9F1] bg-[#FAF9FD] px-4 py-3 text-xs sm:text-sm text-[#3F3A60]"
         >
-          {triageNotice}
+          {displayedTriageNotice}
         </div>
       )}
 
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-1.5 rounded-2xl bg-[#F4F3FA] p-1.5 border border-[#ECEAF5]">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-2xl bg-[#F4F3FA] p-1.5 border border-[#ECEAF5]">
           <button
             type="button"
             onClick={() => setActiveTab("resumos")}
