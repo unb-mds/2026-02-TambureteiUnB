@@ -29,6 +29,7 @@ import ClassFilters, {
 } from "@/components/ClassFilters";
 import MaterialModal from "@/components/MaterialModal";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
+import ClassPerformancePieForm from "@/components/ClassPerformancePieForm";
 import { isAuthenticated } from "@/services/authService";
 import {
   getDisciplineBySlug,
@@ -915,7 +916,10 @@ function DisciplineDetailContent() {
             )}
           </section>
 
-          
+          <ClassPerformancePieForm
+            classes={classes}
+          />
+
           <section className="rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
             
             <div className="mb-7 flex flex-col md:flex-row md:items-start justify-between gap-5">
