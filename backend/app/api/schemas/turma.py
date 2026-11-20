@@ -61,6 +61,16 @@ class TurmaCreate(BaseModel):
         return v
 
 
+class EstatisticaTurma(BaseModel):
+    taxa_aprovacao: float
+    taxa_reprovacao_nota: float
+    taxa_reprovacao_falta: float
+    taxa_trancamento: float
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TurmaResponse(BaseModel):
     id: int
     disciplina_id: int
@@ -71,5 +81,6 @@ class TurmaResponse(BaseModel):
     capacidade: Optional[int] = None
     matriculados: Optional[int] = None
     professores: List[ProfessorResumo] = []
+    estatistica: Optional[EstatisticaTurma] = None
 
     model_config = ConfigDict(from_attributes=True)
