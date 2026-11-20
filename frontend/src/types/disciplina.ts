@@ -51,6 +51,7 @@ export interface Discipline {
   equivalencias?: string[];
   courses?: CourseReference[];
   metrica_consolidada?: BackendMetricaConsolidada | null;
+  total_turmas?: number;
 }
 
 // Backend schemas interfaces
@@ -61,6 +62,7 @@ export interface BackendDisciplinaResumo {
   slug: string;
   departamento?: string | null;
   creditos?: number | null;
+  total_turmas?: number;
 }
 
 export interface BackendCursoDisciplinaInfo {
@@ -265,5 +267,6 @@ export function adaptBackendDisciplina(
     equivalencias: equivs,
     courses,
     metrica_consolidada: full?.metrica_consolidada || null,
+    total_turmas: raw.total_turmas ?? 0,
   };
 }

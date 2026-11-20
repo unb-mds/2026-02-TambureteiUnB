@@ -46,6 +46,7 @@ class DisciplinaService:
         nome: Optional[str] = None,
         codigo: Optional[str] = None,
         departamento: Optional[str] = None,
+        apenas_com_turmas: bool = False,
         limit: Optional[int] = None,
     ) -> List[Disciplina]:
         items, _ = disciplina_repo.search_paginated(
@@ -53,6 +54,7 @@ class DisciplinaService:
             nome=nome,
             codigo=codigo,
             departamento=departamento,
+            apenas_com_turmas=apenas_com_turmas,
             skip=0,
             limit=limit,
         )
