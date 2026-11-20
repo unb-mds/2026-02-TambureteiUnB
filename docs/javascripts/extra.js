@@ -67,6 +67,10 @@
   }
 
   function mountTopNav() {
+    if (document.title && document.title.indexOf("Tamburetei UnB Docs") === -1) {
+      document.title = document.title.replace(/Tamburetei UnB$/, "Tamburetei UnB Docs");
+    }
+
     var header = document.querySelector(".md-header");
     var headerInner = document.querySelector(".md-header__inner");
     var titleEl = document.querySelector(".md-header__title");
