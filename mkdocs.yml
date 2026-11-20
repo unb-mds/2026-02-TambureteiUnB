@@ -106,9 +106,11 @@ nav:
       - Ambiente & Execução:
           - Guia de Desenvolvimento: desenvolvimento.md
           - Popular Banco de Dados: popular_banco_de_dados.md
+          - Roteiro de Demonstração: roteiro_demonstracao.md
   - Engenharia & Back-end:
       - Arquitetura & Banco:
           - Arquitetura & ADRs: arquitetura.md
+          - Arquitetura da Interface: arquitetura_ui.md
           - Dicionário de Dados: banco_de_dados.md
       - Dados & Ingestão:
           - Pipeline ETL: pipeline_etl.md

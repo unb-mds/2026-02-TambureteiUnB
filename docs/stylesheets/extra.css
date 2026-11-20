@@ -3,7 +3,9 @@
 :root {
   --tmb-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --tmb-font-heading: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --tmb-font-mono: "Consolas", "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
   --md-text-font: "Inter";
+  --md-code-font: "Consolas";
   --tmb-blue: #5b4bdb;
   --tmb-blue-hover: #4736c4;
   --tmb-surface-card: #f6f4fe;
@@ -903,7 +905,19 @@ body,
   }
 }
 
+.md-typeset code,
+.md-typeset kbd {
+  font-family: var(--tmb-font-mono) !important;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+}
+
 .md-typeset pre > code {
+  font-family: var(--tmb-font-mono) !important;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
   padding-right: 2.6rem;
 }
 

@@ -3,12 +3,12 @@
     {
       label: "Setup",
       path: "desenvolvimento/",
-      match: ["desenvolvimento", "popular_banco_de_dados"]
+      match: ["desenvolvimento", "popular_banco_de_dados", "roteiro_demonstracao"]
     },
     {
       label: "Arquitetura",
       path: "arquitetura/",
-      match: ["arquitetura", "pipeline_etl", "feature_5_2_materiais", "moderacao_curadoria", "ocupacao_turmas"]
+      match: ["arquitetura", "arquitetura_ui", "pipeline_etl", "feature_5_2_materiais", "moderacao_curadoria", "ocupacao_turmas"]
     },
     {
       label: "Requisitos",

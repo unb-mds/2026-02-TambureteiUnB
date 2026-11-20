@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import AcademicProfileDashboard, {
   getAdjacentProfileSection,
+  getDisciplineHistoryForSemester,
 } from "../AcademicProfileDashboard.tsx";
 
 test("AcademicProfileDashboard mostra navegação e exige consentimento para a demonstração", () => {
@@ -51,4 +52,13 @@ test("getAdjacentProfileSection navega pelas abas e envolve as extremidades", ()
   assert.equal(getAdjacentProfileSection(3, "Home"), 0);
   assert.equal(getAdjacentProfileSection(3, "End"), 7);
   assert.equal(getAdjacentProfileSection(3, "Enter"), null);
+});
+
+test("getDisciplineHistoryForSemester retorna somente as disciplinas do semestre escolhido", () => {
+  const history = getDisciplineHistoryForSemester("2024/2");
+
+  assert.equal(history.length, 1);
+  assert.equal(history[0].name, "Algoritmos e Programação");
+  assert.equal(history[0].mention, "II");
+  assert.deepEqual(getDisciplineHistoryForSemester("2030/1"), []);
 });

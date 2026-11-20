@@ -1,7 +1,7 @@
 -- =====================================================================
 -- PROJETO TAMBURETEI UnB - ESQUEMA RELACIONAL OFICIAL (PostgreSQL 17)
 -- Baseado no PROJECT_CONTEXT.md e na documentação técnica (MDS 2026/2)
--- Sincronizado integralmente com o baseline Alembic revisão 011_denuncias (Head)
+-- Sincronizado integralmente com o baseline Alembic revisão 015_moderacao_ia (Head)
 -- =====================================================================
 
 -- Extensão para geração nativa de UUIDs
@@ -195,6 +195,9 @@ CREATE TABLE IF NOT EXISTS conteudos (
     status_moderacao VARCHAR(20),
     semestre VARCHAR(10), -- Ex: '2024.1'
     status_curadoria VARCHAR(20) NOT NULL DEFAULT 'PENDENTE' CHECK (status_curadoria IN ('PENDENTE', 'APROVADO', 'RECUSADO')),
+    motivo_moderacao TEXT,
+    confianca_ia DOUBLE PRECISION,
+    moderado_por VARCHAR(20),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_conteudos_caminho_arquivo UNIQUE (caminho_arquivo),
@@ -202,7 +205,9 @@ CREATE TABLE IF NOT EXISTS conteudos (
     CONSTRAINT chk_conteudo_formato CHECK (formato IS NULL OR formato IN ('pdf', 'png', 'jpg')),
     CONSTRAINT chk_conteudo_tamanho CHECK (tamanho_bytes IS NULL OR tamanho_bytes > 0),
     CONSTRAINT chk_conteudo_titulo CHECK (length(trim(titulo)) > 0),
-    CONSTRAINT chk_conteudo_moderacao CHECK (status_moderacao IS NULL OR status_moderacao IN ('ativo', 'em_analise', 'bloqueado', 'excluido'))
+    CONSTRAINT chk_conteudo_moderacao CHECK (status_moderacao IS NULL OR status_moderacao IN ('ativo', 'em_analise', 'bloqueado', 'excluido')),
+    CONSTRAINT chk_conteudo_confianca_ia CHECK (confianca_ia IS NULL OR (confianca_ia >= 0.0 AND confianca_ia <= 1.0)),
+    CONSTRAINT chk_conteudo_moderado_por CHECK (moderado_por IS NULL OR moderado_por IN ('IA', 'MODERATOR', 'ADMIN'))
 );
 
 -- =====================================================================
@@ -218,7 +223,12 @@ CREATE TABLE IF NOT EXISTS comentarios (
     conteudo TEXT NOT NULL,
     parent_id BIGINT REFERENCES comentarios(id) ON DELETE CASCADE, -- Respostas em thread
     status_moderacao VARCHAR(20) NOT NULL DEFAULT 'PUBLICADO' CHECK (status_moderacao IN ('PUBLICADO', 'PENDENTE', 'OCULTO')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    motivo_moderacao TEXT,
+    confianca_ia DOUBLE PRECISION,
+    moderado_por VARCHAR(20),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_comentario_confianca_ia CHECK (confianca_ia IS NULL OR (confianca_ia >= 0.0 AND confianca_ia <= 1.0)),
+    CONSTRAINT chk_comentario_moderado_por CHECK (moderado_por IS NULL OR moderado_por IN ('IA', 'MODERATOR', 'ADMIN'))
 );
 
 -- =====================================================================
@@ -287,7 +297,7 @@ CREATE TABLE IF NOT EXISTS curadorias (
     status_novo VARCHAR(20) NOT NULL,
     justificativa TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT chk_curadoria_perfil CHECK (perfil_moderador IN ('MODERATOR', 'ADMIN')),
+    CONSTRAINT chk_curadoria_perfil CHECK (perfil_moderador IN ('MODERATOR', 'ADMIN', 'IA')),
     CONSTRAINT chk_curadoria_anterior CHECK (status_anterior = 'PENDENTE'),
     CONSTRAINT chk_curadoria_novo CHECK (status_novo IN ('APROVADO', 'RECUSADO')),
     CONSTRAINT chk_curadoria_justificativa CHECK (justificativa IS NULL OR length(justificativa) <= 1000),
@@ -322,8 +332,22 @@ CREATE INDEX IF NOT EXISTS ix_denuncias_usuario_id ON denuncias(usuario_id);
 CREATE INDEX IF NOT EXISTS ix_denuncias_status ON denuncias(status);
 CREATE INDEX IF NOT EXISTS ix_denuncias_status_created_at ON denuncias(status, created_at, id);
 
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_evasao_campus AS
+SELECT
+    c.campus AS campus,
+    m.ano AS ano,
+    COUNT(DISTINCT c.id)::integer AS total_cursos,
+    COALESCE(SUM(m.matriculados), 0)::integer AS matriculados,
+    COALESCE(SUM(m.desvinculados), 0)::integer AS desvinculados
+FROM cursos c
+JOIN metricas_cursos m ON m.curso_id = c.id
+GROUP BY c.campus, m.ano
+WITH DATA;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_mv_evasao_campus_campus_ano ON mv_evasao_campus(campus, ano);
+
 CREATE TABLE IF NOT EXISTS alembic_version (
     version_num VARCHAR(32) NOT NULL,
     CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
 );
-INSERT INTO alembic_version (version_num) VALUES ('011_denuncias') ON CONFLICT (version_num) DO UPDATE SET version_num = '011_denuncias';
+INSERT INTO alembic_version (version_num) VALUES ('015_moderacao_ia') ON CONFLICT (version_num) DO UPDATE SET version_num = '015_moderacao_ia';

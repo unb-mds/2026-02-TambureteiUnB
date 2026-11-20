@@ -3,7 +3,14 @@ from fastapi import APIRouter, Depends, Path, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.api.deps import require_role
-from app.api.schemas.curadoria import DecisaoCuradoria, FilaCuradoria, RegistroCuradoria
+from app.api.schemas.curadoria import (
+    ComentarioPendente,
+    DecisaoComentarioCuradoria,
+    DecisaoCuradoria,
+    FilaComentariosCuradoria,
+    FilaCuradoria,
+    RegistroCuradoria,
+)
 from app.api.schemas.denuncia import (
     DecisaoDenuncia,
     FilaDenuncias,
@@ -52,6 +59,28 @@ def baixar(id: Identificador, db: Banco, moderador: Moderador, servico: Servico)
     conteudo, caminho = servico.baixar(db, id)
     return FileResponse(caminho, media_type=TIPOS_MIME[conteudo.formato], filename=f"material-{conteudo.id}.{conteudo.formato}",
                         headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store"})
+
+
+@router.get("/comentarios", response_model=FilaComentariosCuradoria)
+def fila_comentarios(
+    db: Banco,
+    moderador: Moderador,
+    servico: Servico,
+    pagina: Annotated[int, Query(ge=1)] = 1,
+    tamanho_pagina: Annotated[int, Query(ge=1, le=100)] = 20,
+):
+    return servico.listar_comentarios(db, pagina, tamanho_pagina)
+
+
+@router.patch("/comentarios/{id}/curadoria", response_model=ComentarioPendente)
+def decidir_comentario(
+    id: Identificador,
+    dados: DecisaoComentarioCuradoria,
+    db: Banco,
+    moderador: Moderador,
+    servico: Servico,
+):
+    return servico.decidir_comentario(db, id, dados, moderador)
 
 
 @router.get("/denuncias", response_model=FilaDenuncias)

@@ -171,3 +171,29 @@ test("submitDifficultyAlert envia novo alerta para POST /comentarios quando disc
   removeStoredToken();
   globalThis.fetch = originalFetch;
 });
+
+test("submitDifficultyAlert propaga erro HTTP do envio de comentário", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({ detail: "Falha de validação no comentário." }),
+      { status: 422, headers: { "Content-Type": "application/json" } },
+    )) as typeof fetch;
+
+  setStoredToken("jwt-teste");
+
+  await assert.rejects(
+    submitDifficultyAlert({
+      disciplineId: 7,
+      disciplineSlugOrCode: "calculo-1",
+      isAnonymous: true,
+      topic: "Limites",
+      severity: "ALTO",
+      content: "Conteúdo de teste.",
+    }),
+    /Dados inválidos no alerta de dificuldade/,
+  );
+
+  removeStoredToken();
+  globalThis.fetch = originalFetch;
+});
