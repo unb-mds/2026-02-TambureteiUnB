@@ -215,3 +215,66 @@ def test_pdf_sem_texto_e_imagem_sem_modelo_visao_escalonam_para_humano(
     assert itens_por_id[id_pdf]["confianca_ia"] == 0.0
     assert "modelo multimodal" in itens_por_id[id_png]["motivo_moderacao"]
     assert itens_por_id[id_png]["confianca_ia"] == 0.0
+
+
+def test_deteccao_deterministica_rn01_bloqueia_sem_chamar_ollama(
+    client, db, disciplina, student_headers, monkeypatch
+):
+    monkeypatch.setattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
+    r = client.post(
+        "/comentarios",
+        json={
+            "disciplina_id": disciplina.id,
+            "conteudo": "Fala comigo no aluno@aluno.unb.br, minha matricula e 22/1008543.",
+        },
+        headers=student_headers,
+    )
+    assert r.status_code == 201
+    comentario_id = r.json()["id"]
+
+    with patch("app.services.moderacao_ia_service.consultar_ollama") as mock_ollama:
+        assert aplicar_triagem_comentario(db, comentario_id) is True
+        mock_ollama.assert_not_called()
+
+    comentario = db.get(Comentario, comentario_id)
+    assert comentario.status_moderacao == "OCULTO"
+    assert comentario.moderado_por == "IA"
+    assert comentario.confianca_ia == pytest.approx(1.0)
+    assert "[LGPD_DADOS_PESSOAIS]" in comentario.motivo_moderacao
+
+
+def test_triagem_ia_nao_sobrescreve_decisao_humana_concorrente(
+    client, db, disciplina, student_headers, admin_headers, monkeypatch
+):
+    monkeypatch.setattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
+    r = client.post(
+        "/comentarios",
+        json={"disciplina_id": disciplina.id, "conteudo": "Relato sobre a metodologia de laboratorio."},
+        headers=student_headers,
+    )
+    assert r.status_code == 201
+    comentario_id = r.json()["id"]
+
+    from app.domain.moderacao import VereditoModIA
+
+    def _simular_corrida(_mensagens):
+        decisao = client.patch(
+            f"/moderacao/comentarios/{comentario_id}/curadoria",
+            headers=admin_headers,
+            json={"status": "PUBLICADO"},
+        )
+        assert decisao.status_code == 200
+        return VereditoModIA(
+            decisao="REJEITAR",
+            confianca=0.95,
+            categoria_violacao="SPAM_IRRELEVANTE",
+            motivo="Falso positivo tardio.",
+        )
+
+    with patch("app.services.moderacao_ia_service.consultar_ollama", side_effect=_simular_corrida):
+        assert aplicar_triagem_comentario(db, comentario_id) is False
+
+    db.expire_all()
+    comentario = db.get(Comentario, comentario_id)
+    assert comentario.status_moderacao == "PUBLICADO"
+    assert comentario.moderado_por == "ADMIN"

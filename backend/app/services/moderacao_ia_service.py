@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Callable
 
 import httpx
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -15,6 +16,7 @@ from app.domain.moderacao import (
     VereditoModIA,
     construir_prompt_comentario,
     construir_prompt_material,
+    detectar_dados_pessoais_rn01,
     interpretar_resposta_ollama,
     resolver_moderacao_comentario,
     resolver_moderacao_material,
@@ -100,21 +102,37 @@ def aplicar_triagem_comentario(db: Session, comentario_id: int) -> bool:
     if comentario is None or comentario.status_moderacao != "PENDENTE":
         return False
 
-    mensagens = construir_prompt_comentario(
-        comentario.conteudo,
-        topico=comentario.topico_dificuldade,
-        autor_alias=comentario.autor_alias,
-    )
-    veredito = consultar_ollama(mensagens)
+    conteudo_texto = comentario.conteudo
+    topico = comentario.topico_dificuldade
+    autor_alias = comentario.autor_alias
+
+    veredito = detectar_dados_pessoais_rn01(f"{autor_alias or ''}\n{conteudo_texto}")
+    if veredito is None:
+        mensagens = construir_prompt_comentario(
+            conteudo_texto,
+            topico=topico,
+            autor_alias=autor_alias,
+        )
+        veredito = consultar_ollama(mensagens)
+
     transicao = resolver_moderacao_comentario(
         veredito,
         limiar_confianca=settings.MODERATION_CONFIDENCE_THRESHOLD,
     )
 
-    comentario.status_moderacao = transicao.status_final
-    comentario.motivo_moderacao = transicao.motivo_moderacao
-    comentario.confianca_ia = transicao.confianca_ia
-    comentario.moderado_por = transicao.moderado_por
+    comentario_atual = db.scalar(
+        select(Comentario)
+        .where(Comentario.id == comentario_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if comentario_atual is None or comentario_atual.status_moderacao != "PENDENTE":
+        return False
+
+    comentario_atual.status_moderacao = transicao.status_final
+    comentario_atual.motivo_moderacao = transicao.motivo_moderacao
+    comentario_atual.confianca_ia = transicao.confianca_ia
+    comentario_atual.moderado_por = transicao.moderado_por
     db.commit()
     return True
 
@@ -137,53 +155,83 @@ def aplicar_triagem_material(db: Session, conteudo_id: int) -> bool:
         logger.warning("Arquivo fisico nao localizado para triagem (id=%s): %s", conteudo_id, exc)
         return False
 
+    titulo_material = conteudo.titulo
+    tipo_material = conteudo.tipo
     formato = (conteudo.formato or "").lower()
     if formato == "pdf":
         texto_extraido = extrair_texto_pdf(caminho)
         if not texto_extraido.strip():
-            conteudo.status_curadoria = "PENDENTE"
-            conteudo.status_moderacao = "em_analise"
-            conteudo.motivo_moderacao = (
+            conteudo_atual = db.scalar(
+                select(Conteudo)
+                .where(Conteudo.id == conteudo_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            if (
+                conteudo_atual is None
+                or conteudo_atual.status_curadoria != "PENDENTE"
+                or conteudo_atual.status_moderacao == "excluido"
+            ):
+                return False
+            conteudo_atual.status_curadoria = "PENDENTE"
+            conteudo_atual.status_moderacao = "em_analise"
+            conteudo_atual.motivo_moderacao = (
                 "Arquivo PDF digitalizado ou sem camada de texto extraivel — "
                 "requer inspecao visual de moderador."
             )
-            conteudo.confianca_ia = 0.0
-            conteudo.moderado_por = None
+            conteudo_atual.confianca_ia = 0.0
+            conteudo_atual.moderado_por = None
             db.commit()
             return True
 
-        mensagens = construir_prompt_material(
-            titulo=conteudo.titulo,
-            tipo=conteudo.tipo,
-            formato=formato,
-            texto_extraido=texto_extraido,
-        )
-        veredito = consultar_ollama(mensagens)
-    elif formato in {"png", "jpg"}:
-        if not (settings.OLLAMA_VISION_MODEL or "").strip():
-            conteudo.status_curadoria = "PENDENTE"
-            conteudo.status_moderacao = "em_analise"
-            conteudo.motivo_moderacao = (
-                "Arquivo visual (PNG/JPG) sem modelo multimodal configurado — "
-                "requer inspecao visual de moderador."
+        veredito = detectar_dados_pessoais_rn01(f"{titulo_material}\n{texto_extraido}")
+        if veredito is None:
+            mensagens = construir_prompt_material(
+                titulo=titulo_material,
+                tipo=tipo_material,
+                formato=formato,
+                texto_extraido=texto_extraido,
             )
-            conteudo.confianca_ia = 0.0
-            conteudo.moderado_por = None
-            db.commit()
-            return True
+            veredito = consultar_ollama(mensagens)
+    elif formato in {"png", "jpg"}:
+        veredito = detectar_dados_pessoais_rn01(titulo_material)
+        if veredito is None:
+            if not (settings.OLLAMA_VISION_MODEL or "").strip():
+                conteudo_atual = db.scalar(
+                    select(Conteudo)
+                    .where(Conteudo.id == conteudo_id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+                if (
+                    conteudo_atual is None
+                    or conteudo_atual.status_curadoria != "PENDENTE"
+                    or conteudo_atual.status_moderacao == "excluido"
+                ):
+                    return False
+                conteudo_atual.status_curadoria = "PENDENTE"
+                conteudo_atual.status_moderacao = "em_analise"
+                conteudo_atual.motivo_moderacao = (
+                    "Arquivo visual (PNG/JPG) sem modelo multimodal configurado — "
+                    "requer inspecao visual de moderador."
+                )
+                conteudo_atual.confianca_ia = 0.0
+                conteudo_atual.moderado_por = None
+                db.commit()
+                return True
 
-        imagem_b64 = base64.b64encode(caminho.read_bytes()).decode("ascii")
-        mensagens = construir_prompt_material(
-            titulo=conteudo.titulo,
-            tipo=conteudo.tipo,
-            formato=formato,
-            texto_extraido=None,
-        )
-        veredito = consultar_ollama(
-            mensagens,
-            imagens_base64=[imagem_b64],
-            usar_modelo_visao=True,
-        )
+            imagem_b64 = base64.b64encode(caminho.read_bytes()).decode("ascii")
+            mensagens = construir_prompt_material(
+                titulo=titulo_material,
+                tipo=tipo_material,
+                formato=formato,
+                texto_extraido=None,
+            )
+            veredito = consultar_ollama(
+                mensagens,
+                imagens_base64=[imagem_b64],
+                usar_modelo_visao=True,
+            )
     else:
         return False
 
@@ -192,18 +240,31 @@ def aplicar_triagem_material(db: Session, conteudo_id: int) -> bool:
         limiar_confianca=settings.MODERATION_CONFIDENCE_THRESHOLD,
     )
 
-    status_anterior = conteudo.status_curadoria
-    conteudo.status_curadoria = transicao.status_final
+    conteudo_atual = db.scalar(
+        select(Conteudo)
+        .where(Conteudo.id == conteudo_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if (
+        conteudo_atual is None
+        or conteudo_atual.status_curadoria != "PENDENTE"
+        or conteudo_atual.status_moderacao == "excluido"
+    ):
+        return False
+
+    status_anterior = conteudo_atual.status_curadoria
+    conteudo_atual.status_curadoria = transicao.status_final
     if transicao.status_moderacao_arquivo:
-        conteudo.status_moderacao = transicao.status_moderacao_arquivo
-    conteudo.motivo_moderacao = transicao.motivo_moderacao
-    conteudo.confianca_ia = transicao.confianca_ia
-    conteudo.moderado_por = transicao.moderado_por
+        conteudo_atual.status_moderacao = transicao.status_moderacao_arquivo
+    conteudo_atual.motivo_moderacao = transicao.motivo_moderacao
+    conteudo_atual.confianca_ia = transicao.confianca_ia
+    conteudo_atual.moderado_por = transicao.moderado_por
 
     if transicao.registrar_curadoria_ia:
         db.add(
             Curadoria(
-                conteudo_id=conteudo.id,
+                conteudo_id=conteudo_atual.id,
                 moderador_id=None,
                 perfil_moderador="IA",
                 status_anterior=status_anterior,
