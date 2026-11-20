@@ -1,12 +1,14 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Button from "@/components/Button";
 import ModerationCard from "@/components/ModerationCard";
 import DenunciaModerationCard from "@/components/DenunciaModerationCard";
 import ModerationActionModal from "@/components/ModerationActionModal";
+import MaterialPreviewModal from "@/components/MaterialPreviewModal";
 import { subscribeAuthChange } from "@/services/authService";
 import { ApiError } from "@/services/httpClient";
 import {
@@ -33,6 +35,7 @@ type Acesso = "loading" | "allowed" | "anonymous" | "denied" | "error";
 type AbaPainel = "materiais" | "denuncias";
 
 export default function ModeracaoPage() {
+  const router = useRouter();
   const [acesso, setAcesso] = useState<Acesso>("loading");
   const [aba, setAba] = useState<AbaPainel>("materiais");
   const [fila, setFila] = useState<FilaCuradoria | null>(null);
@@ -41,8 +44,15 @@ export default function ModeracaoPage() {
   const [paginaDenuncias, setPaginaDenuncias] = useState(1);
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipoDenuncia>("TODOS");
   const [filtroCategoria, setFiltroCategoria] = useState<FiltroCategoriaDenuncia>("TODAS");
+
   const [denunciaSelecionada, setDenunciaSelecionada] = useState<DenunciaItemFila | null>(null);
   const [acaoSelecionada, setAcaoSelecionada] = useState<AcaoDenuncia | null>(null);
+
+  const [previewMaterial, setPreviewMaterial] = useState<MaterialPendente | null>(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const [busy, setBusy] = useState(false);
@@ -93,21 +103,34 @@ export default function ModeracaoPage() {
   }, []);
 
   useEffect(() => {
-    const sessaoAlterada = () => {
+    const timer = window.setTimeout(() => void carregar(), 0);
+    const unsubscribe = subscribeAuthChange(() => {
       setFila(null);
       setFilaDenuncias(null);
       setAcesso("loading");
       void carregar();
-    };
-    const unsubscribeAuthChanges = subscribeAuthChange(sessaoAlterada);
-    const timer = window.setTimeout(() => void carregar(), 0);
-
+    });
     return () => {
       window.clearTimeout(timer);
       invalidarConsultas();
-      unsubscribeAuthChanges();
+      unsubscribe();
     };
   }, [carregar, invalidarConsultas]);
+
+  useEffect(() => {
+    if (acesso === "anonymous") {
+      const timer = setTimeout(() => {
+        router.push("/login?redirect=/moderacao");
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+    if (acesso === "denied") {
+      const timer = setTimeout(() => {
+        router.push("/");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [acesso, router]);
 
   async function decidir(material: MaterialPendente, status: DecisaoCuradoria, motivo?: string) {
     setBusy(true);
@@ -121,7 +144,9 @@ export default function ModeracaoPage() {
       if (error instanceof ApiError && error.status === 409) {
         await carregar();
         setAviso("Outro moderador já avaliou este material. A fila foi atualizada.");
-      } else tratarErro(error);
+      } else {
+        tratarErro(error);
+      }
     } finally {
       setBusy(false);
     }
@@ -147,46 +172,62 @@ export default function ModeracaoPage() {
     }
   }
 
+  async function abrirPreview(material: MaterialPendente) {
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
+    setPreviewMaterial(material);
+    setPreviewLoading(true);
+    setPreviewError("");
+    try {
+      const arquivo = await baixarParaAnalise(material.id);
+      const url = URL.createObjectURL(arquivo);
+      setPreviewBlobUrl(url);
+    } catch (error) {
+      setPreviewError(error instanceof Error ? error.message : "Falha ao carregar arquivo.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  function fecharPreview() {
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
+    setPreviewMaterial(null);
+  }
+
   function solicitarAcaoDenuncia(denuncia: DenunciaItemFila, acao: AcaoDenuncia) {
-    setErro("");
-    setAviso("");
     setDenunciaSelecionada(denuncia);
     setAcaoSelecionada(acao);
   }
 
   function fecharModalDenuncia() {
-    if (busy) return;
     setDenunciaSelecionada(null);
     setAcaoSelecionada(null);
   }
 
-  async function confirmarDecisaoDenuncia(
+    async function confirmarDecisaoDenuncia(
     denuncia: DenunciaItemFila,
     acao: AcaoDenuncia,
-    justificativa?: string,
+    justificativa?: string
   ) {
     setBusy(true);
     setErro("");
     setAviso("");
     try {
       const resultado = await decidirDenuncia(denuncia.id, acao, justificativa);
-      setDenunciaSelecionada(null);
-      setAcaoSelecionada(null);
       setAviso(
-        acao === "EXCLUIR_CONTEUDO"
-          ? `Conteúdo denunciado ocultado com sucesso (${resultado.denuncias_atualizadas} sinalização(ões) encerrada(s)).`
-          : `Denúncia descartada como improcedente (${resultado.denuncias_atualizadas} sinalização(ões) encerrada(s)). Conteúdo restituído.`,
+        resultado.acao === "EXCLUIR_CONTEUDO"
+          ? "Conteúdo denunciado excluído e denúncias encerradas com sucesso."
+          : "Denúncia descartada e visibilidade mantida com sucesso."
       );
+      fecharModalDenuncia();
       await carregar();
     } catch (error) {
-      setDenunciaSelecionada(null);
-      setAcaoSelecionada(null);
-      if (error instanceof ApiError && error.status === 409) {
-        await carregar();
-        setAviso("Outro moderador já avaliou esta denúncia. A fila foi atualizada.");
-      } else {
-        tratarErro(error);
-      }
+      tratarErro(error);
     } finally {
       setBusy(false);
     }
@@ -203,23 +244,28 @@ export default function ModeracaoPage() {
         </p>
 
         {acesso === "loading" && (
-          <p role="status" className="mt-8">
+          <p role="status" className="mt-8 text-gray-600">
             Verificando acesso e carregando a fila...
           </p>
         )}
         {acesso === "anonymous" && (
-          <p className="mt-8">
-            Faça{" "}
-            <Link className="text-[#5B4BDB] underline" href="/login">
-              login
-            </Link>{" "}
-            com uma conta de moderador ou administrador.
-          </p>
+          <div role="status" className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+            <h2 className="text-lg font-bold">Autenticação necessária</h2>
+            <p className="mt-1 text-sm">
+              Você não está logado. Redirecionando para a página de login em instantes... ou clique em{" "}
+              <Link className="font-semibold text-[#5B4BDB] underline" href="/login?redirect=/moderacao">
+                fazer login agora
+              </Link>.
+            </p>
+          </div>
         )}
         {acesso === "denied" && (
-          <p role="alert" className="mt-8">
-            Acesso restrito a moderadores e administradores.
-          </p>
+          <div role="alert" className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6 text-red-900">
+            <h2 className="text-lg font-bold">Acesso Restrito</h2>
+            <p className="mt-1 text-sm">
+              Esta área é exclusiva para moderadores e administradores. Redirecionando para a página inicial...
+            </p>
+          </div>
         )}
 
         {erro && (
@@ -227,7 +273,7 @@ export default function ModeracaoPage() {
             {erro}
           </p>
         )}
-        <p role="status" aria-live="polite" className="mt-4 text-sm text-[#5B4BDB]">
+        <p role="status" aria-live="polite" className="mt-4 text-sm font-semibold text-[#5B4BDB]">
           {aviso}
         </p>
 
@@ -293,7 +339,7 @@ export default function ModeracaoPage() {
             {!fila.items.length && (
               <section className="rounded-2xl border border-gray-200 bg-white p-8">
                 <h2 className="text-xl font-semibold">Nenhum material pendente</h2>
-                <p className="mt-2 text-gray-600">Os novos envios aparecerão aqui.</p>
+                <p className="mt-2 text-gray-600">Os novos envios aparecerão aqui para curadoria.</p>
               </section>
             )}
             <div className="space-y-5" aria-busy={busy}>
@@ -304,15 +350,17 @@ export default function ModeracaoPage() {
                   disabled={busy}
                   onDecision={decidir}
                   onDownload={baixar}
+                  onPreview={abrirPreview}
                 />
               ))}
             </div>
+
             {fila.total > 0 && (
               <nav aria-label="Paginação da fila" className="mt-6 flex items-center justify-between gap-3">
                 <Button variant="outline" disabled={busy || pagina === 1} onClick={() => setPagina(pagina - 1)}>
                   Anterior
                 </Button>
-                <span>
+                <span className="text-sm font-medium">
                   Página {pagina} de {Math.max(1, Math.ceil(fila.total / fila.tamanho_pagina))}
                 </span>
                 <Button
@@ -329,19 +377,8 @@ export default function ModeracaoPage() {
 
         {acesso === "allowed" && aba === "denuncias" && filaDenuncias && (
           <>
-            <div className="mt-5 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD]/60 p-4 text-sm text-[#202124]">
-              <p className="font-semibold text-[#5B4BDB]">
-                Diretriz RN04 — Proteção a Docentes e Conduta Ética
-              </p>
-              <p className="mt-1 text-xs sm:text-sm text-gray-700">
-                Relatos com ataques pessoais, juízos depreciativos contra professores ou gabaritos de atividades vigentes devem ser excluídos. Denúncias improcedentes sobre relatos estritamente pedagógicos devem ser descartadas para preservar a colaboração discente.
-              </p>
-            </div>
-
             <div className="my-5 flex flex-wrap items-center justify-between gap-4">
-              <p className="text-sm text-gray-600">
-                {filaDenuncias.total} denúncia(s) pendente(s) de revisão
-              </p>
+              <p className="text-sm text-gray-600">{filaDenuncias.total} denúncia(s) pendente(s) de revisão</p>
 
               <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-xs font-medium text-gray-600">
@@ -388,9 +425,7 @@ export default function ModeracaoPage() {
             {!filaDenuncias.items.length && (
               <section className="rounded-2xl border border-gray-200 bg-white p-8">
                 <h2 className="text-xl font-semibold">Nenhuma denúncia pendente</h2>
-                <p className="mt-2 text-gray-600">
-                  Não há relatos ou materiais sinalizados aguardando análise para os filtros selecionados.
-                </p>
+                <p className="mt-2 text-gray-600">Não há denúncias aguardando análise para os filtros selecionados.</p>
               </section>
             )}
 
@@ -414,15 +449,13 @@ export default function ModeracaoPage() {
                 >
                   Anterior
                 </Button>
-                <span>
+                <span className="text-sm font-medium">
                   Página {paginaDenuncias} de{" "}
                   {Math.max(1, Math.ceil(filaDenuncias.total / filaDenuncias.tamanho_pagina))}
                 </span>
                 <Button
                   variant="outline"
-                  disabled={
-                    busy || paginaDenuncias * filaDenuncias.tamanho_pagina >= filaDenuncias.total
-                  }
+                  disabled={busy || paginaDenuncias * filaDenuncias.tamanho_pagina >= filaDenuncias.total}
                   onClick={() => setPaginaDenuncias(paginaDenuncias + 1)}
                 >
                   Próxima
@@ -431,6 +464,19 @@ export default function ModeracaoPage() {
             )}
           </>
         )}
+
+        <MaterialPreviewModal
+          isOpen={Boolean(previewMaterial)}
+          material={previewMaterial}
+          blobUrl={previewBlobUrl}
+          loading={previewLoading}
+          error={previewError}
+          onClose={fecharPreview}
+          onApprove={(m) => decidir(m, "APROVADO")}
+          onRejectRequest={(m) => {
+            void decidir(m, "RECUSADO", "Recusado durante a pré-visualização.");
+          }}
+        />
 
         <ModerationActionModal
           key={`${denunciaSelecionada?.id ?? "none"}-${acaoSelecionada ?? "none"}`}
