@@ -254,12 +254,32 @@ export default function HomePage() {
                     {/* Indicadores DPO reais do Curso */}
                     {(() => {
                       const m = course.metricas_recentes || course.metricas_2024;
-                      if (!m) return null;
+                      if (!m) {
+                        return (
+                          <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
+                            <div className="bg-[#FAF9FE] rounded-xl p-2.5 border border-[#EDE9FD]/70 flex flex-col justify-between min-h-[58px]">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
+                                  Métricas Institucionais
+                                </span>
+                                <span className="text-[10px] font-semibold text-[#5B4BDB] bg-[#5B4BDB]/10 px-2 py-0.5 rounded-md">
+                                  DPO
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-gray-500 mt-1">
+                                Dados unificados no turno principal pelo anuário
+                              </span>
+                            </div>
 
-                      const hasSuccessRate =
-                        m.taxa_sucesso !== null &&
-                        m.taxa_sucesso !== undefined &&
-                        Number(m.taxa_sucesso) > 0;
+                            <div className="flex items-center text-[11px] text-gray-400 px-1 pt-2.5">
+                              <span className="flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+                                Contabilizado na modalidade geral do curso
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
 
                       return (
                         <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
@@ -274,32 +294,13 @@ export default function HomePage() {
                               </span>
                             </div>
 
-                            <div
-                              className={`rounded-xl p-2.5 flex flex-col justify-between border ${
-                                hasSuccessRate
-                                  ? "bg-[#EAF8EF] border-[#D1F0DC]"
-                                  : "bg-[#F8F7FD] border-[#EDE9FD]/70"
-                              }`}
-                            >
-                              <span
-                                className={`text-[10px] uppercase font-bold tracking-wider ${
-                                  hasSuccessRate ? "text-[#287A45]" : "text-gray-500"
-                                }`}
-                              >
-                                Taxa de Sucesso
+                            <div className="bg-[#EAF8EF] rounded-xl p-2.5 flex flex-col justify-between border border-[#D1F0DC]">
+                              <span className="text-[10px] uppercase font-bold tracking-wider text-[#287A45]">
+                                Concluintes
                               </span>
-                              <span
-                                className={`mt-0.5 flex items-center gap-1 ${
-                                  hasSuccessRate
-                                    ? "text-sm font-extrabold text-[#1B6634]"
-                                    : "text-xs font-bold text-gray-500 mt-1"
-                                }`}
-                              >
-                                {hasSuccessRate
-                                  ? `${m.taxa_sucesso}%`
-                                  : m.concluintes > 0
-                                  ? `${m.concluintes} formados`
-                                  : "Sem dados"}
+                              <span className="text-sm font-extrabold text-[#1B6634] mt-0.5">
+                                {m.concluintes.toLocaleString("pt-BR")}{" "}
+                                <span className="text-[10px] font-normal text-[#287A45]">formados/ano</span>
                               </span>
                             </div>
                           </div>
@@ -307,11 +308,12 @@ export default function HomePage() {
                           <div className="flex items-center justify-between text-[11px] text-gray-500 px-1 pt-2.5">
                             <span className="flex items-center gap-1.5">
                               <span className="h-1.5 w-1.5 rounded-full bg-[#5B4BDB]" />
-                              Ingressantes: <strong className="font-semibold text-gray-700">{m.ingressantes}</strong> / {m.vagas_totais} vagas
+                              Ingressantes: <strong className="font-semibold text-gray-700">{m.ingressantes}</strong>
+                              {m.vagas_totais > 0 && m.vagas_totais !== m.ingressantes ? ` / ${m.vagas_totais} vagas` : " vagas"}
                             </span>
                             {m.taxa_evasao !== null && m.taxa_evasao !== undefined && (
                               <span className="font-semibold text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
-                                {m.taxa_evasao}% evasão
+                                {m.taxa_evasao}% evasão anual
                               </span>
                             )}
                           </div>

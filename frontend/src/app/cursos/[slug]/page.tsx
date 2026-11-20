@@ -276,7 +276,32 @@ export default function CourseDisciplinesPage() {
             {/* Painel de Indicadores Institucionais do Curso (DPO / INEP / LAI) */}
             {(() => {
               const m = course.metricas_recentes || course.metricas_2024;
-              if (!m) return null;
+              if (!m) {
+                return (
+                  <div className="mt-8 pt-6 border-t border-[#EDE9FD]">
+                    <div className="bg-[#F8F7FD] rounded-2xl p-5 border border-[#EDE9FD] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#EDE9FD] text-[#5B4BDB]">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-[#202124]">
+                            Indicadores Institucionais DPO / UnB
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Os dados estatísticos deste curso ({course.turno || "turno específico"}) são contabilizados de forma unificada ou associados ao turno principal no Anuário Estatístico da UnB.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-semibold text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-[#EDE9FD] whitespace-nowrap">
+                        DPO / Anuário 2024
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
 
               const taxaOcupacao = m.vagas_totais > 0 ? Math.round((m.ingressantes / m.vagas_totais) * 100) : null;
               const concorrencia = m.vagas_totais > 0 ? (m.inscritos_total / m.vagas_totais).toFixed(1) : null;
@@ -330,73 +355,40 @@ export default function CourseDisciplinesPage() {
                       </span>
                     </div>
 
-                    {/* KPI 3: Concluintes / Sucesso */}
-                    {(() => {
-                      const hasSuccessRate =
-                        m.taxa_sucesso !== null &&
-                        m.taxa_sucesso !== undefined &&
-                        Number(m.taxa_sucesso) > 0;
-
-                      return (
-                        <div
-                          className={`rounded-2xl p-4 border flex flex-col justify-between shadow-xs ${
-                            hasSuccessRate
-                              ? "bg-[#EAF8EF] border-[#D1F0DC]"
-                              : "bg-[#F8F7FD] border-[#EDE9FD]"
-                          }`}
+                    {/* KPI 3: Concluintes (Formados no Ano) */}
+                    <div className="bg-[#EAF8EF] rounded-2xl p-4 border border-[#D1F0DC] flex flex-col justify-between shadow-xs">
+                      <div className="flex items-center justify-between text-[#287A45] mb-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider">
+                          Concluintes
+                        </span>
+                        <svg
+                          className="w-4 h-4 text-[#287A45]"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
                         >
-                          <div
-                            className={`flex items-center justify-between mb-1 ${
-                              hasSuccessRate ? "text-[#287A45]" : "text-gray-500"
-                            }`}
-                          >
-                            <span className="text-[11px] font-bold uppercase tracking-wider">
-                              Taxa de Sucesso
-                            </span>
-                            <svg
-                              className={`w-4 h-4 ${hasSuccessRate ? "text-[#287A45]" : "text-gray-400"}`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1.8}
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                          </div>
-                          <div
-                            className={`tracking-tight ${
-                              hasSuccessRate
-                                ? "text-2xl font-black text-[#1B6634]"
-                                : "text-xl font-bold text-gray-500 my-0.5"
-                            }`}
-                          >
-                            {hasSuccessRate
-                              ? `${m.taxa_sucesso}%`
-                              : m.concluintes > 0
-                              ? `${m.concluintes} formados`
-                              : "Sem dados"}
-                          </div>
-                          <span
-                            className={`text-[11px] mt-1 font-medium ${
-                              hasSuccessRate ? "text-[#287A45]" : "text-gray-500"
-                            }`}
-                          >
-                            {m.concluintes > 0
-                              ? `${m.concluintes} concluintes no ano`
-                              : "Sem concluintes registrados"}
-                          </span>
-                        </div>
-                      );
-                    })()}
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.8}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </div>
+                      <div className="text-2xl font-black text-[#1B6634] tracking-tight">
+                        {m.concluintes.toLocaleString("pt-BR")}
+                      </div>
+                      <span className="text-[11px] text-[#287A45] mt-1 font-medium">
+                        {m.concluintes > 0
+                          ? `${m.concluintes} formados no ano-base (DPO)`
+                          : "Sem formados no ano"}
+                      </span>
+                    </div>
 
-                    {/* KPI 4: Evasão / Desvinculados */}
+                    {/* KPI 4: Evasão Anual */}
                     <div className="bg-[#FFF5F5] rounded-2xl p-4 border border-[#FED7D7] flex flex-col justify-between shadow-xs">
                       <div className="flex items-center justify-between text-[#C53030] mb-1">
-                        <span className="text-[11px] font-bold uppercase tracking-wider">Taxa de Evasão</span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Evasão Anual</span>
                         <svg className="w-4 h-4 text-[#C53030]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
                         </svg>
