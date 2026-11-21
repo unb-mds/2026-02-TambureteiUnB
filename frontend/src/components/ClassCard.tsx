@@ -4,6 +4,7 @@ import {
   TurnoTurma,
   formatClassOccupancy,
 } from "@/types/turma";
+import { ClassOccupancyPie } from "@/components/ClassPerformancePieForm";
 
 export interface ClassCardProps {
   turma?: Class;
@@ -141,9 +142,12 @@ export default function ClassCard({
       </div>
 
       <footer className="mt-4 border-t border-gray-100 pt-3.5">
-        <p className="text-xs font-medium text-gray-700">
-          {formatClassOccupancy(item.vagasOcupadas, item.totalVagas)}
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-medium text-gray-700">
+            {formatClassOccupancy(item.vagasOcupadas, item.totalVagas)}
+          </p>
+          <ClassOccupancyPie classData={item} compact />
+        </div>
       </footer>
     </article>
   );

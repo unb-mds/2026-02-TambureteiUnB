@@ -18,7 +18,8 @@ for (const [capacidade, matriculados, texto] of [
     assert.ok(html.includes(texto));
     assert.ok(html.includes("Docente de teste"));
     assert.ok(html.includes("Turma 01"));
-    for (const removido of ["Vagas abertas", "Últimas vagas", "Esgotada", "%", "progressbar"]) assert.ok(!html.includes(removido));
+    assert.ok(html.includes('role="img"'));
+    for (const removido of ["Vagas abertas", "Últimas vagas", "Esgotada", "progressbar"]) assert.ok(!html.includes(removido));
   });
 }
 
