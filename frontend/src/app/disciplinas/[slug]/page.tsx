@@ -1067,7 +1067,7 @@ function DisciplineDetailContent() {
                 </div>
 
                 
-                <div className="relative flex flex-1 items-end justify-around border-b border-l border-[#DCD9E9] px-2 sm:px-8 pb-7">
+                <div className="relative flex min-w-0 flex-1 items-end justify-around border-b border-l border-[#DCD9E9] px-2 sm:px-8 pb-7">
                   {[25, 50, 75, 100].map((line) => (
                     <div
                       key={line}
@@ -1076,7 +1076,13 @@ function DisciplineDetailContent() {
                     />
                   ))}
 
-                  {performanceList.map((item) => {
+                  {performanceList.map((item, index) => {
+                    const tooltipAlignment =
+                      index === 0
+                        ? "left-0"
+                        : index >= performanceList.length - 2
+                        ? "right-0"
+                        : "left-1/2 -translate-x-1/2";
                     const total =
                       (item.approved || 0) +
                       (item.failed || 0) +
@@ -1102,17 +1108,19 @@ function DisciplineDetailContent() {
                     return (
                       <div
                         key={item.semester}
-                        className="relative z-10 flex h-full w-10 sm:w-16 flex-col items-center justify-end group"
+                        className="relative z-10 flex h-full min-w-0 w-10 sm:w-16 flex-col items-center justify-end group"
                       >
                         
-                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-nowrap z-20 shadow-md">
+                        <div
+                          className={`absolute -top-12 w-40 ${tooltipAlignment} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-normal text-center z-20 shadow-md`}
+                        >
                           {item.semester}: {approvedPct}% aprov. (
                           {item.approved}/{total})
                         </div>
 
                         
                         <div
-                          className="flex h-full w-8 sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
+                          className="flex h-full w-8 max-w-[75%] sm:max-w-full sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
                           aria-label={`${item.semester}: ${approvedPct}% aprovação, ${failedPct}% reprovação por nota`}
                         >
                           <div
@@ -1146,7 +1154,7 @@ function DisciplineDetailContent() {
                         </div>
 
                         
-                        <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-gray-600">
+                        <span className="absolute -bottom-6 max-sm:-bottom-8 max-sm:-rotate-45 whitespace-nowrap text-[11px] font-medium text-gray-600">
                           {item.semester}
                         </span>
                       </div>
