@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Button from "./Button";
 import type { MaterialPendente } from "@/types/moderacao";
 import { formatFileSize } from "@/utils/fileValidation";
@@ -12,7 +12,7 @@ interface MaterialPreviewModalProps {
   error: string;
   onClose: () => void;
   onApprove: (material: MaterialPendente) => Promise<void>;
-  onRejectRequest: (material: MaterialPendente) => void;
+  onReject: (material: MaterialPendente, motivo: string) => Promise<void>;
 }
 
 export default function MaterialPreviewModal({
@@ -23,11 +23,16 @@ export default function MaterialPreviewModal({
   error,
   onClose,
   onApprove,
-  onRejectRequest,
+  onReject,
 }: MaterialPreviewModalProps) {
+  const [motivo, setMotivo] = useState("");
+  const [erroMotivo, setErroMotivo] = useState("");
+  const [exibirCampoMotivo, setExibirCampoMotivo] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !enviando) {
         onClose();
       }
     }
@@ -39,7 +44,16 @@ export default function MaterialPreviewModal({
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, enviando, onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setMotivo("");
+      setErroMotivo("");
+      setExibirCampoMotivo(false);
+      setEnviando(false);
+    }
+  }, [isOpen, material]);
 
   if (!isOpen || !material) {
     return null;
@@ -47,6 +61,41 @@ export default function MaterialPreviewModal({
 
   const isPdf = material.formato.toLowerCase() === "pdf";
   const isImage = ["png", "jpg", "jpeg"].includes(material.formato.toLowerCase());
+
+  async function handleConfirmReject() {
+    const textoLimpo = motivo.trim();
+    if (!textoLimpo) {
+      setExibirCampoMotivo(true);
+      setErroMotivo("Informe uma justificativa para recusar o material.");
+      return;
+    }
+    if (textoLimpo.length > 1000) {
+      setErroMotivo("A justificativa deve ter no máximo 1000 caracteres.");
+      return;
+    }
+    setErroMotivo("");
+    setEnviando(true);
+    try {
+      if (material) {
+        await onReject(material, textoLimpo);
+        onClose();
+      }
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function handleConfirmApprove() {
+    setEnviando(true);
+    try {
+      if (material) {
+        await onApprove(material);
+        onClose();
+      }
+    } finally {
+      setEnviando(false);
+    }
+  }
 
   return (
     <div
@@ -70,9 +119,10 @@ export default function MaterialPreviewModal({
           </div>
           <button
             type="button"
+            disabled={enviando}
             onClick={onClose}
             aria-label="Fechar visualização"
-            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"
+            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50"
           >
             ✕
           </button>
@@ -97,14 +147,14 @@ export default function MaterialPreviewModal({
                 <iframe
                   src={blobUrl}
                   title={`Pré-visualização de ${material.titulo}`}
-                  className="h-[550px] w-full rounded-xl border border-gray-200 bg-white"
+                  className="h-[500px] w-full rounded-xl border border-gray-200 bg-white"
                 />
               )}
               {isImage && (
                 <img
                   src={blobUrl}
                   alt={material.titulo}
-                  className="max-h-[550px] max-w-full rounded-xl object-contain shadow-sm"
+                  className="max-h-[500px] max-w-full rounded-xl object-contain shadow-sm"
                 />
               )}
               {!isPdf && !isImage && (
@@ -116,26 +166,54 @@ export default function MaterialPreviewModal({
           )}
         </section>
 
+        {exibirCampoMotivo && (
+          <div className="border-t border-gray-200 bg-amber-50/50 p-4 sm:px-6">
+            <label htmlFor="preview-motivo-recusa" className="block text-xs font-semibold uppercase text-gray-700">
+              Justificativa da recusa (obrigatória para rejeitar)
+            </label>
+            <textarea
+              id="preview-motivo-recusa"
+              maxLength={1000}
+              rows={2}
+              value={motivo}
+              disabled={enviando}
+              onChange={(e) => {
+                setMotivo(e.target.value);
+                setErroMotivo("");
+              }}
+              placeholder="Descreva o motivo da recusa (até 1000 caracteres)..."
+              className="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]"
+            />
+            {erroMotivo && (
+              <p role="alert" className="mt-1 text-xs text-red-700">
+                {erroMotivo}
+              </p>
+            )}
+          </div>
+        )}
+
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 bg-white p-4 sm:p-5">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" disabled={enviando} onClick={onClose}>
             Fechar
           </Button>
 
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
+              disabled={enviando || loading}
               onClick={() => {
-                onClose();
-                onRejectRequest(material);
+                if (!exibirCampoMotivo) {
+                  setExibirCampoMotivo(true);
+                } else {
+                  void handleConfirmReject();
+                }
               }}
             >
               Rejeitar com Justificativa
             </Button>
             <Button
-              onClick={() => {
-                onClose();
-                void onApprove(material);
-              }}
+              disabled={enviando || loading}
+              onClick={() => void handleConfirmApprove()}
             >
               Aprovar Material
             </Button>

@@ -166,3 +166,51 @@ test("listarDenunciasPendentes e decidirDenuncia enviam filtros e payload de aca
     justificativa: null,
   });
 });
+
+  test("podeModerar aceita MODERATOR, MODERADOR e ADMIN e rejeita outros", () => {
+  assert.equal(podeModerar("STUDENT"), false);
+  assert.equal(podeModerar("estudante"), false);
+  assert.equal(podeModerar("MODERATOR"), true);
+  assert.equal(podeModerar("MODERADOR"), true);
+  assert.equal(podeModerar("ADMIN"), true);
+});
+
+test("decidirCuradoria envia status RECUSADO com justificativa informada pelo moderador", async (t) => {
+  dados.set("tamburetei_auth_token", "token");
+  const chamadas: Array<{ url: string; options: RequestInit }> = [];
+  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
+    chamadas.push({ url, options });
+    return new Response(JSON.stringify({ id: 1, status_novo: "RECUSADO" }), { status: 200 });
+  });
+
+  await decidirCuradoria(15, "RECUSADO", "   Material fora do escopo da ementa oficial.   ");
+  assert.match(chamadas[0].url, /\/moderacao\/conteudos\/15\/curadoria$/);
+  assert.equal(chamadas[0].options.method, "PATCH");
+  assert.deepEqual(JSON.parse(String(chamadas[0].options.body)), {
+    status: "RECUSADO",
+    justificativa: "Material fora do escopo da ementa oficial.",
+  });
+});
+
+test("decidirDenuncia propaga erro de conflito 409 quando ja avaliada por outro moderador", async (t) => {
+  dados.set("tamburetei_auth_token", "token-mod");
+  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ detail: "Já avaliada por outro moderador." }), { status: 409 }));
+
+  await assert.rejects(
+    decidirDenuncia(10, "EXCLUIR_CONTEUDO", "Violação confirmada da RN04"),
+    (e: unknown) => e instanceof ApiError && e.status === 409
+  );
+});
+
+test("baixarParaAnalise retorna blob integro para geracao de preview", async (t) => {
+  dados.set("tamburetei_auth_token", "token");
+  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
+    assert.match(url, /\/moderacao\/materiais\/45\/download$/);
+    assert.equal(new Headers(options.headers).get("Authorization"), "Bearer token");
+    return new Response("%PDF-1.4 conteudo de teste para visualizacao", { status: 200 });
+  });
+
+  const blob = await baixarParaAnalise(45);
+  assert.ok(blob);
+  assert.equal(await blob.text(), "%PDF-1.4 conteudo de teste para visualizacao");
+});

@@ -57,6 +57,7 @@ export default function ModeracaoPage() {
   const [aviso, setAviso] = useState("");
   const [busy, setBusy] = useState(false);
   const sequencia = useRef(0);
+  const previewSequence = useRef(0);
 
   const tratarErro = useCallback((error: unknown) => {
     const status = error instanceof ApiError ? error.status : 0;
@@ -173,6 +174,7 @@ export default function ModeracaoPage() {
   }
 
   async function abrirPreview(material: MaterialPendente) {
+    const reqSeq = ++previewSequence.current;
     if (previewBlobUrl) {
       URL.revokeObjectURL(previewBlobUrl);
       setPreviewBlobUrl(null);
@@ -182,16 +184,25 @@ export default function ModeracaoPage() {
     setPreviewError("");
     try {
       const arquivo = await baixarParaAnalise(material.id);
+      if (reqSeq !== previewSequence.current) {
+        return;
+      }
       const url = URL.createObjectURL(arquivo);
       setPreviewBlobUrl(url);
     } catch (error) {
+      if (reqSeq !== previewSequence.current) {
+        return;
+      }
       setPreviewError(error instanceof Error ? error.message : "Falha ao carregar arquivo.");
     } finally {
-      setPreviewLoading(false);
+      if (reqSeq === previewSequence.current) {
+        setPreviewLoading(false);
+      }
     }
   }
 
   function fecharPreview() {
+    previewSequence.current++;
     if (previewBlobUrl) {
       URL.revokeObjectURL(previewBlobUrl);
       setPreviewBlobUrl(null);
@@ -209,7 +220,7 @@ export default function ModeracaoPage() {
     setAcaoSelecionada(null);
   }
 
-    async function confirmarDecisaoDenuncia(
+  async function confirmarDecisaoDenuncia(
     denuncia: DenunciaItemFila,
     acao: AcaoDenuncia,
     justificativa?: string
@@ -227,7 +238,13 @@ export default function ModeracaoPage() {
       fecharModalDenuncia();
       await carregar();
     } catch (error) {
-      tratarErro(error);
+      if (error instanceof ApiError && error.status === 409) {
+        fecharModalDenuncia();
+        await carregar();
+        setAviso("Outro moderador já avaliou esta denúncia. A fila foi atualizada.");
+      } else {
+        tratarErro(error);
+      }
     } finally {
       setBusy(false);
     }
@@ -473,9 +490,7 @@ export default function ModeracaoPage() {
           error={previewError}
           onClose={fecharPreview}
           onApprove={(m) => decidir(m, "APROVADO")}
-          onRejectRequest={(m) => {
-            void decidir(m, "RECUSADO", "Recusado durante a pré-visualização.");
-          }}
+          onReject={(m, motivo) => decidir(m, "RECUSADO", motivo)}
         />
 
         <ModerationActionModal
