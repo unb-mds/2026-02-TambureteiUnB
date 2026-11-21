@@ -1,17 +1,17 @@
 export const THEME_STORAGE_KEY = "tamburetei-theme";
 export const THEME_CHANGE_EVENT = "tamburetei-theme-change";
 
-export type ThemePreference = "light" | "dark" | "system";
+export type ThemePreference = "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
 
 export function isThemePreference(value: unknown): value is ThemePreference {
-  return value === "light" || value === "dark" || value === "system";
+  return value === "light" || value === "dark";
 }
 
 export function getThemePreference(): ThemePreference {
-  if (typeof window === "undefined") return "system";
+  if (typeof window === "undefined") return "light";
   const storedPreference = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return isThemePreference(storedPreference) ? storedPreference : "system";
+  return isThemePreference(storedPreference) ? storedPreference : "light";
 }
 
 export function subscribeThemePreference(onChange: () => void): () => void {
@@ -25,21 +25,12 @@ export function subscribeThemePreference(onChange: () => void): () => void {
   };
 }
 
-export function resolveTheme(
-  preference: ThemePreference,
-  systemPrefersDark: boolean
-): ResolvedTheme {
-  if (preference === "system") {
-    return systemPrefersDark ? "dark" : "light";
-  }
+export function resolveTheme(preference: ThemePreference): ResolvedTheme {
   return preference;
 }
 
-export function applyTheme(
-  preference: ThemePreference,
-  systemPrefersDark: boolean
-): void {
-  const resolvedTheme = resolveTheme(preference, systemPrefersDark);
+export function applyTheme(preference: ThemePreference): void {
+  const resolvedTheme = resolveTheme(preference);
   const root = document.documentElement;
 
   root.dataset.theme = resolvedTheme;
@@ -48,5 +39,5 @@ export function applyTheme(
 }
 
 export function getServerThemePreference(): ThemePreference {
-  return "system";
+  return "light";
 }

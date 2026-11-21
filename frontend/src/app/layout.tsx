@@ -31,8 +31,7 @@ export default function RootLayout({
         <Script id="theme-bootstrap" strategy="beforeInteractive">
           {`try {
             var preference = localStorage.getItem("tamburetei-theme");
-            var dark = preference === "dark" ||
-              (preference !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+            var dark = preference === "dark";
             document.documentElement.dataset.theme = dark ? "dark" : "light";
             document.documentElement.classList.toggle("dark", dark);
             document.documentElement.style.colorScheme = dark ? "dark" : "light";

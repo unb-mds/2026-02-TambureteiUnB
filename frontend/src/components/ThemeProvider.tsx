@@ -33,13 +33,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const updateTheme = () =>
-      applyTheme(preference, mediaQuery.matches);
-
-    updateTheme();
-    mediaQuery.addEventListener("change", updateTheme);
-    return () => mediaQuery.removeEventListener("change", updateTheme);
+    applyTheme(preference);
   }, [preference]);
 
   const setPreference = useCallback((nextPreference: ThemePreference) => {

@@ -7,7 +7,6 @@ import Input from "@/components/Input";
 import Button from "@/components/Button";
 import { register } from "@/services/authService";
 import { ApiError } from "@/services/httpClient";
-import ThemeSelector from "@/components/ThemeSelector";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -142,9 +141,6 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F7FA] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="fixed right-4 top-4 z-50 rounded-xl border border-[#E8E6F8] bg-white p-2 shadow-sm">
-        <ThemeSelector />
-      </div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Identidade Visual / Logo */}
         <div className="flex flex-col items-center">

@@ -187,6 +187,7 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
 
         {/* Canto Superior Direito: Perfil (Figma) se logado, ou Botões se deslogado */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeSelector />
           {isLoggedIn && user && podeModerar(user.role) && <Link href="/moderacao" className="text-sm font-semibold text-[#5B4BDB]">Moderação</Link>}
           {isLoggedIn ? (
             <div className="relative" ref={userMenuRef}>
@@ -268,10 +269,6 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
                     </div>
                   </div>
 
-                  <div className="border-b border-gray-100 py-1">
-                    <ThemeSelector />
-                  </div>
-
                   <Link
                     href="/perfil"
                     onClick={() => setUserMenuOpen(false)}
@@ -323,7 +320,8 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
         </div>
 
         {/* Botão Mobile Hamburger */}
-        <div className="flex md:hidden items-center">
+        <div className="flex md:hidden items-center gap-2">
+          <ThemeSelector />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -382,10 +380,6 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
             >
               Disciplinas
             </Link>
-          </div>
-
-          <div className="mt-4 border-t border-gray-100 pt-4">
-            <ThemeSelector className="justify-between text-sm" />
           </div>
 
           <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
