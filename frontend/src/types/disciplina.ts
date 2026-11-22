@@ -166,6 +166,19 @@ export const DEFAULT_HISTORICAL_PERFORMANCE: HistoricalPerformance[] = [
   { semester: "2025/2", approved: 84, failed: 10, absent: 4, withdrawn: 2 },
 ];
 
+function getDepartmentName(department?: string | null): string {
+  const normalized = department?.trim();
+  if (!normalized) return "Departamento Acadêmico";
+  if (
+    /^(departamento|faculdade|instituto|centro|escola|unidade|decanato)\b/i.test(
+      normalized,
+    )
+  ) {
+    return normalized;
+  }
+  return `Departamento de ${normalized}`;
+}
+
 /**
  * Converte dados do backend para a interface completa Discipline
  */
@@ -175,6 +188,7 @@ export function adaptBackendDisciplina(
   const isFull = "ementa" in raw || "metricas" in raw || "cursos" in raw;
   const full = isFull ? (raw as BackendDisciplinaResponse) : undefined;
 
+  const department = raw.departamento?.trim() || "";
   const dep = (raw.departamento || "Geral").toUpperCase();
   let campus = "Darcy Ribeiro";
   let campusFilter = "Darcy Ribeiro";
@@ -252,8 +266,8 @@ export function adaptBackendDisciplina(
     code: raw.codigo,
     name: raw.nome,
     slug: raw.slug,
-    department: raw.departamento || "DEP",
-    departmentName: raw.departamento ? `Departamento de ${raw.departamento}` : "Departamento Acadêmico",
+    department: department || "DEP",
+    departmentName: getDepartmentName(department),
     campus,
     campusFilter,
     area,

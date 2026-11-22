@@ -13,3 +13,12 @@ test("histórico vazio não é substituído no adaptador", () => {
   assert.equal(adaptBackendDisciplina(base).historicalPerformance, undefined);
   assert.equal(adaptBackendDisciplina(base).resources, 0);
 });
+
+test("mantém nomes completos de departamentos retornados pela API", () => {
+  const department = "Faculdade de Agronomia e Medicina Veterinária";
+
+  assert.equal(
+    adaptBackendDisciplina({ ...base, departamento: department }).departmentName,
+    department,
+  );
+});
