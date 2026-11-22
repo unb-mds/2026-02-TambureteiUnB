@@ -22,6 +22,11 @@ import {
 import { normalizeSearchTerm } from "@/utils/search";
 import ApprovalBadge from "@/components/ApprovalBadge";
 import { useDisciplineDetailedMetrics } from "@/hooks/useDisciplineApprovalMetrics";
+import {
+  DISCIPLINE_SORT_OPTIONS,
+  sortDisciplines,
+  type DisciplineSortOption,
+} from "@/utils/disciplineSorting";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -38,7 +43,7 @@ function DisciplinasContent() {
   const [campus, setCampus] = useState("Todos os Campi");
   const [department, setDepartment] = useState("Todos os Departamentos");
   const [area, setArea] = useState("Todas");
-  const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
+  const [sort, setSort] = useState<DisciplineSortOption>("approval_desc");
   const [onlyWithClasses, setOnlyWithClasses] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -50,7 +55,7 @@ function DisciplinasContent() {
   const filteredResults: Discipline[] = useMemo(() => {
     const normalizedQuery = normalizeSearchTerm(query);
 
-    return disciplines.filter((discipline) => {
+    const filtered = disciplines.filter((discipline) => {
       const matchesTurmas =
         !onlyWithClasses ||
         (discipline.total_turmas !== undefined && discipline.total_turmas > 0);
@@ -69,21 +74,8 @@ function DisciplinasContent() {
       const matchesArea = area === "Todas" || discipline.area === area;
 
       return matchesQuery && matchesCampus && matchesDepartment && matchesArea;
-    }).sort((a, b) => {
-      if (sort === "Menor taxa de aprovação") {
-        const approvalA =
-          hasApprovalData(a.approval)
-            ? a.approval
-            : Number.POSITIVE_INFINITY;
-        const approvalB =
-          hasApprovalData(b.approval)
-            ? b.approval
-            : Number.POSITIVE_INFINITY;
-        return approvalA - approvalB;
-      }
-      if (sort === "Mais materiais") return b.resources - a.resources;
-      return b.popularity - a.popularity;
     });
+    return sortDisciplines(filtered, sort);
   }, [disciplines, query, campus, department, area, sort, onlyWithClasses]);
 
   const totalPages = Math.max(1, Math.ceil(filteredResults.length / ITEMS_PER_PAGE));
@@ -117,7 +109,7 @@ function DisciplinasContent() {
     setCurrentPage(1);
   };
 
-  const handleSortChange = (newSort: "Mais populares" | "Menor taxa de aprovação" | "Mais materiais") => {
+  const handleSortChange = (newSort: DisciplineSortOption) => {
     setSort(newSort);
     setCurrentPage(1);
   };
@@ -131,7 +123,7 @@ function DisciplinasContent() {
     setCampus("Todos os Campi");
     setDepartment("Todos os Departamentos");
     setArea("Todas");
-    setSort("Mais populares");
+    setSort("approval_desc");
     setOnlyWithClasses(true);
     setCurrentPage(1);
   };
@@ -348,13 +340,15 @@ function DisciplinasContent() {
                 <select
                   value={sort}
                   onChange={(event) =>
-                    handleSortChange(event.target.value as "Mais populares" | "Menor taxa de aprovação" | "Mais materiais")
+                    handleSortChange(event.target.value as DisciplineSortOption)
                   }
                   className="w-full appearance-none rounded-xl bg-white border border-[#E1DFEA] px-3.5 py-2 pr-8 text-xs font-semibold text-[#202124] outline-none focus:border-[#5B4BDB]"
                 >
-                  <option>Mais populares</option>
-                  <option>Menor taxa de aprovação</option>
-                  <option>Mais materiais</option>
+                  {DISCIPLINE_SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
                 <svg
                   className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
