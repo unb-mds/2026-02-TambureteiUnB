@@ -72,8 +72,8 @@ export function ClassOccupancyPie({
     const availableCount = Math.max(0, total - occupiedCount);
 
     return [
-      { label: "Ocupadas", value: occupiedCount, color: "#5B4BDB" },
-      { label: "Disponíveis", value: availableCount, color: "#E8E6F8" },
+      { label: "Ocupadas", value: occupiedCount, color: "var(--chart-occupied)" },
+      { label: "Disponíveis", value: availableCount, color: "var(--chart-available)" },
     ].filter((slice) => slice.value > 0);
   }, [classData.vagasOcupadas, classData.totalVagas]);
 
@@ -103,21 +103,21 @@ export function ClassOccupancyPie({
             cx={center}
             cy={center}
             r={radius}
-            fill="#ECEAF5"
+            fill="var(--chart-empty)"
             tabIndex={0}
             aria-label="Ocupação não informada"
             onMouseEnter={() =>
               setActiveSlice({
                 label: "Ocupação não informada",
                 value: 0,
-                color: "#ECEAF5",
+                color: "var(--chart-empty)",
               })
             }
             onFocus={() =>
               setActiveSlice({
                 label: "Ocupação não informada",
                 value: 0,
-                color: "#ECEAF5",
+                color: "var(--chart-empty)",
               })
             }
             onBlur={() => setActiveSlice(null)}
@@ -154,7 +154,7 @@ export function ClassOccupancyPie({
                   endAngle
                 )}
                 fill={slice.color}
-                stroke="#FFFFFF"
+                stroke="var(--surface)"
                 strokeWidth="3"
                 tabIndex={0}
                 aria-label={`${slice.label}: ${slice.value} vagas, ${Math.round(
@@ -173,14 +173,14 @@ export function ClassOccupancyPie({
           cx={center}
           cy={center}
           r="58"
-          fill="#FFFFFF"
+          fill="var(--surface)"
           pointerEvents="none"
         />
         <text
           x={center}
           y={compact ? 126 : 116}
           textAnchor="middle"
-          fill="#202124"
+          fill="var(--foreground)"
           fontSize={compact ? 38 : 24}
           fontWeight="800"
           pointerEvents="none"
@@ -192,7 +192,7 @@ export function ClassOccupancyPie({
             x={center}
             y="138"
             textAnchor="middle"
-            fill="#6B7280"
+            fill="var(--text-muted)"
             fontSize="11"
             fontWeight="600"
             pointerEvents="none"
