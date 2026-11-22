@@ -525,16 +525,50 @@ body,
 }
 
 .md-typeset h1 {
-  font-weight: 600;
+  font-size: 1.72rem;
+  font-weight: 500;
   letter-spacing: -0.02em;
   color: var(--tmb-text-main);
+  margin-bottom: 0.85rem;
 }
 
 .md-typeset h2 {
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 500;
   letter-spacing: -0.015em;
   color: var(--tmb-text-main);
-  margin-top: 1.5rem;
+  margin-top: 1.65rem;
+  margin-bottom: 0.6rem;
+}
+
+.md-typeset h3 {
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--tmb-text-main);
+}
+
+.md-typeset p,
+.md-typeset ul,
+.md-typeset ol {
+  font-size: 0.84rem;
+  line-height: 1.68;
+  color: var(--tmb-sidebar-text);
+}
+
+.md-typeset mark {
+  background-color: rgba(91, 75, 219, 0.12);
+  color: var(--tmb-blue);
+  border-radius: 0.25rem;
+  padding: 0.02em 0.24em;
+  margin: 0 -0.04em;
+  box-shadow: inset 0 0 0 1px rgba(91, 75, 219, 0.22);
+}
+
+[data-md-color-scheme="slate"] .md-typeset mark {
+  background-color: rgba(147, 133, 247, 0.16);
+  color: #e2dcfe;
+  box-shadow: inset 0 0 0 1px rgba(147, 133, 247, 0.28);
 }
 
 .md-typeset hr {
@@ -551,8 +585,8 @@ body,
 
 .hero-banner h1 {
   margin: 0 0 0.25rem 0;
-  font-size: 1.6rem;
-  font-weight: 600;
+  font-size: 1.55rem;
+  font-weight: 500;
   letter-spacing: -0.02em;
   color: var(--tmb-text-main);
 }
