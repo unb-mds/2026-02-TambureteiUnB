@@ -2,9 +2,12 @@ import type { UserResponse } from "../types/auth.ts";
 import type {
   AcaoDenuncia,
   CategoriaDenuncia,
+  ComentarioPendente,
+  DecisaoComentarioCuradoria,
   DecisaoCuradoria,
   DenunciaCreatePayload,
   DenunciaResponse,
+  FilaComentariosCuradoria,
   FilaCuradoria,
   FilaDenuncias,
   FiltroCategoriaDenuncia,
@@ -56,6 +59,23 @@ export function listarPendentes(pagina = 1): Promise<FilaCuradoria> {
 
 export function decidirCuradoria(id: number, status: DecisaoCuradoria, justificativa?: string): Promise<RegistroCuradoria> {
   return request<RegistroCuradoria>(`/moderacao/conteudos/${id}/curadoria`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, justificativa: justificativa?.trim() || null }),
+  });
+}
+
+export function listarComentariosPendentes(pagina = 1): Promise<FilaComentariosCuradoria> {
+  return request<FilaComentariosCuradoria>(`/moderacao/comentarios?pagina=${pagina}&tamanho_pagina=20`, {
+    cache: "no-store",
+  });
+}
+
+export function decidirComentarioCuradoria(
+  id: number,
+  status: DecisaoComentarioCuradoria,
+  justificativa?: string,
+): Promise<ComentarioPendente> {
+  return request<ComentarioPendente>(`/moderacao/comentarios/${id}/curadoria`, {
     method: "PATCH",
     body: JSON.stringify({ status, justificativa: justificativa?.trim() || null }),
   });

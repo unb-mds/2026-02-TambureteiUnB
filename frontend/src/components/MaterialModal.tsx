@@ -19,7 +19,7 @@ export interface MaterialModalProps {
   disciplineSlug?: string;
   disciplineName: string;
   onClose: () => void;
-  onUploadSuccess?: () => void;
+  onUploadSuccess?: (uploadedIds?: string[]) => void;
 }
 
 const TIPO_LABELS: Record<MaterialType, string> = {
@@ -299,7 +299,7 @@ export default function MaterialModal({
     abortControllerRef.current = new AbortController();
 
     try {
-      await uploadMaterialsBatch({
+      const uploaded = await uploadMaterialsBatch({
         disciplineIdOrSlug: disciplineTarget,
         items: selectedFiles.map((it) => ({
           title: it.title,
@@ -316,11 +316,11 @@ export default function MaterialModal({
       setSuccessMessage(
         `${selectedFiles.length} ${
           selectedFiles.length === 1 ? "material compartilhado" : "materiais compartilhados"
-        } com sucesso! O conteúdo foi enviado para moderação e ficará disponível após aprovação.`
+        } com sucesso! O conteúdo foi enviado para triagem automática e ficará disponível na disciplina assim que aprovado.`
       );
 
       if (onUploadSuccess) {
-        onUploadSuccess();
+        onUploadSuccess(uploaded.map((item) => String(item.id)));
       }
     } catch (err: unknown) {
       setUploadStatus("error");

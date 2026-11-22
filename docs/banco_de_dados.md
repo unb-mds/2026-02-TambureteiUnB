@@ -287,6 +287,9 @@ Repositório colaborativo de materiais didáticos: resumos, links, provas anteri
 | `url_origem` | TEXT | NOT NULL | Link para download ou visualização externa |
 | `semestre` | VARCHAR(10) | — | Semestre de aplicação ou confecção |
 | `status_curadoria` | VARCHAR(20) | NOT NULL, default `'PENDENTE'`, CHECK (`PENDENTE`, `APROVADO`, `RECUSADO`) | Status no fluxo de moderação (RN06) |
+| `motivo_moderacao` | TEXT | — | Parecer sintético da IA ou justificativa de recusa/escalonamento |
+| `confianca_ia` | NUMERIC(4,3) | CHECK (`0 <= valor <= 1`) | Grau de confiança atribuído na triagem automática do Ollama |
+| `moderado_por` | VARCHAR(20) | CHECK (`IA`, `HUMANO`) | Indica se a decisão de moderação foi tomada por IA ou moderador humano |
 | `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de submissão |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de alteração de curadoria |
 
@@ -303,7 +306,10 @@ Relatos discentes e discussões acadêmicas sobre matérias e turmas, exibidos s
 | `topico_dificuldade` | VARCHAR(150) | — | Classificação do tópico de maior desafio |
 | `conteudo` | TEXT | NOT NULL | Texto do comentário |
 | `parent_id` | BIGINT | **FK** → `comentarios(id)` ON DELETE CASCADE | Comentário pai para respostas aninhadas em árvore |
-| `status_moderacao` | VARCHAR(20) | NOT NULL, default `'PUBLICADO'`, CHECK (`PUBLICADO`, `PENDENTE`, `OCULTO`) | Estado no ciclo de moderação de termos |
+| `status_moderacao` | VARCHAR(20) | NOT NULL, default `'PENDENTE'`, CHECK (`PUBLICADO`, `PENDENTE`, `OCULTO`) | Estado no ciclo de moderação híbrida (RN06) |
+| `motivo_moderacao` | TEXT | — | Parecer sintético da IA ou justificativa de ocultação/escalonamento |
+| `confianca_ia` | NUMERIC(4,3) | CHECK (`0 <= valor <= 1`) | Grau de confiança atribuído na triagem automática do Ollama |
+| `moderado_por` | VARCHAR(20) | CHECK (`IA`, `HUMANO`) | Indica se a decisão de moderação foi tomada por IA ou moderador humano |
 | `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de postagem |
 
 ### `votos_uteis`
@@ -364,6 +370,10 @@ O script `init.sql` e as migrações versionadas do Alembic encontram-se **100% 
 | **006** | `add_requisitos_and_natureza` | Adição de pré/co-requisitos e equivalências em disciplinas e natureza em cursos | Incorporado |
 | **007** | `add_metricas_cursos` | Adição de metadados em cursos e tabela `metricas_cursos` para dados do Censo | Incorporado |
 | **008** | `add_doacoes_estatisticas` | Criação da tabela `doacoes_estatisticas` para coleta colaborativa de índices de turmas | Incorporado |
-| **009** | `009_arquivos_conteudos` | Extensão de `conteudos` para armazenamento privado de arquivos submetidos | Incorporado |
+| **009** | `009_arquivos_conteudos` | Extensão da tabela `conteudos` para armazenamento privado de arquivos submetidos (`ARQUIVO`) | Incorporado |
 | **010** | `010_curadorias` | Criação da tabela `curadorias` para auditoria das decisões sobre materiais | Incorporado |
-| **011** | `011_denuncias` | Criação da tabela `denuncias` para a Central de Denúncias (RN04) e Painel de Ações | **HEAD (Ativo)** |
+| **011** | `011_denuncias` | Criação da tabela `denuncias` para a Central de Denúncias (RN04) e Painel de Ações | Incorporado |
+| **012** | `012_estatisticas_consolidadas` | Criação da tabela `estatisticas_consolidadas` para métricas oficiais consolidadas | Incorporado |
+| **013** | `013_estat_disciplina_semestre` | Adição de `disciplina_id` e índice composto em `estatisticas_consolidadas` | Incorporado |
+| **014** | `014_mv_evasao_campus` | Criação da visão materializada `mv_evasao_campus` para evasão agregada por campus | Incorporado |
+| **015** | `015_moderacao_ia` | Adição de `motivo_moderacao`, `confianca_ia` e `moderado_por` em `conteudos` e `comentarios` e suporte a `perfil_moderador = 'IA'` em `curadorias` | **HEAD (Ativo)** |

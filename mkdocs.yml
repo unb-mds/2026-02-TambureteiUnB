@@ -34,6 +34,7 @@ nav:
       - Regras de Negócio & Governança: regras_negocio.md
   - Arquitetura & Banco de Dados:
       - Arquitetura do Sistema & ADRs: arquitetura.md
+      - Arquitetura da Interface: arquitetura_ui.md
       - Dicionário de Dados Relacional: banco_de_dados.md
   - Engenharia de Dados & ETL:
       - Pipeline de Dados & ETL: pipeline_etl.md
@@ -45,6 +46,7 @@ nav:
   - Revisão da Integração de Materiais: revisao_integracao_materiais.md
   - Materiais de Apoio (Feature 5.2): feature_5_2_materiais.md
   - Moderação e Curadoria: moderacao_curadoria.md
+  - Roteiro de Demonstração: roteiro_demonstracao.md
   - Guia do Desenvolvedor: desenvolvimento.md
   - Releases & Sprints:
       - Release v0.6.0 (Sprint 6): releases/v0.6.0.md

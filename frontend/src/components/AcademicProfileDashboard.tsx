@@ -95,6 +95,10 @@ const disciplineHistory = [
   },
 ];
 
+export function getDisciplineHistoryForSemester(semester: string) {
+  return disciplineHistory.filter((row) => row.semester === semester);
+}
+
 const semesterPerformance = [
   { semester: "2024/1", approvals: 72 },
   { semester: "2024/2", approvals: 68 },
@@ -435,21 +439,49 @@ function DisciplinesSection() {
 }
 
 function HistorySection() {
+  const semesters = [...new Set(disciplineHistory.map(({ semester }) => semester))];
+  const [selectedSemester, setSelectedSemester] = useState(semesters[0] ?? "");
+  const semesterHistory = getDisciplineHistoryForSemester(selectedSemester);
+
   return (
     <div>
       <SectionHeading
         eyebrow="Histórico acadêmico"
-        title="Disciplinas cursadas"
-        description="Exemplo de como menção, frequência e situação podem ser organizadas por semestre."
+        title="Histórico por semestre"
+        description="Selecione um semestre para consultar as disciplinas, menções e frequências correspondentes."
       />
+      <div className="mb-4 flex flex-col gap-2 sm:max-w-xs">
+        <label
+          htmlFor="history-semester"
+          className="text-sm font-semibold text-[#202124]"
+        >
+          Semestre
+        </label>
+        <select
+          id="history-semester"
+          value={selectedSemester}
+          onChange={(event) => setSelectedSemester(event.target.value)}
+          className="rounded-xl border border-[#D8D4F5] bg-white px-3 py-2.5 text-sm font-semibold text-[#202124] outline-none focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/20"
+        >
+          {semesters.map((semester) => (
+            <option key={semester} value={semester}>
+              {semester}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p className="mb-3 text-sm text-gray-600" aria-live="polite">
+        {semesterHistory.length}{" "}
+        {semesterHistory.length === 1 ? "disciplina" : "disciplinas"} em{" "}
+        <span className="font-semibold text-[#202124]">{selectedSemester}</span>
+      </p>
       <div className="overflow-x-auto rounded-2xl border border-[#E8E6F8] bg-white">
         <table className="min-w-[700px] w-full border-collapse text-left text-sm">
           <caption className="sr-only">
-            Histórico acadêmico demonstrativo por disciplina
+            Histórico acadêmico demonstrativo do semestre {selectedSemester}
           </caption>
           <thead className="bg-[#F7F7FA] text-xs uppercase tracking-wide text-gray-500">
             <tr>
-              <th scope="col" className="px-4 py-3 font-semibold">Semestre</th>
               <th scope="col" className="px-4 py-3 font-semibold">Disciplina</th>
               <th scope="col" className="px-4 py-3 font-semibold">Menção</th>
               <th scope="col" className="px-4 py-3 font-semibold">Frequência</th>
@@ -457,11 +489,8 @@ function HistorySection() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {disciplineHistory.map((row) => (
+            {semesterHistory.map((row) => (
               <tr key={`${row.semester}-${row.code}`}>
-                <th scope="row" className="whitespace-nowrap px-4 py-3 font-semibold text-gray-700">
-                  {row.semester}
-                </th>
                 <td className="px-4 py-3">
                   <span className="block font-semibold text-[#202124]">{row.name}</span>
                   <span className="mt-0.5 block text-xs text-gray-500">{row.code}</span>
@@ -486,7 +515,8 @@ function HistorySection() {
       </div>
       <p className="mt-3 text-xs leading-5 text-gray-500">
         Menções, notas e frequência são fictícias. O sistema não possui acesso
-        ao histórico acadêmico individual.
+        ao histórico acadêmico individual; consulte o SIGAA para verificar seus
+        dados oficiais.
       </p>
     </div>
   );
@@ -547,37 +577,39 @@ function ScheduleSection() {
         title="Organização semanal"
         description="Uma visão rápida de aulas e locais para apoiar o planejamento da semana."
       />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {scheduleByDay.map(({ day, classes }) => (
-          <section
-            key={day}
-            aria-labelledby={`schedule-${day.toLowerCase()}`}
-            className="rounded-2xl border border-[#E8E6F8] bg-white p-4"
-          >
-            <h3
-              id={`schedule-${day.toLowerCase()}`}
-              className="font-bold text-[#202124]"
+      <div className="overflow-x-auto pb-2">
+        <div className="grid min-w-[900px] grid-cols-5 gap-3">
+          {scheduleByDay.map(({ day, classes }) => (
+            <section
+              key={day}
+              aria-labelledby={`schedule-${day.toLowerCase()}`}
+              className="rounded-2xl border border-[#E8E6F8] bg-white p-4"
             >
-              {day}
-            </h3>
-            <ul className="mt-3 space-y-2">
-              {classes.map((classItem) => (
-                <li
-                  key={`${classItem.time}-${classItem.name}`}
-                  className="rounded-xl bg-[#F7F7FA] p-3"
-                >
-                  <p className="text-xs font-bold text-[#5B4BDB]">
-                    {classItem.time}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-[#202124]">
-                    {classItem.name}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">{classItem.place}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+              <h3
+                id={`schedule-${day.toLowerCase()}`}
+                className="font-bold text-[#202124]"
+              >
+                {day}
+              </h3>
+              <ul className="mt-3 space-y-2">
+                {classes.map((classItem) => (
+                  <li
+                    key={`${classItem.time}-${classItem.name}`}
+                    className="rounded-xl bg-[#F7F7FA] p-3"
+                  >
+                    <p className="text-xs font-bold text-[#5B4BDB]">
+                      {classItem.time}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-[#202124]">
+                      {classItem.name}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">{classItem.place}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       </div>
       <p className="mt-3 text-xs leading-5 text-gray-500">
         Grade horária inteiramente fictícia. Horários e salas oficiais dependem

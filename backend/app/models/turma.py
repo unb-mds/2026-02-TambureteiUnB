@@ -33,6 +33,16 @@ class Turma(Base):
     conteudos = relationship("Conteudo", back_populates="turma")
     comentarios = relationship("Comentario", back_populates="turma")
     doacoes = relationship("DoacaoEstatistica", back_populates="turma", cascade="all, delete-orphan")
+    # Estatística oficial do mesmo semestre da turma (US 4.1.2). Somente leitura.
+    estatistica = relationship(
+        "EstatisticaConsolidada",
+        primaryjoin=(
+            "and_(Turma.id == foreign(EstatisticaConsolidada.turma_id), "
+            "Turma.semestre == foreign(EstatisticaConsolidada.semestre_referencia))"
+        ),
+        uselist=False,
+        viewonly=True,
+    )
 
     def __repr__(self):
         return f"<Turma(id={self.id}, disc_id={self.disciplina_id}, codigo='{self.codigo_turma}', semestre='{self.semestre}')>"

@@ -29,7 +29,10 @@ class MaterialService:
         if isinstance(id_ou_slug, int) or (isinstance(id_ou_slug, str) and id_ou_slug.isdigit()):
             disciplina = disciplina_repo.get_by_id(db, int(id_ou_slug))
         else:
-            disciplina = disciplina_repo.get_by_slug(db, str(id_ou_slug))
+            termo = str(id_ou_slug).strip()
+            disciplina = disciplina_repo.get_by_slug(db, termo)
+            if disciplina is None:
+                disciplina = disciplina_repo.get_by_codigo(db, termo.upper())
         if disciplina is None:
             raise HTTPException(404, "Cadeira não encontrada.")
         return disciplina
