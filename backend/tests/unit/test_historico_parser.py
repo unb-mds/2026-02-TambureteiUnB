@@ -81,7 +81,10 @@ def test_parse_historico_pdf_valido():
 
     dsc = next(c for c in res.cursadas if c.codigo == "DSC0172")
     assert dsc.natureza_simbolo == "#"
-    assert len(dsc.professores) == 2
+    assert dsc.professores == [
+        "Dra. LIGIA MARIA CANTARINO DA COSTA",
+        "Dr. JONAS LOTUFO BRANT DE CARVALHO",
+    ]
 
     assert len(res.pendentes) == 2
     assert res.pendentes[1].matriculado is True

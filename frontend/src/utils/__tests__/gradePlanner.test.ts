@@ -4,6 +4,7 @@ import {
   validateGradeExport,
   meetings,
   nextPlanningSemester,
+  getPlanningSemesters,
   hasConflict,
   generateSchedules,
   type GradeEntry,
@@ -92,6 +93,17 @@ test("próximo semestre respeita a virada de ano sem inventar oferta", () => {
   assert.equal(nextPlanningSemester("2026.2"), "2027.1");
   assert.equal(nextPlanningSemester("2027.1"), "2027.2");
   assert.equal(nextPlanningSemester(""), undefined);
+});
+
+test("seletor de planejamento omite semestres anteriores ao atual", () => {
+  assert.deepEqual(
+    getPlanningSemesters(
+      ["2026.2", "2026.1", "2025.2"],
+      "2025.1",
+      "2027.1",
+    ),
+    ["2027.1", "2026.2"],
+  );
 });
 
 test("exportação bloqueia choques e identifica cada disciplina envolvida uma única vez", () => {
