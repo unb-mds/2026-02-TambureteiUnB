@@ -1,3 +1,8 @@
+import { AppRouterContext, type AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { ThemeProvider } from "../../components/ThemeProvider.tsx";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import HomePage from "../../app/page.tsx";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -105,16 +110,21 @@ test("GuestBanner.tsx e page.tsx condicionam a renderizacao ao estado de autenti
     process.cwd(),
     "src/components/GuestBanner.tsx"
   );
-  const homePagePath = path.resolve(process.cwd(), "src/app/page.tsx");
 
   const guestBannerSource = fs.readFileSync(guestBannerPath, "utf-8");
-  const homePageSource = fs.readFileSync(homePagePath, "utf-8");
 
   assert.match(guestBannerSource, /authService\.isAuthenticated\(\)/);
   assert.match(guestBannerSource, /authService\.AUTH_CHANGE_EVENT/);
   assert.match(guestBannerSource, /authService\.shouldShowGuestBanner/);
 
-  assert.match(homePageSource, /authService\.isAuthenticated\(\)/);
-  assert.match(homePageSource, /authService\.AUTH_CHANGE_EVENT/);
-  assert.match(homePageSource, /\{!isLoggedIn && <GuestBanner \/>\}/);
+  const router: AppRouterInstance = {
+    back() {}, forward() {}, refresh() {}, bfcacheId: "teste-renderizacao", push() {}, replace() {}, prefetch() {},
+  };
+  const markup = renderToStaticMarkup(
+    createElement(AppRouterContext.Provider, { value: router },
+      createElement(ThemeProvider, null, createElement(HomePage))),
+  );
+  assert.match(markup, /O hub colaborativo/);
+  assert.match(markup, /guest-banner/);
+
 });
