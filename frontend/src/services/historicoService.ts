@@ -32,9 +32,12 @@ export interface HistoricoComponenteItem {
   semestre: string;
   codigo: string;
   nome: string;
+  slug?: string | null;
   professores: string[];
   ch: number;
   turma: string | null;
+  horario?: string | null;
+  local?: string | null;
   frequencia: number | null;
   mencao: string | null;
   situacao: string;

@@ -18,12 +18,10 @@ test("AcademicProfileDashboard mostra navegação e exige consentimento para a d
 
   assert.match(markup, /Visão geral/);
   assert.match(markup, /Minha graduação/);
-  assert.match(markup, /Disciplinas/);
   assert.match(markup, /Histórico/);
   assert.match(markup, /Desempenho/);
-  assert.match(markup, /Horários/);
-  assert.match(markup, /Planejamento/);
-  assert.match(markup, /Comunidade/);
+  assert.doesNotMatch(markup, /Planejamento/);
+  assert.doesNotMatch(markup, /Comunidade/);
   assert.match(markup, /Concordar e abrir demonstração/);
   assert.match(markup, /Não consultamos o SIGAA/);
   assert.doesNotMatch(markup, /IRA demonstrativo/);
@@ -41,17 +39,17 @@ test("AcademicProfileDashboard exibe a visão geral após consentimento", () => 
 
   assert.match(markup, /Ocultar demonstração/);
   assert.match(markup, /Sua trajetória em um só lugar/);
-  assert.match(markup, /Próximos compromissos/);
+  assert.match(markup, /Horários demonstrativos/);
   assert.match(markup, /todos os dados acadêmicos são fictícios/i);
 });
 
 test("getAdjacentProfileSection navega pelas abas e envolve as extremidades", () => {
-  assert.equal(getAdjacentProfileSection(0, "ArrowLeft"), 7);
-  assert.equal(getAdjacentProfileSection(7, "ArrowRight"), 0);
-  assert.equal(getAdjacentProfileSection(3, "ArrowRight"), 4);
-  assert.equal(getAdjacentProfileSection(3, "Home"), 0);
-  assert.equal(getAdjacentProfileSection(3, "End"), 7);
-  assert.equal(getAdjacentProfileSection(3, "Enter"), null);
+  assert.equal(getAdjacentProfileSection(0, "ArrowLeft"), 3);
+  assert.equal(getAdjacentProfileSection(3, "ArrowRight"), 0);
+  assert.equal(getAdjacentProfileSection(1, "ArrowRight"), 2);
+  assert.equal(getAdjacentProfileSection(2, "Home"), 0);
+  assert.equal(getAdjacentProfileSection(1, "End"), 3);
+  assert.equal(getAdjacentProfileSection(2, "Enter"), null);
 });
 
 test("getDisciplineHistoryForSemester retorna somente as disciplinas do semestre escolhido", () => {
@@ -107,13 +105,18 @@ test("AcademicProfileDashboard renderiza dados reais quando importedData é forn
             semestre: "2026.2",
             codigo: "FGA0312",
             nome: "MÉTODOS DE DESENVOLVIMENTO DE SOFTWARE",
-            professores: ["Dra. CARLA SILVA ROCHA AGUIAR"],
+            slug: "metodos-de-desenvolvimento-de-software",
+            professores: [
+              "MÉTODOS DE DESENVOLVIMENTO DE SOFTWARE Dra. CARLA SILVA ROCHA AGUIAR",
+            ],
             ch: 60,
             turma: "01",
             frequencia: 100.0,
             mencao: null,
             situacao: "MATR",
             natureza_simbolo: null,
+            horario: "35M12",
+            local: "FCTE - Sala S4",
           },
         ],
         pendentes: [
@@ -135,5 +138,18 @@ test("AcademicProfileDashboard renderiza dados reais quando importedData é forn
   assert.match(markup, /3,9718/);
   assert.match(markup, /990 de 3525 h/);
   assert.match(markup, /MÉTODOS DE DESENVOLVIMENTO DE SOFTWARE/);
+  assert.match(markup, /Terça/);
+  assert.match(markup, /Quinta/);
+  assert.match(markup, /08:00–09:50/);
+  assert.match(markup, /FCTE - Sala S4/);
+  assert.match(markup, /Turma 01/);
+  assert.match(markup, /FGA0312 · 60 h/);
+  assert.match(markup, /Dra\. CARLA SILVA ROCHA AGUIAR/);
+  assert.doesNotMatch(
+    markup,
+    /MÉTODOS DE DESENVOLVIMENTO DE SOFTWARE Dra\. CARLA SILVA ROCHA AGUIAR/
+  );
+  assert.match(markup, /\/disciplinas\/metodos-de-desenvolvimento-de-software/);
+  assert.doesNotMatch(markup, /Disciplinas · Semestre/);
   assert.match(markup, /Dados reais extraídos do seu Histórico Escolar/);
 });
