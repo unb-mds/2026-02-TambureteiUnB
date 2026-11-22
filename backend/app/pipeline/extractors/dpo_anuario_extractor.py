@@ -3,10 +3,11 @@ import json
 import logging
 import re
 import unicodedata
-import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
+import httpx
 from bs4 import BeautifulSoup
 from app.pipeline.extractors.base import BaseExtractor
 
@@ -85,6 +86,10 @@ class DPOAnuarioExtractor(BaseExtractor):
     def fetch_html(self, url: Optional[str] = None, timeout: int = 30) -> str:
         """Obtém o HTML bruto da página do Anuário Estatístico via HTTP."""
         fetch_url = url or self.target_url
+        parsed = urlparse(fetch_url)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(f"Esquema de URL não permitido: {parsed.scheme!r}")
+
         self.logger.info(f"Buscando Anuário Estatístico da UnB em: {fetch_url}")
         headers = {
             "User-Agent": (
@@ -93,9 +98,9 @@ class DPOAnuarioExtractor(BaseExtractor):
             ),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
-        req = urllib.request.Request(fetch_url, headers=headers)
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            return response.read().decode("utf-8", errors="ignore")
+        response = httpx.get(fetch_url, headers=headers, timeout=timeout, follow_redirects=True)
+        response.raise_for_status()
+        return response.text
 
     @staticmethod
     def parse_course_row_label(first_cell: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
