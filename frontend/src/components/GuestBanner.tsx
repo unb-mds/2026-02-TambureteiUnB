@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { authService } from "@/services/authService";
 
@@ -9,36 +9,26 @@ export interface GuestBannerProps {
   onDismiss?: () => void;
 }
 
+const subscribeAuth = (onStoreChange: () => void) => {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(authService.AUTH_CHANGE_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+  return () => {
+    window.removeEventListener(authService.AUTH_CHANGE_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+};
+
 export const GuestBanner: React.FC<GuestBannerProps> = ({
   className = "",
   onDismiss,
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() =>
-    authService.isAuthenticated()
+  const isLoggedIn = useSyncExternalStore(
+    subscribeAuth,
+    () => authService.isAuthenticated(),
+    () => false
   );
-
-  useEffect(() => {
-    const syncAuth = () => {
-      const authenticated = authService.isAuthenticated();
-      setIsLoggedIn((prevAuthenticated) => {
-        if (prevAuthenticated && !authenticated) {
-          setIsDismissed(false);
-        }
-        return authenticated;
-      });
-    };
-
-    syncAuth();
-
-    window.addEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-    window.addEventListener("storage", syncAuth);
-
-    return () => {
-      window.removeEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-      window.removeEventListener("storage", syncAuth);
-    };
-  }, []);
 
   if (!authService.shouldShowGuestBanner(isLoggedIn, isDismissed)) return null;
 
@@ -51,13 +41,13 @@ export const GuestBanner: React.FC<GuestBannerProps> = ({
     <aside
       role="region"
       aria-label="Aviso de modo visitante"
-      className={`relative w-full rounded-2xl border border-[#F4C542]/40 bg-gradient-to-r from-[#FFFBEB] via-[#FEF3C7]/60 to-[#FFFBEB] p-4 sm:p-5 shadow-sm transition-all duration-300 ${className}`}
+      className={`guest-banner relative w-full rounded-2xl border border-[#F4C542]/40 bg-gradient-to-r from-[#FFFBEB] via-[#FEF3C7]/60 to-[#FFFBEB] p-4 sm:p-5 shadow-sm transition-all duration-300 ${className}`}
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* Ícone e Texto Informativo */}
         <div className="flex items-start gap-3.5 max-w-3xl">
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F4C542]/20 text-[#B45309] shadow-inner"
+            className="guest-banner__icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F4C542]/20 text-[#B45309] shadow-inner"
             aria-hidden="true"
           >
             {/* Ícone de Usuário Visitante com Destaque */}
@@ -78,16 +68,16 @@ export const GuestBanner: React.FC<GuestBannerProps> = ({
 
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-md bg-[#F4C542]/30 px-2 py-0.5 text-xs font-bold text-[#854D0E] tracking-wider uppercase">
+              <span className="guest-banner__badge inline-flex items-center rounded-md bg-[#F4C542]/30 px-2 py-0.5 text-xs font-bold text-[#854D0E] tracking-wider uppercase">
                 Acesso Visitante
               </span>
-              <span className="text-xs text-[#92400E] font-medium hidden sm:inline">
+              <span className="guest-banner__subtitle text-xs text-[#92400E] font-medium hidden sm:inline">
                 • Navegação livre ativada
               </span>
             </div>
 
-            <p className="text-sm font-medium text-[#78350F] leading-snug">
-              Você está explorando o <strong className="text-[#202124]">Tamburetei UnB</strong> como visitante. 
+            <p className="guest-banner__description text-sm font-medium text-[#78350F] leading-snug">
+              Você está explorando o <strong className="guest-banner__brand text-[#202124]">Tamburetei UnB</strong> como visitante.
               Você pode pesquisar cursos, matrizes e métricas livremente. Para registrar situação acadêmica, enviar resumos ou votar em materiais, acesse sua conta.
             </p>
           </div>
@@ -97,7 +87,12 @@ export const GuestBanner: React.FC<GuestBannerProps> = ({
         <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
           <Link
             href="/login"
-            className="inline-flex items-center justify-center rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-[#5B4BDB] border border-[#5B4BDB]/20 shadow-xs hover:bg-[#F7F7FA] hover:border-[#5B4BDB] transition-colors"
+            className="guest-banner__secondary-action inline-flex items-center justify-center rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-xs"
+            style={{
+              backgroundColor: "var(--surface)",
+              borderColor: "var(--border-subtle)",
+              color: "var(--primary-text)",
+            }}
           >
             Entrar
           </Link>
@@ -113,7 +108,7 @@ export const GuestBanner: React.FC<GuestBannerProps> = ({
             type="button"
             onClick={handleClose}
             aria-label="Fechar aviso de visitante"
-            className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-[#F4C542]/20 hover:text-stone-800 transition-colors"
+            className="guest-banner__dismiss ml-1 inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-[#F4C542]/20 hover:text-stone-800 transition-colors"
           >
             <svg
               className="h-4 w-4"

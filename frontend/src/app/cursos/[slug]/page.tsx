@@ -3,16 +3,19 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import PasAdmissionCard from "@/components/PasAdmissionCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
 import { getCourseBySlug } from "@/services/courseService";
 import { getDisciplines } from "@/services/disciplineService";
 import { CourseDetail } from "@/types/curso";
-import { Discipline, SEMESTER_FILTERS } from "@/types/disciplina";
+import { Discipline } from "@/types/disciplina";
 import Pagination from "@/components/Pagination";
 import ApprovalBadge from "@/components/ApprovalBadge";
 import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
+import { normalizeSearchTerm } from "@/utils/search";
+import { calculateCourseSemesters, generateSemesterFilters } from "@/utils/courseCatalog";
 
 const ITEMS_PER_PAGE = 24;
 
@@ -28,9 +31,11 @@ export default function CourseDisciplinesPage() {
   const [semester, setSemester] = useState("Todos");
   const [department, setDepartment] = useState("Todos os departamentos");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedMetricYear, setSelectedMetricYear] = useState<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
+
     async function loadData() {
       if (!slug) return;
       try {
@@ -83,24 +88,58 @@ export default function CourseDisciplinesPage() {
     }
 
     // Fallback associando disciplinas gerais pelo campus ou departamento do curso
+    const courseSlugLower = course.slug.toLowerCase();
     const courseNameLower = course.nome.toLowerCase();
-    return allDisciplines.filter((d) => {
-      const hasCourseLink = d.courses?.some(
-        (c) =>
-          c.slug.toLowerCase() === course.slug.toLowerCase() ||
-          c.name.toLowerCase() === courseNameLower
-      );
-      if (hasCourseLink) return true;
+    return allDisciplines
+      .filter((d) => {
+        const hasCourseLink = d.courses?.some(
+          (c) =>
+            c.slug.toLowerCase() === courseSlugLower ||
+            c.name.toLowerCase() === courseNameLower
+        );
+        if (hasCourseLink) return true;
 
-      if (courseNameLower.includes("software")) {
-        return d.campus === "FCTE" || d.campus === "FGA" || d.department === "MAT" || d.department === "CIC";
-      }
-      if (courseNameLower.includes("computação") || courseNameLower.includes("computacao")) {
-        return d.department === "CIC" || d.department === "MAT" || d.department === "IF";
-      }
-      return Boolean(d.campus && course.campus && (course.campus.includes(d.campus) || d.campus.includes(course.campus)));
-    });
+        if (courseNameLower.includes("software")) {
+          return d.campus === "FCTE" || d.campus === "FGA" || d.department === "MAT" || d.department === "CIC";
+        }
+        if (courseNameLower.includes("computação") || courseNameLower.includes("computacao")) {
+          return d.department === "CIC" || d.department === "MAT" || d.department === "IF";
+        }
+        return Boolean(d.campus && course.campus && (course.campus.includes(d.campus) || d.campus.includes(course.campus)));
+      })
+      .map((d) => {
+        const matchingCourse = d.courses?.find(
+          (c) =>
+            c.slug.toLowerCase() === courseSlugLower ||
+            c.name.toLowerCase() === courseNameLower
+        );
+        if (matchingCourse) {
+          const sem = matchingCourse.semester === "Optativa" ? "Optativas" : matchingCourse.semester;
+          return {
+            ...d,
+            semester: sem,
+            type: matchingCourse.type,
+          };
+        }
+        return d;
+      });
   }, [course, allDisciplines]);
+
+  // Quantidade total de semestres sugeridos do curso (ex.: 8 para Administração, 10 para Engenharias)
+  const totalSemestres = useMemo(() => {
+    return calculateCourseSemesters(courseDisciplines, course?.semestres);
+  }, [courseDisciplines, course?.semestres]);
+
+  // Lista dinâmica de abas de semestres para o curso
+  const semesterFilters = useMemo(() => {
+    const hasOptativas = courseDisciplines.some(
+      (d) => d.type === "Optativa" || d.semester === "Optativas"
+    );
+    return generateSemesterFilters(totalSemestres, hasOptativas);
+  }, [totalSemestres, courseDisciplines]);
+
+  // Semestre ativo (cai para "Todos" caso o filtro selecionado anteriormente não exista no curso atual)
+  const activeSemester = semesterFilters.includes(semester) ? semester : "Todos";
 
   // Departamentos disponíveis para filtro
   const departmentsList = useMemo(() => {
@@ -108,27 +147,59 @@ export default function CourseDisciplinesPage() {
     return ["Todos os departamentos", ...deps];
   }, [courseDisciplines]);
 
+  // Anos disponíveis para as métricas do curso (DPO)
+  const availableMetricYears = useMemo(() => {
+    if (course?.metricas_historicas && course.metricas_historicas.length > 0) {
+      const years = Array.from(new Set(course.metricas_historicas.map((m) => m.ano || 2024)));
+      return years.sort((a, b) => b - a);
+    }
+    const fallback: number[] = [];
+    if (course?.metricas_recentes?.ano) fallback.push(course.metricas_recentes.ano);
+    if (course?.metricas_2024?.ano && !fallback.includes(course.metricas_2024.ano)) {
+      fallback.push(course.metricas_2024.ano);
+    }
+    return fallback.length > 0 ? fallback : [2024];
+  }, [course]);
+
+  const activeMetricYear =
+    selectedMetricYear && availableMetricYears.includes(selectedMetricYear)
+      ? selectedMetricYear
+      : availableMetricYears[0];
+
+  const currentMetrics = useMemo(() => {
+    if (course?.metricas_historicas && course.metricas_historicas.length > 0) {
+      const found = course.metricas_historicas.find((m) => m.ano === activeMetricYear);
+      if (found) return found;
+    }
+    if (course?.metricas_recentes && course.metricas_recentes.ano === activeMetricYear) {
+      return course.metricas_recentes;
+    }
+    if (course?.metricas_2024 && (course.metricas_2024.ano === activeMetricYear || activeMetricYear === 2024)) {
+      return course.metricas_2024;
+    }
+    return course?.metricas_recentes || course?.metricas_2024 || null;
+  }, [course, activeMetricYear]);
+
   // Filtro de disciplinas por query, semestre e departamento
   const filteredDisciplines = useMemo(() => {
-    const normalizedQuery = disciplineQuery.trim().toLocaleLowerCase("pt-BR");
+    const normalizedQuery = normalizeSearchTerm(disciplineQuery);
 
     return courseDisciplines.filter((discipline) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        discipline.name.toLocaleLowerCase("pt-BR").includes(normalizedQuery) ||
-        discipline.code.toLocaleLowerCase("pt-BR").includes(normalizedQuery);
+      const searchable = normalizeSearchTerm(`${discipline.name} ${discipline.code}`);
+      const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
 
       const matchesSemester =
-        semester === "Todos" ||
-        discipline.semester === semester ||
-        (semester === "Optativas" && discipline.type === "Optativa");
+        activeSemester === "Todos" ||
+        discipline.semester === activeSemester ||
+        (activeSemester === "Optativas" &&
+          (discipline.semester === "Optativas" || discipline.type === "Optativa"));
 
       const matchesDepartment =
         department === "Todos os departamentos" || discipline.department === department;
 
       return matchesQuery && matchesSemester && matchesDepartment;
     });
-  }, [courseDisciplines, disciplineQuery, semester, department]);
+  }, [courseDisciplines, disciplineQuery, activeSemester, department]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDisciplines.length / ITEMS_PER_PAGE));
   const activePage = Math.min(currentPage, totalPages);
@@ -237,20 +308,41 @@ export default function CourseDisciplinesPage() {
                   <StoolIllustration size={44} />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span className="text-xs font-bold text-[#5B4BDB] bg-[#5B4BDB]/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                       {course.campus}
                     </span>
+                    {course.modalidade === "A Distância" && (
+                      <span className="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                        EaD • A Distância
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500">
-                      {course.grau} • {course.turno}
+                      {course.grau} • {course.modalidade === "A Distância" ? "A Distância" : course.turno}
                     </span>
+                    {course.total_creditos && (
+                      <span className="text-xs font-semibold text-[#5B4BDB] bg-[#EDE9FD] px-2 py-0.5 rounded-md">
+                        {course.total_creditos} créditos
+                      </span>
+                    )}
                   </div>
                   <h1 className="text-2xl sm:text-4xl font-extrabold text-[#202124] tracking-tight">
                     Disciplinas de {course.nome}
                   </h1>
+                  {course.matriz_curricular && (
+                    <div className="flex items-center gap-2 text-sm text-[#5B4BDB] font-semibold mt-1">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                      <span>
+                        Estrutura Curricular {course.matriz_curricular}
+                        {course.ano_vigencia ? ` • Vigência ${course.ano_vigencia}` : ""}
+                      </span>
+                    </div>
+                  )}
                   <p className="mt-2 text-sm text-gray-500">
                     Campus {course.campus} <span className="mx-2 text-[#C4C1D8]">•</span>
-                    {course.semestres || 8} semestres sugeridos <span className="mx-2 text-[#C4C1D8]">•</span>
+                    {totalSemestres} semestres sugeridos <span className="mx-2 text-[#C4C1D8]">•</span>
                     {courseDisciplines.length} disciplinas cadastradas na grade
                   </p>
                 </div>
@@ -273,10 +365,37 @@ export default function CourseDisciplinesPage() {
               </Link>
             </div>
 
+            <PasAdmissionCard course={course} expanded />
+
             {/* Painel de Indicadores Institucionais do Curso (DPO / INEP / LAI) */}
             {(() => {
-              const m = course.metricas_recentes || course.metricas_2024;
-              if (!m) return null;
+              const m = currentMetrics;
+              if (!m) {
+                return (
+                  <div className="mt-8 pt-6 border-t border-[#EDE9FD]">
+                    <div className="bg-[#F8F7FD] rounded-2xl p-5 border border-[#EDE9FD] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#EDE9FD] text-[#5B4BDB]">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-[#202124]">
+                            Indicadores Institucionais DPO / UnB
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Os dados estatísticos deste curso ({course.turno || "turno específico"}) são contabilizados de forma unificada ou associados ao turno principal no Anuário Estatístico da UnB.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-semibold text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-[#EDE9FD] whitespace-nowrap">
+                        DPO / Anuário {activeMetricYear}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
 
               const taxaOcupacao = m.vagas_totais > 0 ? Math.round((m.ingressantes / m.vagas_totais) * 100) : null;
               const concorrencia = m.vagas_totais > 0 ? (m.inscritos_total / m.vagas_totais).toFixed(1) : null;
@@ -284,14 +403,42 @@ export default function CourseDisciplinesPage() {
               return (
                 <div className="mt-8 pt-6 border-t border-[#EDE9FD]">
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-2 w-2 rounded-full bg-[#5B4BDB]" />
-                      <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#202124]">
-                        Indicadores Oficiais do Curso
-                      </h2>
-                      <span className="rounded-full bg-[#EDE9FD] px-2.5 py-0.5 text-[11px] font-semibold text-[#5B4BDB]">
-                        Ano {m.ano || 2024}
-                      </span>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-2 w-2 rounded-full bg-[#5B4BDB]" />
+                        <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#202124]">
+                          Indicadores Oficiais do Curso
+                        </h2>
+                      </div>
+
+                      {/* Seletor Interativo de Anos-Base (ex: 2024, 2023, 2022, 2021) */}
+                      {availableMetricYears.length > 1 ? (
+                        <div
+                          className="flex flex-wrap items-center gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-1"
+                          role="group"
+                          aria-label="Filtro de ano das métricas do curso"
+                        >
+                          {availableMetricYears.map((yr) => (
+                            <button
+                              key={yr}
+                              type="button"
+                              onClick={() => setSelectedMetricYear(yr)}
+                              aria-pressed={activeMetricYear === yr}
+                              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                                activeMetricYear === yr
+                                  ? "bg-[#5B4BDB] text-white shadow-xs"
+                                  : "text-[var(--text-muted)] hover:text-[var(--primary-text)] hover:bg-[var(--surface)]"
+                              }`}
+                            >
+                              Ano {yr}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="rounded-full bg-[#EDE9FD] px-2.5 py-0.5 text-[11px] font-semibold text-[#5B4BDB]">
+                          Ano {m.ano || 2024}
+                        </span>
+                      )}
                     </div>
                     <span className="text-[11px] text-gray-500 font-medium">
                       Fonte: DPO / Anuário Estatístico UnB &bull; Dados Abertos LAI
@@ -330,28 +477,40 @@ export default function CourseDisciplinesPage() {
                       </span>
                     </div>
 
-                    {/* KPI 3: Concluintes / Sucesso */}
+                    {/* KPI 3: Concluintes (Formados no Ano) */}
                     <div className="bg-[#EAF8EF] rounded-2xl p-4 border border-[#D1F0DC] flex flex-col justify-between shadow-xs">
                       <div className="flex items-center justify-between text-[#287A45] mb-1">
-                        <span className="text-[11px] font-bold uppercase tracking-wider">Taxa de Sucesso</span>
-                        <svg className="w-4 h-4 text-[#287A45]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">
+                          Concluintes
+                        </span>
+                        <svg
+                          className="w-4 h-4 text-[#287A45]"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.8}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
                         </svg>
                       </div>
                       <div className="text-2xl font-black text-[#1B6634] tracking-tight">
-                        {m.taxa_sucesso !== null && m.taxa_sucesso !== undefined
-                          ? `${m.taxa_sucesso}%`
-                          : `${m.concluintes} formados`}
+                        {m.concluintes.toLocaleString("pt-BR")}
                       </div>
                       <span className="text-[11px] text-[#287A45] mt-1 font-medium">
-                        {m.concluintes} concluintes no ano
+                        {m.concluintes > 0
+                          ? `${m.concluintes} formados no ano-base (DPO)`
+                          : "Sem formados no ano"}
                       </span>
                     </div>
 
-                    {/* KPI 4: Evasão / Desvinculados */}
+                    {/* KPI 4: Evasão Anual */}
                     <div className="bg-[#FFF5F5] rounded-2xl p-4 border border-[#FED7D7] flex flex-col justify-between shadow-xs">
                       <div className="flex items-center justify-between text-[#C53030] mb-1">
-                        <span className="text-[11px] font-bold uppercase tracking-wider">Taxa de Evasão</span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Evasão Anual</span>
                         <svg className="w-4 h-4 text-[#C53030]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
                         </svg>
@@ -424,8 +583,8 @@ export default function CourseDisciplinesPage() {
                   Período sugerido
                 </p>
                 <div className="flex flex-wrap gap-2" aria-label="Filtrar por período sugerido">
-                  {SEMESTER_FILTERS.map((item) => {
-                    const selected = semester === item;
+                  {semesterFilters.map((item) => {
+                    const selected = activeSemester === item;
                     return (
                       <button
                         type="button"

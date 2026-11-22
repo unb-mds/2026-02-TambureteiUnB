@@ -25,6 +25,10 @@ export interface ClassFiltersProps {
   totalCount: number;
   filteredCount: number;
   onResetFilters?: () => void;
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
+  onlyWithData?: boolean;
+  onOnlyWithDataChange?: (only: boolean) => void;
 }
 
 export default function ClassFilters({
@@ -35,15 +39,53 @@ export default function ClassFilters({
   totalCount,
   filteredCount,
   onResetFilters,
+  searchQuery = "",
+  onSearchChange,
+  onlyWithData = false,
+  onOnlyWithDataChange,
 }: ClassFiltersProps) {
-  const hasActiveFilter = selectedShift !== "Todos" || sortBy !== "code_asc";
+  const hasActiveFilter =
+    selectedShift !== "Todos" ||
+    sortBy !== "code_asc" ||
+    searchQuery.trim().length > 0 ||
+    onlyWithData;
 
   return (
     <div
-      className="mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-2xl border border-[#ECEAF5] bg-[#FAFAFC] p-4"
+      className="mb-6 flex flex-col gap-3.5 rounded-2xl border border-[#ECEAF5] bg-[#FAFAFC] p-4"
       role="region"
       aria-label="Filtros e ordenação de turmas"
     >
+      {/* Linha superior: Busca por professor/turma */}
+      {onSearchChange && (
+        <div className="relative w-full max-w-lg">
+          <svg
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Buscar por professor, turma ou semestre..."
+            aria-label="Buscar turma por professor, código ou semestre"
+            className="w-full rounded-xl border border-[#DDD9F1] bg-white py-2 pl-9 pr-3 text-xs font-medium text-[#202124] placeholder-gray-400 outline-none transition-colors focus:border-[#5B4BDB]"
+          />
+        </div>
+      )}
+
+      {/* Linha inferior: Turno, Resumo e Ordenação */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
       {/* Filtro por Turno */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 shrink-0">
@@ -133,6 +175,31 @@ export default function ClassFilters({
           </div>
         </label>
       </div>
+    </div>
+
+      {/* Alternador: Mostrar Apenas Com Dados */}
+      {onOnlyWithDataChange && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#ECEAF5] pt-3.5">
+          <label className="relative inline-flex items-center cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={onlyWithData}
+              onChange={(e) => onOnlyWithDataChange(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-10 h-5.5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-[#5B4BDB]" />
+            <span className="ml-3 text-xs sm:text-sm font-semibold text-[#202124]">
+              Mostrar Apenas Com Dados
+            </span>
+          </label>
+
+          <span className="text-[11px] font-medium text-gray-500 bg-[#F7F7FA] px-2.5 py-1 rounded-full border border-gray-200">
+            {onlyWithData
+              ? "Ocultando turmas sem dados"
+              : "Exibindo todas as turmas"}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

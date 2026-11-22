@@ -179,3 +179,29 @@ class TestCatalogoCadeiras:
         items = disciplina_service.listar(db, nome="Busca Service")
         assert len(items) >= 1
         assert any(d.codigo == "SERV0002" for d in items)
+
+    def test_listar_cadeiras_com_turmas_e_filtro(self, client, db):
+        from app.models.turma import Turma
+
+        d_com = _criar_disciplina(db, "TURMA001", "disc-com-turma", "Disciplina Com Turma", "CIC")
+        d_sem = _criar_disciplina(db, "TURMA002", "disc-sem-turma", "Disciplina Sem Turma", "CIC")
+
+        t = Turma(disciplina_id=d_com.id, codigo_turma="01", semestre="2026.1", capacidade=40, matriculados=35)
+        db.add(t)
+        db.commit()
+
+        # Sem filtro apenas_com_turmas: retorna ambas, com total_turmas calculado
+        resp_all = client.get("/cadeiras?departamento=CIC")
+        assert resp_all.status_code == 200
+        data_all = {item["codigo"]: item for item in resp_all.json()}
+        assert "TURMA001" in data_all
+        assert "TURMA002" in data_all
+        assert data_all["TURMA001"]["total_turmas"] >= 1
+        assert data_all["TURMA002"]["total_turmas"] == 0
+
+        # Com filtro apenas_com_turmas=true
+        resp_filtered = client.get("/cadeiras?departamento=CIC&apenas_com_turmas=true")
+        assert resp_filtered.status_code == 200
+        codigos_filtered = [item["codigo"] for item in resp_filtered.json()]
+        assert "TURMA001" in codigos_filtered
+        assert "TURMA002" not in codigos_filtered

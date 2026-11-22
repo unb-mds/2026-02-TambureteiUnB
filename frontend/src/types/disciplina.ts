@@ -1,3 +1,5 @@
+import { hasApprovalData } from "../utils/academicMetrics.ts";
+
 export interface HistoricalPerformance {
   semester: string;
   matriculados?: number;
@@ -51,6 +53,7 @@ export interface Discipline {
   equivalencias?: string[];
   courses?: CourseReference[];
   metrica_consolidada?: BackendMetricaConsolidada | null;
+  total_turmas?: number;
 }
 
 // Backend schemas interfaces
@@ -61,6 +64,7 @@ export interface BackendDisciplinaResumo {
   slug: string;
   departamento?: string | null;
   creditos?: number | null;
+  total_turmas?: number;
 }
 
 export interface BackendCursoDisciplinaInfo {
@@ -208,9 +212,11 @@ export function adaptBackendDisciplina(
 
   if (full?.metrica_consolidada) {
     const mc = full.metrica_consolidada;
-    approval = mc.taxa_aprovacao_acumulada !== null && mc.taxa_aprovacao_acumulada !== undefined
-      ? Number(mc.taxa_aprovacao_acumulada)
-      : (mc.matriculados > 0 ? Number(((mc.aprovados / mc.matriculados) * 100).toFixed(1)) : null);
+    approval = mc.matriculados > 0
+      ? (hasApprovalData(mc.taxa_aprovacao_acumulada)
+        ? mc.taxa_aprovacao_acumulada
+        : Number(((mc.aprovados / mc.matriculados) * 100).toFixed(1)))
+      : null;
     if (mc.matriculados > 0) {
       failedGrade = Number(((mc.reprovados_nota / mc.matriculados) * 100).toFixed(1));
       failedAttendance = Number(((mc.reprovados_falta / mc.matriculados) * 100).toFixed(1));
@@ -265,5 +271,6 @@ export function adaptBackendDisciplina(
     equivalencias: equivs,
     courses,
     metrica_consolidada: full?.metrica_consolidada || null,
+    total_turmas: raw.total_turmas ?? 0,
   };
 }

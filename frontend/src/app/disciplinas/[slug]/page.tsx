@@ -1,4 +1,7 @@
 "use client";
+
+import { hasApprovalData } from "@/utils/academicMetrics";
+import { normalizeSearchTerm } from "@/utils/search";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
 import DificuldadesPanel from "@/components/DificuldadesPanel";
 import MateriaisApoio from "@/components/MateriaisApoio";
@@ -31,6 +34,7 @@ import ClassFilters, {
 } from "@/components/ClassFilters";
 import MaterialModal from "@/components/MaterialModal";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
+import ClassPerformancePieForm from "@/components/ClassPerformancePieForm";
 import { isAuthenticated } from "@/services/authService";
 import {
   getDisciplineBySlug,
@@ -43,7 +47,6 @@ import {
 } from "@/services/openDataService";
 import {
   Discipline,
-  DEFAULT_HISTORICAL_PERFORMANCE,
 } from "@/types/disciplina";
 import {
   Class,
@@ -154,9 +157,14 @@ function DisciplineDetailContent() {
     [selectedShift, syncUrlParams]
   );
 
+  const [classSearchQuery, setClassSearchQuery] = useState("");
+  const [onlyClassesWithData, setOnlyClassesWithData] = useState(false);
+
   const handleResetClassFilters = useCallback(() => {
     setSelectedShift("Todos");
     setSortBy("code_asc");
+    setClassSearchQuery("");
+    setOnlyClassesWithData(false);
     setClassPage(1);
     syncUrlParams("Todos", "code_asc");
   }, [syncUrlParams]);
@@ -280,12 +288,35 @@ function DisciplineDetailContent() {
     };
   }, [discipline, slug, simulateClassesError, classesRetryCount]);
 
-  // Filtragem por turno e ordenação reativa
+  // Filtragem por turno, busca por professor/turma/semestre, dados e ordenação reativa
   const filteredAndSortedClasses = useMemo(() => {
+    const qNorm = normalizeSearchTerm(classSearchQuery);
     const filtered = classes.filter((item) => {
-      if (selectedShift === "Todos") return true;
-      const normalized = normalizeClassShift(item.turno, item.horarios);
-      return normalized === selectedShift;
+      if (selectedShift !== "Todos") {
+        const normalized = normalizeClassShift(item.turno, item.horarios);
+        if (normalized !== selectedShift) return false;
+      }
+
+      if (onlyClassesWithData) {
+        const hasAcademicData =
+          Boolean(item.estatistica) || (item.amostrasComunidade ?? 0) > 0;
+        if (!hasAcademicData) return false;
+      }
+
+      if (qNorm) {
+        const profNorm = normalizeSearchTerm(item.professor);
+        const codNorm = normalizeSearchTerm(item.codigoTurma);
+        const semNorm = normalizeSearchTerm(item.semestre ?? "");
+        if (
+          !profNorm.includes(qNorm) &&
+          !codNorm.includes(qNorm) &&
+          !semNorm.includes(qNorm)
+        ) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     return [...filtered].sort((a, b) => {
@@ -297,7 +328,7 @@ function DisciplineDetailContent() {
         sensitivity: "base",
       });
     });
-  }, [classes, selectedShift, sortBy]);
+  }, [classes, selectedShift, sortBy, classSearchQuery, onlyClassesWithData]);
 
   const paginatedClasses = paginateClasses(filteredAndSortedClasses, classPage);
 
@@ -309,7 +340,7 @@ function DisciplineDetailContent() {
           <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
           <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
           <div className="h-32 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="mb-8 grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto">
             {[1, 2, 3, 4].map((i) => (
               <ClassCardSkeleton key={i} />
             ))}
@@ -399,12 +430,7 @@ function DisciplineDetailContent() {
   );
   const hasRealExportableHistory = exportableHistoryRows.length > 0;
 
-  const performanceList =
-    publicRealPerformance.length > 0
-      ? publicRealPerformance
-      : realHistoricalPerformance.length > 0
-      ? []
-      : DEFAULT_HISTORICAL_PERFORMANCE;
+  const performanceList = publicRealPerformance;
 
   // Extração dos dados consolidados reais da disciplina
   const metrica = discipline.metrica_consolidada;
@@ -421,13 +447,14 @@ function DisciplineDetailContent() {
     {
       label: "Taxa de Aprovação",
       value:
-        typeof discipline.approval === "number" && discipline.approval > 0
+        hasApprovalData(discipline.approval)
           ? `${discipline.approval}%`
           : "Sem dados",
       count: formatAlunos(metrica?.aprovados),
-      color: "#067A59",
-      iconColor: "#10B981",
-      background: "#E9F9F3",
+      color: "var(--status-success-text)",
+      iconColor: "var(--status-success-text)",
+      background: "var(--status-success-bg)",
+      border: "var(--status-success-border)",
       icon: (
         <path
           d="M5 10.5l3 3L15 6.5"
@@ -442,9 +469,10 @@ function DisciplineDetailContent() {
       label: "Reprovação por Nota",
       value: `${discipline.failedGrade ?? 0}%`,
       count: formatAlunos(metrica?.reprovados_nota),
-      color: "#C52C2C",
-      iconColor: "#EF4444",
-      background: "#FFF0F0",
+      color: "var(--status-danger-text)",
+      iconColor: "var(--status-danger-text)",
+      background: "var(--status-danger-bg)",
+      border: "var(--status-danger-border)",
       icon: (
         <path
           d="M5 6l4 4 3-3 4 4M13 11h3V8"
@@ -459,9 +487,10 @@ function DisciplineDetailContent() {
       label: "Reprovação por Falta",
       value: `${discipline.failedAttendance ?? 0}%`,
       count: formatAlunos(metrica?.reprovados_falta),
-      color: "#9A5700",
-      iconColor: "#F59E0B",
-      background: "#FFF7E8",
+      color: "var(--status-warning-text)",
+      iconColor: "var(--status-warning-text)",
+      background: "var(--status-warning-bg)",
+      border: "var(--status-warning-border)",
       icon: (
         <>
           <circle
@@ -484,9 +513,10 @@ function DisciplineDetailContent() {
       label: "Trancamentos",
       value: `${discipline.withdrawn ?? 0}%`,
       count: formatAlunos(metrica?.trancamentos),
-      color: "#526174",
-      iconColor: "#64748B",
-      background: "#F1F5F9",
+      color: "var(--status-neutral-text)",
+      iconColor: "var(--status-neutral-text)",
+      background: "var(--status-neutral-bg)",
+      border: "var(--status-neutral-border)",
       icon: (
         <path
           d="M7 6v8M13 6v8"
@@ -839,7 +869,7 @@ function DisciplineDetailContent() {
             {classesLoading ? (
               <div
                 aria-label="Carregando lista de turmas"
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5"
+                className="grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto sm:gap-5"
               >
                 {[1, 2, 3, 4].map((skeletonId) => (
                   <ClassCardSkeleton key={skeletonId} />
@@ -906,6 +936,16 @@ function DisciplineDetailContent() {
                   totalCount={classes.length}
                   filteredCount={filteredAndSortedClasses.length}
                   onResetFilters={handleResetClassFilters}
+                  searchQuery={classSearchQuery}
+                  onSearchChange={(val) => {
+                    setClassSearchQuery(val);
+                    setClassPage(1);
+                  }}
+                  onlyWithData={onlyClassesWithData}
+                  onOnlyWithDataChange={(only) => {
+                    setOnlyClassesWithData(only);
+                    setClassPage(1);
+                  }}
                 />
 
                 {filteredAndSortedClasses.length > 0 ? (
@@ -915,10 +955,12 @@ function DisciplineDetailContent() {
                       de {filteredAndSortedClasses.length}{" "}
                       {filteredAndSortedClasses.length === 1 ? "turma" : "turmas"}
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                      {paginatedClasses.items.map((turma) => (
-                        <ClassCard key={turma.id} classData={turma} />
-                      ))}
+                    <div className="overflow-x-auto pb-2">
+                      <div className="grid min-w-[1000px] grid-cols-4 gap-4 sm:gap-5">
+                        {paginatedClasses.items.map((turma) => (
+                          <ClassCard key={turma.id} classData={turma} />
+                        ))}
+                      </div>
                     </div>
                     <Pagination
                       currentPage={paginatedClasses.currentPage}
@@ -941,7 +983,6 @@ function DisciplineDetailContent() {
             )}
           </section>
 
-          
           <section className="rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
             
             <div className="mb-7 flex flex-col md:flex-row md:items-start justify-between gap-5">
@@ -989,6 +1030,8 @@ function DisciplineDetailContent() {
               </label>
             </div>
 
+            <ClassPerformancePieForm classes={classes} />
+
           
             <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {metrics.map((metric) => (
@@ -997,7 +1040,7 @@ function DisciplineDetailContent() {
                   className="rounded-2xl p-5 border"
                   style={{
                     background: metric.background,
-                    borderColor: `${metric.iconColor}33`,
+                    borderColor: metric.border,
                   }}
                 >
                   <div className="mb-4 flex items-center justify-between">
@@ -1056,6 +1099,12 @@ function DisciplineDetailContent() {
               </div>
 
               
+              {performanceList.length === 0 ? (
+                <p role="status" className="rounded-xl border border-[#ECEAF5] bg-white p-5 text-sm text-gray-600">
+                  Não há histórico semestral público disponível para esta disciplina. Registros com baixa amostragem são preservados conforme a LGPD.
+                </p>
+              ) : (
+                <>
               <div className="flex h-64 gap-3 sm:gap-5">
                 {/* Eixo Y */}
                 <div className="flex w-8 sm:w-10 flex-col justify-between pb-7 text-right text-[11px] font-medium text-gray-500">
@@ -1067,7 +1116,7 @@ function DisciplineDetailContent() {
                 </div>
 
                 
-                <div className="relative flex flex-1 items-end justify-around border-b border-l border-[#DCD9E9] px-2 sm:px-8 pb-7">
+                <div className="relative flex min-w-0 flex-1 items-end justify-around border-b border-l border-[#DCD9E9] px-2 sm:px-8 pb-7">
                   {[25, 50, 75, 100].map((line) => (
                     <div
                       key={line}
@@ -1076,7 +1125,13 @@ function DisciplineDetailContent() {
                     />
                   ))}
 
-                  {performanceList.map((item) => {
+                  {performanceList.map((item, index) => {
+                    const tooltipAlignment =
+                      index === 0
+                        ? "left-0"
+                        : index >= performanceList.length - 2
+                        ? "right-0"
+                        : "left-1/2 -translate-x-1/2";
                     const total =
                       (item.approved || 0) +
                       (item.failed || 0) +
@@ -1102,17 +1157,19 @@ function DisciplineDetailContent() {
                     return (
                       <div
                         key={item.semester}
-                        className="relative z-10 flex h-full w-10 sm:w-16 flex-col items-center justify-end group"
+                        className="relative z-10 flex h-full min-w-0 w-10 sm:w-16 flex-col items-center justify-end group"
                       >
                         
-                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-nowrap z-20 shadow-md">
+                        <div
+                          className={`absolute -top-12 w-40 ${tooltipAlignment} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-normal text-center z-20 shadow-md`}
+                        >
                           {item.semester}: {approvedPct}% aprov. (
                           {item.approved}/{total})
                         </div>
 
                         
                         <div
-                          className="flex h-full w-8 sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
+                          className="flex h-full w-8 max-w-[75%] sm:max-w-full sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
                           aria-label={`${item.semester}: ${approvedPct}% aprovação, ${failedPct}% reprovação por nota`}
                         >
                           <div
@@ -1146,7 +1203,7 @@ function DisciplineDetailContent() {
                         </div>
 
                         
-                        <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-gray-600">
+                        <span className="absolute -bottom-6 max-sm:-bottom-8 max-sm:-rotate-45 whitespace-nowrap text-[11px] font-medium text-gray-600">
                           {item.semester}
                         </span>
                       </div>
@@ -1227,6 +1284,8 @@ function DisciplineDetailContent() {
                   </tbody>
                 </table>
               </div>
+                </>
+              )}
             </div>
 
             
@@ -1291,6 +1350,7 @@ function DisciplineDetailContent() {
           />
 
           <MateriaisApoio
+            key={discipline.slug || slug}
             disciplineName={discipline.name}
             disciplineIdOrSlug={discipline.slug || slug}
             refreshTrigger={materialsReloadTrigger}
@@ -1322,7 +1382,7 @@ export default function DisciplineDetailPage() {
             <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
             <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
             <div className="h-32 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="mb-8 grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto">
               {[1, 2, 3, 4].map((i) => (
                 <ClassCardSkeleton key={i} />
               ))}

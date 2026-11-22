@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
+import PasAdmissionCard from "@/components/PasAdmissionCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Button from "@/components/Button";
@@ -12,11 +13,13 @@ import { exportCoursesOpenData } from "@/services/openDataService";
 import useAsyncList from "@/hooks/useAsyncList";
 import {
   filterCourses,
+  paginateCourses,
+  COURSES_PER_PAGE,
   getCampusBadgeClasses,
 } from "@/utils/courseCatalog";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
 
-const ITEMS_PER_PAGE = 25;
+const ITEMS_PER_PAGE = COURSES_PER_PAGE;
 
 export default function CursosPage() {
   const { items: courses, loading } = useAsyncList(
@@ -42,13 +45,8 @@ export default function CursosPage() {
     setCurrentPage(1);
   };
 
-  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / ITEMS_PER_PAGE));
-  const activePage = Math.min(currentPage, totalPages);
-
-  const paginatedCourses = useMemo(() => {
-    const start = (activePage - 1) * ITEMS_PER_PAGE;
-    return filteredCourses.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredCourses, activePage]);
+  const { items: paginatedCourses, currentPage: activePage, totalPages } =
+    paginateCourses(filteredCourses, currentPage);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -64,6 +62,7 @@ export default function CursosPage() {
 
       {/* Conteúdo Principal */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+
         {/* Cabeçalho do Catálogo */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-xs font-semibold text-[#5B4BDB] uppercase tracking-wider mb-2">
@@ -154,8 +153,8 @@ export default function CursosPage() {
             <button
               type="button"
               onClick={() => {
-                setSearchQuery("");
-                setSelectedCampus("Todos");
+                handleSearchChange("");
+                handleCampusChange("Todos");
               }}
               className="text-xs text-[#5B4BDB] hover:text-[#4F3EC9] font-semibold hover:underline"
             >
@@ -210,22 +209,52 @@ export default function CursosPage() {
                   <div>
                     {/* Badges superiores: Campus e Grau */}
                     <div className="flex items-center justify-between gap-2 mb-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getCampusBadgeClasses(
-                          course.campus
-                        )}`}
-                      >
-                        {course.campus}
-                      </span>
-                      <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
-                        {course.grau} • {course.turno}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getCampusBadgeClasses(
+                            course.campus
+                          )}`}
+                        >
+                          {course.campus}
+                        </span>
+                        {course.modalidade === "A Distância" && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            EaD
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {course.total_creditos && (
+                          <span className="text-[10px] font-bold text-[#5B4BDB] bg-[#EDE9FD] px-2 py-0.5 rounded-md">
+                            {course.total_creditos} cr
+                          </span>
+                        )}
+                        <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                          {course.grau} • {course.modalidade === "A Distância" ? "A Distância" : course.turno}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Nome do Curso */}
                     <h2 className="text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
                       {course.nome}
                     </h2>
+
+                    <PasAdmissionCard course={course} />
+
+                    {/* Identificador de Estrutura Curricular / Matriz (Estilo NoFluxo) */}
+                    {course.matriz_curricular && (
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mt-1">
+                        <svg className="w-3.5 h-3.5 text-[#5B4BDB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span>
+                          Matriz <strong className="font-semibold text-gray-700">{course.matriz_curricular}</strong>
+                          {course.ano_vigencia ? ` • Vigência ${course.ano_vigencia}` : ""}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Departamento / Faculdade */}
                     {course.departamento && (
@@ -244,7 +273,32 @@ export default function CursosPage() {
                     {/* Indicadores DPO reais do Curso */}
                     {(() => {
                       const m = course.metricas_recentes || course.metricas_2024;
-                      if (!m) return null;
+                      if (!m) {
+                        return (
+                          <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
+                            <div className="bg-[#FAF9FE] rounded-xl p-2.5 border border-[#EDE9FD]/70 flex flex-col justify-between min-h-[58px]">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
+                                  Métricas Institucionais
+                                </span>
+                                <span className="text-[10px] font-semibold text-[#5B4BDB] bg-[#5B4BDB]/10 px-2 py-0.5 rounded-md">
+                                  DPO
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-gray-500 mt-1">
+                                Dados unificados no turno principal pelo anuário
+                              </span>
+                            </div>
+
+                            <div className="flex items-center text-[11px] text-gray-400 px-1 pt-2.5">
+                              <span className="flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+                                Contabilizado na modalidade geral do curso
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
 
                       return (
                         <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
@@ -261,12 +315,11 @@ export default function CursosPage() {
 
                             <div className="bg-[#EAF8EF] rounded-xl p-2.5 flex flex-col justify-between border border-[#D1F0DC]">
                               <span className="text-[10px] uppercase font-bold tracking-wider text-[#287A45]">
-                                Taxa de Sucesso
+                                Concluintes
                               </span>
-                              <span className="text-sm font-extrabold text-[#1B6634] mt-0.5 flex items-center gap-1">
-                                {m.taxa_sucesso !== null && m.taxa_sucesso !== undefined
-                                  ? `${m.taxa_sucesso}%`
-                                  : `${m.concluintes} formados`}
+                              <span className="text-sm font-extrabold text-[#1B6634] mt-0.5">
+                                {m.concluintes.toLocaleString("pt-BR")}{" "}
+                                <span className="text-[10px] font-normal text-[#287A45]">formados/ano</span>
                               </span>
                             </div>
                           </div>
@@ -274,11 +327,12 @@ export default function CursosPage() {
                           <div className="flex items-center justify-between text-[11px] text-gray-500 px-1 pt-2.5">
                             <span className="flex items-center gap-1.5">
                               <span className="h-1.5 w-1.5 rounded-full bg-[#5B4BDB]" />
-                              Ingressantes: <strong className="font-semibold text-gray-700">{m.ingressantes}</strong> / {m.vagas_totais} vagas
+                              Ingressantes: <strong className="font-semibold text-gray-700">{m.ingressantes}</strong>
+                              {m.vagas_totais > 0 && m.vagas_totais !== m.ingressantes ? ` / ${m.vagas_totais} vagas` : " vagas"}
                             </span>
                             {m.taxa_evasao !== null && m.taxa_evasao !== undefined && (
                               <span className="font-semibold text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
-                                {m.taxa_evasao}% evasão
+                                {m.taxa_evasao}% evasão anual
                               </span>
                             )}
                           </div>

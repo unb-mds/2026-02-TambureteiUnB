@@ -4,20 +4,6 @@ import { request, setStoredToken, removeStoredToken, hasStoredToken } from "./ht
 export const AUTH_CHANGE_EVENT = "tamburetei-auth-change";
 const USER_STORAGE_KEY = "tamburetei_user";
 
-export function subscribeAuthChange(onChange: () => void): () => void {
-  if (typeof window === "undefined") {
-    return () => {};
-  }
-
-  window.addEventListener(AUTH_CHANGE_EVENT, onChange);
-  window.addEventListener("storage", onChange);
-
-  return () => {
-    window.removeEventListener(AUTH_CHANGE_EVENT, onChange);
-    window.removeEventListener("storage", onChange);
-  };
-}
-
 export function getStoredUser(): UserResponse | null {
   if (typeof window === "undefined") return null;
   try {
@@ -163,7 +149,6 @@ export const authService = {
   setStoredUser,
   removeStoredUser,
   AUTH_CHANGE_EVENT,
-  subscribeAuthChange,
 };
 
 export default authService;

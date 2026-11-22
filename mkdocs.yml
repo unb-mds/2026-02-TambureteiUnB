@@ -111,9 +111,11 @@ nav:
       - Arquitetura & Banco:
           - Arquitetura & ADRs: arquitetura.md
           - Arquitetura da Interface: arquitetura_ui.md
+          - Cores dos Indicadores: cores_indicadores.md
           - Dicionário de Dados: banco_de_dados.md
       - Dados & Ingestão:
           - Pipeline ETL: pipeline_etl.md
+          - Notas de Corte PAS: notas_corte_pas.md
       - Funcionalidades:
           - Materiais de Apoio: feature_5_2_materiais.md
           - Moderação e Curadoria: moderacao_curadoria.md

@@ -27,10 +27,14 @@ export interface Course {
   total_disciplinas?: number;
   descricao?: string;
   modalidade?: string;
+  matriz_curricular?: string | null;
+  ano_vigencia?: string | null;
+  total_creditos?: number | null;
   area_geral?: string;
   area_especifica?: string;
   metricas_2024?: CourseMetrics | null;
   metricas_recentes?: CourseMetrics | null;
+  metricas_historicas?: CourseMetrics[];
 }
 
 export interface CourseGradeDisciplina {
@@ -47,10 +51,14 @@ export interface CourseGradeDisciplina {
 
 export interface CourseDetail extends Course {
   modalidade?: string;
+  matriz_curricular?: string | null;
+  ano_vigencia?: string | null;
+  total_creditos?: number | null;
   area_geral?: string;
   area_especifica?: string;
   metricas_2024?: CourseMetrics | null;
   metricas_recentes?: CourseMetrics | null;
+  metricas_historicas?: CourseMetrics[];
   disciplinas?: CourseGradeDisciplina[];
 }
 

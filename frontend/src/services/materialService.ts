@@ -4,7 +4,7 @@ import type {
   MaterialType,
   UploadProgressInfo,
 } from "../types/material.ts";
-import { ApiError, request } from "./httpClient.ts";
+import { ApiError, request, requestBlob, getStoredToken } from "./httpClient.ts";
 
 export interface SingleUploadOptions {
   disciplineIdOrSlug: string | number;
@@ -169,11 +169,12 @@ export async function uploadMaterialsBatch(
  */
 export async function listMaterials(
   disciplineIdOrSlug: string | number,
-  params: { titulo?: string; tipo?: string; pagina?: number; tamanho_pagina?: number } = {}
+  params: { titulo?: string; tipo?: string; tipos?: MaterialType[]; pagina?: number; tamanho_pagina?: number } = {}
 ): Promise<MaterialPageResponse> {
   const query = new URLSearchParams();
   if (params.titulo) query.set("titulo", params.titulo);
   if (params.tipo) query.set("tipo", params.tipo);
+  for (const tipo of params.tipos ?? []) query.append("tipos", tipo);
   if (params.pagina) query.set("pagina", String(params.pagina));
   if (params.tamanho_pagina) query.set("tamanho_pagina", String(params.tamanho_pagina));
 
@@ -184,7 +185,16 @@ export async function listMaterials(
   return request<MaterialPageResponse>(endpoint, { cache: "no-store" });
 }
 
+export async function downloadMaterial(id: number): Promise<Blob> {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ApiError("Material inválido.", 422);
+  if (!getStoredToken()) throw new ApiError("Entre na sua conta para baixar este material.", 401);
+  const blob = await requestBlob(`/materiais/${id}/download`, { cache: "no-store" });
+  if (blob.size === 0) throw new ApiError("O servidor retornou um arquivo vazio.", 503);
+  return blob;
+}
+
 export const materialService = {
+  downloadMaterial,
   uploadMaterial,
   uploadMaterialsBatch,
   listMaterials,

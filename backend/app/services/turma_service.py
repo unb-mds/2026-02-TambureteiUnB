@@ -10,6 +10,9 @@ from app.repositories.turma_repo import turma_repo
 
 
 class TurmaService:
+    def listar_semestres(self, db: Session) -> List[str]:
+        return turma_repo.listar_semestres(db)
+
     def criar_turma(self, db: Session, dados: TurmaCreate) -> Turma:
         # 1. Disciplina precisa existir
         if not disciplina_repo.get_by_id(db, dados.disciplina_id):

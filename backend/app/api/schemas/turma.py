@@ -1,8 +1,9 @@
 import re
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 from app.api.schemas.professor import ProfessorResumo
+from app.core.config import settings
 
 
 class TurmaCreate(BaseModel):
@@ -82,5 +83,50 @@ class TurmaResponse(BaseModel):
     matriculados: Optional[int] = None
     professores: List[ProfessorResumo] = []
     estatistica: Optional[EstatisticaTurma] = None
+    amostras_comunidade: int = 0
+    minimo_amostras_lgpd: int = Field(default_factory=lambda: settings.HISTORICO_MIN_AMOSTRAS)
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def extrair_contagem_comunidade(cls, data):
+        if isinstance(data, dict):
+            est = data.get("estatistica")
+            if est is not None:
+                total = est.get("total_amostras", 0) if isinstance(est, dict) else getattr(est, "total_amostras", 0)
+                return {**data, "amostras_comunidade": total or 0, "minimo_amostras_lgpd": settings.HISTORICO_MIN_AMOSTRAS}
+            return {**data, "minimo_amostras_lgpd": settings.HISTORICO_MIN_AMOSTRAS}
+
+        est = getattr(data, "estatistica", None)
+        total = getattr(est, "total_amostras", 0) if est is not None else 0
+        # Constrói dict superficial apenas se precisarmos injetar amostras_comunidade sem mutar ORM
+        return {
+            "id": getattr(data, "id"),
+            "disciplina_id": getattr(data, "disciplina_id"),
+            "semestre": getattr(data, "semestre"),
+            "codigo_turma": getattr(data, "codigo_turma"),
+            "horario": getattr(data, "horario", None),
+            "local": getattr(data, "local", None),
+            "capacidade": getattr(data, "capacidade", None),
+            "matriculados": getattr(data, "matriculados", None),
+            "professores": getattr(data, "professores", []),
+            "estatistica": est,
+            "amostras_comunidade": total or 0,
+            "minimo_amostras_lgpd": settings.HISTORICO_MIN_AMOSTRAS,
+        }
+
+    @field_validator("estatistica", mode="before")
+    @classmethod
+    def ocultar_baixa_amostragem_lgpd(cls, v):
+        # RN07: Oculta estatística detalhada se marcada como suprimida por baixa amostragem.
+        if v is None:
+            return None
+        suprimida = (
+            v.get("amostragem_suprimida_lgpd", False)
+            if isinstance(v, dict)
+            else getattr(v, "amostragem_suprimida_lgpd", False)
+        )
+        if suprimida:
+            return None
+        return v

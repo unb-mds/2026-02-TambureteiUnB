@@ -8,7 +8,7 @@
     {
       label: "Arquitetura",
       path: "arquitetura/",
-      match: ["arquitetura", "arquitetura_ui", "pipeline_etl", "feature_5_2_materiais", "moderacao_curadoria", "ocupacao_turmas"]
+      match: ["arquitetura", "arquitetura_ui", "cores_indicadores", "pipeline_etl", "notas_corte_pas", "feature_5_2_materiais", "moderacao_curadoria", "ocupacao_turmas"]
     },
     {
       label: "Requisitos",

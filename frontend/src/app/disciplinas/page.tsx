@@ -1,5 +1,7 @@
 "use client";
 
+import { hasApprovalData } from "@/utils/academicMetrics";
+
 import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -17,6 +19,7 @@ import {
   GLOBAL_DEPARTMENTS,
   Discipline,
 } from "@/types/disciplina";
+import { normalizeSearchTerm } from "@/utils/search";
 import ApprovalBadge from "@/components/ApprovalBadge";
 import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
 
@@ -32,18 +35,30 @@ function DisciplinasContent() {
   );
 
   const [query, setQuery] = useState(initialQuery);
-  const [appliedQuery, setAppliedQuery] = useState(initialQuery);
   const [campus, setCampus] = useState("Todos os Campi");
   const [department, setDepartment] = useState("Todos os Departamentos");
   const [area, setArea] = useState("Todas");
   const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
+  const [onlyWithClasses, setOnlyWithClasses] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const handleQueryChange = (newQuery: string) => {
+    setQuery(newQuery);
+    setCurrentPage(1);
+  };
+
   const filteredResults: Discipline[] = useMemo(() => {
-    const normalizedQuery = appliedQuery.trim().toLocaleLowerCase("pt-BR");
+    const normalizedQuery = normalizeSearchTerm(query);
 
     return disciplines.filter((discipline) => {
-      const searchable = `${discipline.name} ${discipline.code} ${discipline.departmentName} ${discipline.department}`.toLocaleLowerCase("pt-BR");
+      const matchesTurmas =
+        !onlyWithClasses ||
+        (discipline.total_turmas !== undefined && discipline.total_turmas > 0);
+      if (!matchesTurmas) return false;
+
+      const searchable = normalizeSearchTerm(
+        `${discipline.name} ${discipline.code} ${discipline.departmentName} ${discipline.department}`
+      );
       const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
       const matchesCampus =
         campus === "Todos os Campi" ||
@@ -57,11 +72,11 @@ function DisciplinasContent() {
     }).sort((a, b) => {
       if (sort === "Menor taxa de aprovação") {
         const approvalA =
-          typeof a.approval === "number" && a.approval > 0
+          hasApprovalData(a.approval)
             ? a.approval
             : Number.POSITIVE_INFINITY;
         const approvalB =
-          typeof b.approval === "number" && b.approval > 0
+          hasApprovalData(b.approval)
             ? b.approval
             : Number.POSITIVE_INFINITY;
         return approvalA - approvalB;
@@ -69,7 +84,7 @@ function DisciplinasContent() {
       if (sort === "Mais materiais") return b.resources - a.resources;
       return b.popularity - a.popularity;
     });
-  }, [disciplines, appliedQuery, campus, department, area, sort]);
+  }, [disciplines, query, campus, department, area, sort, onlyWithClasses]);
 
   const totalPages = Math.max(1, Math.ceil(filteredResults.length / ITEMS_PER_PAGE));
   const activePage = Math.min(currentPage, totalPages);
@@ -108,17 +123,16 @@ function DisciplinasContent() {
   };
 
   const executeSearch = () => {
-    setAppliedQuery(query);
     setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
     setQuery("");
-    setAppliedQuery("");
     setCampus("Todos os Campi");
     setDepartment("Todos os Departamentos");
     setArea("Todas");
     setSort("Mais populares");
+    setOnlyWithClasses(true);
     setCurrentPage(1);
   };
 
@@ -164,7 +178,7 @@ function DisciplinasContent() {
                 <input
                   type="search"
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => handleQueryChange(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") executeSearch();
                   }}
@@ -172,6 +186,18 @@ function DisciplinasContent() {
                   aria-label="Pesquisar disciplinas da UnB"
                   className="flex-1 bg-transparent py-2 text-sm text-[#202124] outline-none placeholder-gray-400"
                 />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => handleQueryChange("")}
+                    className="p-1 text-gray-400 hover:text-gray-600 transition-colors mr-2"
+                    aria-label="Limpar busca"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
               <button
                 type="button"
@@ -266,18 +292,41 @@ function DisciplinasContent() {
                 );
               })}
             </div>
+
+            {/* Alternador: Apenas disciplinas com turmas ofertadas */}
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#ECEAF5] pt-4">
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={onlyWithClasses}
+                  onChange={(e) => {
+                    setOnlyWithClasses(e.target.checked);
+                    setCurrentPage(1);
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5.5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-[#5B4BDB]"></div>
+                <span className="ml-3 text-xs sm:text-sm font-semibold text-[#202124]">
+                  Apenas disciplinas com turmas ofertadas
+                </span>
+              </label>
+
+              <span className="text-[11px] font-medium text-gray-500 bg-[#F7F7FA] px-2.5 py-1 rounded-full border border-gray-200">
+                {onlyWithClasses ? "Ocultando sem turmas" : "Exibindo todas (inclusive sem turmas)"}
+              </span>
+            </div>
           </section>
 
           {/* Barra de Ordenação e Contador */}
           <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="text-xs sm:text-sm text-gray-600">
               Exibindo <strong className="text-[#202124]">{filteredResults.length} disciplinas</strong>{" "}
-              {appliedQuery && (
+              {query.trim() && (
                 <>
-                  para <strong className="text-[#5B4BDB]">&quot;{appliedQuery}&quot;</strong>
+                  para <strong className="text-[#5B4BDB]">&quot;{query.trim()}&quot;</strong>
                 </>
               )}{" "}
-              em toda a UnB
+              {onlyWithClasses ? "com turmas ofertadas" : "no catálogo geral"}
             </p>
 
             <label className="flex items-center gap-2.5 self-end sm:self-auto">
@@ -359,9 +408,22 @@ function DisciplinasContent() {
                   >
                     <div>
                       <div className="mb-4 flex items-center justify-between gap-2">
-                        <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
-                          {discipline.code}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
+                            {discipline.code}
+                          </span>
+                          {discipline.total_turmas !== undefined && (
+                            discipline.total_turmas > 0 ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {discipline.total_turmas} {discipline.total_turmas === 1 ? "turma" : "turmas"}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                                Sem turmas
+                              </span>
+                            )
+                          )}
+                        </div>
                         <ApprovalBadge
                           approval={
                             approvalMetrics[discipline.slug] ??
@@ -426,15 +488,28 @@ function DisciplinasContent() {
               </div>
               <h2 className="text-lg font-bold text-[#202124]">Nenhuma disciplina encontrada</h2>
               <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-                Tente remover um filtro ou pesquisar outro nome, código ou departamento.
+                {onlyWithClasses
+                  ? "Nenhuma disciplina com turmas ofertadas atendeu aos critérios. Você pode desmarcar o filtro para consultar o catálogo histórico completo."
+                  : "Tente remover um filtro ou pesquisar outro nome, código ou departamento."}
               </p>
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="mt-5 rounded-xl bg-[#5B4BDB] px-5 py-2.5 text-xs font-semibold text-white hover:brightness-110"
-              >
-                Redefinir filtros
-              </button>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                {onlyWithClasses && (
+                  <button
+                    type="button"
+                    onClick={() => setOnlyWithClasses(false)}
+                    className="rounded-xl border border-[#5B4BDB] text-[#5B4BDB] bg-white px-4 py-2 text-xs font-semibold hover:bg-[#EDE9FD]/40 transition-colors"
+                  >
+                    Exibir disciplinas sem turmas
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="rounded-xl bg-[#5B4BDB] px-4 py-2 text-xs font-semibold text-white hover:brightness-110 transition-colors"
+                >
+                  Redefinir filtros
+                </button>
+              </div>
             </section>
           )}
         </div>

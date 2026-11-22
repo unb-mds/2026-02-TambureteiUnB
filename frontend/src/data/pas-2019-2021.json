@@ -1,0 +1,1405 @@
+{
+  "observacao": "",
+  "ciclo": "2019–2021",
+  "sistema": "Sistema Universal",
+  "url": "https://cdn.cebraspe.org.br/wp-content/uploads/2022/07/Boletim-informativo-PAS-2019-2021.pdf",
+  "sha256": "caa50d5a88598be8731c2c0f430c4235346bb8fbf8609d035033a753b53c188c",
+  "registros": [
+    {
+      "nome": "Administração",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Administração (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "36.705",
+      "maximo": "120.306",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Administração",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Administração (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-2.777",
+      "maximo": "98.221",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Agronomia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Agronomia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-9.125",
+      "maximo": "49.697",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Arquitetura e Urbanismo",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Arquitetura e Urbanismo (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "74.758",
+      "maximo": "137.056",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Arquitetura e Urbanismo",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Arquitetura e Urbanismo (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "19.181",
+      "maximo": "76.568",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Arquivologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Arquivologia (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-70.173",
+      "maximo": "-5.298",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Artes Cênicas - Interpretação Teatral ",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Artes Cênicas - Interpretação Teatral (Bacharelado) *",
+      "turno": "Diurno",
+      "minimo": "-31.865",
+      "maximo": "22.845",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Artes Visuais",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Artes Visuais (Bacharelado)*",
+      "turno": "Diurno",
+      "minimo": "-68.761",
+      "maximo": "10.926",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Biblioteconomia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Biblioteconomia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-80.935",
+      "maximo": "60.650",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Biotecnologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Biotecnologia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "87.359",
+      "maximo": "154.249",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Ciência da Computação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciência da Computação (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "115.002",
+      "maximo": "192.188",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Ciência Política",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciência Política (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "47.264",
+      "maximo": "128.476",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Ciências Ambientais",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciências Ambientais (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-63.616",
+      "maximo": "118.331",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Ciências Biológicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciências Biológicas (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "61.373",
+      "maximo": "143.742",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Ciências Contábeis",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciências Contábeis (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "13.056",
+      "maximo": "64.385",
+      "pagina": 6,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Ciências Contábeis",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciências Contábeis (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-20.052",
+      "maximo": "46.127",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Ciências Econômicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciências Econômicas (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "92.033",
+      "maximo": "175.077",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Ciências Sociais – Antropologia / Sociologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Ciências Sociais – Antropologia / Sociologia (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "11.533",
+      "maximo": "94.463",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Computação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Computação (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-20.863",
+      "maximo": "34.167",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Comunicação Organizacional",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Comunicação Organizacional (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-17.502",
+      "maximo": "62.260",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Comunicação Social – Audiovisual",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Comunicação Social – Audiovisual (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "64.460",
+      "maximo": "116.156",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Comunicação Social - Publicidade e Propaganda",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Comunicação Social - Publicidade e Propaganda (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "77.921",
+      "maximo": "129.694",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Design – Programação Visual/Projeto do Produto",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Design – Programação Visual/Projeto do Produto (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "80.914",
+      "maximo": "98.283",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Direito",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Direito (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "113.772",
+      "maximo": "181.764",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Direito",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Direito (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "77.019",
+      "maximo": "114.418",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Educação Física",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Educação Física (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "8.352",
+      "maximo": "45.082",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Educação Física",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Educação Física (Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-21.256",
+      "maximo": "46.723",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Enfermagem",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Enfermagem (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "53.945",
+      "maximo": "104.450",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharia Ambiental",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Ambiental (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "26.947",
+      "maximo": "94.160",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharia Civil",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Civil (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "96.375",
+      "maximo": "155.602",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharia de Computação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia de Computação (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "131.450",
+      "maximo": "163.169",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharia de Produção",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia de Produção (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "42.183",
+      "maximo": "131.038",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharia de Redes de Comunicação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia de Redes de Comunicação (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "1.695",
+      "maximo": "71.841",
+      "pagina": 7,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharia Elétrica",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Elétrica (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "112.072",
+      "maximo": "189.172",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharia Florestal",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Florestal (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-71.066",
+      "maximo": "30.842",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharia Mecânica",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Mecânica (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "80.147",
+      "maximo": "128.922",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharia Mecatrônica – Controle e Automação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Mecatrônica – Controle e Automação (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "115.354",
+      "maximo": "193.348",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharia Química",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Química (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "70.109",
+      "maximo": "168.790",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Estatística",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Estatística (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "34.508",
+      "maximo": "121.268",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Farmácia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Farmácia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "60.297",
+      "maximo": "114.584",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Farmácia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Farmácia (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-1.557",
+      "maximo": "29.537",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Filosofia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Filosofia (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-69.896",
+      "maximo": "33.582",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Filosofia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Filosofia (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-52.983",
+      "maximo": "37.478",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Física",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Física (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "91.722",
+      "maximo": "138.765",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Geofísica",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Geofísica (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-48.237",
+      "maximo": "8.279",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Geografia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Geografia (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-11.709",
+      "maximo": "44.499",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Geologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Geologia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-68.729",
+      "maximo": "68.345",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Gestão de Agronegócio",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Gestão de Agronegócio (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-61.028",
+      "maximo": "11.189",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Gestão de Políticas Públicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Gestão de Políticas Públicas (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-51.535",
+      "maximo": "51.644",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "História",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "História (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "44.047",
+      "maximo": "105.499",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "História",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "História (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-38.560",
+      "maximo": "24.313",
+      "pagina": 8,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Jornalismo",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Jornalismo (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "85.007",
+      "maximo": "117.234",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Letras – Português do Brasil como Segunda Língua",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Letras – Português do Brasil como Segunda Língua (Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-10.942",
+      "maximo": "45.035",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Letras – Tradução – Francês",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Letras – Tradução – Francês (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-28.614",
+      "maximo": "14.020",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Letras – Tradução – Inglês",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Letras – Tradução – Inglês (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "14.876",
+      "maximo": "72.134",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Letras – Tradução Espanhol",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Letras – Tradução Espanhol (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-59.585",
+      "maximo": "-24.422",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Licenciatura em Artes Cênicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Artes Cênicas*",
+      "turno": "Noturno",
+      "minimo": null,
+      "maximo": null,
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Licenciatura em Artes Cênicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Artes Cênicas*",
+      "turno": "Diurno",
+      "minimo": "18.627",
+      "maximo": "18.627",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Licenciatura em Ciências Biológicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Ciências Biológicas",
+      "turno": "Noturno",
+      "minimo": "5.948",
+      "maximo": "116.233",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Licenciatura em Física",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Física",
+      "turno": "Noturno",
+      "minimo": "-68.138",
+      "maximo": "94.263",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Licenciatura em Matemática",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Matemática",
+      "turno": "Noturno",
+      "minimo": "-49.204",
+      "maximo": "9.671",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Licenciatura em Música",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Música*",
+      "turno": "Noturno",
+      "minimo": null,
+      "maximo": null,
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Licenciatura em Química",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Química",
+      "turno": "Noturno",
+      "minimo": "-32.770",
+      "maximo": "-32.770",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Língua e Literatura Japonesa",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua e Literatura Japonesa (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-62.925",
+      "maximo": "18.808",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Língua Espanhola e Literatura Espanhola e Hispano-Americana",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua Espanhola e Literatura Espanhola e Hispano-Americana (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-98.760",
+      "maximo": "13.701",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Língua Estrangeira Aplicada – Multilinguismo e Sociedade da Informação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Língua Estrangeira Aplicada – Multilinguismo e Sociedade da Informação (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-55.946",
+      "maximo": "50.274",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Língua Francesa e Respectiva Literatura",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua Francesa e Respectiva Literatura (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-44.511",
+      "maximo": "28.361",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Língua Inglesa e Respectiva Literatura",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua Inglesa e Respectiva Literatura (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "32.546",
+      "maximo": "50.645",
+      "pagina": 9,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Língua Portuguesa e Respectiva Literatura",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua Portuguesa e Respectiva Literatura (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "41.363",
+      "maximo": "52.962",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Língua Portuguesa e Respectiva Literatura",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua Portuguesa e Respectiva Literatura (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-70.531",
+      "maximo": "78.089",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Matemática",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Matemática (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "22.510",
+      "maximo": "91.155",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Medicina",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Medicina (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "173.841",
+      "maximo": "206.948",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Medicina Veterinária",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Medicina Veterinária (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "82.802",
+      "maximo": "179.560",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Museologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Museologia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-69.548",
+      "maximo": "21.708",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Música",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Música (Licenciatura)*",
+      "turno": "Diurno",
+      "minimo": "-52.883",
+      "maximo": "59.144",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Nutrição",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Nutrição (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "64.371",
+      "maximo": "93.954",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Odontologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Odontologia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "81.777",
+      "maximo": "129.578",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Pedagogia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Pedagogia (Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-20.971",
+      "maximo": "44.375",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Pedagogia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Pedagogia (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-58.685",
+      "maximo": "-3.162",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Psicologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura",
+        "Psicólogo"
+      ],
+      "ofertaOriginal": "Psicologia (Bacharelado / Licenciatura / Psicólogo)",
+      "turno": "Diurno",
+      "minimo": "107.286",
+      "maximo": "137.756",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Química",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Química (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "16.702",
+      "maximo": "89.253",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Química Tecnológica",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Química Tecnológica (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-23.379",
+      "maximo": "65.907",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Relações Internacionais",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Relações Internacionais (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "98.313",
+      "maximo": "152.744",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Saúde Coletiva",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Saúde Coletiva (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-55.136",
+      "maximo": "-44.554",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Serviço Social",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Serviço Social (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-76.148",
+      "maximo": "-17.915",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Serviço Social",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Serviço Social (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "3.922",
+      "maximo": "58.117",
+      "pagina": 10,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Teoria, Crítica e História da Arte",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Teoria, Crítica e História da Arte (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-0.054",
+      "maximo": "50.763",
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Turismo",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Turismo (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-89.917",
+      "maximo": "12.676",
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Enfermagem",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Enfermagem (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "26.432",
+      "maximo": "71.320",
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Farmácia",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Farmácia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-1.212",
+      "maximo": "74.556",
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Fisioterapia",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Fisioterapia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "30.618",
+      "maximo": "121.109",
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Fonoaudiologia",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Fonoaudiologia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-14.934",
+      "maximo": "11.358",
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Saúde Coletiva",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Saúde Coletiva (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-67.997",
+      "maximo": "-8.405",
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Terapia Ocupacional",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Terapia Ocupacional (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-21.685",
+      "maximo": "19.322",
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Engenharias – Aeroespacial / Automotiva / Eletrônica / Energia / Software",
+      "campus": "FCTE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharias – Aeroespacial / Automotiva / Eletrônica / Energia / Software (Bacharelados)**",
+      "turno": "Diurno",
+      "minimo": "50.195",
+      "maximo": "175.146",
+      "pagina": 11,
+      "ingressoConjunto": true
+    },
+    {
+      "nome": "Ciências Naturais",
+      "campus": "FUP",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Ciências Naturais (Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-85.500",
+      "maximo": "-85.500",
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Ciências Naturais",
+      "campus": "FUP",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Ciências Naturais (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-76.854",
+      "maximo": "-20.469",
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Gestão Ambiental",
+      "campus": "FUP",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Gestão Ambiental (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": null,
+      "maximo": null,
+      "pagina": 11,
+      "ingressoConjunto": false
+    },
+    {
+      "nome": "Gestão do Agronegócio",
+      "campus": "FUP",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Gestão do Agronegócio (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-78.135",
+      "maximo": "-78.135",
+      "pagina": 11,
+      "ingressoConjunto": false
+    }
+  ]
+}

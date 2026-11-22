@@ -56,7 +56,9 @@ class EstatisticaConsolidadaRepository(BaseRepository[EstatisticaConsolidada]):
         skip: int = 0,
         limit: int = 20,
     ) -> List[EstatisticaConsolidada]:
-        query = db.query(EstatisticaConsolidada)
+        query = db.query(EstatisticaConsolidada).filter(
+            EstatisticaConsolidada.amostragem_suprimida_lgpd.is_(False)
+        )
         if disciplina_id is not None:
             query = query.join(Turma, Turma.id == EstatisticaConsolidada.turma_id).filter(
                 Turma.disciplina_id == disciplina_id
@@ -88,7 +90,10 @@ class EstatisticaConsolidadaRepository(BaseRepository[EstatisticaConsolidada]):
             func.round(func.avg(ec.taxa_reprovacao_nota), 2).label("taxa_reprovacao_nota"),
             func.round(func.avg(ec.taxa_reprovacao_falta), 2).label("taxa_reprovacao_falta"),
             func.round(func.avg(ec.taxa_trancamento), 2).label("taxa_trancamento"),
-        ).filter(ec.disciplina_id == disciplina_id)
+        ).filter(
+            ec.disciplina_id == disciplina_id,
+            ec.amostragem_suprimida_lgpd.is_(False),
+        )
         if semestre_inicio is not None:
             query = query.filter(ec.semestre_referencia >= semestre_inicio)
         if semestre_fim is not None:

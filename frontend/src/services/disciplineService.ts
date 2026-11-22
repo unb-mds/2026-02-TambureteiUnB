@@ -21,6 +21,8 @@ export async function getDisciplines(filters?: {
   codigo?: string;
   departamento?: string;
   limit?: number;
+  apenas_com_turmas?: boolean;
+  semestre?: string;
 }): Promise<Discipline[]> {
   const params = new URLSearchParams();
   if (filters?.q) params.set("q", filters.q);
@@ -32,6 +34,8 @@ export async function getDisciplines(filters?: {
     params.set("departamento", filters.departamento);
   }
   if (filters?.limit) params.set("limit", String(filters.limit));
+  if (filters?.apenas_com_turmas !== undefined) params.set("apenas_com_turmas", String(filters.apenas_com_turmas));
+  if (filters?.semestre) params.set("semestre", filters.semestre);
 
   const queryStr = params.toString() ? `?${params.toString()}` : "";
   const items = await request<BackendDisciplinaResumo[]>(`/cadeiras${queryStr}`);
@@ -151,3 +155,7 @@ export const disciplineService = {
 };
 
 export default disciplineService;
+
+export async function getOfferedSemesters(): Promise<string[]> {
+  return request<string[]>("/turmas/semestres");
+}

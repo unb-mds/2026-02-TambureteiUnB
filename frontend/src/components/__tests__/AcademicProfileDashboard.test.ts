@@ -62,3 +62,78 @@ test("getDisciplineHistoryForSemester retorna somente as disciplinas do semestre
   assert.equal(history[0].mention, "II");
   assert.deepEqual(getDisciplineHistoryForSemester("2030/1"), []);
 });
+
+test("AcademicProfileDashboard renderiza dados reais quando importedData é fornecido", () => {
+  const markup = renderToStaticMarkup(
+    createElement(AcademicProfileDashboard, {
+      consented: false,
+      onConsent: () => {},
+      onRevokeConsent: () => {},
+      importedData: {
+        autenticidade_estrutural_valida: true,
+        dados_academicos: {
+          curso: "ENGENHARIA DE SOFTWARE/FCTE - BACHARELADO - DIURNO",
+          curriculo: "6360/2 - 2024.2",
+          status: "ATIVO",
+          periodo_inicial: "2025.1",
+          periodo_atual: 4,
+          prazo_conclusao: "2029.2 / 2032.2",
+          ira: 3.9718,
+          mp: 4.0333,
+          data_emissao: "21/11/2026 às 21:23",
+          codigo_verificacao: "30330eba4c",
+        },
+        carga_horaria: {
+          exigido: { obrigatorias: 2985, optativas: 540, complementares: 0, total: 3525 },
+          integralizado: { obrigatorias: 900, optativas: 90, complementares: 0, total: 990 },
+          pendente: { obrigatorias: 2085, optativas: 450, complementares: 0, total: 2535 },
+        },
+        cursadas: [
+          {
+            semestre: "2025.2",
+            codigo: "FGA0158",
+            nome: "ORIENTAÇÃO A OBJETOS",
+            professores: ["LUCAS URSULINO BOAVENTURA"],
+            ch: 60,
+            turma: "02",
+            frequencia: 100.0,
+            mencao: "SS",
+            situacao: "APR",
+            natureza_simbolo: null,
+          },
+        ],
+        cursando: [
+          {
+            semestre: "2026.2",
+            codigo: "FGA0312",
+            nome: "MÉTODOS DE DESENVOLVIMENTO DE SOFTWARE",
+            professores: ["Dra. CARLA SILVA ROCHA AGUIAR"],
+            ch: 60,
+            turma: "01",
+            frequencia: 100.0,
+            mencao: null,
+            situacao: "MATR",
+            natureza_simbolo: null,
+          },
+        ],
+        pendentes: [
+          { codigo: "FGA0160", nome: "MÉTODOS NUMÉRICOS PARA ENGENHARIA", ch: 60, matriculado: false },
+        ],
+        contribuicao: {
+          total_elegiveis: 1,
+          novas_contribuicoes: 1,
+          duplicadas_ignoradas: 0,
+          disciplinas_nao_encontradas: [],
+          turmas_atualizadas: 1,
+          turmas_liberadas_lgpd: 0,
+          minimo_amostras_lgpd: 5,
+        },
+      },
+    })
+  );
+
+  assert.match(markup, /3,9718/);
+  assert.match(markup, /990 de 3525 h/);
+  assert.match(markup, /MÉTODOS DE DESENVOLVIMENTO DE SOFTWARE/);
+  assert.match(markup, /Dados reais extraídos do seu Histórico Escolar/);
+});
