@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import AcademicProfileDashboard, {
   getAdjacentProfileSection,
+  buildWeeklySchedule,
   getDisciplineHistoryForSemester,
 } from "../AcademicProfileDashboard.tsx";
 
@@ -152,4 +153,21 @@ test("AcademicProfileDashboard renderiza dados reais quando importedData é forn
   assert.match(markup, /\/disciplinas\/metodos-de-desenvolvimento-de-software/);
   assert.doesNotMatch(markup, /Disciplinas · Semestre/);
   assert.match(markup, /Dados reais extraídos do seu Histórico Escolar/);
+});
+
+const scheduleSubject = (horario: string, turma = "01") => ({
+ semestre:"2026.2",codigo:"FGA0312",nome:"MÉTODOS DE DESENVOLVIMENTO DE SOFTWARE",
+ professores:["Docente de teste"],ch:60,turma,horario,local:"Sala de teste",
+ frequencia:null,mencao:null,situacao:"MATR",natureza_simbolo:null,
+});
+test("horários do perfil unem M5 e T1 da mesma turma em um único bloco", () => {
+ const days=buildWeeklySchedule([scheduleSubject("24M5 24T1")],{});
+ for (const day of days.filter(day=>["Segunda","Quarta"].includes(day.day))) {
+  assert.equal(day.classes.length,1);
+  assert.equal(day.classes[0].time,"12:00–13:50");
+ }
+});
+test("horários do perfil preservam intervalos e turmas diferentes", () => {
+ const days=buildWeeklySchedule([scheduleSubject("2M12 2M34"),scheduleSubject("2M5","02"),scheduleSubject("2T1","03")],{});
+ assert.deepEqual(days[0].classes.map(item=>item.time),["08:00–09:50","10:00–11:50","12:00–12:55","12:55–13:50"]);
 });

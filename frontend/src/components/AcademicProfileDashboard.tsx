@@ -8,7 +8,7 @@ import type {
   HistoricoImportacaoResponse,
 } from "../services/historicoService";
 import { request } from "../services/httpClient";
-import type { BackendTurmaResponse } from "../types/turma";
+import { SIGAA_TIME_SLOTS as SIGAA_SLOTS, type BackendTurmaResponse } from "../types/turma";
 
 export interface AcademicProfileDashboardProps {
   consented: boolean;
@@ -131,29 +131,6 @@ const SIGAA_DAY_TO_WEEKDAY: Record<string, (typeof WEEK_DAYS)[number]> = {
   "5": "Quinta",
   "6": "Sexta",
 };
-const SIGAA_SLOTS: Record<"M" | "T" | "N", Record<string, { start: string; end: string }>> = {
-  M: {
-    "1": { start: "08:00", end: "08:55" },
-    "2": { start: "08:55", end: "09:50" },
-    "3": { start: "10:00", end: "10:55" },
-    "4": { start: "10:55", end: "11:50" },
-    "5": { start: "12:00", end: "12:55" },
-  },
-  T: {
-    "1": { start: "12:55", end: "13:50" },
-    "2": { start: "14:00", end: "14:55" },
-    "3": { start: "14:55", end: "15:50" },
-    "4": { start: "16:00", end: "16:55" },
-    "5": { start: "16:55", end: "17:50" },
-    "6": { start: "18:00", end: "18:55" },
-  },
-  N: {
-    "1": { start: "19:00", end: "19:50" },
-    "2": { start: "19:50", end: "20:40" },
-    "3": { start: "20:50", end: "21:40" },
-    "4": { start: "21:40", end: "22:30" },
-  },
-};
 
 function formatProfessorNames(
   professores: string[],
@@ -183,7 +160,7 @@ function formatProfessorNames(
     .join(", ");
 }
 
-function buildWeeklySchedule(
+export function buildWeeklySchedule(
   cursando: HistoricoComponenteItem[],
   liveSchedules: Record<string, { horario: string; local: string; slug: string | null }>
 ) {
@@ -237,7 +214,7 @@ function buildWeeklySchedule(
           const weekday = SIGAA_DAY_TO_WEEKDAY[d];
           if (!weekday) continue;
           const list = columns.get(weekday)!;
-          if (!list.some((item) => item.name === discipline.nome && item.time === timeRange)) {
+          if (!list.some((item) => item.codigo === discipline.codigo && item.turma === discipline.turma && item.time === timeRange)) {
             list.push({ time: timeRange, ...baseInfo });
           }
         }
@@ -258,10 +235,20 @@ function buildWeeklySchedule(
     }
   }
 
-  return WEEK_DAYS.map((day) => ({
-    day,
-    classes: (columns.get(day) ?? []).sort((a, b) => a.time.localeCompare(b.time)),
-  }));
+  return WEEK_DAYS.map((day) => {
+    const sorted = (columns.get(day) ?? []).sort((a, b) => a.time.localeCompare(b.time));
+    const classes: typeof sorted = [];
+    for (const item of sorted) {
+      const [start, end] = item.time.split("–");
+      const previous = classes.find(candidate => candidate.codigo === item.codigo && candidate.turma === item.turma && candidate.time.split("–")[1] === start);
+      if (previous && end) {
+        previous.time = `${previous.time.split("–")[0]}–${end}`;
+      } else {
+        classes.push({...item});
+      }
+    }
+    return {day, classes};
+  });
 }
 
 function Metric({
@@ -862,8 +849,8 @@ function HistorySection({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {semesterHistory.map((row) => (
-              <tr key={`${row.semester}-${row.code}`}>
+            {semesterHistory.map((row, index) => (
+              <tr key={`${row.semester}-${row.code}-${row.status}-${index}`}>
                 <td className="px-4 py-3">
                   <span className="block font-semibold text-[#202124]">{row.name}</span>
                   <span className="mt-0.5 block text-xs text-gray-500">{row.code}</span>
