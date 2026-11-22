@@ -8,6 +8,7 @@ import StoolIllustration from "./StoolIllustration";
 import { authService, subscribeAuthChange } from "@/services/authService";
 import { podeModerar } from "@/services/moderacaoService";
 import { UserResponse } from "@/types/auth";
+import ThemeSelector from "@/components/ThemeSelector";
 
 export interface NavbarProps {
   className?: string;
@@ -186,6 +187,7 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
 
         {/* Canto Superior Direito: Perfil (Figma) se logado, ou Botões se deslogado */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeSelector />
           {isLoggedIn && user && podeModerar(user.role) && <Link href="/moderacao" className="text-sm font-semibold text-[#5B4BDB]">Moderação</Link>}
           {isLoggedIn ? (
             <div className="relative" ref={userMenuRef}>
@@ -318,7 +320,8 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
         </div>
 
         {/* Botão Mobile Hamburger */}
-        <div className="flex md:hidden items-center">
+        <div className="flex md:hidden items-center gap-2">
+          <ThemeSelector />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
