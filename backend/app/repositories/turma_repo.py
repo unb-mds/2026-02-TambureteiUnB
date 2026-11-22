@@ -7,6 +7,9 @@ class TurmaRepository(BaseRepository[Turma]):
     def __init__(self):
         super().__init__(Turma)
 
+    def listar_semestres(self, db: Session) -> List[str]:
+        return [row[0] for row in db.query(Turma.semestre).distinct().order_by(Turma.semestre.desc()).all()]
+
     def get_by_disciplina(self, db: Session, disciplina_id: int, semestre: Optional[str] = None) -> List[Turma]:
         query = db.query(Turma).options(selectinload(Turma.professores), selectinload(Turma.estatistica)).filter(Turma.disciplina_id == disciplina_id)
         if semestre:

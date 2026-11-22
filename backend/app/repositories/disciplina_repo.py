@@ -1,6 +1,9 @@
 from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
+import unicodedata
 from app.models.disciplina import Disciplina
+from app.models.turma import Turma
 from app.models.curso import CursoDisciplina
 from app.repositories.base import BaseRepository
 
@@ -50,14 +53,27 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
         codigo: Optional[str] = None,
         departamento: Optional[str] = None,
         apenas_com_turmas: bool = False,
+        semestre: Optional[str] = None,
         skip: int = 0,
         limit: Optional[int] = None,
     ) -> Tuple[List[Disciplina], int]:
         query = db.query(Disciplina)
         if apenas_com_turmas:
             query = query.filter(Disciplina.total_turmas > 0)
+        if semestre:
+            query = query.filter(Disciplina.turmas.any(Turma.semestre == semestre))
         if nome:
-            query = query.filter(Disciplina.nome.ilike(f"%{nome}%"))
+            normalized_name = func.translate(
+                func.lower(Disciplina.nome),
+                "áàâãäéèêëíìîïóòôõöúùûüç", "aaaaaeeeeiiiiooooouuuuc",
+            )
+            normalized_query = "".join(
+                character for character in unicodedata.normalize("NFD", nome.lower())
+                if unicodedata.category(character) != "Mn"
+            )
+            for word in normalized_query.split():
+                escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                query = query.filter(normalized_name.like(f"%{escaped}%", escape="\\"))
         if codigo:
             query = query.filter(Disciplina.codigo.ilike(f"%{codigo}%"))
         if departamento:

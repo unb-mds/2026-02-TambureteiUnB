@@ -87,7 +87,7 @@ const SIGAA_DAYS_MAP: Record<string, string> = {
   "7": "Sáb",
 };
 
-const SIGAA_TIME_SLOTS: Record<
+export const SIGAA_TIME_SLOTS: Record<
   "M" | "T" | "N",
   Record<string, { start: string; end: string }>
 > = {

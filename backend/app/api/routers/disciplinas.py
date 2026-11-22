@@ -23,6 +23,7 @@ def listar_disciplinas(
     codigo: Optional[str] = Query(None, description="Busca por código da disciplina"),
     departamento: Optional[str] = Query(None, description="Filtro por departamento"),
     apenas_com_turmas: bool = Query(False, description="Filtra apenas disciplinas com turmas"),
+    semestre: Optional[str] = Query(None, pattern=r"^\d{4}\.[1-4]$", description="Semestre das turmas ofertadas"),
     limit: Optional[int] = Query(None, description="Limite de itens a retornar (padrão: todos)"),
     db: Session = Depends(get_db),
 ):
@@ -36,6 +37,7 @@ def listar_disciplinas(
         codigo=codigo,
         departamento=departamento,
         apenas_com_turmas=apenas_com_turmas,
+        semestre=semestre,
         limit=limit,
     )
 
