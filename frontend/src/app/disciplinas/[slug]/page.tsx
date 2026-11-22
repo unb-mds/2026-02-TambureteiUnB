@@ -1,4 +1,6 @@
 "use client";
+
+import { hasApprovalData } from "@/utils/academicMetrics";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
 import DificuldadesPanel from "@/components/DificuldadesPanel";
 import MateriaisApoio from "@/components/MateriaisApoio";
@@ -422,7 +424,7 @@ function DisciplineDetailContent() {
     {
       label: "Taxa de Aprovação",
       value:
-        typeof discipline.approval === "number" && discipline.approval > 0
+        hasApprovalData(discipline.approval)
           ? `${discipline.approval}%`
           : "Sem dados",
       count: formatAlunos(metrica?.aprovados),

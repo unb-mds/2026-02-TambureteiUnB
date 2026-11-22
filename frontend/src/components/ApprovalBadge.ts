@@ -1,3 +1,4 @@
+import { hasApprovalData } from "../utils/academicMetrics.ts";
 import { createElement, type ReactElement } from "react";
 
 interface ApprovalBadgeProps {
@@ -7,10 +8,7 @@ interface ApprovalBadgeProps {
 export default function ApprovalBadge({
   approval,
 }: ApprovalBadgeProps): ReactElement {
-  const hasApprovalData =
-    typeof approval === "number" && Number.isFinite(approval) && approval > 0;
-
-  if (!hasApprovalData) {
+  if (!hasApprovalData(approval)) {
     return createElement(
       "span",
       {

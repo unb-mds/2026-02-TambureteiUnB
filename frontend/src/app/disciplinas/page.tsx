@@ -1,5 +1,7 @@
 "use client";
 
+import { hasApprovalData } from "@/utils/academicMetrics";
+
 import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -70,11 +72,11 @@ function DisciplinasContent() {
     }).sort((a, b) => {
       if (sort === "Menor taxa de aprovação") {
         const approvalA =
-          typeof a.approval === "number" && a.approval > 0
+          hasApprovalData(a.approval)
             ? a.approval
             : Number.POSITIVE_INFINITY;
         const approvalB =
-          typeof b.approval === "number" && b.approval > 0
+          hasApprovalData(b.approval)
             ? b.approval
             : Number.POSITIVE_INFINITY;
         return approvalA - approvalB;
