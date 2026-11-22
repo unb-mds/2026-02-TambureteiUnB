@@ -4,7 +4,7 @@ import type {
   MaterialType,
   UploadProgressInfo,
 } from "../types/material.ts";
-import { ApiError, request } from "./httpClient.ts";
+import { ApiError, request, requestBlob, getStoredToken } from "./httpClient.ts";
 
 export interface SingleUploadOptions {
   disciplineIdOrSlug: string | number;
@@ -184,7 +184,16 @@ export async function listMaterials(
   return request<MaterialPageResponse>(endpoint, { cache: "no-store" });
 }
 
+export async function downloadMaterial(id: number): Promise<Blob> {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ApiError("Material inválido.", 422);
+  if (!getStoredToken()) throw new ApiError("Entre na sua conta para baixar este material.", 401);
+  const blob = await requestBlob(`/materiais/${id}/download`, { cache: "no-store" });
+  if (blob.size === 0) throw new ApiError("O servidor retornou um arquivo vazio.", 503);
+  return blob;
+}
+
 export const materialService = {
+  downloadMaterial,
   uploadMaterial,
   uploadMaterialsBatch,
   listMaterials,
