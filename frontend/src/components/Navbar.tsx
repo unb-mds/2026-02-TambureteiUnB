@@ -278,6 +278,28 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
                     Meu perfil
                   </Link>
 
+                  <Link
+                    href="/alterar-senha"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-[#F7F7FA] hover:text-[#5B4BDB]"
+                  >
+                    <svg
+                      className="h-3.5 w-3.5 text-gray-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
+                    </svg>
+                    <span>Segurança da conta</span>
+                  </Link>
+
                   {/* Ação de Logout */}
                   <div className="pt-1">
                     <button
@@ -409,6 +431,27 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
                   className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#5B4BDB] hover:bg-[#5B4BDB]/5"
                 >
                   Meu perfil
+                </Link>
+                <Link
+                  href="/alterar-senha"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-[#5B4BDB]/5 hover:text-[#5B4BDB]"
+                >
+                  <svg
+                    className="h-4 w-4 text-gray-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                  <span>Segurança da conta</span>
                 </Link>
                 <Button
                   variant="outline"
