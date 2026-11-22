@@ -46,7 +46,6 @@ import {
 } from "@/services/openDataService";
 import {
   Discipline,
-  DEFAULT_HISTORICAL_PERFORMANCE,
 } from "@/types/disciplina";
 import {
   Class,
@@ -402,12 +401,7 @@ function DisciplineDetailContent() {
   );
   const hasRealExportableHistory = exportableHistoryRows.length > 0;
 
-  const performanceList =
-    publicRealPerformance.length > 0
-      ? publicRealPerformance
-      : realHistoricalPerformance.length > 0
-      ? []
-      : DEFAULT_HISTORICAL_PERFORMANCE;
+  const performanceList = publicRealPerformance;
 
   // Extração dos dados consolidados reais da disciplina
   const metrica = discipline.metrica_consolidada;
@@ -1060,6 +1054,12 @@ function DisciplineDetailContent() {
               </div>
 
               
+              {performanceList.length === 0 ? (
+                <p role="status" className="rounded-xl border border-[#ECEAF5] bg-white p-5 text-sm text-gray-600">
+                  Não há histórico semestral público disponível para esta disciplina. Registros com baixa amostragem são preservados conforme a LGPD.
+                </p>
+              ) : (
+                <>
               <div className="flex h-64 gap-3 sm:gap-5">
                 {/* Eixo Y */}
                 <div className="flex w-8 sm:w-10 flex-col justify-between pb-7 text-right text-[11px] font-medium text-gray-500">
@@ -1239,6 +1239,8 @@ function DisciplineDetailContent() {
                   </tbody>
                 </table>
               </div>
+                </>
+              )}
             </div>
 
             
