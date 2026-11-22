@@ -307,24 +307,26 @@ function DisciplinasContent() {
                 />
                 <div
                   className={`relative w-10 h-5.5 rounded-full transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 ${
-                    onlyWithClasses ? "bg-[#5B4BDB]" : "bg-gray-200"
+                    onlyWithClasses
+                      ? "bg-[var(--primary)]"
+                      : "border border-[var(--border-subtle)] bg-[var(--surface-muted)]"
                   }`}
                 >
                   <span
                     aria-hidden="true"
-                    className={`absolute top-[2px] left-[2px] h-4.5 w-4.5 rounded-full bg-white border transition-transform ${
+                    className={`absolute top-[2px] left-[2px] h-4.5 w-4.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] transition-transform ${
                       onlyWithClasses
-                        ? "translate-x-4.5 border-white"
-                        : "translate-x-0 border-gray-300"
+                        ? "translate-x-4.5"
+                        : "translate-x-0"
                     }`}
                   />
                 </div>
-                <span className="ml-3 text-xs sm:text-sm font-semibold text-[#202124]">
+                <span className="ml-3 text-xs sm:text-sm font-semibold text-[var(--foreground)]">
                   Apenas disciplinas com turmas ofertadas
                 </span>
               </label>
 
-              <span className="text-[11px] font-medium text-gray-500 bg-[#F7F7FA] px-2.5 py-1 rounded-full border border-gray-200">
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-muted)]">
                 {onlyWithClasses ? "Ocultando sem turmas" : "Exibindo todas (inclusive sem turmas)"}
               </span>
             </div>
