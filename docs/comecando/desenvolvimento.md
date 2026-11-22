@@ -20,7 +20,7 @@ docker compose up -d --build
 
 Serviços disponibilizados:
 * **API FastAPI (Swagger Docs):** [http://localhost:8000/docs](http://localhost:8000/docs)
-* **OpenAPI JSON:** [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
+* **OpenAPI JSON:** [http://localhost:8000/api/v1/openapi.json](http://localhost:8000/api/v1/openapi.json)
 * **Adminer (Interface do Banco de Dados):** [http://localhost:8085](http://localhost:8085)
 * **PostgreSQL 17:** `localhost:5432`
 
@@ -143,9 +143,14 @@ Abra o navegador em `http://localhost:3000` e valide os fluxos ativos da aplica�
    - Acesse `/disciplinas`.
    - Teste a busca textual (ex.: "Métodos", "Cálculo"), filtre por campus ou departamento e navegue pelas páginas pelo seletor de paginação (25 disciplinas por página).
    - Clique em um card (ex.: `/disciplinas/metodos-de-desenvolvimento-de-software`) e confirme a exibição de código, ementa oficial, créditos e grade de pré-requisitos navegáveis.
-3. **Fluxo 3 — Catálogo de Cursos:**
-   - Acesse `/cursos` e filtre pelos botões de campus (FGA, Darcy Ribeiro, FCE, FUP).
-   - Clique em "Ver disciplinas" em um curso para abrir sua matriz curricular.
+3. **Fluxo 3 — Catálogo de Cursos e Dashboard:**
+   - Acesse `/cursos` e filtre pelos botões de campus (`FCTE`, Darcy Ribeiro, FCE, FUP).
+   - Clique em um curso para abrir sua grade curricular e série histórica de formação/evasão.
+4. **Fluxo 4 — Colaboração, Materiais e Moderação (Release 2):**
+   - Autenticado como estudante, teste o registro de situação ("Já cursei"), o envio de comentário sob pseudônimo e o upload de material em `/disciplinas/[slug]`.
+   - Autenticado como moderador/admin, acesse `/moderacao` para revisar materiais pendentes e denúncias (ou siga o passo a passo completo em [Roteiro de Demonstração](roteiro_demonstracao.md)).
+5. **Fluxo 5 — Planejamento de Grade (`/minha-grade`):**
+   - Acesse `/minha-grade`, selecione disciplinas e turmas do semestre, confira a grade semanal sem choques de horário e teste a exportação em PDF.
 
 ### Passo 5: Auditoria de Rede e Logs
 - Abra o painel de desenvolvedor do navegador (**F12 -> aba Rede / Network**): confirme que as requisições assíncronas para `http://localhost:8000` retornam status `200 OK` (ou `201 Created`), sem alertas de CORS.

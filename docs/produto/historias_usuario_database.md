@@ -28,7 +28,7 @@ Eu, como Engenheiro de Banco de Dados, desejo modelar as tabelas `cursos` e `dis
 
 **Nessa issue deve ser feito:**
 - Criar tabela `cursos`: `id` (SERIAL PK), `codigo_mec` (VARCHAR 20 UNIQUE), `nome` (VARCHAR 150), `campus` (VARCHAR 100), `grau` (VARCHAR 50), `turno` (VARCHAR 50), `slug` (VARCHAR 150 UNIQUE) e `created_at`
-- Criar tabela `disciplinas`: `id` (SERIAL PK), `codigo` (VARCHAR 30), `slug` (VARCHAR 150 UNIQUE), `nome` (VARCHAR 150), `departamento` (VARCHAR 100), `creditos` (INT), `carga_horaria` (INT), `ementa` (TEXT) e `created_at`
+- Criar tabela `disciplinas`: `id` (SERIAL PK), `codigo` (VARCHAR 30), `slug` (VARCHAR 150 UNIQUE), `nome` (VARCHAR 150), `departamento` (VARCHAR 100 — expandido para 255 na migração `005`), `creditos` (INT), `carga_horaria` (INT), `ementa` (TEXT) e `created_at`
 - Criar índices nos campos `slug` e `codigo_mec` da tabela `cursos`, e nos campos `slug` e `codigo` da tabela `disciplinas`
 - Garantir suporte a textos longos de ementa em Markdown utilizando o mecanismo nativo TOAST do PostgreSQL
 
@@ -126,7 +126,7 @@ Depende de: US 1.1.1, US 2.1.1
 Eu, como Engenheiro de Banco de Dados, desejo modelar a tabela `comentarios`, a fim de possibilitar discussões sob pseudônimo e respostas aninhadas (threads).
 
 **Nessa issue deve ser feito:**
-- Criar tabela `comentarios`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `autor_alias` (VARCHAR 50 default 'Estudante Anônimo'), `topico_dificuldade` (VARCHAR 150), `conteudo` (TEXT), `parent_id` (BIGINT), `created_at` (TIMESTAMPTZ) e `status_moderacao` (VARCHAR 20)
+- Criar tabela `comentarios`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` — definido no `init.sql` como `NOT NULL ON DELETE CASCADE`, com desativação lógica da conta em `usuarios.is_active`), `autor_alias` (VARCHAR 50 default 'Estudante Anônimo'), `topico_dificuldade` (VARCHAR 150), `conteudo` (TEXT), `parent_id` (BIGINT), `created_at` (TIMESTAMPTZ) e `status_moderacao` (VARCHAR 20)
 - Configurar chave estrangeira auto-referencial em `parent_id` apontando para `comentarios.id` com `ON DELETE CASCADE`
 - Adicionar constraint CHECK para os status de moderação: `'PUBLICADO'`, `'PENDENTE'`, `'OCULTO'`
 - Criar índices nas colunas `disciplina_id` e `parent_id`

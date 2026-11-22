@@ -1,11 +1,18 @@
-# 📈 Tamburetei UnB
+<p>
+  <a href="https://unb-mds.github.io/2026-02-TambureteiUnB/">
+    <img src="docs/assets/banner-readme.svg" alt="Tamburetei UnB" height="72" />
+  </a>
+</p>
 
-> **Dados e métricas abertas para entender e navegar o desempenho acadêmico da Universidade de Brasília.**  
-> Projeto desenvolvido pela equipe **Grupo G9** para a disciplina **Métodos de Desenvolvimento de Software (MDS 2026/2)** — FCTE / Universidade de Brasília (UnB), sob a organização [OpenDevUnB](https://github.com/unb-mds).
+[![CI](https://github.com/unb-mds/2026-02-TambureteiUnB/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/unb-mds/2026-02-TambureteiUnB/actions/workflows/ci.yml) [![Docs](https://img.shields.io/badge/Docs-Portal_MkDocs-6C5CE7?style=flat&logo=materialformkdocs&logoColor=white)](https://unb-mds.github.io/2026-02-TambureteiUnB/) [![Licença MIT](https://img.shields.io/badge/Licen%C3%A7a-MIT-9385F7?style=flat)](LICENSE) ![FastAPI](https://img.shields.io/badge/FastAPI-Python_3.12-009688?style=flat&logo=fastapi&logoColor=white) ![Next.js](https://img.shields.io/badge/Next.js_16-React_19-111827?style=flat&logo=nextdotjs&logoColor=white) ![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat&logo=postgresql&logoColor=white)
+
+O **Tamburetei UnB** é uma plataforma aberta para explorar indicadores de aprovação, evasão, matrizes curriculares e relatos colaborativos das disciplinas da Universidade de Brasília (UnB), com conformidade **LGPD (*Privacy by Design*)**.
+
+[Sobre](#sobre-o-projeto) · [Documentação](https://unb-mds.github.io/2026-02-TambureteiUnB/) · [Como Executar](#como-executar-o-projeto-localmente) · [Testes](#como-rodar-os-testes) · [Como Contribuir](CONTRIBUTING.md)
 
 ---
 
-## 📖 Sobre o Projeto
+## Sobre o Projeto
 
 O **Tamburetei UnB** é um projeto de análise de dados acadêmicos que tem como objetivo disponibilizar informações sobre o desempenho dos estudantes da Universidade de Brasília de forma **aberta, organizada e reprodutível**.
 
@@ -20,25 +27,36 @@ A proposta é transformar esses dados em informações que possam ser exploradas
 
 O projeto é inspirado no **Tamburetei**, desenvolvido pela OpenDevUFCG, que utiliza dados acadêmicos para produzir análises reprodutíveis por meio de notebooks.
 
-### 🔗 Links Oficiais do Projeto:
-* 📚 **Portal de Documentação Oficial (MkDocs):** [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/)
-* 🎨 **Protótipo de Interface (Figma):** [Template MDS — Grupo 9](https://www.figma.com/board/coZ3FgGpd5amxJxaanwaTr/Template-MDS---Grupo-9?node-id=2128-1592)
-* 💡 **Referência Conceitual:** [Tamburetei — OpenDevUFCG](https://github.com/OpenDevUFCG/Tamburetei)
+### Arquitetura em Camadas
+
+```mermaid
+flowchart LR
+    U[Estudante / Visitante] --> FE[Frontend Next.js 16]
+    FE -->|REST / JWT| API[Backend FastAPI - Clean Architecture]
+    API --> DB[(PostgreSQL 17)]
+    ETL[Pipeline ETL & LGPD] --> DB
+    API -->|Triagem assincrona| IA[Ollama Local]
+```
+
+### Links Oficiais do Projeto:
+* **Portal de Documentação Oficial (MkDocs):** [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/)
+* **Protótipo de Interface (Figma):** [Template MDS — Grupo 9](https://www.figma.com/board/coZ3FgGpd5amxJxaanwaTr/Template-MDS---Grupo-9?node-id=2128-1592)
+* **Referência Conceitual:** [Tamburetei — OpenDevUFCG](https://github.com/OpenDevUFCG/Tamburetei)
 
 ---
 
-### 👥 Papéis e Governança
+### Papéis e Governança
 
 * **Scrum Master:** Thamires Ellen Souza Araujo — [@thamiresellensa](https://github.com/thamiresellensa)
 * **Product Owner:** Lucas Miranda Souza — [@lucasssmira](https://github.com/lucasssmira)
 
-O projeto concluiu com êxito os entregáveis da **Release 1 (R1)** (Pipeline de ETL e anonimização LGPD, modelagem relacional PostgreSQL 17, autenticação JWT e catálogo curricular integrado). A equipe encontra-se atualmente no ciclo de **Estabilização e Entrega Contínua (Release 2)**, focado em colaboração discente, moderação de conteúdos e consolidação analítica.
+O projeto concluiu os entregáveis da **Release 1 (R1)** (Pipeline de ETL e anonimização LGPD, modelagem relacional PostgreSQL 17, autenticação JWT e catálogo curricular) e consolidou na **Release 2 (R2)** o portal web em Next.js, doações colaborativas por quórum, upload e curadoria de materiais, Central de Denúncias (RN04), triagem híbrida por IA local (Ollama) e dashboard institucional.
 
 ---
 
-## 👥 Equipe
+## Equipe
 
-Projeto desenvolvido colaborativamente para a disciplina de **Métodos de Desenvolvimento de Software (MDS)** da **Universidade de Brasília — Faculdade do Gama (FGA)**.
+Projeto desenvolvido colaborativamente para a disciplina de **Métodos de Desenvolvimento de Software (MDS)** da **Universidade de Brasília — Faculdade de Ciências e Tecnologias em Engenharia (FCTE / Gama)**.
 
 | Nome                                 | GitHub                                                                                 |
 | ------------------------------------ | -------------------------------------------------------------------------------------- |
@@ -51,11 +69,11 @@ Projeto desenvolvido colaborativamente para a disciplina de **Métodos de Desenv
 | Thamires Ellen Souza Araujo          | [@thamiresellensa](https://github.com/thamiresellensa)                                 |
 
 
-## 🚀 Como Executar o Projeto Localmente
+## Como Executar o Projeto Localmente
 
 Siga o passo a passo abaixo para rodar todos os serviços do **Tamburetei UnB** em seu ambiente local.
 
-### 📋 Pré-requisitos
+### Pré-requisitos
 
 Certifique-se de ter instalado em sua máquina:
 * [Git](https://git-scm.com/)
@@ -64,7 +82,7 @@ Certifique-se de ter instalado em sua máquina:
 
 ---
 
-### 1️⃣ Clonar o Repositório
+### 1. Clonar o Repositório
 
 ```bash
 git clone https://github.com/unb-mds/2026-02-TambureteiUnB.git
@@ -73,7 +91,7 @@ cd 2026-02-TambureteiUnB
 
 ---
 
-### 2️⃣ Configurar as Variáveis de Ambiente
+### 2. Configurar as Variáveis de Ambiente
 
 Crie o arquivo `.env` na raiz do projeto a partir do modelo de exemplo:
 
@@ -92,7 +110,7 @@ cd ..
 
 ---
 
-### 3️⃣ Iniciar o Backend e Banco de Dados (Docker)
+### 3. Iniciar o Backend e Banco de Dados (Docker)
 
 Com o Docker em execução em sua máquina, suba os serviços em segundo plano:
 
@@ -105,15 +123,15 @@ Para verificar se todos os containers estão saudáveis e em execução:
 docker compose ps
 ```
 
-#### 🌐 Serviços do Backend disponíveis:
+#### Serviços do Backend disponíveis:
 * **API FastAPI (Swagger UI / Documentação Interativa):** [http://localhost:8000/docs](http://localhost:8000/docs)
-* **API OpenAPI Spec (JSON):** [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
+* **API OpenAPI Spec (JSON):** [http://localhost:8000/api/v1/openapi.json](http://localhost:8000/api/v1/openapi.json)
 * **Adminer (Interface Web de Gerenciamento do Banco):** [http://localhost:8085](http://localhost:8085)
 * **PostgreSQL:** `localhost:5432`
 
 ---
 
-### 4️⃣ Iniciar o Frontend (Next.js)
+### 4. Iniciar o Frontend (Next.js)
 
 Abra um terminal na pasta raiz do projeto e execute:
 
@@ -129,11 +147,11 @@ npm run dev
 ```
 
 Assim que a inicialização for concluída, acesse no navegador:
-* 🌐 **Aplicação Web (Frontend):** [http://localhost:3000](http://localhost:3000)
+* **Aplicação Web (Frontend):** [http://localhost:3000](http://localhost:3000)
 
 ---
 
-### 5️⃣ Migrações de Banco de Dados com Alembic
+### 5. Migrações de Banco de Dados com Alembic
 
 O esquema inicial de tabelas é provisionado automaticamente via `init.sql`. Caso necessite gerenciar ou aplicar migrações manuais com o Alembic:
 
@@ -150,7 +168,7 @@ docker compose exec backend alembic revision --autogenerate -m "descricao_da_mud
 
 ---
 
-## 🧪 Como Rodar os Testes
+## Como Rodar os Testes
 
 ### Testes do Backend (Pytest no Docker)
 ```bash
@@ -180,7 +198,7 @@ npm run lint
 
 ---
 
-## 🛑 Comandos Úteis do Docker
+## Comandos Úteis do Docker
 
 ```bash
 # Ver logs em tempo real de todos os serviços (backend, db, adminer)
@@ -226,7 +244,8 @@ Acesse no seu navegador: [http://localhost:8001](http://localhost:8001).
 
 
 ## Fontes DPO/Anuário
-[https://repositoriodpo.unb.br/anuarios/anuario-estatistico-2025/]
-Caso deseje buscar por um ano em específico, basta alterar o ano na URL do link anexado.
----
+* [Anuário Estatístico UnB 2025 (DPO)](https://repositoriodpo.unb.br/anuarios/anuario-estatistico-2025/) — caso deseje buscar por outro ano, basta alterar o ano na URL.
+
+## Licença
+Distribuído sob a [Licença MIT](LICENSE).
 

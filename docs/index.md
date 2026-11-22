@@ -48,9 +48,9 @@ Ingestão, normalização e disponibilização pública de indicadores históric
 * **Taxas de evasão** institucional por curso e campus;
 * **Tempo médio e taxa de formação** por curso.
 
-### 2. Hub Colaborativo de Disciplinas (`/cadeiras`)
+### 2. Hub Colaborativo de Disciplinas (`/disciplinas/[slug]`)
 
-Centralização de materiais pedagógicos organizados modularmente por matéria (`/cadeiras/:slug`):
+Centralização de materiais pedagógicos organizados modularmente por matéria (interface web em `/disciplinas/[slug]`, consumindo a API `/cadeiras/{slug}`):
 
 * Ementas oficiais, carga horária e créditos;
 * Dificuldades comuns e tópicos conceituais críticos;

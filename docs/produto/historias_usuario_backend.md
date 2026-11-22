@@ -36,7 +36,7 @@ Depende de: US 1.1.2
 Eu, como usuário autenticado, desejo excluir a minha conta, a fim de encerrar o meu acesso à plataforma quando não desejar mais utilizá-la.
  
 **Nessa issue deve ser feito:**
-- Criar endpoint `DELETE /users/me`
+- Criar endpoint `DELETE /users/me` *(implementado na API como `DELETE /auth/me`)*
 - Identificar o usuário autenticado via token JWT
 - Desativar a conta do usuário, impedindo novos logins
 - Manter as contribuições já realizadas pelo usuário, a fim de não afetar o sistema de validação das estatísticas

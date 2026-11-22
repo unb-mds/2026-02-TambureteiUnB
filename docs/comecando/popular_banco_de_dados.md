@@ -101,7 +101,8 @@ from app.core.database import engine
 from sqlalchemy import text
 
 tables = [
-    'comentarios', 'votos_uteis', 'conteudos', 'situacoes_disciplinas',
+    'denuncias', 'curadorias', 'comentarios', 'votos_uteis', 'conteudos',
+    'doacoes_estatisticas', 'estatisticas_consolidadas', 'situacoes_disciplinas',
     'metricas_academicas', 'metricas_consolidadas', 'metricas_cursos',
     'turmas_professores', 'cursos_disciplinas', 'turmas', 'professores',
     'disciplinas', 'cursos', 'usuarios'
@@ -109,6 +110,7 @@ tables = [
 
 with engine.begin() as conn:
     conn.execute(text('TRUNCATE TABLE ' + ', '.join(tables) + ' RESTART IDENTITY CASCADE;'))
+    conn.execute(text('REFRESH MATERIALIZED VIEW mv_evasao_campus;'))
 print('Banco de dados zerado com sucesso!')
 "
 ```
@@ -120,8 +122,10 @@ print('Banco de dados zerado com sucesso!')
 Depois de rodar o comando de carga, você pode conferir os dados de 3 formas:
 
 ### 1. Via Terminal (SQL rápido):
+*(Os comandos abaixo usam as credenciais padrão do `.env.example`; ajuste caso tenha alterado `POSTGRES_USER` ou `POSTGRES_DB` no seu `.env`.)*
+
 ```bash
-docker compose exec db psql -U postgres -d tamburetei -c "
+docker compose exec db psql -U tamburetei_dev -d tamburetei_db -c "
 SELECT 
     d.codigo, 
     d.nome, 
@@ -139,7 +143,7 @@ LIMIT 10;
 
 E para conferir as métricas dos cursos:
 ```bash
-docker compose exec db psql -U postgres -d tamburetei -c "
+docker compose exec db psql -U tamburetei_dev -d tamburetei_db -c "
 SELECT c.nome, m.ano, m.matriculados, m.taxa_sucesso, m.taxa_evasao 
 FROM metricas_cursos m 
 JOIN cursos c ON m.curso_id = c.id 
@@ -154,10 +158,10 @@ Abra no navegador: **[http://localhost:8000/docs](http://localhost:8000/docs)**
 - Teste a rota `GET /cadeiras/{slug}` para ver detalhes, pré-requisitos clicáveis e cursos vinculados.
 
 ### 3. Pelo Adminer (Interface Visual do Banco):
-Abra no navegador: **[http://localhost:8085](http://localhost:8085)** (porta padrão mapeada no `docker-compose.yml`)
+Abra no navegador: **[http://localhost:8085](http://localhost:8085)** (porta padrão mapeada no `docker-compose.yml`, usando as credenciais padrão do `.env.example`)
 - **Sistema:** PostgreSQL
 - **Servidor:** `db`
-- **Usuário:** `postgres`
-- **Senha:** `postgres` (ou a definida no seu `.env`)
-- **Base de dados:** `tamburetei`
+- **Usuário:** `tamburetei_dev`
+- **Senha:** `postgres` (ou a definida em `POSTGRES_PASSWORD` no seu `.env`)
+- **Base de dados:** `tamburetei_db`
 
