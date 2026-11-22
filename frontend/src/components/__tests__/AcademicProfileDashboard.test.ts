@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import AcademicProfileDashboard, {
   getAdjacentProfileSection,
   buildWeeklySchedule,
+  HistorySection,
   getDisciplineHistoryForSemester,
 } from "../AcademicProfileDashboard.tsx";
 
@@ -170,4 +171,37 @@ test("horários do perfil unem M5 e T1 da mesma turma em um único bloco", () =>
 test("horários do perfil preservam intervalos e turmas diferentes", () => {
  const days=buildWeeklySchedule([scheduleSubject("2M12 2M34"),scheduleSubject("2M5","02"),scheduleSubject("2T1","03")],{});
  assert.deepEqual(days[0].classes.map(item=>item.time),["08:00–09:50","10:00–11:50","12:00–12:55","12:55–13:50"]);
+});
+
+test("histórico inclui matrículas e trancamentos do semestre sem apagar tentativas", () => {
+ const item = (codigo: string, situacao: string, turma: string) => ({semestre:"2026.2",codigo,nome:codigo,professores:[],ch:30,turma,frequencia:null,mencao:null,situacao,natureza_simbolo:null});
+ const data = {
+  cursadas:[item("TST1001","TRANC","01"),item("TST1002","TRANC","01"),item("TST1003","TRANC","01")],
+  cursando:Array.from({length:7},(_,index)=>item(`TST${1003+index}`,"MATR","02")),
+ } as unknown as import("../../services/historicoService").HistoricoImportacaoResponse;
+ const markup=renderToStaticMarkup(createElement(HistorySection,{importedData:data}));
+ assert.match(markup,/10[\s\S]*?disciplinas/);
+ assert.equal((markup.match(/>MATR</g)||[]).length,7);
+ assert.equal((markup.match(/>TRANC</g)||[]).length,3);
+ assert.equal((markup.match(/>TST1003</g)||[]).length,4);
+});
+test("semestre que só tem matrículas também aparece no histórico", () => {
+ const data={cursadas:[],cursando:[{semestre:"2027.1",codigo:"TST1000",nome:"Disciplina atual",turma:"01",frequencia:null,mencao:null,situacao:"MATR"}]} as unknown as import("../../services/historicoService").HistoricoImportacaoResponse;
+ const markup=renderToStaticMarkup(createElement(HistorySection,{importedData:data}));
+ assert.match(markup,/value="2027.1"/);
+ assert.match(markup,/Disciplina atual/);
+ assert.match(markup,/>MATR</);
+ assert.match(markup,/>—</);
+});
+
+test("perfil mantém uma aula única na transição T6/N1 do SIGAA", () => {
+ const days=buildWeeklySchedule([scheduleSubject("35T6 35N1")],{});
+ for(const day of days.filter(day=>["Terça","Quinta"].includes(day.day))) {
+  assert.equal(day.classes.length,1);
+  assert.equal(day.classes[0].time,"18:00–19:50");
+ }
+});
+test("perfil não une aulas da mesma turma separadas por uma janela", () => {
+ const days=buildWeeklySchedule([scheduleSubject("2T5 2N1")],{});
+ assert.deepEqual(days[0].classes.map(item=>item.time),["16:55–17:50","19:00–19:50"]);
 });

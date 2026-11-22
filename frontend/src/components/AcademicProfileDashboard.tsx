@@ -240,7 +240,13 @@ export function buildWeeklySchedule(
     const classes: typeof sorted = [];
     for (const item of sorted) {
       const [start, end] = item.time.split("–");
-      const previous = classes.find(candidate => candidate.codigo === item.codigo && candidate.turma === item.turma && candidate.time.split("–")[1] === start);
+      const previous = classes.find(candidate => {
+        if (candidate.codigo !== item.codigo || candidate.turma !== item.turma) return false;
+        const previousEnd = candidate.time.split("–")[1];
+        // T6 e N1 são consecutivos na oferta SIGAA, com transição de cinco minutos.
+        const crossesEveningShift = previousEnd === SIGAA_SLOTS.T["6"].end && start === SIGAA_SLOTS.N["1"].start;
+        return previousEnd === start || crossesEveningShift;
+      });
       if (previous && end) {
         previous.time = `${previous.time.split("–")[0]}–${end}`;
       } else {
@@ -766,7 +772,7 @@ function DegreeSection({
   );
 }
 
-function HistorySection({
+export function HistorySection({
   importedData,
 }: {
   importedData?: HistoricoImportacaoResponse | null;
@@ -774,7 +780,7 @@ function HistorySection({
   const realRows = useMemo(
     () =>
       importedData
-        ? importedData.cursadas.map((c) => ({
+        ? [...importedData.cursadas, ...importedData.cursando].map((c) => ({
             semester: c.semestre,
             code: c.codigo,
             name: c.nome,
@@ -862,7 +868,9 @@ function HistorySection({
                     className={
                       row.status === "Aprovada" || row.status === "APR" || row.status === "CUMP"
                         ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
-                        : "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800"
+                        : row.status === "MATR"
+                          ? "rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--primary-text)]"
+                          : "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800"
                     }
                   >
                     {row.status}
