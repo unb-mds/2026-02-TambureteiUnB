@@ -169,11 +169,12 @@ export async function uploadMaterialsBatch(
  */
 export async function listMaterials(
   disciplineIdOrSlug: string | number,
-  params: { titulo?: string; tipo?: string; pagina?: number; tamanho_pagina?: number } = {}
+  params: { titulo?: string; tipo?: string; tipos?: MaterialType[]; pagina?: number; tamanho_pagina?: number } = {}
 ): Promise<MaterialPageResponse> {
   const query = new URLSearchParams();
   if (params.titulo) query.set("titulo", params.titulo);
   if (params.tipo) query.set("tipo", params.tipo);
+  for (const tipo of params.tipos ?? []) query.append("tipos", tipo);
   if (params.pagina) query.set("pagina", String(params.pagina));
   if (params.tamanho_pagina) query.set("tamanho_pagina", String(params.tamanho_pagina));
 

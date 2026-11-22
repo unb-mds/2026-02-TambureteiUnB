@@ -1301,6 +1301,7 @@ function DisciplineDetailContent() {
           />
 
           <MateriaisApoio
+            key={discipline.slug || slug}
             disciplineName={discipline.name}
             disciplineIdOrSlug={discipline.slug || slug}
             refreshTrigger={materialsReloadTrigger}
