@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
@@ -119,8 +119,14 @@ class DatabaseLoader(BaseLoader):
             c = existing_by_slug.get(item.slug)
             if c:
                 c.nome = item.nome
-                if item.codigo_mec:
-                    c.codigo_mec = item.codigo_mec
+                if item.codigo_mec and c.codigo_mec != item.codigo_mec:
+                    mec_ocupado = any(other.codigo_mec == item.codigo_mec and other.id != c.id for other in existing_by_slug.values() if other.id is not None)
+                    if not mec_ocupado:
+                        c.codigo_mec = item.codigo_mec
+                    else:
+                        self.logger.warning(
+                            f"Código MEC '{item.codigo_mec}' já está associado a outro curso. Mantendo '{c.codigo_mec}' para '{c.slug}'."
+                        )
                 if item.campus:
                     c.campus = item.campus
                 if item.grau:
@@ -128,10 +134,17 @@ class DatabaseLoader(BaseLoader):
                 if item.turno:
                     c.turno = item.turno
             else:
+                codigo_mec = item.codigo_mec
+                if codigo_mec and any(other.codigo_mec == codigo_mec for other in existing_by_slug.values()):
+                    self.logger.warning(
+                        f"Código MEC '{codigo_mec}' duplicado ao criar curso '{item.slug}'. Curso será criado sem código MEC duplicado."
+                    )
+                    codigo_mec = None
+
                 novo = Curso(
                     nome=item.nome,
                     slug=item.slug,
-                    codigo_mec=item.codigo_mec,
+                    codigo_mec=codigo_mec,
                     campus=item.campus,
                     grau=item.grau,
                     turno=item.turno,
@@ -551,17 +564,28 @@ class DatabaseLoader(BaseLoader):
         if not metricas_cursos:
             return 0
 
-        cursos_by_slug: Dict[str, Curso] = {c.slug: c for c in db.query(Curso).all()}
-        cursos_by_nome: Dict[str, Curso] = {c.nome.strip().lower(): c for c in db.query(Curso).all()}
+        all_db_cursos = db.query(Curso).all()
+        cursos_by_slug: Dict[str, Curso] = {c.slug: c for c in all_db_cursos}
+        cursos_by_nome_turno: Dict[Tuple[str, str], Curso] = {
+            (c.nome.strip().lower(), (c.turno or "").strip().lower()): c for c in all_db_cursos
+        }
+        cursos_by_nome: Dict[str, Curso] = {c.nome.strip().lower(): c for c in all_db_cursos}
+
+        existing_metricas_map: Dict[Tuple[int, int], MetricaCurso] = {
+            (m.curso_id, m.ano): m for m in db.query(MetricaCurso).all()
+        }
 
         count = 0
         for item in metricas_cursos:
             slug = item.get("curso_slug") or item.get("slug")
             nome = item.get("curso_nome") or item.get("nome")
+            turno = item.get("turno") or ""
             curso: Optional[Curso] = None
 
             if slug and slug in cursos_by_slug:
                 curso = cursos_by_slug[slug]
+            elif nome and turno and (nome.strip().lower(), turno.strip().lower()) in cursos_by_nome_turno:
+                curso = cursos_by_nome_turno[(nome.strip().lower(), turno.strip().lower())]
             elif nome and nome.strip().lower() in cursos_by_nome:
                 curso = cursos_by_nome[nome.strip().lower()]
 
@@ -578,10 +602,7 @@ class DatabaseLoader(BaseLoader):
                 curso.area_especifica = item["area_especifica"]
 
             ano = int(item.get("ano", 2024))
-            existing = db.query(MetricaCurso).filter(
-                MetricaCurso.curso_id == curso.id,
-                MetricaCurso.ano == ano
-            ).first()
+            existing = existing_metricas_map.get((curso.id, ano))
 
             vagas = int(item.get("vagas_totais", 0))
             inscritos = int(item.get("inscritos_total", 0))
@@ -624,6 +645,7 @@ class DatabaseLoader(BaseLoader):
                     taxa_evasao=taxa_evasao,
                 )
                 db.add(nova)
+                existing_metricas_map[(curso.id, ano)] = nova
             count += 1
 
         db.flush()

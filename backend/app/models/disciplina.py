@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, func
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Text, DateTime, func, select
+from sqlalchemy.orm import relationship, column_property
 from app.core.database import Base
+from app.models.turma import Turma
 
 class Disciplina(Base):
     __tablename__ = "disciplinas"
@@ -17,6 +18,13 @@ class Disciplina(Base):
     co_requisitos = Column(Text, nullable=True)
     equivalencias = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    total_turmas = column_property(
+        select(func.count(Turma.id))
+        .where(Turma.disciplina_id == id)
+        .correlate_except(Turma)
+        .scalar_subquery()
+    )
 
     # Relacionamentos
     cursos_disciplinas = relationship("CursoDisciplina", back_populates="disciplina", cascade="all, delete-orphan")

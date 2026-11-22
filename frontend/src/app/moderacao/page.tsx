@@ -283,7 +283,7 @@ export default function ModeracaoPage() {
                     : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
                 }`}
               >
-                Curadoria de Materiais (RN06)
+                Curadoria de Materiais
                 {fila && (
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
@@ -329,7 +329,7 @@ export default function ModeracaoPage() {
                     : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
                 }`}
               >
-                Central de Denúncias (RN04)
+                Central de Denúncias
                 {filaDenuncias && (
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${

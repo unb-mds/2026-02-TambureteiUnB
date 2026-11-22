@@ -53,6 +53,21 @@ test("filterCourses combina campus e consulta sem distinguir caixa", () => {
   );
 });
 
+test("filterCourses é insensível a acentos e diacríticos", () => {
+  assert.deepEqual(
+    filterCourses(courses, "eletrica", "Todos").map((course) => course.slug),
+    ["engenharia-eletrica"]
+  );
+  assert.deepEqual(
+    filterCourses(courses, "computacao", "Todos").map((course) => course.slug),
+    ["engenharia-de-computacao"]
+  );
+  assert.deepEqual(
+    filterCourses(courses, "ELETRICA", "Todos").map((course) => course.slug),
+    ["engenharia-eletrica"]
+  );
+});
+
 test("getCampusBadgeClasses mantém as cores específicas de cada campus", () => {
   assert.equal(
     getCampusBadgeClasses("FCTE - UnB Gama"),

@@ -49,10 +49,13 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
         nome: Optional[str] = None,
         codigo: Optional[str] = None,
         departamento: Optional[str] = None,
+        apenas_com_turmas: bool = False,
         skip: int = 0,
         limit: Optional[int] = None,
     ) -> Tuple[List[Disciplina], int]:
         query = db.query(Disciplina)
+        if apenas_com_turmas:
+            query = query.filter(Disciplina.total_turmas > 0)
         if nome:
             query = query.filter(Disciplina.nome.ilike(f"%{nome}%"))
         if codigo:

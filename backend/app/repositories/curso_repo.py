@@ -8,11 +8,19 @@ class CursoRepository(BaseRepository[Curso]):
     def __init__(self) -> None:
         super().__init__(Curso)
 
-    def listar(self, db: Session, q: str | None = None, campus: str | None = None) -> list[Curso]:
+    def listar(
+        self,
+        db: Session,
+        q: str | None = None,
+        campus: str | None = None,
+        apenas_ativos: bool = False,
+    ) -> list[Curso]:
         query = db.query(Curso).options(
             selectinload(Curso.metricas),
             selectinload(Curso.curso_disciplinas),
         )
+        if apenas_ativos:
+            query = query.filter(Curso.curso_disciplinas.any())
         if campus and campus.lower() not in ("todos", "todos os campi"):
             query = query.filter(Curso.campus.ilike(f"%{campus}%"))
         if q:

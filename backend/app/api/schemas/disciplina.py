@@ -9,6 +9,7 @@ class DisciplinaResumo(BaseModel):
     slug: str
     departamento: Optional[str] = None
     creditos: Optional[int] = None
+    total_turmas: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 

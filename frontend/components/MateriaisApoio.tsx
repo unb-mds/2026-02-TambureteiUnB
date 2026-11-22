@@ -294,7 +294,7 @@ export default function MateriaisApoio({
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
-            📄 Resumos & Dicas
+            Resumos & Dicas
           </button>
           <button
             type="button"
@@ -305,7 +305,7 @@ export default function MateriaisApoio({
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
-            🔗 Links & Arquivos
+            Links & Arquivos
           </button>
           <button
             type="button"
@@ -316,7 +316,7 @@ export default function MateriaisApoio({
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
-            📝 Provas Anteriores
+            Provas Anteriores
           </button>
         </div>
 
