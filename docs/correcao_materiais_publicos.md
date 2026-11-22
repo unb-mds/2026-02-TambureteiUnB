@@ -13,7 +13,7 @@ O acompanhamento pós-upload continua consultando os materiais recentes para ide
 ## Validação local
 
 - Suíte completa do backend: **535 testes aprovados**, com PostgreSQL em banco isolado `_test`.
-- **116 testes do frontend aprovados**, incluindo token e conteúdo binário, respostas 401/403/404/503 e parâmetros de consulta.
+- **125 testes do frontend aprovados na entrega conjunta**, incluindo token e conteúdo binário, respostas 401/403/404/503 e parâmetros de consulta.
 - Ruff, ESLint dos arquivos alterados, TypeScript e build aprovados.
 - Navegador com API simulada: páginas de 20/20/3 itens; pesquisa de material fora da primeira página; download com JWT e conteúdo PDF conferido; resposta antiga descartada; erro 503 e nova tentativa; filtro de provas.
 - Testes reais de API confirmam busca global, páginas sem duplicação, categoria RESUMO/DICA, preservação do filtro singular e exclusão de arquivos pendentes.
@@ -22,6 +22,6 @@ O acompanhamento pós-upload continua consultando os materiais recentes para ide
 
 ## Relação com o diagnóstico
 
-O [diagnóstico inicial](diagnostico_bugs_funcionais.md) e suas capturas registram a revisão anterior às correções. Esta entrega corrige download, pesquisa/paginação e tratamento de falhas. Vínculo de comentários e métricas estão em branches próprias.
+O [diagnóstico inicial](diagnostico_bugs_funcionais.md) e suas capturas registram a revisão anterior às correções. A PR #220 reúne as correções de materiais, métricas e Início/Cursos. O vínculo de comentários permanece acompanhado separadamente na PR #218.
 
-Branch: `fix/materiais-publicos`. Sprint planejada: **Sprint 12**. Issue e PR dependem da revisão antes da publicação.
+Branch: `fix/materiais-publicos`. **Sprint 12**. Acompanhamento: [issue #216](https://github.com/unb-mds/2026-02-TambureteiUnB/issues/216) e [PR #220](https://github.com/unb-mds/2026-02-TambureteiUnB/pull/220).

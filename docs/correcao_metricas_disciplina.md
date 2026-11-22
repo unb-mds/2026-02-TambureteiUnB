@@ -8,7 +8,7 @@ A página deixa de preencher gráficos e tabelas com o histórico fixo de demons
 
 ## Validação local
 
-- **116 testes do frontend aprovados**, incluindo validação percentual, adaptação de amostra vazia e apresentação de taxa zero.
+- **125 testes do frontend aprovados na entrega conjunta**, incluindo validação percentual, adaptação de amostra vazia e apresentação de taxa zero.
 - ESLint dos arquivos alterados, TypeScript e build de produção aprovados.
 - Navegador com API simulada: taxa zero visível; histórico vazio sem barras ou linhas fictícias; período de três alunos suprimido; série mista com apenas o período público exibido.
 
@@ -18,4 +18,4 @@ A página deixa de preencher gráficos e tabelas com o histórico fixo de demons
 
 ## Rastreabilidade
 
-Branch local: `fix/metricas-disciplina`. Sprint planejada: **Sprint 12**. Issue e PR serão publicadas após revisão.
+As correções estão na branch `fix/materiais-publicos`, acompanhadas pela issue #216 e pela PR #220, na **Sprint 12**. Os commits de métricas permanecem separados dentro da mesma PR.

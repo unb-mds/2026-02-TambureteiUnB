@@ -197,4 +197,4 @@ Não houve publicação, criação de issues ou PRs, correção de código funci
 
 ## Atualização de acompanhamento
 
-Os registros acima preservam a reprodução da revisão-base. As correções de download, listagem e erro estão preparadas na branch local `fix/materiais-publicos`; ver [validação de materiais](correcao_materiais_publicos.md). Os demais casos seguem em branches independentes de comentários, métricas e Início/Cursos, planejadas para a Sprint 12. Não houve publicação desta revisão.
+Os registros acima preservam a reprodução da revisão-base. As correções de materiais, métricas e Início/Cursos estão reunidas na issue #216 e na PR #220, mantendo seus commits separados. O vínculo de comentários permanece na issue #214 e na PR #218. As entregas pertencem à Sprint 12. Ver [validação de materiais](correcao_materiais_publicos.md), [métricas](correcao_metricas_disciplina.md) e [Início/Cursos](correcao_inicio_cursos.md).
