@@ -24,11 +24,11 @@ export default function HomePage() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() =>
-    authService.isAuthenticated()
-  );
+  const [isMounted, setIsMounted] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const syncAuth = () => {
       setIsLoggedIn(authService.isAuthenticated());
     };
