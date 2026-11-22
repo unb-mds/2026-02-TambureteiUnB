@@ -297,21 +297,36 @@ def _extrair_carga_horaria(texto_layout: str, texto_padrao: str) -> HistoricoCar
     return resultado
 
 
+RE_TITULO_DOCENTE = re.compile(
+    r"\b(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+",
+    re.UNICODE,
+)
+
+
 def _extrair_professores_e_nome(
     linhas_texto: List[str],
 ) -> Tuple[str, List[str]]:
     """Separa nome da disciplina e lista de docentes a partir das linhas internas do bloco."""
     texto_unido = " ".join(l.strip() for l in linhas_texto if l.strip())
     professores: List[str] = []
+    partes_nome_preservadas: List[str] = []
 
     for match in RE_DOCENTE_PARTE.finditer(texto_unido):
         docente_raw = " ".join(match.group(0).split()).strip(" ,")
         docente_sem_ch = re.sub(r"\s*\(\d+h\)\s*$", "", docente_raw).strip()
+        titulo_match = RE_TITULO_DOCENTE.search(docente_sem_ch)
+        if titulo_match and titulo_match.start() > 0:
+            prefixo = docente_sem_ch[: titulo_match.start()].strip()
+            if prefixo:
+                partes_nome_preservadas.append(prefixo)
+            docente_sem_ch = docente_sem_ch[titulo_match.start() :].strip()
         if docente_sem_ch and docente_sem_ch not in professores:
             professores.append(docente_sem_ch)
 
     nome_limpo = RE_DOCENTE_PARTE.sub("", texto_unido)
     nome_limpo = re.sub(r"\(\d+h\)", "", nome_limpo)
+    if partes_nome_preservadas:
+        nome_limpo = " ".join([nome_limpo, *partes_nome_preservadas])
     nome_limpo = " ".join(nome_limpo.replace(",", " ").split()).strip()
     return nome_limpo, professores
 
