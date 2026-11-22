@@ -1,6 +1,8 @@
 
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #F7F7FA;
   --foreground: #202124;
@@ -21,6 +23,36 @@
 
   --border: #EDE9FD;
   --muted: #6B7280;
+  --surface: #FFFFFF;
+  --surface-muted: #FAFAFC;
+  --surface-soft: #F7F7FA;
+  --border-subtle: #E8E6F8;
+  --text-muted: #6B7280;
+  --primary-text: #5B4BDB;
+  --primary-soft: rgba(91, 75, 219, 0.1);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #121214;
+  --foreground: #F4F4F5;
+  --color-bg: #121214;
+  --color-text: #F4F4F5;
+  --color-muted: #A1A1AA;
+  --color-card: #18181B;
+  --color-border: #303036;
+  --primary: #A89BFF;
+  --primary-dark: #9383F4;
+  --secondary: #B5A9FF;
+  --border: #303036;
+  --muted: #A1A1AA;
+  --surface: #18181B;
+  --surface-muted: #202024;
+  --surface-soft: #24242A;
+  --border-subtle: #303036;
+  --text-muted: #A1A1AA;
+  --primary-text: #B5A9FF;
+  --primary-soft: rgba(168, 155, 255, 0.16);
 }
 
 @theme inline {
@@ -57,6 +89,288 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+html,
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.guest-banner__secondary-action {
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.guest-banner__secondary-action:hover {
+  background-color: var(--surface-soft);
+  border-color: var(--primary-text);
+}
+
+html[data-theme="dark"] .home-hero {
+  background-image: linear-gradient(
+    to bottom right,
+    var(--surface),
+    var(--surface-muted)
+  );
+  border-color: var(--border-subtle);
+}
+
+html[data-theme="dark"] .guest-banner.guest-banner {
+  background-image: linear-gradient(to right, #25242A, #2B2930, #25242A);
+  border-color: rgb(216 190 111 / 0.3);
+}
+
+html[data-theme="dark"] .guest-banner .guest-banner__icon,
+html[data-theme="dark"] .guest-banner .guest-banner__badge {
+  background-color: rgb(216 190 111 / 0.12);
+  color: #EAD89F;
+}
+
+html[data-theme="dark"] .guest-banner .guest-banner__description {
+  color: #E4E4E7;
+}
+
+html[data-theme="dark"] .guest-banner .guest-banner__subtitle {
+  color: #D9C98F;
+}
+
+html[data-theme="dark"] .guest-banner .guest-banner__brand {
+  color: #FFFFFF;
+}
+
+html[data-theme="dark"] .guest-banner .guest-banner__dismiss {
+  color: #D4D4D8;
+}
+
+html[data-theme="dark"] .guest-banner .guest-banner__dismiss:hover {
+  background-color: rgb(216 190 111 / 0.12);
+  color: #FFFFFF;
+}
+
+html[data-theme="dark"] [class~="bg-white"],
+html[data-theme="dark"] [class~="bg-white/95"],
+html[data-theme="dark"] [class~="bg-[#FFFFFF]"] {
+  background-color: var(--surface);
+}
+
+html[data-theme="dark"] [class~="bg-white/70"] {
+  background-color: rgb(24 24 27 / 0.92);
+}
+
+html[data-theme="dark"] [class~="bg-[#F7F7FA]"],
+html[data-theme="dark"] [class~="bg-[#ECEAF6]"],
+html[data-theme="dark"] [class~="bg-[#FAFAFC]"],
+html[data-theme="dark"] [class~="bg-[#FAF9FD]"],
+html[data-theme="dark"] [class~="bg-[#F9F9FC]"],
+html[data-theme="dark"] [class~="bg-[#FBFBFE]"],
+html[data-theme="dark"] [class~="bg-[#F8F7FD]"],
+html[data-theme="dark"] [class~="bg-[#F4F3FA]"],
+html[data-theme="dark"] [class~="bg-[#F1F0F8]"],
+html[data-theme="dark"] [class~="bg-gray-50"],
+html[data-theme="dark"] [class~="bg-gray-100"] {
+  background-color: var(--surface-muted);
+}
+
+html[data-theme="dark"] [class~="bg-[#EDE9FD]"],
+html[data-theme="dark"] [class~="bg-[#EDE9FD]/30"],
+html[data-theme="dark"] [class~="bg-[#EDE9FD]/40"],
+html[data-theme="dark"] [class~="bg-[#EDE9FD]/50"],
+html[data-theme="dark"] [class~="bg-[#EDE9FD]/60"],
+html[data-theme="dark"] [class~="bg-[#EDE9FD]/70"],
+html[data-theme="dark"] [class~="bg-[#EDE9FD]/80"],
+html[data-theme="dark"] [class~="bg-[#5B4BDB]/5"],
+html[data-theme="dark"] [class~="bg-[#5B4BDB]/10"],
+html[data-theme="dark"] [class~="bg-[#5B4BDB]/15"],
+html[data-theme="dark"] [class~="bg-[#5B4BDB]/20"] {
+  background-color: var(--primary-soft);
+}
+
+html[data-theme="dark"] [class~="text-[#202124]"],
+html[data-theme="dark"] [class~="text-[#1E1B3A]"],
+html[data-theme="dark"] [class~="text-[#3C4043]"],
+html[data-theme="dark"] [class~="text-gray-700"],
+html[data-theme="dark"] [class~="text-gray-800"],
+html[data-theme="dark"] [class~="text-gray-900"] {
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] [class~="text-gray-400"],
+html[data-theme="dark"] [class~="text-gray-500"],
+html[data-theme="dark"] [class~="text-gray-600"],
+html[data-theme="dark"] [class~="text-[#6B7280]"],
+html[data-theme="dark"] [class~="text-[#5F6368]"],
+html[data-theme="dark"] [class~="text-[#526174]"],
+html[data-theme="dark"] [class~="text-[#545864]"],
+html[data-theme="dark"] [class~="text-[#5B536E]"],
+html[data-theme="dark"] [class~="text-[#514A64]"] {
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] [class~="text-[#5B4BDB]"],
+html[data-theme="dark"] [class~="text-[#4F3EC9]"],
+html[data-theme="dark"] [class~="text-[#7C6CF0]"] {
+  color: var(--primary-text);
+}
+
+html[data-theme="dark"] [class~="bg-amber-50"],
+html[data-theme="dark"] [class~="bg-amber-50/60"],
+html[data-theme="dark"] [class~="bg-[#FFF7E8]"],
+html[data-theme="dark"] [class~="bg-[#FFF8D8]"],
+html[data-theme="dark"] [class~="bg-[#FFFDF0]"] {
+  background-color: #3A2D16;
+}
+
+html[data-theme="dark"] [class~="bg-emerald-50"],
+html[data-theme="dark"] [class~="bg-[#E9F9F3]"],
+html[data-theme="dark"] [class~="bg-[#EAF8EF]"] {
+  background-color: #153528;
+}
+
+html[data-theme="dark"] [class~="bg-red-50"],
+html[data-theme="dark"] [class~="bg-red-50/50"],
+html[data-theme="dark"] [class~="bg-rose-50/50"],
+html[data-theme="dark"] [class~="bg-rose-100"],
+html[data-theme="dark"] [class~="bg-[#FFF0F0]"],
+html[data-theme="dark"] [class~="bg-[#FFF5F5]"] {
+  background-color: #3B2023;
+}
+
+html[data-theme="dark"] [class~="bg-orange-50"],
+html[data-theme="dark"] [class~="bg-purple-50"] {
+  background-color: #282331;
+}
+
+html[data-theme="dark"] [class~="bg-indigo-50"] {
+  background-color: #25263A;
+}
+
+html[data-theme="dark"] [class~="bg-purple-50"] {
+  background-color: #30243A;
+}
+
+html[data-theme="dark"] [class~="text-amber-700"],
+html[data-theme="dark"] [class~="text-amber-800"],
+html[data-theme="dark"] [class~="text-amber-900"],
+html[data-theme="dark"] [class~="text-amber-950"],
+html[data-theme="dark"] [class~="text-[#744210]"],
+html[data-theme="dark"] [class~="text-[#78350F]"],
+html[data-theme="dark"] [class~="text-[#806300]"],
+html[data-theme="dark"] [class~="text-[#854D0E]"],
+html[data-theme="dark"] [class~="text-[#92400E]"],
+html[data-theme="dark"] [class~="text-[#925600]"],
+html[data-theme="dark"] [class~="text-[#9A5700]"],
+html[data-theme="dark"] [class~="text-[#B45309]"],
+html[data-theme="dark"] [class~="text-[#B7791F]"] {
+  color: #FCD675;
+}
+
+html[data-theme="dark"] [class~="text-emerald-600"],
+html[data-theme="dark"] [class~="text-emerald-700"],
+html[data-theme="dark"] [class~="text-emerald-800"],
+html[data-theme="dark"] [class~="text-[#067A59]"],
+html[data-theme="dark"] [class~="text-[#1B6634]"],
+html[data-theme="dark"] [class~="text-[#287A45]"] {
+  color: #75D5A5;
+}
+
+html[data-theme="dark"] [class~="text-red-500"],
+html[data-theme="dark"] [class~="text-red-600"],
+html[data-theme="dark"] [class~="text-red-700"],
+html[data-theme="dark"] [class~="text-red-800"],
+html[data-theme="dark"] [class~="text-red-900"],
+html[data-theme="dark"] [class~="text-rose-600"],
+html[data-theme="dark"] [class~="text-rose-700"],
+html[data-theme="dark"] [class~="text-[#9B2C2C]"],
+html[data-theme="dark"] [class~="text-[#C52C2C]"],
+html[data-theme="dark"] [class~="text-[#C53030]"] {
+  color: #FDA4AF;
+}
+
+html[data-theme="dark"] [class~="text-orange-700"] {
+  color: #C4B5FD;
+}
+
+html[data-theme="dark"] [class~="text-indigo-700"] {
+  color: #B8BCFF;
+}
+
+html[data-theme="dark"] [class~="text-purple-700"] {
+  color: #D8B4FE;
+}
+
+html[data-theme="dark"] [class~="text-white"] {
+  color: #FFFFFF;
+}
+
+html[data-theme="dark"] [class~="border-[#D8D1FA]"],
+html[data-theme="dark"] [class~="border-[#D8D1FA]/70"],
+html[data-theme="dark"] [class~="border-[#DDD8FA]"],
+html[data-theme="dark"] [class~="border-[#DDD9F1]"],
+html[data-theme="dark"] [class~="border-[#E0DDF2]"],
+html[data-theme="dark"] [class~="border-[#E1DDFC]"],
+html[data-theme="dark"] [class~="border-[#E1DFEA]"],
+html[data-theme="dark"] [class~="border-[#DCD9E9]"],
+html[data-theme="dark"] [class~="border-[#E4E2EC]"],
+html[data-theme="dark"] [class~="border-[#E5E7EB]"],
+html[data-theme="dark"] [class~="border-[#E8E6F8]"],
+html[data-theme="dark"] [class~="border-[#ECEAF5]"],
+html[data-theme="dark"] [class~="border-[#ECEAF6]"],
+html[data-theme="dark"] [class~="border-[#EDE9FD]"],
+html[data-theme="dark"] [class~="border-[#EDE9FD]/60"],
+html[data-theme="dark"] [class~="border-[#EDE9FD]/70"],
+html[data-theme="dark"] [class~="border-[#F4F3FA]"],
+html[data-theme="dark"] [class~="border-[#F7F7FA]"],
+html[data-theme="dark"] [class~="border-gray-100"],
+html[data-theme="dark"] [class~="border-gray-200"],
+html[data-theme="dark"] [class~="border-gray-200/70"],
+html[data-theme="dark"] [class~="border-gray-300"] {
+  border-color: var(--border-subtle);
+}
+
+html[data-theme="dark"] [class~="border-amber-200"],
+html[data-theme="dark"] [class~="border-amber-200/80"],
+html[data-theme="dark"] [class~="border-emerald-200"],
+html[data-theme="dark"] [class~="border-orange-200/80"],
+html[data-theme="dark"] [class~="border-red-200"],
+html[data-theme="dark"] [class~="border-red-300"],
+html[data-theme="dark"] [class~="border-red-500"],
+html[data-theme="dark"] [class~="border-rose-200"],
+html[data-theme="dark"] [class~="border-[#A7E6CF]"],
+html[data-theme="dark"] [class~="border-[#D1F0DC]"],
+html[data-theme="dark"] [class~="border-[#FCA5A5]"],
+html[data-theme="dark"] [class~="border-[#FED7D7]"],
+html[data-theme="dark"] [class~="border-[#FEEBC8]"] {
+  border-color: #45414F;
+}
+
+html[data-theme="dark"] [class~="border-indigo-200"],
+html[data-theme="dark"] [class~="border-indigo-200/80"] {
+  border-color: #55577D;
+}
+
+html[data-theme="dark"] [class~="border-purple-200"] {
+  border-color: #684A7A;
+}
+
+html[data-theme="dark"] [class~="border-[#5B4BDB]"],
+html[data-theme="dark"] [class~="border-[#5B4BDB]/20"],
+html[data-theme="dark"] [class~="border-[#5B4BDB]/40"],
+html[data-theme="dark"] [class~="border-[#5B4BDB]/60"] {
+  border-color: var(--primary-text);
+}
+
+html[data-theme="dark"] [class~="hover:bg-gray-50"]:hover,
+html[data-theme="dark"] [class~="hover:bg-gray-100"]:hover,
+html[data-theme="dark"] [class~="hover:bg-[#F7F7FA]"]:hover,
+html[data-theme="dark"] [class~="hover:bg-purple-50/80"]:hover {
+  background-color: var(--surface-soft);
+}
+
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  color-scheme: dark;
 }
