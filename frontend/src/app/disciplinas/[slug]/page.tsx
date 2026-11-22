@@ -340,7 +340,7 @@ function DisciplineDetailContent() {
           <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
           <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
           <div className="h-32 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="mb-8 grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto">
             {[1, 2, 3, 4].map((i) => (
               <ClassCardSkeleton key={i} />
             ))}
@@ -869,7 +869,7 @@ function DisciplineDetailContent() {
             {classesLoading ? (
               <div
                 aria-label="Carregando lista de turmas"
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5"
+                className="grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto sm:gap-5"
               >
                 {[1, 2, 3, 4].map((skeletonId) => (
                   <ClassCardSkeleton key={skeletonId} />
@@ -955,10 +955,12 @@ function DisciplineDetailContent() {
                       de {filteredAndSortedClasses.length}{" "}
                       {filteredAndSortedClasses.length === 1 ? "turma" : "turmas"}
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                      {paginatedClasses.items.map((turma) => (
-                        <ClassCard key={turma.id} classData={turma} />
-                      ))}
+                    <div className="overflow-x-auto pb-2">
+                      <div className="grid min-w-[1000px] grid-cols-4 gap-4 sm:gap-5">
+                        {paginatedClasses.items.map((turma) => (
+                          <ClassCard key={turma.id} classData={turma} />
+                        ))}
+                      </div>
                     </div>
                     <Pagination
                       currentPage={paginatedClasses.currentPage}
@@ -1380,7 +1382,7 @@ export default function DisciplineDetailPage() {
             <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
             <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
             <div className="h-32 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="mb-8 grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto">
               {[1, 2, 3, 4].map((i) => (
                 <ClassCardSkeleton key={i} />
               ))}
