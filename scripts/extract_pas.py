@@ -51,6 +51,23 @@ def record(name, campus, shift, minimum, maximum, page):
     name = " ".join(name.split())
     name = re.sub(r"Licenciat\s+ura", "Licenciatura", name)
     degree = "Licenciatura" if "Licenciatura" in name else "Bacharelado"
+    normalized = (
+        unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
+    )
+    degree_labels = {
+        "bacharelado": "Bacharelado",
+        "bacharelados": "Bacharelado",
+        "licenciatura": "Licenciatura",
+        "psicologo": "Psicólogo",
+    }
+    degrees = list(
+        dict.fromkeys(
+            degree_labels[value]
+            for value in re.findall(
+                r"\b(bacharelados?|licenciatura|psicologo)\b", normalized
+            )
+        )
+    )
     clean = re.sub(r"\s*\([^)]*\)\**", "", name).rstrip("*")
     lower, upper = score(minimum), score(maximum)
     if lower is not None and upper is not None and Decimal(lower) > Decimal(upper):
@@ -59,6 +76,8 @@ def record(name, campus, shift, minimum, maximum, page):
         "nome": clean,
         "campus": campus,
         "grau": degree,
+        "graus": degrees,
+        "ofertaOriginal": name,
         "turno": shift,
         "minimo": lower,
         "maximo": upper,

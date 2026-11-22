@@ -409,3 +409,62 @@ html[data-theme="dark"] select,
 html[data-theme="dark"] textarea {
   color-scheme: dark;
 }
+/* Superfícies e estados que também acompanham o tema. */
+html[data-theme="dark"] [class~="bg-[#F8F7FF]"],
+html[data-theme="dark"] [class~="bg-[#FAF9FD]"] {
+  background-color: var(--surface-muted);
+}
+html[data-theme="dark"] [class~="bg-[#F0EEFF]"] {
+  background-color: var(--primary-soft);
+}
+html[data-theme="dark"] [class~="bg-[#E8E6F8]"],
+html[data-theme="dark"] [class~="bg-gray-200"],
+html[data-theme="dark"] [class~="bg-gray-300"] {
+  background-color: #34343C;
+}
+html[data-theme="dark"] [class~="text-[#5142C5]"] {
+  color: var(--primary-text);
+}
+html[data-theme="dark"] [class~="text-[#29234D]"] {
+  color: var(--foreground);
+}
+html[data-theme="dark"] [class~="text-[#3F3A60]"] {
+  color: var(--text-muted);
+}
+html[data-theme="dark"] [class~="bg-[#FFF0F2]"],
+html[data-theme="dark"] [class~="bg-rose-50"] {
+  background-color: var(--status-danger-bg);
+}
+html[data-theme="dark"] [class~="text-[#EF4444]"] {
+  color: var(--status-danger-text);
+}
+html[data-theme="dark"] [class~="bg-emerald-200"] {
+  background-color: var(--status-success-border);
+}
+html[data-theme="dark"] button[class~="bg-gray-300"]:disabled {
+  background-color: #34343C;
+  color: #B4B4BF;
+}
+html[data-theme="dark"] [class~="hover:bg-[#F0EEFF]"]:hover,
+html[data-theme="dark"] [class~="hover:bg-[#EDE9FD]"]:hover,
+html[data-theme="dark"] [class~="hover:bg-[#EDE9FD]/40"]:hover,
+html[data-theme="dark"] [class~="hover:bg-[#5B4BDB]/5"]:hover,
+html[data-theme="dark"] [class~="hover:bg-[#5B4BDB]/10"]:hover,
+html[data-theme="dark"] [class~="hover:bg-[#5B4BDB]/15"]:hover,
+html[data-theme="dark"] [class~="hover:bg-[#5B4BDB]/20"]:hover,
+html[data-theme="dark"] [class~="hover:bg-purple-50"]:hover {
+  background-color: var(--primary-soft);
+  color: var(--primary-text);
+}
+html[data-theme="dark"] [class~="hover:bg-gray-200"]:hover,
+html[data-theme="dark"] [class~="hover:bg-[#F4F3FA]"]:hover,
+html[data-theme="dark"] [class~="hover:bg-[#FAFAFC]"]:hover {
+  background-color: var(--surface-soft);
+}
+html[data-theme="dark"] [class~="hover:bg-red-50"]:hover {
+  background-color: var(--status-danger-bg);
+}
+html[data-theme="dark"] [class~="border-[#B8B1ED]"],
+html[data-theme="dark"] [class~="border-[#D8D1FA]"] {
+  border-color: var(--border-subtle);
+}

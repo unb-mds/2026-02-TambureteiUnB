@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { normalizeSearchTerm } from "@/utils/search";
 import type { Course } from "@/types/curso";
 import { findPasAdmission, formatPasScore, getPasHistory, pasSource } from "@/utils/pasAdmission";
 
@@ -19,6 +20,7 @@ export default function PasAdmissionCard({ course, expanded = false }: {
       </strong>
     </div>
     {admission?.ingressoConjunto && <p className="mt-1 text-[10px] text-[var(--text-muted)]">Ingresso conjunto das Engenharias do Gama</p>}
+    {admission && !admission.ingressoConjunto && admission.ofertaOriginal && (admission.graus.length > 1 || normalizeSearchTerm(admission.nome) !== normalizeSearchTerm(course.nome)) && <p className="mt-1 text-[10px] text-[var(--text-muted)]">Oferta no boletim: {admission.ofertaOriginal}</p>}
     {!admission && <p className="mt-1 text-[10px] text-[var(--text-muted)]">Sem correspondência validada no último boletim.</p>}
   </div>;
 
