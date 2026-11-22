@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Button from "./Button";
@@ -9,6 +9,7 @@ import { authService, subscribeAuthChange } from "@/services/authService";
 import { podeModerar } from "@/services/moderacaoService";
 import { UserResponse } from "@/types/auth";
 import ThemeSelector from "@/components/ThemeSelector";
+import UserMenuDropdown from "./UserMenuDropdown";
 
 export interface NavbarProps {
   className?: string;
@@ -16,13 +17,11 @@ export interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<UserResponse | null>(null);
 
   const pathname = usePathname();
   const router = useRouter();
-  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => {
     if (!pathname) return false;
@@ -63,26 +62,10 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
     return unsubscribe;
   }, []);
 
-  // Fechar dropdown ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    };
-    if (userMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [userMenuOpen]);
-
   const handleLogout = () => {
     authService.logout();
     setIsLoggedIn(false);
     setUser(null);
-    setUserMenuOpen(false);
     setMobileMenuOpen(false);
     router.push("/");
     router.refresh();
@@ -100,26 +83,6 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
       return email.slice(0, 2).toUpperCase();
     }
     return "TU";
-  };
-
-  const getShortName = (name?: string, email?: string) => {
-    if (name && name.trim()) {
-      const parts = name.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        return `${parts[0]} ${parts[parts.length - 1][0]}.`;
-      }
-      return parts[0];
-    }
-    if (email) {
-      return email.split("@")[0];
-    }
-    return "Estudante";
-  };
-
-  const getRoleLabel = (role?: string) => {
-    if (role === "ADMIN") return "Administrador";
-    if (role === "MODERATOR") return "Moderador";
-    return "Estudante";
   };
 
   return (
@@ -186,146 +149,12 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
           <Link href="/minha-grade" className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${isActive("/minha-grade") ? "bg-[#5B4BDB]/10 text-[#5B4BDB]" : "text-gray-600 hover:text-[#5B4BDB] hover:bg-gray-50"}`}>Minha grade</Link>
         </nav>
 
-        {/* Canto Superior Direito: Perfil (Figma) se logado, ou Botões se deslogado */}
+        {/* Canto Superior Direito: Perfil se logado, ou Botões se deslogado */}
         <div className="hidden md:flex items-center gap-3">
           <ThemeSelector />
           {isLoggedIn && user && podeModerar(user.role) && <Link href="/moderacao" className="text-sm font-semibold text-[#5B4BDB]">Moderação</Link>}
-          {isLoggedIn ? (
-            <div className="relative" ref={userMenuRef}>
-              <div className="flex items-center gap-2 rounded-2xl px-2.5 py-1.5 transition-all hover:bg-purple-50/80 border border-transparent hover:border-[#EDE9FD]">
-                <Link
-                  href="/perfil"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]/30"
-                  aria-label={`Acessar perfil de ${user?.nome || "usuário"}`}
-                >
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs select-none"
-                    style={{ background: "#5B4BDB", fontFamily: "Poppins, sans-serif" }}
-                  >
-                    {getInitials(user?.nome, user?.email)}
-                  </span>
-
-                  <span className="text-left hidden lg:block">
-                    <span className="block text-xs font-semibold text-[#202124] leading-tight">
-                      {getShortName(user?.nome, user?.email)}
-                    </span>
-                    <span className="block text-[11px] text-[#6B7280] font-medium leading-tight">
-                      {getRoleLabel(user?.role)}
-                    </span>
-                  </span>
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex h-8 w-7 items-center justify-center rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]/30"
-                  aria-expanded={userMenuOpen}
-                  aria-label={`Abrir menu de ${user?.nome || "usuário"}`}
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="none"
-                    aria-hidden="true"
-                    className={`transition-transform duration-200 text-[#6B7280] ${
-                      userMenuOpen ? "rotate-180 text-[#5B4BDB]" : ""
-                    }`}
-                  >
-                    <path
-                      d="M3.5 5.5L7 9l3.5-3.5"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Menu Suspenso (Dropdown) */}
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-[#EDE9FD] bg-white p-2 shadow-xl animate-in fade-in zoom-in-95 duration-100 z-50">
-                  {/* Informações do Usuário */}
-                  <div className="px-3 py-2.5 border-b border-gray-100">
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs"
-                        style={{ background: "#5B4BDB", fontFamily: "Poppins, sans-serif" }}
-                      >
-                        {getInitials(user?.nome, user?.email)}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-[#202124] truncate">
-                          {user?.nome || "Discente da UnB"}
-                        </p>
-                        <p className="text-[11px] text-gray-500 truncate">
-                          {user?.email || ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-2 inline-flex items-center rounded-md bg-[#5B4BDB]/10 px-2 py-0.5 text-[10px] font-bold text-[#5B4BDB] tracking-wide uppercase">
-                      {getRoleLabel(user?.role)}
-                    </div>
-                  </div>
-
-                  <Link
-                    href="/perfil"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="block rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-[#F7F7FA] hover:text-[#5B4BDB]"
-                  >
-                    Meu perfil
-                  </Link>
-
-                  <Link
-                    href="/alterar-senha"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-[#F7F7FA] hover:text-[#5B4BDB]"
-                  >
-                    <svg
-                      className="h-3.5 w-3.5 text-gray-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                      />
-                    </svg>
-                    <span>Segurança da conta</span>
-                  </Link>
-
-                  {/* Ação de Logout */}
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left"
-                    >
-                      <svg
-                        className="w-4 h-4 text-red-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                        />
-                      </svg>
-                      <span>Sair da conta</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+          {isLoggedIn && user ? (
+            <UserMenuDropdown user={user} onLogout={handleLogout} />
           ) : (
             <>
               <Link href="/login">
