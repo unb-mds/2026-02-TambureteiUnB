@@ -21,7 +21,7 @@ import {
 } from "@/types/disciplina";
 import { normalizeSearchTerm } from "@/utils/search";
 import ApprovalBadge from "@/components/ApprovalBadge";
-import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
+import { useDisciplineDetailedMetrics } from "@/hooks/useDisciplineApprovalMetrics";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -93,7 +93,7 @@ function DisciplinasContent() {
     const start = (activePage - 1) * ITEMS_PER_PAGE;
     return filteredResults.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredResults, activePage]);
-  const approvalMetrics = useDisciplineApprovalMetrics(paginatedResults);
+  const detailedMetrics = useDisciplineDetailedMetrics(paginatedResults);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -402,8 +402,19 @@ function DisciplinasContent() {
             <>
               <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedResults.map((discipline) => {
+                  const detailed = detailedMetrics[discipline.slug];
                   const resolvedApproval =
-                    approvalMetrics[discipline.slug] ?? discipline.approval;
+                    detailed?.approval ?? discipline.approval;
+                  const resolvedFailedGrade =
+                    detailed?.failedGrade ?? discipline.failedGrade ?? 0;
+                  const resolvedFailedAttendance =
+                    detailed?.failedAttendance ?? discipline.failedAttendance ?? 0;
+                  const resolvedWithdrawn =
+                    detailed?.withdrawn ?? discipline.withdrawn ?? 0;
+                  const resolvedMatriculados =
+                    detailed?.matriculados ??
+                    discipline.metrica_consolidada?.matriculados ??
+                    0;
                   const hasMetrics = hasApprovalData(resolvedApproval);
                   const hasClasses =
                     discipline.total_turmas !== undefined &&
@@ -420,6 +431,24 @@ function DisciplinasContent() {
                           <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
                             {discipline.code}
                           </span>
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                            style={{
+                              backgroundColor: hasClasses
+                                ? "var(--primary-soft)"
+                                : "var(--status-neutral-bg)",
+                              borderColor: hasClasses
+                                ? "var(--border-subtle)"
+                                : "var(--status-neutral-border)",
+                              color: hasClasses
+                                ? "var(--primary-text)"
+                                : "var(--status-neutral-text)",
+                            }}
+                          >
+                            {hasClasses
+                              ? `${discipline.total_turmas} ${discipline.total_turmas === 1 ? "turma" : "turmas"}`
+                              : "Sem dados"}
+                          </span>
                         </div>
                         <ApprovalBadge approval={resolvedApproval} />
                       </div>
@@ -432,56 +461,123 @@ function DisciplinasContent() {
                         {discipline.departmentName} <span className="mx-1 text-[#C4C1D8]">•</span> {discipline.campus}
                       </p>
 
-                      {/* Painel de métricas em destaque (padrão visual dos cards de Cursos) */}
-                      <div className="mt-4 grid grid-cols-2 gap-2.5">
-                        <div
-                          className={`rounded-xl p-2.5 flex flex-col justify-between border ${
-                            hasMetrics
-                              ? "bg-[#EAF8EF] border-[#D1F0DC]"
-                              : "bg-gray-50 border-gray-200"
-                          }`}
-                        >
-                          <span
-                            className={`text-[10px] uppercase font-bold tracking-wider ${
-                              hasMetrics ? "text-[#287A45]" : "text-gray-500"
-                            }`}
-                          >
-                            Aprovação
-                          </span>
-                          <span
-                            className={`text-sm font-extrabold mt-0.5 ${
-                              hasMetrics ? "text-[#1B6634]" : "text-gray-600"
-                            }`}
-                          >
-                            {hasMetrics ? `${resolvedApproval}%` : "Sem dados"}
-                          </span>
-                        </div>
+                      {/* Painel de métricas adaptado automaticamente ao tema claro/escuro */}
+                      {hasMetrics ? (
+                        <div className="mt-4 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div
+                              className="rounded-xl p-2.5 flex flex-col justify-between border"
+                              style={{
+                                backgroundColor: "var(--status-success-bg)",
+                                borderColor: "var(--status-success-border)",
+                                color: "var(--status-success-text)",
+                              }}
+                            >
+                              <span className="text-[10px] uppercase font-bold tracking-wider opacity-90">
+                                Aprovação
+                              </span>
+                              <span className="text-sm font-extrabold mt-0.5">
+                                {resolvedApproval}%
+                              </span>
+                            </div>
 
-                        <div
-                          className={`rounded-xl p-2.5 flex flex-col justify-between border ${
-                            hasClasses
-                              ? "bg-[#F4F3FC] border-[#E4E1F9]"
-                              : "bg-gray-50 border-gray-200"
-                          }`}
-                        >
-                          <span
-                            className={`text-[10px] uppercase font-bold tracking-wider ${
-                              hasClasses ? "text-[#5B4BDB]" : "text-gray-500"
-                            }`}
+                            <div
+                              className="rounded-xl p-2.5 flex flex-col justify-between border"
+                              style={{
+                                backgroundColor: "var(--status-danger-bg)",
+                                borderColor: "var(--status-danger-border)",
+                                color: "var(--status-danger-text)",
+                              }}
+                            >
+                              <span className="text-[10px] uppercase font-bold tracking-wider opacity-90">
+                                Repr. Nota
+                              </span>
+                              <span className="text-sm font-extrabold mt-0.5">
+                                {resolvedFailedGrade}%
+                              </span>
+                            </div>
+
+                            <div
+                              className="rounded-xl p-2.5 flex flex-col justify-between border"
+                              style={{
+                                backgroundColor: "var(--status-warning-bg)",
+                                borderColor: "var(--status-warning-border)",
+                                color: "var(--status-warning-text)",
+                              }}
+                            >
+                              <span className="text-[10px] uppercase font-bold tracking-wider opacity-90">
+                                Repr. Falta
+                              </span>
+                              <span className="text-sm font-extrabold mt-0.5">
+                                {resolvedFailedAttendance}%
+                              </span>
+                            </div>
+
+                            <div
+                              className="rounded-xl p-2.5 flex flex-col justify-between border"
+                              style={{
+                                backgroundColor: "var(--status-neutral-bg)",
+                                borderColor: "var(--status-neutral-border)",
+                                color: "var(--status-neutral-text)",
+                              }}
+                            >
+                              <span className="text-[10px] uppercase font-bold tracking-wider opacity-90">
+                                Trancamentos
+                              </span>
+                              <span className="text-sm font-extrabold mt-0.5">
+                                {resolvedWithdrawn}%
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            className="flex items-center justify-between text-[11px] px-1 pt-0.5"
+                            style={{ color: "var(--text-muted)" }}
                           >
-                            Turmas
-                          </span>
-                          <span
-                            className={`text-sm font-extrabold mt-0.5 ${
-                              hasClasses ? "text-[#3B2FA3]" : "text-gray-600"
-                            }`}
-                          >
-                            {hasClasses
-                              ? `${discipline.total_turmas} ${discipline.total_turmas === 1 ? "turma" : "turmas"}`
-                              : "Sem dados"}
-                          </span>
+                            <span>
+                              Discentes:{" "}
+                              <strong>
+                                {resolvedMatriculados > 0
+                                  ? `${resolvedMatriculados} ${resolvedMatriculados === 1 ? "aluno" : "alunos"}`
+                                  : "Sem dados"}
+                              </strong>
+                            </span>
+                            <span>
+                              {hasClasses
+                                ? `${discipline.total_turmas} ${discipline.total_turmas === 1 ? "turma" : "turmas"}`
+                                : "Sem dados"}
+                            </span>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div
+                          className="mt-4 rounded-xl p-3 border flex items-center justify-between gap-2"
+                          style={{
+                            backgroundColor: "var(--surface-soft)",
+                            borderColor: "var(--border-subtle)",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-[10px] uppercase font-bold tracking-wider">
+                              Estatísticas
+                            </span>
+                            <span className="text-xs font-semibold mt-0.5">
+                              Sem dados
+                            </span>
+                          </div>
+                          <div className="flex flex-col text-right">
+                            <span className="text-[10px] uppercase font-bold tracking-wider">
+                              Turmas
+                            </span>
+                            <span className="text-xs font-semibold mt-0.5">
+                              {hasClasses
+                                ? `${discipline.total_turmas} ${discipline.total_turmas === 1 ? "turma" : "turmas"}`
+                                : "Sem dados"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="mt-3.5 flex items-center gap-2 text-xs font-semibold text-gray-700">
                         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-[#7C6CF0]">
