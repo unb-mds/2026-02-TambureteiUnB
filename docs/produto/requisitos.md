@@ -22,11 +22,11 @@ Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, de
 * **[RF03] Controle de Permissões:** O sistema deve restringir o acesso a endpoints protegidos (envio de comentários, submissão de materiais e votos) apenas a usuários com token válido.
 
 ### Módulo 2: Catálogo e Navegação de Cursos
-* **[RF04] Catálogo de Cadeiras:** O sistema deve exibir a grade curricular navegável por curso, departamento e período sugerido (1º período, 2º período, optativas).
+* **[RF04] Catálogo de Cadeiras:** O sistema deve exibir a grade curricular navegável por curso, departamento e período sugerido (1º período, 2º período, optativas), incluindo as notas de corte históricas do PAS no catálogo de cursos.
 * **[RF05] Busca Rápida:** O sistema deve permitir pesquisar disciplinas por nome ou código acadêmico.
 * **[RF06] Exportação de Dados Abertos:** O sistema deve disponibilizar botão de download do conjunto de dados analíticos públicos em formato CSV ou JSON.
 
-### Módulo 3: Hub Modular da Disciplina (`/cadeiras/:slug`)
+### Módulo 3: Hub Modular da Disciplina (`/disciplinas/[slug]`)
 * **[RF07] Painel Geral e Ementa:** O sistema deve renderizar os dados canônicos da matéria (ementa, carga horária, créditos e departamento) com suporte a formatação Markdown.
 * **[RF08] Dashboards de Desempenho Histórico:** O sistema deve exibir gráficos temporais com taxas de aprovação, reprovação (por nota e por falta) e trancamento por ano/semestre, com filtro por intervalo de anos.
 * **[RF09] Registro de Situação pelo Aluno ("Já cursei"):** O sistema deve permitir que um estudante autenticado registre seu status na disciplina: `Aprovado`, `Reprovado por Nota`, `Reprovado por Falta` ou `Trancado`.

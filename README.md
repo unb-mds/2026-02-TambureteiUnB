@@ -16,12 +16,19 @@ O **Tamburetei UnB** é uma plataforma aberta para explorar indicadores de aprov
 
 O **Tamburetei UnB** é um projeto de análise de dados acadêmicos que tem como objetivo disponibilizar informações sobre o desempenho dos estudantes da Universidade de Brasília de forma **aberta, organizada e reprodutível**.
 
-O projeto trabalha com um **dataset anonimizado**, obtido por meio da **Lei de Acesso à Informação (LAI)**, do **SIGAA** e do **DPO/UnB**, contendo indicadores relacionados ao desempenho acadêmico, como:
+O projeto trabalha com um **dataset anonimizado**, obtido por meio da **Lei de Acesso à Informação (LAI)**, do **SIGAA** e do **DPO/UnB**, reunindo em uma única plataforma:
 
-* Taxas de aprovação e reprovação (por nota e por falta);
-* Índices de trancamento e evasão estudantil;
-* Tempo médio de formação e fluxos curriculares dos cursos;
-* Hub colaborativo de disciplinas com ementas, pré-requisitos navegáveis e relatos sob pseudônimo (*Privacy by Design*).
+* Taxas históricas de aprovação, reprovação (por nota e por falta) e trancamento por disciplina, além de estatísticas consolidadas por quórum;
+* Indicadores de evasão institucional por curso e campus, fluxos curriculares, taxa de formação e notas de corte do PAS (Cebraspe);
+* Hub colaborativo de disciplinas com ementas, pré-requisitos navegáveis, dificuldades da ementa e repositório de **materiais de apoio** (upload de PDF, PNG e JPG, resumos e links úteis com curadoria humana e triagem por IA local);
+* **Comentários e discussões em *threads* sob pseudônimo** (*Privacy by Design*), com votos úteis e Central de Denúncias (`RN04`);
+* **Planejamento semanal de grade (`/minha-grade`)** com detecção de conflitos e exportação em PDF, além da importação de histórico escolar do SIGAA (PDF) no perfil do estudante.
+
+<p align="center">
+  <img src="docs/assets/showcase.png" alt="Interface do Tamburetei UnB: Materiais de Apoio e Comunidade, Minha Grade e Estatísticas Históricas" width="100%" />
+  <br />
+  <em>Interface do Tamburetei UnB: repositório colaborativo de materiais e discussões, planejamento semanal de grade e painel de desempenho histórico.</em>
+</p>
 
 A proposta é transformar esses dados em informações que possam ser exploradas e analisadas de maneira transparente, permitindo uma melhor compreensão do desempenho acadêmico na UnB.
 
@@ -78,7 +85,7 @@ Siga o passo a passo abaixo para rodar todos os serviços do **Tamburetei UnB** 
 Certifique-se de ter instalado em sua máquina:
 * [Git](https://git-scm.com/)
 * [Docker](https://www.docker.com/) e [Docker Compose](https://docs.docker.com/compose/)
-* [Node.js](https://nodejs.org/) (versão 18 LTS ou superior recomendada) e [npm](https://www.npmjs.com/)
+* [Node.js](https://nodejs.org/) (versão 20 LTS ou 22 LTS recomendada) e [npm](https://www.npmjs.com/)
 
 ---
 
@@ -188,6 +195,9 @@ docker compose exec backend pytest --cov=app --cov-report=term-missing
 ### Testes e Verificação do Frontend
 ```bash
 cd frontend
+
+# Executar suíte de testes automatizados
+npm test
 
 # Verificação estática de tipos TypeScript
 npx tsc --noEmit

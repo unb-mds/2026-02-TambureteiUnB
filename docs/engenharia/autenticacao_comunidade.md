@@ -65,16 +65,20 @@ Os relatos comunitários permitem que estudantes compartilhem experiências, dic
    * Exigem token JWT válido (`Depends(get_current_user)`).
    * Na edição ou exclusão (`DELETE /comentarios/{comentario_id}`), o serviço verifica estritamente se `comentario.usuario_id == current_user.id` (retornando `403 Forbidden` caso outro usuário tente modificar o relato).
    * Novos comentários e edições acionam em segundo plano (`BackgroundTasks`) a rotina `processar_moderacao_comentario_bg` (`ModeracaoIAService`), combinando filtros determinísticos de dados pessoais (RN01) e conduta ética/proteção a docentes (RN04) com inferência local via Ollama (RF16).
-2. **Listagem Pública (`GET /cadeiras/{id}/comentarios`):**
-   * Exibe apenas relatos com `status_moderacao = 'PUBLICADO'`, ordenados cronologicamente e estruturados com suas respostas filhas (`parent_id`), expondo apenas `autor_alias` sem revelar `usuario_id` ou e-mail.
+2. **Listagem e Envio por Cadeira (`GET /cadeiras/{disciplina_id}/comentarios` e `POST /cadeiras/{disciplina_id}/comentarios`):**
+   * A listagem exibe apenas relatos com `status_moderacao = 'PUBLICADO'`, estruturados com respostas filhas (`parent_id`) e apenas `autor_alias` sem revelar `usuario_id` ou e-mail.
+   * Aceita filtros por `turma_id`, `topico`, `apenas_dificuldades=true` e paginação (`page`, `size`) para alimentar tanto discussões quanto o painel de dificuldades da ementa.
+   * O `POST` no router de cadeiras aceita identificação por ID, slug ou código da disciplina.
 3. **Denúncias Comunitárias (`POST /comentarios/{comentario_id}/denuncias`):**
    * Permite que qualquer estudante autenticado sinalize um comentário por `OFENSA_DOCENTE`, `CONTEUDO_IMPROPRIO`, `GABARITO_ATIVO`, `SPAM` ou `OUTRO`.
    * Ao atingir o limiar de 3 denúncias pendentes (`LIMIAR_OCULTACAO_DENUNCIAS = 3`), o comentário sofre retenção preventiva automática até revisão humana no painel `/moderacao`.
 
-### Contratos do Módulo `/comentarios` (`backend/app/api/routers/comentarios.py`)
+### Contratos de Comentários (`backend/app/api/routers/comentarios.py` e `disciplinas.py`)
 
 | Método | Rota | Autenticação | Status | Descrição |
 | :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/cadeiras/{disciplina_id}/comentarios` | Pública | `200 OK` | Lista comentários e relatos de dificuldades publicados com filtros (`turma_id`, `topico`, `apenas_dificuldades`). |
+| `POST` | `/cadeiras/{disciplina_id}/comentarios` | Bearer JWT | `201 Created` | Registra comentário ou alerta de dificuldade informando ID, slug ou código da disciplina. |
 | `POST` | `/comentarios` | Bearer JWT | `201 Created` | Cria comentário vinculado à disciplina (e opcionalmente turma ou `parent_id`) e agenda triagem assíncrona. |
 | `PATCH` | `/comentarios/{comentario_id}` | Bearer JWT (Autor) | `200 OK` | Atualiza o texto do próprio comentário e agenda revalidação automática de moderação. |
 | `DELETE` | `/comentarios/{comentario_id}` | Bearer JWT (Autor) | `204 No Content` | Remove o próprio comentário (e respostas filhas via `ON DELETE CASCADE`). |

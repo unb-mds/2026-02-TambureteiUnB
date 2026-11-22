@@ -12,9 +12,9 @@ A página deixa de preencher gráficos e tabelas com o histórico fixo de demons
 - ESLint dos arquivos alterados, TypeScript e build de produção aprovados.
 - Navegador com API simulada: taxa zero visível; histórico vazio sem barras ou linhas fictícias; período de três alunos suprimido; série mista com apenas o período público exibido.
 
-![Aprovação zero exibida corretamente](assets/correcao-metricas/zero-corrigido.png)
+![Aprovação zero exibida corretamente](../assets/correcao-metricas/zero-corrigido.png)
 
-![Tabela com apenas o período público real](assets/correcao-metricas/historico-real.png)
+![Tabela com apenas o período público real](../assets/correcao-metricas/historico-real.png)
 
 ## Rastreabilidade
 

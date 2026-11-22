@@ -78,7 +78,7 @@ Espaço anônimo e seguro para a vivência dos estudantes:
 | **Release v0.7.0 (Sprint 7)** | 30/10/2026 | Materiais de Apoio, Quórum, Grade Curricular & CI | Modal de upload multipart e seção de materiais de apoio, motor de consenso por quórum e estatística consolidada (migração 012), grade curricular, taxa de formação e pipeline unificado de CI/CD. |
 | **Release v0.8.0 (Sprint 8)** | 06/11/2026 | Dificuldades na Ementa, Curadoria & Interatividade | Painel de dificuldades e tópicos críticos da ementa, curadoria administrativa de arquivos com auditoria, respostas em comentários e contador "Já cursei". |
 | **Release v0.9.0 (Sprint 9)** | 13/11/2026 | Central de Denúncias (RN04) & Painel de Moderação | Fluxo completo de denúncias comunitárias com ocultação preventiva por limiar, migração 011 e Painel de Acoes em `/moderacao`. |
-| **Release 2 (R2)** | Semana 15 — 25/11/2026 | Portal Web & Hub Comunitário | Frontend em Next.js (App Router), dashboards analíticos interativos, hub de disciplinas (`/cadeiras/:slug`), moderação de relatos e pipeline CI/CD com SAST. |
+| **Release 2 (R2)** | Semana 15 — 25/11/2026 | Portal Web & Hub Comunitário | Frontend em Next.js (App Router), dashboards analíticos interativos, hub de disciplinas (`/disciplinas/[slug]`), moderação de relatos e pipeline CI/CD com SAST. |
 
 ---
 

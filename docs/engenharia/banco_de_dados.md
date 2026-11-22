@@ -321,6 +321,23 @@ Registro de submissões colaborativas de estatísticas de turmas extraídas do S
 
 **Restrições de Integridade:** `UNIQUE (usuario_id, turma_id, semestre_referencia)` impede doações duplicadas do mesmo aluno para a mesma turma e semestre; `CHECK ((taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00)` garante fechamento percentual exato.
 
+### `amostras_historico`
+Registros individuais anonimizados extraídos em memória de Históricos Escolares (PDF) do SIGAA via `POST /perfil/importar-historico` (`backend/app/models/amostra_historico.py`), utilizados para consolidar estatísticas reais sem persistir dados nominais ou `usuario_id`.
+
+| Coluna | Tipo | Restrições | Descrição |
+|---|---|---|---|
+| `id` | BIGINT | **PK** | Identificador sequencial da amostra |
+| `dedup_hash` | VARCHAR(64) | NOT NULL, UNIQUE | Hash SHA-256 irreversível (com `SECRET_KEY`) para impedir contagem duplicada |
+| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina cursada na amostra |
+| `turma_id` | INT | **FK** → `turmas(id)` ON DELETE SET NULL | Turma correspondente (quando resolvida ou criada) |
+| `codigo_turma` | VARCHAR(10) | NOT NULL | Código normalizado da turma |
+| `semestre` | VARCHAR(10) | NOT NULL | Semestre cursado (ex.: `'2026.1'`) |
+| `desfecho` | VARCHAR(20) | NOT NULL, CHECK (`APR`, `REP_NOTA`, `REP_FALTA`, `TRANC`) | Resultado acadêmico normalizado |
+| `mencao` | VARCHAR(5) | CHECK (`SS`, `MS`, `MM`, `MI`, `II`, `SR`), nullable | Menção extraída quando aplicável |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Carimbo de registro da amostra |
+
+> **Nota de esquema:** o modelo ORM já integra a aplicação em `backend/app/models/amostra_historico.py` (criado após o baseline `015_moderacao_ia` do `init.sql`).
+
 ### `conteudos`
 Repositório colaborativo unificado de materiais didáticos: resumos, links externos, provas anteriores, dicas de estudo e uploads de arquivos privados (`tipo = 'ARQUIVO'`, migração `009_arquivos_conteudos`).
 

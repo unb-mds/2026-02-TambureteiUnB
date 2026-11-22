@@ -35,8 +35,10 @@ A fila contém arquivos pendentes, ordenados por envio e ID, em páginas de 20. 
 | --- | --- | --- |
 | GET | `/moderacao/materiais?pagina=1&tamanho_pagina=20` | Fila paginada de arquivos pendentes. |
 | GET | `/moderacao/materiais/{id}/download` | Download privado para análise de arquivo pendente. |
-| PATCH | `/moderacao/conteudos/{id}/curadoria` | Decisão e registro de auditoria. |
+| PATCH | `/moderacao/conteudos/{id}/curadoria` | Decisão e registro de auditoria sobre material. |
 | GET | `/moderacao/conteudos/{id}/historico` | Histórico administrativo do arquivo. |
+| GET | `/moderacao/comentarios?pagina=1&tamanho_pagina=20` | Fila paginada de comentários pendentes de revisão. |
+| PATCH | `/moderacao/comentarios/{id}/curadoria` | Decisão de publicação ou ocultação de comentário pendente. |
 | POST | `/comunidade/denuncias` | Registro autenticado de denúncia de comentário ou material com gatilho automático em 3 denúncias. |
 | POST | `/comentarios/{id}/denuncias` | Atalho autenticado para denunciar um comentário ou relato da comunidade (RN04). |
 | GET | `/moderacao/denuncias?pagina=1&tamanho_pagina=20&tipo=TODOS&categoria=TODAS` | Fila paginada de denúncias pendentes com filtros por tipo e categoria e indicador de prioridade RN04. |
@@ -52,7 +54,7 @@ A aprovação usa `status=APROVADO`; a justificativa é opcional. Nenhuma identi
 
 ## Banco e auditoria
 
-A revisão linear `010_curadorias` sucede `009_arquivos_conteudos` e cria `curadorias`. A revisão `015_add_moderacao_ia` adiciona os campos `motivo_moderacao`, `confianca_ia` e `moderado_por` em `conteudos` e `comentarios`, além de permitir `perfil_moderador = 'IA'` em `curadorias` para decisões automáticas de alta confiança ($\ge 0.80$) via Ollama local. Cada registro guarda conteúdo, ID do moderador (nulo quando `perfil_moderador = 'IA'`), perfil no momento da decisão, estados anterior e novo, justificativa e data. Não armazena email, matrícula, CPF ou outros dados acadêmicos do aluno.
+A revisão linear `010_curadorias` sucede `009_arquivos_conteudos` e cria `curadorias`. A revisão `015_moderacao_ia` adiciona os campos `motivo_moderacao`, `confianca_ia` e `moderado_por` em `conteudos` e `comentarios`, além de permitir `perfil_moderador = 'IA'` em `curadorias` para decisões automáticas de alta confiança ($\ge 0.80$) via Ollama local. Cada registro guarda conteúdo, ID do moderador (nulo quando `perfil_moderador = 'IA'`), perfil no momento da decisão, estados anterior e novo, justificativa e data. Não armazena email, matrícula, CPF ou outros dados acadêmicos do aluno.
 
 Estado e auditoria são gravados na mesma transação. O repositório bloqueia o conteúdo com `SELECT FOR UPDATE`; apenas a primeira decisão sobre um pendente é aceita, e as demais retornam 409. A unicidade de `conteudo_id` reforça essa regra. Não há endpoints para editar/apagar auditoria ou reabrir decisões.
 

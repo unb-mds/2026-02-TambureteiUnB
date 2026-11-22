@@ -102,10 +102,10 @@ from sqlalchemy import text
 
 tables = [
     'denuncias', 'curadorias', 'comentarios', 'votos_uteis', 'conteudos',
-    'doacoes_estatisticas', 'estatisticas_consolidadas', 'situacoes_disciplinas',
-    'metricas_academicas', 'metricas_consolidadas', 'metricas_cursos',
-    'turmas_professores', 'cursos_disciplinas', 'turmas', 'professores',
-    'disciplinas', 'cursos', 'usuarios'
+    'amostras_historico', 'doacoes_estatisticas', 'estatisticas_consolidadas',
+    'situacoes_disciplinas', 'metricas_academicas', 'metricas_consolidadas',
+    'metricas_cursos', 'turmas_professores', 'cursos_disciplinas', 'turmas',
+    'professores', 'disciplinas', 'cursos', 'usuarios'
 ]
 
 with engine.begin() as conn:

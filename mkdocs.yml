@@ -107,7 +107,6 @@ nav:
           - Guia de Desenvolvimento: comecando/desenvolvimento.md
           - Popular Banco de Dados: comecando/popular_banco_de_dados.md
           - Como Contribuir: comecando/como_contribuir.md
-          - Roteiro de Demonstração: comecando/roteiro_demonstracao.md
   - Engenharia & Back-end:
       - Arquitetura & Banco:
           - Arquitetura & ADRs: engenharia/arquitetura.md
@@ -139,6 +138,11 @@ nav:
           - Integração de Materiais: qualidade/revisao_integracao_materiais.md
           - Revisão da PR 95: qualidade/revisao_pr95.md
           - Listagem de Turmas: qualidade/issue_turmas_nao_listadas.md
+          - Diagnóstico de Bugs: qualidade/diagnostico_bugs_funcionais.md
+          - Correção Início e Cursos: qualidade/correcao_inicio_cursos.md
+          - Correção Materiais Públicos: qualidade/correcao_materiais_publicos.md
+          - Correção Métricas da Disciplina: qualidade/correcao_metricas_disciplina.md
+          - Vínculo de Comentários e Turmas: qualidade/correcao_vinculo_comentarios.md
       - Releases & Sprints:
           - Release v0.6.0: releases/v0.6.0.md
           - Release v0.7.0: releases/v0.7.0.md

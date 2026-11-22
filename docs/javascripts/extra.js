@@ -7,7 +7,7 @@
     {
       label: "Setup",
       path: "comecando/desenvolvimento/",
-      match: ["comecando/", "desenvolvimento", "popular_banco_de_dados", "como_contribuir", "roteiro_demonstracao"]
+      match: ["comecando/", "desenvolvimento", "popular_banco_de_dados", "como_contribuir"]
     },
     {
       label: "Arquitetura",
@@ -27,7 +27,7 @@
     {
       label: "Releases",
       path: "releases/v0.9.0/",
-      match: ["releases/", "qualidade/", "revisao_", "issue_"]
+      match: ["releases/", "qualidade/", "revisao_", "issue_", "correcao_", "diagnostico_"]
     },
     {
       label: "AI Usage",

@@ -125,7 +125,7 @@ O backend adota o padrão **Clean Architecture**, onde cada camada possui um con
 ```
 
 1. **Camada de Transporte / API (`app/api/`):**
-   * Routers divididos por domínio funcional (`auth.py`, `cursos.py`, `disciplinas.py`, `conteudos.py`, `comentarios.py`, `moderacao.py`).
+   * Routers divididos por domínio funcional (`auth.py`, `cursos.py`, `disciplinas.py`, `turmas.py`, `professores.py`, `catalogo.py`, `comentarios.py`, `comunidade.py`, `materiais.py`, `estatisticas_consolidadas.py`, `dashboard.py`, `moderacao.py`, `perfil.py`).
    * Injeção de dependência via `FastAPI Depends` para sessões de banco e usuário autenticado (`deps.py`).
    * Schemas Pydantic em `app/api/schemas/` que validam os dados de entrada e formatam as saídas JSON.
 
@@ -152,7 +152,7 @@ O backend adota o padrão **Clean Architecture**, onde cada camada possui um con
 2026-02-TambureteiUnB/
 ├── docs/                      # Documentação técnica e arquitetural (Material for MkDocs)
 │   ├── index.md               # Documento de Visão e hub do portal
-│   ├── comecando/             # Guias de setup, banco de dados, contribuição e demonstração
+│   ├── comecando/             # Guias de setup, banco de dados e contribuição
 │   ├── engenharia/            # Arquitetura, dicionário de dados, ETL, dashboard e features
 │   ├── produto/               # Requisitos, regras de negócio e histórias de usuário
 │   ├── ai/                    # Governança de IA e skills do projeto
@@ -359,8 +359,10 @@ Demonstra a submissão de índices extraídos do SIGAA por um estudante e o proc
 | **1-2** | Estudante | Backend API | `POST /turmas/{id}/doacoes` com token JWT discente | Validação de autenticação obrigatória via `get_current_user` |
 | **3** | Backend API | Backend API | Valida percentuais com Pydantic | Garante que $\sum (\text{taxas}) = 100\%$ |
 | **4** | Backend API | PostgreSQL | Persiste a contribuição associada ao usuário | Tabela protegida contra manipulação direta |
-| **5** | Service | Domínio Puro | Avalia se a turma atingiu quórum de $N$ doações idênticas | Regra pura auditável e testada contra mutantes (Mutmut) |
+| **5** | Service | Domínio Puro | Avalia se a turma atingiu quórum de $N$ doações idênticas (`QUORUM_MINIMO_DOACOES`) | Regra pura auditável e testada contra mutantes (Mutmut) |
 | **6-7** | Backend API | Frontend | HTTP `201 Created` | Feedback imediato ao discente sem expor identidade de outros |
+
+> **Consulta e gestão do quórum:** administradores acompanham o progresso em `GET /turmas/{turma_id}/doacoes/quorum` e podem acionar recálculo em `POST /estatisticas-consolidadas/turmas/{turma_id}/recalcular`; as taxas já validadas ficam públicas em `GET /estatisticas-consolidadas`.
 
 ---
 
@@ -482,6 +484,7 @@ A camada de persistência é estruturada no PostgreSQL 17 em torno de 17 tabelas
 │  MÓDULO COLABORATIVO E COMUNIDADE:                                                       │
 │  • situacoes_disciplinas        (Crowdsourcing "Já cursei essa matéria")                 │
 │  • doacoes_estatisticas         (Submissões colaborativas de índices de turmas SIGAA)    │
+│  • amostras_historico           (Amostras anonimizadas de Histórico SIGAA em memória)    │
 │  • conteudos                    (Materiais de estudo, uploads privados e links úteis)    │
 │  • curadorias                   (Auditoria imutável de decisões sobre materiais RN06)    │
 │  • comentarios                  (Discussões com pseudônimo e respostas aninhadas)        │
@@ -502,12 +505,12 @@ Mapeamento explícito entre os épicos de negócio e os componentes arquiteturai
 | Épico de Negócio | Histórias de Usuário Relacionadas | Componentes Frontend (Next.js) | Componentes Backend (FastAPI) | Componentes Database (PostgreSQL 17) |
 | :--- | :--- | :--- | :--- | :--- |
 | **Épico 1: Autenticação e Segurança** | Backend: US 1.1.1, 1.1.2, 1.1.3<br>Frontend: US 1.1.1, 1.1.2<br>Database: US 1.1.1 | `/cadastro`, `/login`, `AuthContext`, `httpClient` | `api/routers/auth.py`, `core/security.py`, `services/auth_service.py` | Tabela `usuarios`, índice único `ix_usuarios_email` |
-| **Épico 2: Gestão Curricular e Catálogo** | Backend: US 2.1.1, 2.2.1, 4.1.1, 4.1.2<br>Frontend: US 2.1.1, 2.1.2, 3.1.1<br>Database: US 2.1.1, 2.1.2 | `/disciplinas`, `/disciplinas/[slug]`, `Pagination`, cards de matérias | `api/routers/disciplinas.py`, `services/disciplina_service.py`, `repositories/disciplina_repo.py` | Tabelas `cursos`, `disciplinas`, `cursos_disciplinas`, `professores`, `turmas`, índices em `slug` e `codigo` |
-| **Épico 3: Séries Históricas e Métricas** | Backend: US 3.1.1, 3.2.1, 3.2.2<br>Frontend: US 3.1.2, 4.1.1<br>Database: US 3.1.1, 4.1.1 | Seção de estatísticas em `/disciplinas/[slug]`, badges de aprovação | `api/routers/catalogo.py`, `services/disciplina_service.py`, `repositories/disciplina_repo.py` | Tabelas `metricas_academicas`, `metricas_consolidadas`, índice composto `(disciplina_id, ano)` |
+| **Épico 2: Gestão Curricular e Catálogo** | Backend: US 2.1.1, 2.2.1, 4.1.1, 4.1.2<br>Frontend: US 2.1.1, 2.1.2, 3.1.1<br>Database: US 2.1.1, 2.1.2 | `/disciplinas`, `/disciplinas/[slug]`, `/minha-grade`, `GradeCalendar`, `Pagination` | `api/routers/disciplinas.py`, `api/routers/professores.py`, `api/routers/turmas.py`, `services/disciplina_service.py`, `repositories/disciplina_repo.py` | Tabelas `cursos`, `disciplinas`, `cursos_disciplinas`, `professores`, `turmas`, índices em `slug` e `codigo` |
+| **Épico 3: Séries Históricas, Quórum e Perfil** | Backend: US 3.1.1, 3.2.1, 3.2.2<br>Frontend: US 3.1.2, 4.1.1<br>Database: US 3.1.1, 4.1.1 | Seção de estatísticas em `/disciplinas/[slug]`, `ClassPerformancePieForm`, `/perfil` | `api/routers/catalogo.py`, `api/routers/turmas.py`, `api/routers/estatisticas_consolidadas.py`, `api/routers/perfil.py`, `services/doacao_service.py`, `services/historico_importacao_service.py` | `metricas_academicas`, `metricas_consolidadas`, `doacoes_estatisticas`, `estatisticas_consolidadas`, `amostras_historico` |
 | **Épico 4: Crowdsourcing ("Já cursei")** | Backend: RF06, RN02<br>Frontend: US 4.1.1<br>Database: US 4.1.1 | Componente de registro acadêmico em `/disciplinas/[slug]` | `api/routers/catalogo.py`, `services/situacao_service.py` | Tabela `situacoes_disciplinas` com constraint `UNIQUE(usuario_id, disciplina_id)` |
-| **Épico 5: Conteúdos e Materiais** | Backend: US 5.2.1, 5.2.2, 5.2.3<br>Frontend: US 4.2.1, 4.2.2<br>Database: US 5.1.1 | Seção de materiais, botão de envio, listagem de recursos, `/moderacao` | `api/routers/conteudos.py`, `api/routers/materiais.py`, `api/routers/moderacao.py`, `services/conteudo_service.py` | Tabelas `conteudos`, `curadorias`, `votos_uteis`, volume Docker `/storage` |
-| **Épico 6: Comunidade e Relatos** | Backend: US 5.1.1, 5.1.2, 5.1.3, 5.3.1, 5.3.2<br>Frontend: US 5.1.1<br>Database: US 5.1.2 | Seção de comentários aninhados sob pseudônimo (*alias*) e denúncias | `api/routers/comentarios.py`, `api/routers/moderacao.py`, `services/comentario_service.py` | Tabela `comentarios` (`parent_id`), `denuncias` e `votos_uteis` |
-| **Épico 7: Cursos e Dashboard Institucional** | Backend: US 6.1.1, 6.2.1, 6.2.2, 6.2.3<br>Frontend: US 6.1.1<br>Database: RN08 | `/cursos`, `/cursos/[slug]`, filtros por campus (FCTE, Darcy, FCE, FUP) | `api/routers/cursos.py`, `api/routers/dashboard.py`, `services/curso_service.py`, `services/dashboard_service.py` | Tabelas `cursos`, `metricas_cursos` e view `mv_evasao_campus` |
+| **Épico 5: Conteúdos, Materiais e Triagem IA** | Backend: US 5.2.1, 5.2.2, 5.2.3, RF16<br>Frontend: US 4.2.1, 4.2.2<br>Database: US 5.1.1 | Seção de materiais, `MaterialModal`, `MateriaisApoio`, `/moderacao` | `api/routers/materiais.py`, `api/routers/moderacao.py`, `services/material_service.py`, `services/moderacao_ia_service.py` | Tabelas `conteudos`, `curadorias`, `votos_uteis`, volume Docker `/storage` |
+| **Épico 6: Comunidade, Denúncias e IA (ADR 08)** | Backend: US 5.1.1, 5.1.2, 5.1.3, 5.3.1, 5.3.2, RF16<br>Frontend: US 5.1.1<br>Database: US 5.1.2 | `ComentariosFrontend`, `DificuldadesPanel`, central em `/moderacao` | `api/routers/comentarios.py`, `api/routers/comunidade.py`, `api/routers/disciplinas.py`, `api/routers/moderacao.py`, `services/comentario_service.py`, `services/moderacao_ia_service.py` | Tabela `comentarios` (`parent_id`), `denuncias` e `votos_uteis` |
+| **Épico 7: Cursos, PAS e Dashboard Institucional** | Backend: US 6.1.1, 6.2.1, 6.2.2, 6.2.3<br>Frontend: US 6.1.1<br>Database: RN08 | `/`, `/cursos`, `/cursos/[slug]`, `PasAdmissionCard`, `OpenDataExportBar` | `api/routers/cursos.py`, `api/routers/dashboard.py`, `services/curso_service.py`, `services/dashboard_service.py` | Tabelas `cursos`, `metricas_cursos` e view `mv_evasao_campus` |
 
 ---
 

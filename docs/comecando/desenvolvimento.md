@@ -146,9 +146,9 @@ Abra o navegador em `http://localhost:3000` e valide os fluxos ativos da aplica�
 3. **Fluxo 3 — Catálogo de Cursos e Dashboard:**
    - Acesse `/cursos` e filtre pelos botões de campus (`FCTE`, Darcy Ribeiro, FCE, FUP).
    - Clique em um curso para abrir sua grade curricular e série histórica de formação/evasão.
-4. **Fluxo 4 — Colaboração, Materiais e Moderação (Release 2):**
-   - Autenticado como estudante, teste o registro de situação ("Já cursei"), o envio de comentário sob pseudônimo e o upload de material em `/disciplinas/[slug]`.
-   - Autenticado como moderador/admin, acesse `/moderacao` para revisar materiais pendentes e denúncias (ou siga o passo a passo completo em [Roteiro de Demonstração](roteiro_demonstracao.md)).
+4. **Fluxo 4 — Colaboração, Materiais, Perfil e Moderação (Release 2):**
+   - Autenticado como estudante, teste o registro de situação ("Já cursei"), o envio de comentário sob pseudônimo, o upload de material em `/disciplinas/[slug]` e a importação de Histórico Escolar SIGAA (PDF) em `/perfil`.
+   - Autenticado como moderador/admin, acesse `/moderacao` para revisar materiais pendentes e denúncias.
 5. **Fluxo 5 — Planejamento de Grade (`/minha-grade`):**
    - Acesse `/minha-grade`, selecione disciplinas e turmas do semestre, confira a grade semanal sem choques de horário e teste a exportação em PDF.
 

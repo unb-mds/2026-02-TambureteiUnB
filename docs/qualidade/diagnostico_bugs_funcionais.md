@@ -8,7 +8,7 @@ Os seis problemas abaixo foram reproduzidos. Este documento registra o comportam
 
 Método: interface real compilada do projeto com respostas controladas de uma API local. O caso de comentários executa o serviço real com repositórios simulados. Nenhum banco é acessado ou alterado. Os números e materiais usados são fictícios e existem somente para reprodução. As capturas são da interface original, sem modificar o DOM para simular os defeitos.
 
-Evidências estruturadas: [resultados.json](assets/diagnostico-bugs/resultados.json).
+Evidências estruturadas: [resultados.json](../assets/diagnostico-bugs/resultados.json).
 
 ## Demonstração ao vivo
 
@@ -70,7 +70,7 @@ O botão usa:
 
 **Aceite:** estudante autorizado consegue abrir ou baixar o arquivo correto; 401, 403 e 404 produzem mensagens apropriadas; o endereço temporário do arquivo é liberado após o uso; nenhuma ação usa `#` como substituto de download.
 
-![Material exibido sem endereço de download válido](assets/diagnostico-bugs/download.png)
+![Material exibido sem endereço de download válido](../assets/diagnostico-bugs/download.png)
 
 ## BUG-02 — Comentário aceita turma de outra disciplina
 
@@ -117,7 +117,7 @@ Quando não há histórico, a tela usa dados fixos de 2023/1 a 2025/2. Eles apar
 
 **Aceite:** histórico vazio não gera barras nem linhas de dados; períodos reais continuam exibidos; períodos suprimidos pela RN07 não são substituídos por exemplos fictícios.
 
-![Tabela preenchida mesmo com histórico vazio na API](assets/diagnostico-bugs/historico.png)
+![Tabela preenchida mesmo com histórico vazio na API](../assets/diagnostico-bugs/historico.png)
 
 ## BUG-04 — Busca e categorias limitadas à primeira página de materiais
 
@@ -138,7 +138,7 @@ A API retorna 20 registros por padrão. O componente utiliza apenas `items`, des
 
 **Aceite:** localizar materiais além do vigésimo; navegar por todas as páginas; exibir totais coerentes; pesquisar na base filtrada inteira; preservar os estados de carregamento, erro e lista vazia.
 
-![Busca não encontra o material existente na segunda página](assets/diagnostico-bugs/paginacao.png)
+![Busca não encontra o material existente na segunda página](../assets/diagnostico-bugs/paginacao.png)
 
 ## BUG-05 — Falha da API confundida com ausência de materiais
 
@@ -159,7 +159,7 @@ A falha fica apenas no console. Ao terminar o carregamento, o componente não di
 
 **Aceite:** erro de conexão e 503 exibem falha e ação de tentar novamente; resposta 200 com lista vazia continua mostrando ausência de materiais; uma tentativa bem-sucedida limpa o erro.
 
-![Mensagem de ausência de materiais após resposta 503](assets/diagnostico-bugs/erro.png)
+![Mensagem de ausência de materiais após resposta 503](../assets/diagnostico-bugs/erro.png)
 
 ## BUG-06 — Taxa válida de 0% aparece como Sem dados
 
@@ -179,7 +179,7 @@ A condição `> 0` descarta uma taxa válida de zero. A API de teste informa dez
 
 **Aceite:** exibir `0%` para taxa zero; manter taxas positivas; exibir ausência de informação para `null` ou campo ausente; não mostrar `NaN%` ou `Infinity%`.
 
-![Cartão descarta taxa real igual a zero](assets/diagnostico-bugs/zero.png)
+![Cartão descarta taxa real igual a zero](../assets/diagnostico-bugs/zero.png)
 
 ## Organização das correções futuras
 
