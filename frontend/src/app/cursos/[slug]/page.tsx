@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import PasAdmissionCard from "@/components/PasAdmissionCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
@@ -363,6 +364,8 @@ export default function CourseDisciplinesPage() {
                 Trocar de curso
               </Link>
             </div>
+
+            <PasAdmissionCard course={course} expanded />
 
             {/* Painel de Indicadores Institucionais do Curso (DPO / INEP / LAI) */}
             {(() => {
