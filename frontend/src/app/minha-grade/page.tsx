@@ -26,6 +26,7 @@ import {
   selectedClasses,
   type GradeEntry,
 } from "@/utils/gradePlanner";
+type GradeDraft = { id: string; name: string; semester: string; entries: GradeEntry[] };
 const KEY = "tamburetei_grade_v1";
 let memory = "";
 let volatileStorage = false;
@@ -73,11 +74,16 @@ export default function MinhaGrade() {
             typeof e.code === "string" && Array.isArray(e.classes),
         )
       )
-        return value as { entries: GradeEntry[]; semester: string };
+        return {
+          entries: value.entries as GradeEntry[],
+          semester: typeof value.semester === "string" ? value.semester : "",
+          drafts: Array.isArray(value.drafts) ? value.drafts.filter((draft: GradeDraft) => typeof draft.id === "string" && typeof draft.name === "string" && typeof draft.semester === "string" && Array.isArray(draft.entries)) as GradeDraft[] : [],
+        };
     } catch {}
-    return { entries: [] as GradeEntry[], semester: "" };
+    return { entries: [] as GradeEntry[], semester: "", drafts: [] as GradeDraft[] };
   }, [stored]);
-  const { entries } = data;
+  const { entries, drafts } = data;
+  const [draftName, setDraftName] = useState("");
   const [offeredSemesters, setOfferedSemesters] = useState<string[]>([]);
   const [loadingSemesters, setLoadingSemesters] = useState(true);
   const semester = data.semester || offeredSemesters[0] || "";
@@ -96,13 +102,32 @@ export default function MinhaGrade() {
   const selectedSectionRef = useRef<HTMLElement>(null);
   function update(nextEntries: GradeEntry[], nextSemester = semester) {
     if (
-      !persist(JSON.stringify({ entries: nextEntries, semester: nextSemester }))
+      !persist(JSON.stringify({ entries: nextEntries, semester: nextSemester, drafts }))
     )
       setNotice(
         "Armazenamento indisponível: alterações mantidas somente nesta sessão.",
       );
     setAlternatives([]);
     setAlternative(0);
+  }
+  function saveDraft() {
+    const name = draftName.trim();
+    if (!name || !entries.length) return;
+    const draft: GradeDraft = { id: crypto.randomUUID(), name, semester, entries };
+    const saved = persist(JSON.stringify({ entries, semester, drafts: [...drafts, draft] }));
+    setDraftName("");
+    setNotice(saved ? `Rascunho “${name}” salvo neste navegador.` : "Armazenamento indisponível: rascunho mantido somente nesta sessão.");
+  }
+  function openDraft(draft: GradeDraft) {
+    update(draft.entries, draft.semester);
+    setQuery("");
+    setResults([]);
+    setError("");
+    setNotice(`Rascunho “${draft.name}” aberto para edição. Salve um novo rascunho para guardar outras alterações.`);
+  }
+  function deleteDraft(draft: GradeDraft) {
+    const saved = persist(JSON.stringify({ entries, semester, drafts: drafts.filter(value => value.id !== draft.id) }));
+    setNotice(saved ? `Rascunho “${draft.name}” excluído. A grade atual foi mantida.` : "Armazenamento indisponível: exclusão mantida somente nesta sessão.");
   }
   useEffect(() => {
     let active = true;
@@ -501,6 +526,7 @@ export default function MinhaGrade() {
               >
                 Gerar grade sem conflitos
               </button>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">Escolha “Automática” nas disciplinas para buscar outras turmas. Depois, salve as combinações que preferir como rascunhos.</p>
               {!!entries.length && (
                 <button
                   className="mt-3 w-full text-xs text-[var(--text-muted)] underline"
@@ -512,6 +538,26 @@ export default function MinhaGrade() {
                   Limpar planejamento
                 </button>
               )}
+            </section>
+            <section className={panel} aria-labelledby="grade-drafts-title">
+              <h2 id="grade-drafts-title" className="font-bold">Rascunhos salvos</h2>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">Guarde opções para comparar depois. Os rascunhos ficam somente neste navegador, mesmo ao limpar a grade atual.</p>
+              <form className="mt-4 space-y-2" onSubmit={event => { event.preventDefault(); saveDraft(); }}>
+                <label htmlFor="grade-draft-name" className="block text-xs font-semibold">Nome do rascunho</label>
+                <input id="grade-draft-name" className={field} value={draftName} maxLength={80} onChange={event => setDraftName(event.target.value)} placeholder="Ex.: Grade de manhã" />
+                <button className={`${button} w-full`} disabled={!entries.length || !draftName.trim() || adding}>Salvar rascunho</button>
+              </form>
+              {!drafts.length && <p className="mt-4 text-xs text-[var(--text-muted)]">Nenhum rascunho salvo ainda.</p>}
+              <ul className="mt-4 space-y-3">
+                {drafts.map(draft => <li key={draft.id} className="rounded-xl border border-[var(--border-subtle)] p-3">
+                  <h3 className="break-words text-sm font-semibold">{draft.name}</h3>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">{draft.semester} · {draft.entries.length} disciplinas</p>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <button type="button" className="text-xs font-semibold text-[var(--primary-text)] underline" aria-label={`Abrir rascunho ${draft.name}`} onClick={() => openDraft(draft)} disabled={adding}>Abrir</button>
+                    <button type="button" className="text-xs text-[var(--text-muted)] underline" aria-label={`Excluir rascunho ${draft.name}`} onClick={() => deleteDraft(draft)} disabled={adding}>Excluir</button>
+                  </div>
+                </li>)}
+              </ul>
             </section>
           </aside>
           <div className="grade-results min-w-0 space-y-4">
