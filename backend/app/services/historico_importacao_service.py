@@ -322,17 +322,23 @@ class HistoricoImportacaoService:
         novas = 0
         duplicadas = 0
         nao_encontradas: List[str] = []
+        hashes_na_sessao: Set[str] = set()
         turmas_afetadas: Dict[Tuple[int, int, str], bool] = {}
         disciplinas_afetadas: Dict[int, Set[Tuple[int, int]]] = {}
 
         for item in elegiveis:
             dedup_hash = _gerar_dedup_hash(extraido.matricula, item.codigo, item.semestre)
+            if dedup_hash in hashes_na_sessao:
+                duplicadas += 1
+                continue
+
             ja_existe = (
                 db.query(AmostraHistorico.id)
                 .filter(AmostraHistorico.dedup_hash == dedup_hash)
                 .first()
             )
             if ja_existe:
+                hashes_na_sessao.add(dedup_hash)
                 duplicadas += 1
                 continue
 
@@ -365,6 +371,7 @@ class HistoricoImportacaoService:
                 mencao=mencao,
             )
             db.add(amostra)
+            hashes_na_sessao.add(dedup_hash)
             novas += 1
 
             if turma_id is not None:

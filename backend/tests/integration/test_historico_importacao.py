@@ -172,3 +172,34 @@ def test_importar_historico_dedup_e_rn07(client, db, headers, monkeypatch):
     assert mc.matriculados == 3
     assert mc.aprovados == 2
     assert mc.taxa_aprovacao_acumulada is not None
+
+
+def test_importar_historico_com_disciplina_repetida_no_mesmo_pdf_nao_quebra(client, db, headers):
+    disc = Disciplina(
+        codigo="FGA0158",
+        nome="Orientação a Objetos",
+        slug="orientacao-a-objetos-dup",
+        departamento="FCTE",
+        carga_horaria=60,
+    )
+    db.add(disc)
+    db.commit()
+
+    texto_duplicado = (
+        _gerar_texto_historico("251099999", "APR", "SS").replace(
+            "Legenda",
+            "2025.2  FGA0158  ORIENTAÇÃO A OBJETOS  60  02  100,0  SS  APR\nLUCAS URSULINO BOAVENTURA (60h)\nLegenda",
+        )
+    )
+    with patch(
+        "app.services.historico_parser_service.PdfReader",
+        return_value=_FakeReader(texto_duplicado),
+    ):
+        resp = client.post(
+            "/perfil/importar-historico",
+            headers=headers,
+            files={"arquivo": ("historico.pdf", b"%PDF-1.4 ok", "application/pdf")},
+        )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["contribuicao"]["novas_contribuicoes"] == 1
+    assert resp.json()["contribuicao"]["duplicadas_ignoradas"] == 1
