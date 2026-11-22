@@ -435,11 +435,15 @@ function DisciplineDetailContent() {
   // Extração dos dados consolidados reais da disciplina
   const metrica = discipline.metrica_consolidada;
   const totalMatriculados = metrica?.matriculados ?? 0;
+  const hasConsolidatedMetrics =
+    hasApprovalData(discipline.approval) || totalMatriculados > 0;
 
   // Formatação segura de quantidades de alunos
   const formatAlunos = (qtd: number | undefined) => {
-    const val = qtd ?? 0;
-    return `${val} ${val === 1 ? "aluno" : "alunos"}`;
+    if (!hasConsolidatedMetrics || !qtd || qtd <= 0) {
+      return "Sem dados";
+    }
+    return `${qtd} ${qtd === 1 ? "aluno" : "alunos"}`;
   };
 
   // Cards de métricas consumindo as taxas centralizadas no adaptador
@@ -447,7 +451,7 @@ function DisciplineDetailContent() {
     {
       label: "Taxa de Aprovação",
       value:
-        hasApprovalData(discipline.approval)
+        hasApprovalData(discipline.approval) && (discipline.approval ?? 0) > 0
           ? `${discipline.approval}%`
           : "Sem dados",
       count: formatAlunos(metrica?.aprovados),
@@ -467,7 +471,10 @@ function DisciplineDetailContent() {
     },
     {
       label: "Reprovação por Nota",
-      value: `${discipline.failedGrade ?? 0}%`,
+      value:
+        hasConsolidatedMetrics && (discipline.failedGrade ?? 0) > 0
+          ? `${discipline.failedGrade}%`
+          : "Sem dados",
       count: formatAlunos(metrica?.reprovados_nota),
       color: "var(--status-danger-text)",
       iconColor: "var(--status-danger-text)",
@@ -485,7 +492,10 @@ function DisciplineDetailContent() {
     },
     {
       label: "Reprovação por Falta",
-      value: `${discipline.failedAttendance ?? 0}%`,
+      value:
+        hasConsolidatedMetrics && (discipline.failedAttendance ?? 0) > 0
+          ? `${discipline.failedAttendance}%`
+          : "Sem dados",
       count: formatAlunos(metrica?.reprovados_falta),
       color: "var(--status-warning-text)",
       iconColor: "var(--status-warning-text)",
@@ -511,7 +521,10 @@ function DisciplineDetailContent() {
     },
     {
       label: "Trancamentos",
-      value: `${discipline.withdrawn ?? 0}%`,
+      value:
+        hasConsolidatedMetrics && (discipline.withdrawn ?? 0) > 0
+          ? `${discipline.withdrawn}%`
+          : "Sem dados",
       count: formatAlunos(metrica?.trancamentos),
       color: "var(--status-neutral-text)",
       iconColor: "var(--status-neutral-text)",
@@ -1094,7 +1107,10 @@ function DisciplineDetailContent() {
                 </div>
                 
                 <span className="self-start sm:self-auto rounded-full bg-[#EDE9FD] px-3 py-1 text-xs font-semibold text-[#5B4BDB]">
-                  Base acumulada: {totalMatriculados} {totalMatriculados === 1 ? "matrícula" : "matrículas"}
+                  Base acumulada:{" "}
+                  {totalMatriculados > 0
+                    ? `${totalMatriculados} ${totalMatriculados === 1 ? "matrícula" : "matrículas"}`
+                    : "Sem dados"}
                 </span>
               </div>
 
@@ -1265,18 +1281,26 @@ function DisciplineDetailContent() {
                           <th scope="row" className="px-3.5 py-2 font-bold text-[#202124]">
                             {item.semester}
                           </th>
-                          <td className="px-3.5 py-2">{total}</td>
+                          <td className="px-3.5 py-2">{total > 0 ? total : "Sem dados"}</td>
                           <td className="px-3.5 py-2 font-semibold text-[#067A59]">
-                            {pct(item.approved || 0)}% ({item.approved || 0})
+                            {(item.approved || 0) > 0
+                              ? `${pct(item.approved || 0)}% (${item.approved})`
+                              : "Sem dados"}
                           </td>
                           <td className="px-3.5 py-2 text-[#C52C2C]">
-                            {pct(item.failed || 0)}% ({item.failed || 0})
+                            {(item.failed || 0) > 0
+                              ? `${pct(item.failed || 0)}% (${item.failed})`
+                              : "Sem dados"}
                           </td>
                           <td className="px-3.5 py-2 text-[#9A5700]">
-                            {pct(item.absent || 0)}% ({item.absent || 0})
+                            {(item.absent || 0) > 0
+                              ? `${pct(item.absent || 0)}% (${item.absent})`
+                              : "Sem dados"}
                           </td>
                           <td className="px-3.5 py-2 text-[#526174]">
-                            {pct(item.withdrawn || 0)}% ({item.withdrawn || 0})
+                            {(item.withdrawn || 0) > 0
+                              ? `${pct(item.withdrawn || 0)}% (${item.withdrawn})`
+                              : "Sem dados"}
                           </td>
                         </tr>
                       );
