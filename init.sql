@@ -346,6 +346,31 @@ WITH DATA;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_mv_evasao_campus_campus_ano ON mv_evasao_campus(campus, ano);
 
+CREATE TABLE IF NOT EXISTS estatisticas_consolidadas (
+    id BIGSERIAL PRIMARY KEY,
+    turma_id INTEGER NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
+    disciplina_id INTEGER NOT NULL REFERENCES disciplinas(id) ON DELETE CASCADE,
+    semestre_referencia VARCHAR(10) NOT NULL,
+    taxa_aprovacao NUMERIC(5, 2) NOT NULL,
+    taxa_reprovacao_nota NUMERIC(5, 2) NOT NULL,
+    taxa_reprovacao_falta NUMERIC(5, 2) NOT NULL,
+    taxa_trancamento NUMERIC(5, 2) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'VALIDADO',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_estatistica_turma_semestre UNIQUE (turma_id, semestre_referencia),
+    CONSTRAINT chk_status_estatistica CHECK (status IN ('VALIDADO')),
+    CONSTRAINT chk_estatistica_taxas_positivas CHECK (
+        taxa_aprovacao >= 0 AND taxa_reprovacao_nota >= 0
+        AND taxa_reprovacao_falta >= 0 AND taxa_trancamento >= 0
+    ),
+    CONSTRAINT chk_estatistica_soma_cem CHECK (
+        (taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00
+    )
+);
+
+CREATE INDEX IF NOT EXISTS ix_estatisticas_disciplina_semestre ON estatisticas_consolidadas(disciplina_id, semestre_referencia);
+
 CREATE TABLE IF NOT EXISTS alembic_version (
     version_num VARCHAR(32) NOT NULL,
     CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)

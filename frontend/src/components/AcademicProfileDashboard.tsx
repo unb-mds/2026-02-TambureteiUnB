@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
+import type { HistoricoImportacaoResponse } from "../services/historicoService";
 
 export interface AcademicProfileDashboardProps {
   consented: boolean;
   onConsent: () => void;
   onRevokeConsent: () => void;
+  importedData?: HistoricoImportacaoResponse | null;
 }
 
 const profileSections = [
@@ -254,7 +256,129 @@ function SectionHeading({
   );
 }
 
-function OverviewSection() {
+function OverviewSection({
+  importedData,
+}: {
+  importedData?: HistoricoImportacaoResponse | null;
+}) {
+  if (importedData) {
+    const { dados_academicos: dados, carga_horaria: ch, cursando } = importedData;
+    const pct =
+      ch.exigido.total > 0
+        ? Math.round((ch.integralizado.total / ch.exigido.total) * 100)
+        : 0;
+    const totalChSemestre = cursando.reduce((acc, item) => acc + item.ch, 0);
+    const ultimoSemestre = cursando[0]?.semestre || dados.periodo_inicial || "Atual";
+
+    return (
+      <div>
+        <SectionHeading
+          eyebrow="Resumo acadêmico"
+          title="Sua trajetória em um só lugar"
+          description="Dados reais extraídos do seu Histórico Escolar oficial do SIGAA."
+        />
+        <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Metric
+            label="Período atual"
+            value={dados.periodo_atual ? `${dados.periodo_atual}º período` : "Ativo"}
+            detail={dados.periodo_inicial ? `Ingresso em ${dados.periodo_inicial}` : undefined}
+          />
+          <Metric
+            label="Integralização"
+            value={`${pct}%`}
+            detail={`${ch.integralizado.total} de ${ch.exigido.total} h`}
+          />
+          <Metric
+            label="Disciplinas no semestre"
+            value={String(cursando.length)}
+            detail={`${totalChSemestre} h em andamento`}
+          />
+          <Metric
+            label="IRA / MP"
+            value={dados.ira !== null ? dados.ira.toFixed(4).replace(".", ",") : "—"}
+            detail={
+              dados.mp !== null
+                ? `MP: ${dados.mp.toFixed(4).replace(".", ",")}`
+                : "Média Ponderada"
+            }
+          />
+        </dl>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <section className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-[#202124]">Semestre {ultimoSemestre}</h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  {cursando.length} disciplinas matriculadas no histórico importado.
+                </p>
+              </div>
+              <span className="rounded-full bg-[#F0EEFF] px-2.5 py-1 text-xs font-semibold text-[#5142C5]">
+                SIGAA Oficial
+              </span>
+            </div>
+            {cursando.length === 0 ? (
+              <p className="mt-4 text-sm text-gray-500">
+                Nenhuma disciplina com situação MATR neste histórico.
+              </p>
+            ) : (
+              <ul className="mt-4 divide-y divide-gray-100">
+                {cursando.map((discipline) => (
+                  <li
+                    key={`${discipline.codigo}-${discipline.turma || ""}`}
+                    className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-[#202124]">
+                        {discipline.nome}
+                      </p>
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {discipline.codigo} · {discipline.ch} h
+                        {discipline.turma ? ` · Turma ${discipline.turma}` : ""}
+                      </p>
+                    </div>
+                    <span className="w-fit rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                      Matriculado
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
+            <h3 className="font-bold text-[#202124]">Contribuição para a comunidade</h3>
+            <dl className="mt-3 space-y-2.5 text-sm">
+              <div className="flex items-center justify-between">
+                <dt className="text-gray-600">Disciplinas finalizadas lidas</dt>
+                <dd className="font-bold text-[#202124]">
+                  {importedData.contribuicao.total_elegiveis}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-gray-600">Novas amostras enviadas</dt>
+                <dd className="font-bold text-[#5B4BDB]">
+                  {importedData.contribuicao.novas_contribuicoes}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-gray-600">Já contabilizadas antes</dt>
+                <dd className="font-semibold text-gray-700">
+                  {importedData.contribuicao.duplicadas_ignoradas}
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-4 border-t border-gray-100 pt-3 text-xs leading-5 text-gray-500">
+              Suas notas permanecem privadas neste navegador. Apenas contagens anonimizadas
+              (mínimo de {importedData.contribuicao.minimo_amostras_lgpd} alunos por turma pela RN07)
+              alimentam as estatísticas públicas.
+            </p>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <SectionHeading
@@ -333,7 +457,98 @@ function OverviewSection() {
   );
 }
 
-function DegreeSection() {
+function DegreeSection({
+  importedData,
+}: {
+  importedData?: HistoricoImportacaoResponse | null;
+}) {
+  if (importedData) {
+    const { carga_horaria: ch, pendentes } = importedData;
+    const pct =
+      ch.exigido.total > 0
+        ? Math.round((ch.integralizado.total / ch.exigido.total) * 100)
+        : 0;
+
+    return (
+      <div>
+        <SectionHeading
+          eyebrow="Minha graduação"
+          title="Progresso curricular"
+          description="Cargas horárias e componentes obrigatórios pendentes extraídos do seu currículo oficial."
+        />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Metric
+            label="Carga integralizada"
+            value={`${ch.integralizado.total} h`}
+            detail={`De ${ch.exigido.total} h exigidas`}
+          />
+          <Metric
+            label="Carga pendente"
+            value={`${ch.pendente.total} h`}
+            detail={`${ch.pendente.obrigatorias} h obrig. · ${ch.pendente.optativas} h opt.`}
+          />
+          <Metric
+            label="Conclusão do curso"
+            value={`${pct}%`}
+            detail={importedData.dados_academicos.curriculo || "Currículo ativo"}
+          />
+        </div>
+        <section className="mt-4 rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
+          <h3 className="font-bold text-[#202124]">Integralização por requisito</h3>
+          <div className="mt-5 space-y-5">
+            {ch.exigido.obrigatorias > 0 && (
+              <ProgressBar
+                label="Carga obrigatória"
+                value={ch.integralizado.obrigatorias}
+                max={ch.exigido.obrigatorias}
+              />
+            )}
+            {ch.exigido.optativas > 0 && (
+              <ProgressBar
+                label="Carga optativa"
+                value={ch.integralizado.optativas}
+                max={ch.exigido.optativas}
+              />
+            )}
+            {ch.exigido.total > 0 && (
+              <ProgressBar
+                label="Carga horária total"
+                value={ch.integralizado.total}
+                max={ch.exigido.total}
+              />
+            )}
+          </div>
+        </section>
+        <section className="mt-4 rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
+          <h3 className="font-bold text-[#202124]">
+            Componentes obrigatórios pendentes ({pendentes.length})
+          </h3>
+          {pendentes.length === 0 ? (
+            <p className="mt-2 text-sm text-gray-500">
+              Nenhuma pendência obrigatória listada no histórico.
+            </p>
+          ) : (
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {pendentes.map((pend) => (
+                <li
+                  key={pend.codigo}
+                  className="flex items-center justify-between gap-2 rounded-xl bg-[#F7F7FA] px-3 py-2.5 text-sm text-gray-700"
+                >
+                  <span className="truncate">
+                    <strong className="text-[#202124]">{pend.codigo}</strong> · {pend.nome}
+                  </span>
+                  <span className="shrink-0 text-xs font-semibold text-[#5B4BDB]">
+                    {pend.matriculado ? "Matriculado" : `${pend.ch} h`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div>
       <SectionHeading
@@ -387,7 +602,69 @@ function DegreeSection() {
   );
 }
 
-function DisciplinesSection() {
+function DisciplinesSection({
+  importedData,
+}: {
+  importedData?: HistoricoImportacaoResponse | null;
+}) {
+  if (importedData) {
+    const lista = importedData.cursando;
+    return (
+      <div>
+        <SectionHeading
+          eyebrow="Disciplinas"
+          title="Disciplinas em andamento"
+          description="Componentes curriculares em que você está matriculado no semestre atual."
+        />
+        {lista.length === 0 ? (
+          <p className="rounded-2xl border border-[#E8E6F8] bg-white p-6 text-sm text-gray-500">
+            Nenhuma disciplina em andamento encontrada no histórico.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {lista.map((discipline) => (
+              <article
+                key={`${discipline.codigo}-${discipline.turma || ""}`}
+                className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-[#5B4BDB]">
+                      {discipline.codigo} · {discipline.ch} h
+                      {discipline.turma ? ` · Turma ${discipline.turma}` : ""}
+                    </p>
+                    <h3 className="mt-1 font-bold text-[#202124]">
+                      {discipline.nome}
+                    </h3>
+                  </div>
+                  <span className="w-fit rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                    Matriculado
+                  </span>
+                </div>
+                <dl className="mt-4 grid gap-3 border-t border-gray-100 pt-3 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-xs font-semibold text-gray-500">
+                      Semestre
+                    </dt>
+                    <dd className="mt-1 text-gray-700">{discipline.semestre}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold text-gray-500">Docente(s)</dt>
+                    <dd className="mt-1 text-gray-700">
+                      {discipline.professores.length > 0
+                        ? discipline.professores.join(", ")
+                        : "Não informado"}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <SectionHeading
@@ -438,10 +715,40 @@ function DisciplinesSection() {
   );
 }
 
-function HistorySection() {
-  const semesters = [...new Set(disciplineHistory.map(({ semester }) => semester))];
+function HistorySection({
+  importedData,
+}: {
+  importedData?: HistoricoImportacaoResponse | null;
+}) {
+  const realRows = useMemo(
+    () =>
+      importedData
+        ? importedData.cursadas.map((c) => ({
+            semester: c.semestre,
+            code: c.codigo,
+            name: c.nome,
+            turma: c.turma || "—",
+            mention: c.mencao || "—",
+            attendance:
+              c.frequencia !== null && c.frequencia !== undefined
+                ? `${c.frequencia.toFixed(1).replace(".", ",")}%`
+                : "—",
+            status: c.situacao,
+          }))
+        : null,
+    [importedData]
+  );
+
+  const semesters = realRows
+    ? [...new Set(realRows.map((r) => r.semester))].sort((a, b) => b.localeCompare(a))
+    : [...new Set(disciplineHistory.map(({ semester }) => semester))];
   const [selectedSemester, setSelectedSemester] = useState(semesters[0] ?? "");
-  const semesterHistory = getDisciplineHistoryForSemester(selectedSemester);
+  const effectiveSemester = semesters.includes(selectedSemester)
+    ? selectedSemester
+    : semesters[0] ?? "";
+  const semesterHistory = realRows
+    ? realRows.filter((row) => row.semester === effectiveSemester)
+    : getDisciplineHistoryForSemester(effectiveSemester);
 
   return (
     <div>
@@ -459,7 +766,7 @@ function HistorySection() {
         </label>
         <select
           id="history-semester"
-          value={selectedSemester}
+          value={effectiveSemester}
           onChange={(event) => setSelectedSemester(event.target.value)}
           className="rounded-xl border border-[#D8D4F5] bg-white px-3 py-2.5 text-sm font-semibold text-[#202124] outline-none focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/20"
         >
@@ -473,12 +780,14 @@ function HistorySection() {
       <p className="mb-3 text-sm text-gray-600" aria-live="polite">
         {semesterHistory.length}{" "}
         {semesterHistory.length === 1 ? "disciplina" : "disciplinas"} em{" "}
-        <span className="font-semibold text-[#202124]">{selectedSemester}</span>
+        <span className="font-semibold text-[#202124]">{effectiveSemester}</span>
       </p>
       <div className="overflow-x-auto rounded-2xl border border-[#E8E6F8] bg-white">
         <table className="min-w-[700px] w-full border-collapse text-left text-sm">
           <caption className="sr-only">
-            Histórico acadêmico demonstrativo do semestre {selectedSemester}
+            {realRows
+              ? `Histórico acadêmico oficial do semestre ${effectiveSemester}`
+              : `Histórico acadêmico demonstrativo do semestre ${effectiveSemester}`}
           </caption>
           <thead className="bg-[#F7F7FA] text-xs uppercase tracking-wide text-gray-500">
             <tr>
@@ -500,7 +809,7 @@ function HistorySection() {
                 <td className="px-4 py-3">
                   <span
                     className={
-                      row.status === "Aprovada"
+                      row.status === "Aprovada" || row.status === "APR" || row.status === "CUMP"
                         ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
                         : "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800"
                     }
@@ -513,16 +822,98 @@ function HistorySection() {
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs leading-5 text-gray-500">
-        Menções, notas e frequência são fictícias. O sistema não possui acesso
-        ao histórico acadêmico individual; consulte o SIGAA para verificar seus
-        dados oficiais.
-      </p>
+      {!realRows && (
+        <p className="mt-3 text-xs leading-5 text-gray-500">
+          Menções, notas e frequência são fictícias. O sistema não possui acesso
+          ao histórico acadêmico individual; consulte o SIGAA para verificar seus
+          dados oficiais.
+        </p>
+      )}
     </div>
   );
 }
 
-function PerformanceSection() {
+function PerformanceSection({
+  importedData,
+}: {
+  importedData?: HistoricoImportacaoResponse | null;
+}) {
+  if (importedData) {
+    const { dados_academicos: dados, cursadas } = importedData;
+    const aprovadasSituacoes = new Set(["APR", "CUMP", "DISP"]);
+    const elegiveis = cursadas.filter((c) => c.situacao !== "DISP");
+    const totalAprovadas = elegiveis.filter((c) => aprovadasSituacoes.has(c.situacao)).length;
+    const taxaGeral =
+      elegiveis.length > 0 ? Math.round((totalAprovadas / elegiveis.length) * 100) : 0;
+
+    const porSemestre = new Map<string, { total: number; apr: number }>();
+    for (const item of elegiveis) {
+      const atual = porSemestre.get(item.semestre) ?? { total: 0, apr: 0 };
+      atual.total += 1;
+      if (aprovadasSituacoes.has(item.situacao)) atual.apr += 1;
+      porSemestre.set(item.semestre, atual);
+    }
+    const serieSemestres = [...porSemestre.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([semester, info]) => ({
+        semester,
+        approvals: Math.round((info.apr / info.total) * 100),
+      }));
+
+    return (
+      <div>
+        <SectionHeading
+          eyebrow="Desempenho"
+          title="Evolução acadêmica"
+          description="Índices oficiais (IRA e MP) e taxa de aprovação por semestre extraídos do seu histórico."
+        />
+        <dl className="grid gap-3 sm:grid-cols-3">
+          <Metric
+            label="IRA oficial"
+            value={dados.ira !== null ? dados.ira.toFixed(4).replace(".", ",") : "—"}
+            detail="Índice de Rendimento Acadêmico"
+          />
+          <Metric
+            label="MP oficial"
+            value={dados.mp !== null ? dados.mp.toFixed(4).replace(".", ",") : "—"}
+            detail="Média Ponderada"
+          />
+          <Metric
+            label="Taxa de aprovação"
+            value={`${taxaGeral}%`}
+            detail={`${totalAprovadas} de ${elegiveis.length} componentes`}
+          />
+        </dl>
+        <section className="mt-4 rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
+          <h3 className="font-bold text-[#202124]">Aprovações por semestre</h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Percentual de componentes aprovados em cada semestre cursado.
+          </p>
+          <ul className="mt-5 space-y-4">
+            {serieSemestres.map(({ semester, approvals }) => (
+              <li key={semester} className="grid grid-cols-[3.5rem_1fr_3rem] items-center gap-3">
+                <span className="text-xs font-medium text-gray-600">{semester}</span>
+                <div
+                  role="img"
+                  aria-label={`${semester}: ${approvals}% de aprovação`}
+                  className="h-2.5 overflow-hidden rounded-full bg-[#E8E6F8]"
+                >
+                  <div
+                    className="h-full rounded-full bg-[#5B4BDB]"
+                    style={{ width: `${approvals}%` }}
+                  />
+                </div>
+                <span className="text-right text-xs font-bold text-[#5142C5]">
+                  {approvals}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div>
       <SectionHeading
@@ -712,16 +1103,29 @@ function CommunitySection() {
   );
 }
 
-const sectionContent: Record<ProfileSectionId, () => ReactNode> = {
-  overview: OverviewSection,
-  degree: DegreeSection,
-  disciplines: DisciplinesSection,
-  history: HistorySection,
-  performance: PerformanceSection,
-  schedule: ScheduleSection,
-  planning: PlanningSection,
-  community: CommunitySection,
-};
+function renderSection(
+  sectionId: ProfileSectionId,
+  importedData?: HistoricoImportacaoResponse | null
+): ReactNode {
+  switch (sectionId) {
+    case "overview":
+      return <OverviewSection importedData={importedData} />;
+    case "degree":
+      return <DegreeSection importedData={importedData} />;
+    case "disciplines":
+      return <DisciplinesSection importedData={importedData} />;
+    case "history":
+      return <HistorySection importedData={importedData} />;
+    case "performance":
+      return <PerformanceSection importedData={importedData} />;
+    case "schedule":
+      return <ScheduleSection />;
+    case "planning":
+      return <PlanningSection />;
+    case "community":
+      return <CommunitySection />;
+  }
+}
 
 export function getAdjacentProfileSection(
   currentIndex: number,
@@ -740,6 +1144,7 @@ export default function AcademicProfileDashboard({
   consented,
   onConsent,
   onRevokeConsent,
+  importedData = null,
 }: AcademicProfileDashboardProps) {
   const [activeSection, setActiveSection] =
     useState<ProfileSectionId>("overview");
@@ -747,7 +1152,7 @@ export default function AcademicProfileDashboard({
   const activeSectionIndex = profileSections.findIndex(
     (section) => section.id === activeSection
   );
-  const ActiveSection = sectionContent[activeSection];
+  const canShowContent = consented || Boolean(importedData);
 
   function handleTabKeyDown(
     event: KeyboardEvent<HTMLButtonElement>,
@@ -776,7 +1181,7 @@ export default function AcademicProfileDashboard({
             Minha vida universitária
           </h2>
         </div>
-        {consented && (
+        {!importedData && consented && (
           <button
             type="button"
             onClick={onRevokeConsent}
@@ -824,7 +1229,7 @@ export default function AcademicProfileDashboard({
         tabIndex={0}
         className="mt-4 min-h-72 border-t border-gray-100 pt-5 focus:outline-none"
       >
-        {!consented ? (
+        {!canShowContent ? (
           <div className="mx-auto max-w-2xl rounded-2xl border border-dashed border-[#B8B1ED] bg-[#F8F7FF] p-5 sm:p-7">
             <h3 className="font-bold text-[#29234D]">
               Visualize o painel demonstrativo
@@ -843,12 +1248,13 @@ export default function AcademicProfileDashboard({
             </button>
           </div>
         ) : (
-          <ActiveSection />
+          renderSection(activeSection, importedData)
         )}
       </div>
       <p className="mt-5 border-t border-gray-100 pt-3 text-xs leading-5 text-gray-500">
-        Protótipo: todos os dados acadêmicos são fictícios. Nenhuma integração
-        com o SIGAA está ativa.
+        {importedData
+          ? "Dados reais extraídos do seu Histórico Escolar do SIGAA/UnB e salvos localmente neste navegador."
+          : "Protótipo: todos os dados acadêmicos são fictícios. Nenhuma integração com o SIGAA está ativa."}
       </p>
       <span className="sr-only" aria-live="polite">
         Seção {profileSections[activeSectionIndex].label} selecionada
