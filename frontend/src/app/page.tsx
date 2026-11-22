@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useState, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -17,6 +17,16 @@ import {
 } from "@/utils/courseCatalog";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
 
+const subscribeAuth = (onStoreChange: () => void) => {
+  window.addEventListener(authService.AUTH_CHANGE_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+
+  return () => {
+    window.removeEventListener(authService.AUTH_CHANGE_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+};
+
 export default function HomePage() {
   const { items: courses, loading } = useAsyncList(
     getCourses,
@@ -24,25 +34,11 @@ export default function HomePage() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
-  const [isMounted, setIsMounted] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-    const syncAuth = () => {
-      setIsLoggedIn(authService.isAuthenticated());
-    };
-
-    syncAuth();
-
-    window.addEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-    window.addEventListener("storage", syncAuth);
-
-    return () => {
-      window.removeEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-      window.removeEventListener("storage", syncAuth);
-    };
-  }, []);
+  const isLoggedIn = useSyncExternalStore(
+    subscribeAuth,
+    () => authService.isAuthenticated(),
+    () => false
+  );
 
   // Filtro e busca em tempo real do catálogo na Landing Page
   const filteredCourses = useMemo(() => {
