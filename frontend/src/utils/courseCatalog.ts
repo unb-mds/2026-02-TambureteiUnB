@@ -10,10 +10,6 @@ export function filterCourses(
   const normalizedCampus = normalizeSearchTerm(selectedCampus);
 
   return courses.filter((course) => {
-    // Filtra cursos extintos / inativos do SIGAA com 0 disciplinas
-    const isAtivo = course.total_disciplinas === undefined || course.total_disciplinas > 0;
-    if (!isAtivo) return false;
-
     const matchesCampus =
       selectedCampus === "Todos" ||
       normalizeSearchTerm(course.campus).includes(normalizedCampus);
