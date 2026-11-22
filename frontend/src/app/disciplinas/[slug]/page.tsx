@@ -435,11 +435,15 @@ function DisciplineDetailContent() {
   // Extração dos dados consolidados reais da disciplina
   const metrica = discipline.metrica_consolidada;
   const totalMatriculados = metrica?.matriculados ?? 0;
+  const hasConsolidatedMetrics =
+    hasApprovalData(discipline.approval) || totalMatriculados > 0;
 
   // Formatação segura de quantidades de alunos
   const formatAlunos = (qtd: number | undefined) => {
-    const val = qtd ?? 0;
-    return `${val} ${val === 1 ? "aluno" : "alunos"}`;
+    if (!hasConsolidatedMetrics || qtd === undefined) {
+      return "Sem dados";
+    }
+    return `${qtd} ${qtd === 1 ? "aluno" : "alunos"}`;
   };
 
   // Cards de métricas consumindo as taxas centralizadas no adaptador
@@ -467,7 +471,9 @@ function DisciplineDetailContent() {
     },
     {
       label: "Reprovação por Nota",
-      value: `${discipline.failedGrade ?? 0}%`,
+      value: hasConsolidatedMetrics
+        ? `${discipline.failedGrade ?? 0}%`
+        : "Sem dados",
       count: formatAlunos(metrica?.reprovados_nota),
       color: "var(--status-danger-text)",
       iconColor: "var(--status-danger-text)",
@@ -485,7 +491,9 @@ function DisciplineDetailContent() {
     },
     {
       label: "Reprovação por Falta",
-      value: `${discipline.failedAttendance ?? 0}%`,
+      value: hasConsolidatedMetrics
+        ? `${discipline.failedAttendance ?? 0}%`
+        : "Sem dados",
       count: formatAlunos(metrica?.reprovados_falta),
       color: "var(--status-warning-text)",
       iconColor: "var(--status-warning-text)",
@@ -511,7 +519,9 @@ function DisciplineDetailContent() {
     },
     {
       label: "Trancamentos",
-      value: `${discipline.withdrawn ?? 0}%`,
+      value: hasConsolidatedMetrics
+        ? `${discipline.withdrawn ?? 0}%`
+        : "Sem dados",
       count: formatAlunos(metrica?.trancamentos),
       color: "var(--status-neutral-text)",
       iconColor: "var(--status-neutral-text)",

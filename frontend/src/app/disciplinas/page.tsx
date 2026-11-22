@@ -401,7 +401,15 @@ function DisciplinasContent() {
           ) : filteredResults.length > 0 ? (
             <>
               <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paginatedResults.map((discipline) => (
+                {paginatedResults.map((discipline) => {
+                  const resolvedApproval =
+                    approvalMetrics[discipline.slug] ?? discipline.approval;
+                  const hasMetrics = hasApprovalData(resolvedApproval);
+                  const hasClasses =
+                    discipline.total_turmas !== undefined &&
+                    discipline.total_turmas > 0;
+
+                  return (
                   <article
                     key={discipline.slug || discipline.code}
                     className="group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#E8E6F8] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all"
@@ -412,24 +420,8 @@ function DisciplinasContent() {
                           <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
                             {discipline.code}
                           </span>
-                          {discipline.total_turmas !== undefined && (
-                            discipline.total_turmas > 0 ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                {discipline.total_turmas} {discipline.total_turmas === 1 ? "turma" : "turmas"}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-200">
-                                Sem turmas
-                              </span>
-                            )
-                          )}
                         </div>
-                        <ApprovalBadge
-                          approval={
-                            approvalMetrics[discipline.slug] ??
-                            discipline.approval
-                          }
-                        />
+                        <ApprovalBadge approval={resolvedApproval} />
                       </div>
 
                       <h2 className="text-base sm:text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
@@ -440,7 +432,58 @@ function DisciplinasContent() {
                         {discipline.departmentName} <span className="mx-1 text-[#C4C1D8]">•</span> {discipline.campus}
                       </p>
 
-                      <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-700">
+                      {/* Painel de métricas em destaque (padrão visual dos cards de Cursos) */}
+                      <div className="mt-4 grid grid-cols-2 gap-2.5">
+                        <div
+                          className={`rounded-xl p-2.5 flex flex-col justify-between border ${
+                            hasMetrics
+                              ? "bg-[#EAF8EF] border-[#D1F0DC]"
+                              : "bg-gray-50 border-gray-200"
+                          }`}
+                        >
+                          <span
+                            className={`text-[10px] uppercase font-bold tracking-wider ${
+                              hasMetrics ? "text-[#287A45]" : "text-gray-500"
+                            }`}
+                          >
+                            Aprovação
+                          </span>
+                          <span
+                            className={`text-sm font-extrabold mt-0.5 ${
+                              hasMetrics ? "text-[#1B6634]" : "text-gray-600"
+                            }`}
+                          >
+                            {hasMetrics ? `${resolvedApproval}%` : "Sem dados"}
+                          </span>
+                        </div>
+
+                        <div
+                          className={`rounded-xl p-2.5 flex flex-col justify-between border ${
+                            hasClasses
+                              ? "bg-[#F4F3FC] border-[#E4E1F9]"
+                              : "bg-gray-50 border-gray-200"
+                          }`}
+                        >
+                          <span
+                            className={`text-[10px] uppercase font-bold tracking-wider ${
+                              hasClasses ? "text-[#5B4BDB]" : "text-gray-500"
+                            }`}
+                          >
+                            Turmas
+                          </span>
+                          <span
+                            className={`text-sm font-extrabold mt-0.5 ${
+                              hasClasses ? "text-[#3B2FA3]" : "text-gray-600"
+                            }`}
+                          >
+                            {hasClasses
+                              ? `${discipline.total_turmas} ${discipline.total_turmas === 1 ? "turma" : "turmas"}`
+                              : "Sem dados"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3.5 flex items-center gap-2 text-xs font-semibold text-gray-700">
                         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-[#7C6CF0]">
                           <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
                           <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -454,7 +497,13 @@ function DisciplinasContent() {
                           <path d="M3 11a2.5 2.5 0 0 1 2.5-2.5H13" stroke="currentColor" strokeWidth="1.3" />
                         </svg>
                         <span>
-                          <strong className="text-gray-800">{discipline.resources}</strong> materiais e relatos
+                          {discipline.resources > 0 ? (
+                            <>
+                              <strong className="text-gray-800">{discipline.resources}</strong> materiais e relatos
+                            </>
+                          ) : (
+                            "Sem dados de materiais"
+                          )}
                         </span>
                       </div>
                     </div>
@@ -469,7 +518,8 @@ function DisciplinasContent() {
                       </Link>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </section>
 
               <Pagination
