@@ -1,6 +1,6 @@
 # Dicionário de Dados — Modelo Relacional
 
-Este documento descreve o modelo relacional ativo do **Tamburetei UnB** (PostgreSQL 17), sincronizado integralmente com o script `init.sql` e a cadeia oficial de migrações do Alembic (revisão `008` — Head). O esquema possui **15 tabelas de domínio** e a tabela de controle `alembic_version`.
+Este documento descreve o modelo relacional ativo do **Tamburetei UnB** (PostgreSQL 17), sincronizado integralmente com o script `init.sql` e a cadeia oficial de migrações do Alembic (revisão `015_moderacao_ia` — Head). O esquema possui **17 tabelas de domínio, 1 visão materializada (`mv_evasao_campus`)** e a tabela de controle `alembic_version`.
 
 ---
 
@@ -14,9 +14,11 @@ Para facilitar a visualização clara e objetiva sem distorções de escala em d
 │                                                                                                  │
 │   [ usuarios ] (UUID) ──(1:N)──► [ situacoes_disciplinas ] (Registro de aprovação/trancamento)   │
 │                       ──(1:N)──► [ doacoes_estatisticas ]  (Doações de índices de turmas SIGAA)  │
-│                       ──(1:N)──► [ conteudos ]             (Submissão de materiais didáticos)    │
+│                       ──(1:N)──► [ conteudos ]             (Submissão de materiais e links)      │
+│                       ──(1:N)──► [ curadorias ]            (Auditoria de curadoria RN06)       │
 │                       ──(1:N)──► [ comentarios ]           (Relatos discentes sob pseudônimo)    │
 │                       ──(1:N)──► [ votos_uteis ]           (Upvotes de relevância da comunidade) │
+│                       ──(1:N)──► [ denuncias ]             (Sinalizações comunitárias RN04)      │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
                                                  │
                                                  ▼
@@ -28,15 +30,22 @@ Para facilitar a visualização clara e objetiva sem distorções de escala em d
 │   [ disciplinas ] ──(1:N)─────────────────┘                                                      │
 │          │                                                                                       │
 │          ├──(1:N)──► [ turmas ] ◄──(N:N)── [ professores ] (via turmas_professores)              │
-│          │               └──(1:N)──► [ doacoes_estatisticas ] (Submissões para Motor de Quórum)  │
+│          │               ├──(1:N)──► [ doacoes_estatisticas ]      (Motor de Quórum US 3.1.1)    │
+│          │               └──(1:N)──► [ estatisticas_consolidadas ] (Quórum validado US 3.2.2)    │
 │          │                                                                                       │
-│          ├──(1:N)──► [ metricas_academicas ]   (Séries históricas por ano/semestre do DPO)       │
-│          ├──(1:1)──► [ metricas_consolidadas ] (Totalizador acumulado e supressão LGPD RN07)     │
-│          ├──(1:N)──► [ situacoes_disciplinas ] (Histórico crowdsourced de estudantes)            │
-│          ├──(1:N)──► [ conteudos ]             (Materiais, provas e links)                       │
-│          └──(1:N)──► [ comentarios ]           (Discussões e dúvidas com threads aninhadas)      │
+│          ├──(1:N)──► [ metricas_academicas ]       (Séries históricas por ano/semestre do DPO)   │
+│          ├──(1:1)──► [ metricas_consolidadas ]     (Totalizador acumulado e supressão LGPD RN07) │
+│          ├──(1:N)──► [ estatisticas_consolidadas ] (Métricas oficiais consolidadas por quórum)   │
+│          ├──(1:N)──► [ situacoes_disciplinas ]     (Histórico crowdsourced de estudantes)        │
+│          ├──(1:N)──► [ conteudos ]                 (Materiais, arquivos privados e links)        │
+│          │               ├──(1:1)──► [ curadorias ] (Auditoria imutável RN06)                     │
+│          │               └──(1:N)──► [ denuncias ]  (Denúncias sobre materiais)                   │
+│          └──(1:N)──► [ comentarios ]               (Discussões e dúvidas com threads aninhadas)  │
+│                          └──(1:N)──► [ denuncias ]  (Denúncias sobre relatos RN04)               │
 │                                                                                                  │
-│   [ cursos ] ───────(1:N)──► [ metricas_cursos ]       (Indicadores de evasão e fluxo INEP)      │
+│   [ cursos ] ───────(1:N)──► [ metricas_cursos ]   (Indicadores de evasão e fluxo INEP)          │
+│                                     │                                                            │
+│                                     └──► [ mv_evasao_campus ] (Materialized View de evasão)      │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -52,18 +61,26 @@ Para facilitar a visualização clara e objetiva sem distorções de escala em d
 | `disciplinas` | `metricas_academicas` | **1 : N** | `disciplina_id` | `CASCADE` | Séries históricas de aprovação/reprovação (DPO/INEP) |
 | `disciplinas` | `metricas_consolidadas` | **1 : 1** | `disciplina_id` | `CASCADE` | Consolidado geral com proteção contra reidentificação LGPD |
 | `cursos` | `metricas_cursos` | **1 : N** | `curso_id` | `CASCADE` | Séries históricas de vagas, ingressantes e evasão por curso |
+| `turmas` | `estatisticas_consolidadas` | **1 : N** | `turma_id` | `CASCADE` | Estatísticas validadas pelo Motor de Quórum por turma e semestre |
+| `disciplinas` | `estatisticas_consolidadas` | **1 : N** | `disciplina_id` | `CASCADE` | Consulta analítica rápida por disciplina e semestre |
 | `usuarios` | `situacoes_disciplinas` | **1 : N** | `usuario_id` | `CASCADE` | Registro anônimo de "Já cursei essa matéria" |
 | `disciplinas` | `situacoes_disciplinas` | **1 : N** | `disciplina_id` | `CASCADE` | Totalizador de experiência discente na disciplina |
 | `turmas` | `doacoes_estatisticas` | **1 : N** | `turma_id` | `CASCADE` | Doações colaborativas de índices de turma extraídos do SIGAA |
 | `usuarios` | `doacoes_estatisticas` | **1 : N** | `usuario_id` | `CASCADE` | Vínculo de autoria e prevenção de doações duplicadas |
-| `disciplinas` | `conteudos` | **1 : N** | `disciplina_id` | `CASCADE` | Repositório colaborativo de materiais |
+| `disciplinas` | `conteudos` | **1 : N** | `disciplina_id` | `CASCADE` | Repositório colaborativo de materiais e links |
 | `turmas` | `conteudos` | **1 : N** | `turma_id` | `SET NULL` | Vínculo opcional de material a uma turma específica |
 | `usuarios` | `conteudos` | **1 : N** | `usuario_id` | `SET NULL` | Preserva material didático se a conta for excluída |
+| `conteudos` | `curadorias` | **1 : 1** | `conteudo_id` | `RESTRICT` | Registro imutável de auditoria da decisão sobre o arquivo |
+| `usuarios` | `curadorias` | **1 : N** | `moderador_id` | `SET NULL` | Moderador humano autor da decisão (nulo quando `perfil_moderador = 'IA'`) |
 | `disciplinas` | `comentarios` | **1 : N** | `disciplina_id` | `CASCADE` | Mural de discussões da disciplina |
 | `turmas` | `comentarios` | **1 : N** | `turma_id` | `SET NULL` | Contextualização opcional do relato por turma |
 | `usuarios` | `comentarios` | **1 : N** | `usuario_id` | `CASCADE` | Auditoria interna (não exibido publicamente) |
 | `comentarios` | `comentarios` | **1 : N** | `parent_id` | `CASCADE` | Hierarquia em árvore para respostas aninhadas (threads) |
 | `usuarios` | `votos_uteis` | **1 : N** | `usuario_id` | `CASCADE` | Upvotes únicos por usuário em conteúdos ou comentários |
+| `comentarios` | `denuncias` | **1 : N** | `comentario_id` | `CASCADE` | Denúncias vinculadas a um relato da comunidade |
+| `conteudos` | `denuncias` | **1 : N** | `conteudo_id` | `CASCADE` | Denúncias vinculadas a um material de apoio |
+| `usuarios` | `denuncias` | **1 : N** | `usuario_id` | `CASCADE` | Estudante autor da sinalização (oculto nas listagens RN01) |
+| `usuarios` | `denuncias` | **1 : N** | `moderador_id` | `SET NULL` | Moderador responsável pela resolução da denúncia |
 
 ---
 
@@ -237,6 +254,38 @@ Indicadores macro de fluxo, evasão e sucesso dos cursos de graduação (dados I
 
 **Restrição de Unicidade:** `UNIQUE (curso_id, ano)`.
 
+### `estatisticas_consolidadas`
+Métricas oficiais consolidadas pelo Motor de Consenso/Quórum a partir das doações discentes (US 3.2.2 — migrações `012_estatisticas_consolidadas` e `013_estat_disciplina_semestre`).
+
+| Coluna | Tipo | Restrições | Descrição |
+|---|---|---|---|
+| `id` | BIGSERIAL | **PK** | Identificador sequencial da estatística consolidada |
+| `turma_id` | INT | NOT NULL, **FK** → `turmas(id)` ON DELETE CASCADE | Turma consolidada |
+| `disciplina_id` | INT | NOT NULL, **FK** → `disciplinas(id)` ON DELETE CASCADE | Disciplina vinculada (indexada para busca por matéria e semestre) |
+| `semestre_referencia` | VARCHAR(10) | NOT NULL | Semestre letivo no padrão canônico UnB (ex.: `'2026.1'`) |
+| `taxa_aprovacao` | NUMERIC(5,2) | NOT NULL, CHECK (`0 <= valor <= 100`) | Percentual oficial consolidado de aprovação |
+| `taxa_reprovacao_nota` | NUMERIC(5,2) | NOT NULL, CHECK (`0 <= valor <= 100`) | Percentual oficial consolidado de reprovação por nota |
+| `taxa_reprovacao_falta` | NUMERIC(5,2) | NOT NULL, CHECK (`0 <= valor <= 100`) | Percentual oficial consolidado de reprovação por falta |
+| `taxa_trancamento` | NUMERIC(5,2) | NOT NULL, CHECK (`0 <= valor <= 100`) | Percentual oficial consolidado de trancamento |
+| `status` | VARCHAR(20) | NOT NULL, default `'VALIDADO'`, CHECK (`VALIDADO`) | Estado oficial da consolidação por quórum |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de consolidação inicial |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data da última atualização de consenso |
+
+**Restrições e Índices:** `UNIQUE (turma_id, semestre_referencia)`, `CHECK ((taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00)` e índice composto `ix_estatisticas_disciplina_semestre (disciplina_id, semestre_referencia)`.
+
+### `mv_evasao_campus` (Materialized View)
+Visão materializada para leitura rápida de indicadores agregados de evasão institucional por campus e ano letivo (`GET /dashboard/evasao-campus` — US 6.1.1, migração `014_mv_evasao_campus`).
+
+| Coluna | Tipo | Origem / Agregação | Descrição |
+|---|---|---|---|
+| `campus` | VARCHAR(100) | `COALESCE(NULLIF(TRIM(c.campus), ''), 'Não informado')` | Nome normalizado do campus universitário |
+| `ano` | INT | `mc.ano` | Ano de referência da série histórica |
+| `total_cursos` | BIGINT | `COUNT(DISTINCT c.id)` | Quantidade de cursos com métricas no campus e ano |
+| `matriculados` | BIGINT | `COALESCE(SUM(mc.matriculados), 0)` | Somatório de estudantes matriculados no campus |
+| `desvinculados` | BIGINT | `COALESCE(SUM(mc.desvinculados), 0)` | Somatório de estudantes desvinculados no campus |
+
+**Índice Único:** `ux_mv_evasao_campus_campus_ano ON mv_evasao_campus (campus, ano)` permite atualização concorrente sem bloqueio de leitura (`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_evasao_campus`).
+
 ---
 
 ## 5. Colaboração Discente e Moderação
@@ -273,7 +322,7 @@ Registro de submissões colaborativas de estatísticas de turmas extraídas do S
 **Restrições de Integridade:** `UNIQUE (usuario_id, turma_id, semestre_referencia)` impede doações duplicadas do mesmo aluno para a mesma turma e semestre; `CHECK ((taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00)` garante fechamento percentual exato.
 
 ### `conteudos`
-Repositório colaborativo de materiais didáticos: resumos, links, provas anteriores e dicas de estudo.
+Repositório colaborativo unificado de materiais didáticos: resumos, links externos, provas anteriores, dicas de estudo e uploads de arquivos privados (`tipo = 'ARQUIVO'`, migração `009_arquivos_conteudos`).
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
@@ -283,15 +332,33 @@ Repositório colaborativo de materiais didáticos: resumos, links, provas anteri
 | `usuario_id` | UUID | **FK** → `usuarios(id)` ON DELETE SET NULL | Autor do envio (preservado em caso de exclusão da conta) |
 | `titulo` | VARCHAR(200) | NOT NULL | Título descritivo do material |
 | `descricao` | TEXT | — | Detalhes adicionais sobre o conteúdo |
-| `tipo` | VARCHAR(30) | NOT NULL, CHECK (`LINK_UTIL`, `RESUMO`, `PROVA_ANTIGA`, `DICA`) | Categoria acadêmica do material |
-| `url_origem` | TEXT | NOT NULL | Link para download ou visualização externa |
+| `tipo` | VARCHAR(30) | NOT NULL, CHECK (`LINK_UTIL`, `RESUMO`, `PROVA_ANTIGA`, `DICA`, `ARQUIVO`) | Categoria acadêmica ou upload binário privado |
+| `url_origem` | TEXT | Nullable para `ARQUIVO` | Link para visualização externa (obrigatório quando `tipo <> 'ARQUIVO'`) |
+| `caminho_arquivo` | VARCHAR(64) | UNIQUE, nullable | Nome UUID seguro no volume privado (obrigatório quando `tipo = 'ARQUIVO'`) |
+| `formato` | VARCHAR(3) | CHECK (`pdf`, `png`, `jpg`), nullable | Extensão validada por MIME e assinatura binária |
+| `tamanho_bytes` | INT | CHECK (`> 0`), nullable | Tamanho do arquivo em bytes (limite de 5 MiB) |
+| `status_moderacao` | VARCHAR(20) | CHECK (`ativo`, `em_analise`, `bloqueado`, `excluido`), nullable | Estado técnico do arquivo no armazenamento privado |
 | `semestre` | VARCHAR(10) | — | Semestre de aplicação ou confecção |
-| `status_curadoria` | VARCHAR(20) | NOT NULL, default `'PENDENTE'`, CHECK (`PENDENTE`, `APROVADO`, `RECUSADO`) | Status no fluxo de moderação (RN06) |
+| `status_curadoria` | VARCHAR(20) | NOT NULL, default `'PENDENTE'`, CHECK (`PENDENTE`, `APROVADO`, `RECUSADO`) | Status no fluxo de curadoria (RN06) |
 | `motivo_moderacao` | TEXT | — | Parecer sintético da IA ou justificativa de recusa/escalonamento |
-| `confianca_ia` | NUMERIC(4,3) | CHECK (`0 <= valor <= 1`) | Grau de confiança atribuído na triagem automática do Ollama |
-| `moderado_por` | VARCHAR(20) | CHECK (`IA`, `HUMANO`) | Indica se a decisão de moderação foi tomada por IA ou moderador humano |
+| `confianca_ia` | DOUBLE PRECISION | CHECK (`0 <= valor <= 1`) | Grau de confiança atribuído na triagem automática do Ollama |
+| `moderado_por` | VARCHAR(20) | CHECK (`IA`, `MODERATOR`, `ADMIN`) | Perfil responsável pela decisão de moderação |
 | `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de submissão |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de alteração de curadoria |
+
+### `curadorias`
+Auditoria transacional imutável das decisões de aprovação ou recusa sobre materiais submetidos (RN06 — migrações `010_curadorias` e `015_moderacao_ia`).
+
+| Coluna | Tipo | Restrições | Descrição |
+|---|---|---|---|
+| `id` | BIGSERIAL | **PK** | Identificador sequencial do registro de auditoria |
+| `conteudo_id` | BIGINT | NOT NULL, UNIQUE, **FK** → `conteudos(id)` ON DELETE RESTRICT | Material avaliado (garante decisão única via `SELECT FOR UPDATE`) |
+| `moderador_id` | UUID | **FK** → `usuarios(id)` ON DELETE SET NULL | Identificador do moderador humano (`NULL` quando `perfil_moderador = 'IA'`) |
+| `perfil_moderador` | VARCHAR(20) | NOT NULL, CHECK (`MODERATOR`, `ADMIN`, `IA`) | Perfil que efetuou a decisão no momento da curadoria |
+| `status_anterior` | VARCHAR(20) | NOT NULL, CHECK (`PENDENTE`) | Estado anterior exigido antes da deliberação |
+| `status_novo` | VARCHAR(20) | NOT NULL, CHECK (`APROVADO`, `RECUSADO`) | Resultado final da curadoria |
+| `justificativa` | TEXT | CHECK (`<= 1000` caracteres) | Justificativa da decisão (obrigatória quando `status_novo = 'RECUSADO'`) |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Carimbo de data e hora da decisão |
 
 ### `comentarios`
 Relatos discentes e discussões acadêmicas sobre matérias e turmas, exibidos sob pseudônimo.
@@ -308,8 +375,8 @@ Relatos discentes e discussões acadêmicas sobre matérias e turmas, exibidos s
 | `parent_id` | BIGINT | **FK** → `comentarios(id)` ON DELETE CASCADE | Comentário pai para respostas aninhadas em árvore |
 | `status_moderacao` | VARCHAR(20) | NOT NULL, default `'PENDENTE'`, CHECK (`PUBLICADO`, `PENDENTE`, `OCULTO`) | Estado no ciclo de moderação híbrida (RN06) |
 | `motivo_moderacao` | TEXT | — | Parecer sintético da IA ou justificativa de ocultação/escalonamento |
-| `confianca_ia` | NUMERIC(4,3) | CHECK (`0 <= valor <= 1`) | Grau de confiança atribuído na triagem automática do Ollama |
-| `moderado_por` | VARCHAR(20) | CHECK (`IA`, `HUMANO`) | Indica se a decisão de moderação foi tomada por IA ou moderador humano |
+| `confianca_ia` | DOUBLE PRECISION | CHECK (`0 <= valor <= 1`) | Grau de confiança atribuído na triagem automática do Ollama |
+| `moderado_por` | VARCHAR(20) | CHECK (`IA`, `MODERATOR`, `ADMIN`) | Perfil responsável pela decisão de moderação |
 | `created_at` | TIMESTAMPTZ | NOT NULL, default `NOW()` | Data de postagem |
 
 ### `votos_uteis`
@@ -354,11 +421,11 @@ Tabela interna utilizada pelo motor do Alembic para controle estrito de migraç�
 
 | Coluna | Tipo | Restrições | Descrição |
 |---|---|---|---|
-| `version_num` | VARCHAR(32) | **PK** | Identificador alfanumérico da revisão ativa (revisão `008`) |
+| `version_num` | VARCHAR(32) | **PK** | Identificador alfanumérico da revisão ativa (`015_moderacao_ia`) |
 
 ### Histórico da Linha de Base (Baseline Unificado)
 
-O script `init.sql` e as migrações versionadas do Alembic encontram-se **100% sincronizados no baseline 008 (Head)**:
+O script `init.sql` e as migrações versionadas do Alembic encontram-se **100% sincronizados no baseline `015_moderacao_ia` (Head)**:
 
 | Revisão | Identificador Alembic | Responsabilidade Técnica | Status |
 | :---: | :--- | :--- | :---: |

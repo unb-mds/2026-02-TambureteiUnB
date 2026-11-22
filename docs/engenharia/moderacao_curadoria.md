@@ -27,7 +27,7 @@ A página consulta `/auth/me` e autoriza apenas `MODERATOR` e `ADMIN`. O cache d
 
 A fila contém arquivos pendentes, ordenados por envio e ID, em páginas de 20. Mostra título, disciplina, categoria, formato, tamanho e data, sem identidade do aluno nem caminho físico. Permite baixar para análise, aprovar ou recusar. A recusa exige justificativa de até 1000 caracteres. Conflitos de avaliação atualizam a fila sem repetir a decisão. Há estados de carregamento, erro, acesso negado e fila vazia, além de layout para celular.
 
-![Fila de moderação com dados fictícios de teste](assets/moderacao-desktop.png)
+![Fila de moderação com dados fictícios de teste](../assets/moderacao-desktop.png)
 
 ## Contratos protegidos
 
@@ -98,7 +98,7 @@ Nenhum workflow novo foi criado ou alterado, conforme solicitado. Validação lo
 - Ruff aprovado; Bandit sem achados médios/altos (três baixos existentes).
 - Nenhum teste de mutação ou SonarQube foi executado nesta entrega.
 
-![Fila em celular com dados fictícios](assets/moderacao-mobile.png)
+![Fila em celular com dados fictícios](../assets/moderacao-mobile.png)
 
 ## Central de Denúncias (RN04) e Painel de Ações
 

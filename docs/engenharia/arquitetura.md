@@ -28,7 +28,7 @@ O **Tamburetei UnB** adota uma arquitetura em camadas baseada no modelo **Client
 │   [ Frontend — Next.js 16 + React 19 + TypeScript ]                                              │
 │       ├── App Router (src/app/: rotas de páginas /cursos, /disciplinas, /login)                  │
 │       ├── Componentes Reutilizáveis (src/components/: Navbar, Pagination, FilterBar)             │
-│       └── Cliente HTTP Desacoplado (src/services/: authService, disciplineService, courseService)│
+│       └── Cliente HTTP (src/services/: authService, disciplineService, courseService)            │
 └────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
                                                  │
                                                  │ Chamadas Assíncronas RESTful / JSON
@@ -57,8 +57,8 @@ O **Tamburetei UnB** adota uma arquitetura em camadas baseada no modelo **Client
 │                               CAMADA DE PERSISTÊNCIA & STORAGE                                   │
 │                                                                                                  │
 │   [ PostgreSQL 17 Oficial ] ◄────────────── [ Pipeline ETL & Anonimização (DPO / SIGAA) ]        │
-│       ├── 14 Tabelas de Domínio                  ├── Extratores de Dados Oficiais                │
-│       └── Controle Alembic (Revisão 007)         ├── Sanitizador LGPD (Privacy by Design)        │
+│       ├── 17 Tabelas + 1 Materialized View       ├── Extratores de Dados Oficiais                │
+│       └── Controle Alembic (Revisão 015)         ├── Sanitizador LGPD (Privacy by Design)        │
 │                                                  └── Carga em Lote (app.pipeline.cli)            │
 │                                                                                                  │
 │   [ Adminer Web UI (:8085) ] ──(Inspeção Local)──► [ PostgreSQL 17 ]                             │
@@ -104,7 +104,7 @@ A seleção tecnológica priorizou maturidade, desempenho assíncrono, tipagem e
 | **PostgreSQL** | 17 | Sistema de gerenciamento de banco de dados relacional de missão crítica |
 | **Adminer** | Latest | Interface gráfica web leve para gerenciamento e depuração do banco local (:8085) |
 | **Docker & Docker Compose** | 3.8+ | Isolamento de contêineres e padronização do ambiente local e de produção |
-| **MkDocs & ReadTheDocs** | Latest | Geração da documentação técnica e arquitetural estática via GitHub Pages |
+| **MkDocs & Material for MkDocs** | Latest | Geração da documentação técnica e arquitetural estática via GitHub Pages |
 
 ---
 
@@ -150,12 +150,17 @@ O backend adota o padrão **Clean Architecture**, onde cada camada possui um con
 
 ```text
 2026-02-TambureteiUnB/
-├── docs/                      # Documentação técnica e arquitetural (MkDocs)
-│   ├── arquitetura.md         # Arquitetura oficial, Clean Architecture e ADRs
-│   ├── banco_de_dados.md      # Dicionário de dados relacional e esquemas
-│   ├── desenvolvimento.md     # Guia do desenvolvedor e roteiro de smoke test
-│   ├── pipeline_etl.md        # Documentação da pipeline de ingestão e LGPD
-│   └── ...
+├── docs/                      # Documentação técnica e arquitetural (Material for MkDocs)
+│   ├── index.md               # Documento de Visão e hub do portal
+│   ├── comecando/             # Guias de setup, banco de dados, contribuição e demonstração
+│   ├── engenharia/            # Arquitetura, dicionário de dados, ETL, dashboard e features
+│   ├── produto/               # Requisitos, regras de negócio e histórias de usuário
+│   ├── ai/                    # Governança de IA e skills do projeto
+│   ├── qualidade/             # Registros técnicos de revisão e integração
+│   ├── releases/              # Histórico de entregas (v0.6.0 a v0.9.0)
+│   ├── assets/                # Identidade visual e evidências de telas
+│   ├── stylesheets/           # Design System customizado (extra.css)
+│   └── javascripts/           # Navegação contextual do portal (extra.js)
 ├── backend/                   # API RESTful (FastAPI + Clean Architecture)
 │   ├── app/
 │   │   ├── api/               # Routers REST, dependências de autenticação
@@ -176,8 +181,9 @@ O backend adota o padrão **Clean Architecture**, onde cada camada possui um con
 │   │   ├── components/        # Componentes reutilizáveis (Navbar, Pagination, Button, Input)
 │   │   ├── services/          # Serviços modulares de API (httpClient, auth, course, discipline)
 │   │   └── types/             # Definições de tipos TypeScript do domínio
+├── CONTRIBUTING.md            # Guia oficial de contribuição do repositório
 ├── docker-compose.yml         # Orquestração local dos contêineres (db, backend, adminer)
-├── init.sql                   # Esquema DDL inicial do PostgreSQL (baseline 007)
+├── init.sql                   # Esquema DDL inicial do PostgreSQL (baseline 015_moderacao_ia)
 ├── mkdocs.yml                 # Configuração do portal de documentação MkDocs
 └── README.md                  # Apresentação do projeto e guia passo a passo
 ```
@@ -450,7 +456,7 @@ UPDATE comentarios SET status_moderacao = 'OCULTO'                              
 
 ## 6. Modelagem de Dados
 
-A camada de persistência é estruturada no PostgreSQL 17 em torno de 14 tabelas canônicas e migrações versionadas via Alembic.
+A camada de persistência é estruturada no PostgreSQL 17 em torno de 17 tabelas de domínio, 1 visão materializada (`mv_evasao_campus`) e migrações versionadas via Alembic (baseline `015_moderacao_ia`).
 
 ### Visão Estrutural por Módulos
 
@@ -471,12 +477,17 @@ A camada de persistência é estruturada no PostgreSQL 17 em torno de 14 tabelas
 │  • metricas_academicas          (Séries históricas de aprovação/reprovação DPO/LAI)      │
 │  • metricas_consolidadas        (Acumulado por matéria com supressão LGPD RN07)          │
 │  • metricas_cursos              (Indicadores de fluxo, vagas e evasão do Censo INEP)     │
+│  • estatisticas_consolidadas    (Métricas oficiais validadas pelo Motor de Quórum)       │
+│  • mv_evasao_campus             (Materialized View de evasão agregada por campus e ano)  │
 ├──────────────────────────────────────────────────────────────────────────────────────────┤
 │  MÓDULO COLABORATIVO E COMUNIDADE:                                                       │
 │  • situacoes_disciplinas        (Crowdsourcing "Já cursei essa matéria")                 │
-│  • conteudos                    (Materiais de estudo, provas e links úteis)              │
+│  • doacoes_estatisticas         (Submissões colaborativas de índices de turmas SIGAA)    │
+│  • conteudos                    (Materiais de estudo, uploads privados e links úteis)    │
+│  • curadorias                   (Auditoria imutável de decisões sobre materiais RN06)    │
 │  • comentarios                  (Discussões com pseudônimo e respostas aninhadas)        │
 │  • votos_uteis                  (Upvotes de relevância da comunidade acadêmica)          │
+│  • denuncias                    (Central de Denúncias RN04 e retenção preventiva)        │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 

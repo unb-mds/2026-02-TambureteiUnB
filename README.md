@@ -145,8 +145,8 @@ docker compose exec backend alembic upgrade head
 docker compose exec backend alembic revision --autogenerate -m "descricao_da_mudanca"
 ```
 
-> 💡 **Povoamento do Banco de Dados:**  
-> Caso deseje popular o banco com datasets históricos reais da UnB, consulte as instruções detalhadas em [`docs/pipeline_etl.md`](docs/pipeline_etl.md).
+> **Povoamento do Banco de Dados:**  
+> Caso deseje popular o banco com datasets históricos reais da UnB, consulte as instruções detalhadas em [`docs/engenharia/pipeline_etl.md`](docs/engenharia/pipeline_etl.md) e [`docs/comecando/popular_banco_de_dados.md`](docs/comecando/popular_banco_de_dados.md).
 
 ---
 
@@ -198,23 +198,26 @@ docker compose down -v
 
 ---
 
-## 📚 Documentação do Projeto com MkDocs
+## Documentação do Projeto com MkDocs
 
-A documentação detalhada de arquitetura, requisitos, modelagem e guias está disponível na pasta `docs/` e publicada em [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/).
+A documentação detalhada de arquitetura, requisitos, modelagem e guias está organizada em subpastas de domínio dentro de `docs/` e publicada em [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/).
 
-### 🗺️ Principais Documentos e Guias:
-* 📄 **[Documento de Visão](docs/index.md):** Contexto do problema, objetivos, valor entregue e escopo.
-* 📋 **[Requisitos do Sistema](docs/requisitos.md) & [Regras de Negócio](docs/regras_negocio.md):** Requisitos funcionais, não funcionais e políticas de governança e anonimização.
-* 🏛️ **[Arquitetura do Sistema & ADRs](docs/arquitetura.md):** Visão arquitetural C4, Clean Architecture, diagramas de sequência de ponta a ponta e registros de decisões arquiteturais (ADRs 01 a 07).
-* 🗄️ **[Dicionário de Dados Relacional](docs/banco_de_dados.md):** Diagrama ER e detalhamento dos esquemas do PostgreSQL 17.
-* 🔄 **[Pipeline de Dados & ETL](docs/pipeline_etl.md) e [Como Popular o Banco](docs/popular_banco_de_dados.md):** Passo a passo para ingestão, anonimização e carga de dados de turmas, docentes e históricos.
-* 🧪 **[Guia de Desenvolvimento e Smoke Test](docs/desenvolvimento.md):** Configuração de ambiente, comandos de execução, linter, testes e roteiro de validação de fumaça (*smoke test*).
+### Principais Documentos e Guias:
+* **[Documento de Visão](docs/index.md):** Contexto do problema, objetivos, valor entregue e escopo.
+* **[Guia de Contribuição](CONTRIBUTING.md) & [Como Contribuir](docs/comecando/como_contribuir.md):** Fluxo de branches, TDD, Conventional Commits e portas de qualidade do CI.
+* **[Requisitos do Sistema](docs/produto/requisitos.md) & [Regras de Negócio](docs/produto/regras_negocio.md):** Requisitos funcionais, não funcionais e políticas de governança e anonimização.
+* **[Arquitetura do Sistema & ADRs](docs/engenharia/arquitetura.md):** Visão arquitetural C4, Clean Architecture, diagramas de sequência de ponta a ponta e registros de decisões arquiteturais (ADRs 01 a 08).
+* **[Dicionário de Dados Relacional](docs/engenharia/banco_de_dados.md):** Mapa de relacionamentos e detalhamento dos esquemas do PostgreSQL 17 (17 tabelas + 1 Materialized View).
+* **[Dashboard Institucional](docs/engenharia/dashboard_institucional.md) & [Autenticação e Comunidade](docs/engenharia/autenticacao_comunidade.md):** Contratos e regras de domínio do painel institucional (Épico 6), segurança JWT/RBAC e relatos sob pseudônimo.
+* **[Pipeline de Dados & ETL](docs/engenharia/pipeline_etl.md) e [Como Popular o Banco](docs/comecando/popular_banco_de_dados.md):** Passo a passo para ingestão, anonimização e carga de dados de turmas, docentes e históricos.
+* **[Guia de Desenvolvimento e Smoke Test](docs/comecando/desenvolvimento.md):** Configuração de ambiente, comandos de execução, linter, testes e roteiro de validação de fumaça (*smoke test*).
+* **[Uso de IA & Governança de Agentes](docs/ai/ai_usage.md):** Diretrizes do `AGENTS.md`, skills do projeto e fluxo de trabalho assistido por IA.
 
 Para visualizá-la e editá-la localmente com live-reload:
 
 ```bash
 # Instalar dependências da documentação
-pip install mkdocs pymdown-extensions
+pip install mkdocs mkdocs-material pymdown-extensions
 
 # Iniciar o servidor local da documentação na porta 8001 (evitando conflito com o backend na 8000)
 mkdocs serve -a localhost:8001
