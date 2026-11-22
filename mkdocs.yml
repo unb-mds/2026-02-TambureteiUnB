@@ -38,6 +38,7 @@ nav:
       - Dicionário de Dados Relacional: banco_de_dados.md
   - Engenharia de Dados & ETL:
       - Pipeline de Dados & ETL: pipeline_etl.md
+      - Notas de Corte PAS: notas_corte_pas.md
       - Como Popular o Banco de Dados: popular_banco_de_dados.md
   - Histórias de Usuário:
       - Backend: historias_usuario_backend.md
