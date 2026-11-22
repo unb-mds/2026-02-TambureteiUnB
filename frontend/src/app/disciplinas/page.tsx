@@ -16,10 +16,10 @@ import useAsyncList from "@/hooks/useAsyncList";
 import {
   GLOBAL_CAMPUSES,
   GLOBAL_AREAS,
-  GLOBAL_DEPARTMENTS,
   Discipline,
 } from "@/types/disciplina";
 import { normalizeSearchTerm } from "@/utils/search";
+import { getDepartmentOptions } from "@/utils/disciplineDepartments";
 import ApprovalBadge from "@/components/ApprovalBadge";
 import { useDisciplineDetailedMetrics } from "@/hooks/useDisciplineApprovalMetrics";
 
@@ -37,6 +37,10 @@ function DisciplinasContent() {
   const [query, setQuery] = useState(initialQuery);
   const [campus, setCampus] = useState("Todos os Campi");
   const [department, setDepartment] = useState("Todos os Departamentos");
+  const departmentOptions = useMemo(
+    () => getDepartmentOptions(disciplines),
+    [disciplines],
+  );
   const [area, setArea] = useState("Todas");
   const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
   const [onlyWithClasses, setOnlyWithClasses] = useState(true);
@@ -65,7 +69,8 @@ function DisciplinasContent() {
         discipline.campusFilter === campus ||
         discipline.campus === campus;
       const matchesDepartment =
-        department === "Todos os Departamentos" || discipline.department === department;
+        department === "Todos os Departamentos" ||
+        discipline.departmentName === department;
       const matchesArea = area === "Todas" || discipline.area === area;
 
       return matchesQuery && matchesCampus && matchesDepartment && matchesArea;
@@ -244,8 +249,13 @@ function DisciplinasContent() {
                     onChange={(event) => handleDepartmentChange(event.target.value)}
                     className="w-full appearance-none rounded-xl bg-[#F7F7FA] border border-[#E1DFEA] px-4 py-2.5 pr-10 text-xs font-medium text-[#202124] outline-none focus:border-[#5B4BDB]"
                   >
-                    {GLOBAL_DEPARTMENTS.map((item) => (
-                      <option key={item}>{item}</option>
+                    <option value="Todos os Departamentos">
+                      Todos os Departamentos
+                    </option>
+                    {departmentOptions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
                     ))}
                   </select>
                   <svg
