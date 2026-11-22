@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import AcademicProfileDashboard from "@/components/AcademicProfileDashboard";
+import Input from "@/components/Input";
+import Button from "@/components/Button";
 import {
+  changePassword,
   getStoredUser,
   isAuthenticated,
   subscribeAuthChange,
@@ -17,6 +20,7 @@ import {
   uploadHistoricoPdf,
   type HistoricoImportacaoResponse,
 } from "@/services/historicoService";
+import { ApiError } from "@/services/httpClient";
 
 const HISTORICO_CHANGE_EVENT = "tamburetei-historico-change";
 
@@ -87,6 +91,13 @@ export default function ProfilePage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
 
+  // Estados de alteração de senha
+  const [senhaAtual, setSenhaAtual] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmarNovaSenha, setConfirmarNovaSenha] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
   useEffect(() => {
     if (authenticated === false) {
       router.replace("/login?redirect=%2Fperfil");
@@ -127,6 +138,37 @@ export default function ProfilePage() {
     window.dispatchEvent(new Event(HISTORICO_CHANGE_EVENT));
     setUploadSuccess(null);
     setUploadError(null);
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!senhaAtual) {
+      setPasswordFeedback({ type: "error", message: "Informe sua senha atual." });
+      return;
+    }
+    if (novaSenha.length < 8) {
+      setPasswordFeedback({ type: "error", message: "A nova senha deve possuir no mínimo 8 caracteres." });
+      return;
+    }
+    if (novaSenha !== confirmarNovaSenha) {
+      setPasswordFeedback({ type: "error", message: "A confirmação da nova senha não coincide." });
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordFeedback(null);
+    try {
+      const res = await changePassword({ senha_atual: senhaAtual, nova_senha: novaSenha });
+      setPasswordFeedback({ type: "success", message: res.message });
+      setSenhaAtual("");
+      setNovaSenha("");
+      setConfirmarNovaSenha("");
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : "Não foi possível alterar sua senha.";
+      setPasswordFeedback({ type: "error", message: msg });
+    } finally {
+      setPasswordLoading(false);
+    }
   }
 
   if (authenticated !== true) {
@@ -360,6 +402,72 @@ export default function ProfilePage() {
               </div>
             )}
           </dl>
+        </section>
+
+        {/* Segurança e Alteração de Senha */}
+        <section
+          aria-labelledby="security-section-title"
+          className="rounded-3xl border border-[#E8E6F8] bg-white p-5 shadow-xs sm:p-7"
+        >
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5B4BDB]">
+              Segurança da Conta
+            </p>
+            <h2 id="security-section-title" className="text-xl font-bold text-[#202124]">
+              Alterar Senha
+            </h2>
+            <p className="text-xs text-gray-500">
+              Mantenha sua conta protegida atualizando sua senha periodicamente.
+            </p>
+          </div>
+
+          {passwordFeedback && (
+            <div
+              role="alert"
+              className={`mt-4 rounded-xl border p-3 text-xs font-medium ${
+                passwordFeedback.type === "success"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }`}
+            >
+              {passwordFeedback.message}
+            </div>
+          )}
+
+          <form onSubmit={handleChangePassword} className="mt-5 max-w-lg space-y-4">
+            <Input
+              label="Senha atual"
+              type="password"
+              id="current-password"
+              value={senhaAtual}
+              onChange={(e) => setSenhaAtual(e.target.value)}
+              placeholder="Digite sua senha atual"
+              required
+            />
+            <Input
+              label="Nova senha"
+              type="password"
+              id="new-password"
+              value={novaSenha}
+              onChange={(e) => setNovaSenha(e.target.value)}
+              placeholder="Mínimo de 8 caracteres"
+              required
+            />
+            <Input
+              label="Confirmar nova senha"
+              type="password"
+              id="confirm-new-password"
+              value={confirmarNovaSenha}
+              onChange={(e) => setConfirmarNovaSenha(e.target.value)}
+              placeholder="Repita a nova senha"
+              required
+            />
+            <div className="pt-1">
+              <Button type="submit" variant="primary" size="md" isLoading={passwordLoading}>
+                Salvar nova senha
+              </Button>
+            </div>
+          </form>
         </section>
 
         <AcademicProfileDashboard

@@ -1,4 +1,13 @@
-import type { UserLoginInput, UserRegisterInput, AuthToken, UserResponse } from "../types/auth.ts";
+import type {
+  UserLoginInput,
+  UserRegisterInput,
+  AuthToken,
+  UserResponse,
+  ForgotPasswordInput,
+  ResetPasswordInput,
+  ChangePasswordInput,
+  MessageResponse,
+} from "../types/auth.ts";
 import { request, setStoredToken, removeStoredToken, hasStoredToken } from "./httpClient.ts";
 import { clearImportedHistorico } from "./historicoService.ts";
 
@@ -96,6 +105,36 @@ export async function register(data: UserRegisterInput): Promise<UserResponse> {
 }
 
 /**
+ * Solicita o link/token de recuperação de senha informando o e-mail cadastrado.
+ */
+export async function requestPasswordReset(data: ForgotPasswordInput): Promise<MessageResponse> {
+  return request<MessageResponse>("/auth/esqueci-senha", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Redefine a senha esquecida a partir do token de recuperação.
+ */
+export async function resetPassword(data: ResetPasswordInput): Promise<MessageResponse> {
+  return request<MessageResponse>("/auth/redefinir-senha", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Altera a senha do usuário autenticado no sistema.
+ */
+export async function changePassword(data: ChangePasswordInput): Promise<MessageResponse> {
+  return request<MessageResponse>("/auth/alterar-senha", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
  * Remove a sessão e o token JWT ativo, notificando a interface.
  */
 export function logout(): void {
@@ -154,6 +193,9 @@ export const authService = {
   getStoredUser,
   setStoredUser,
   removeStoredUser,
+  requestPasswordReset,
+  resetPassword,
+  changePassword,
   AUTH_CHANGE_EVENT,
 };
 

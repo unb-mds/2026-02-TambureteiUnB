@@ -132,3 +132,69 @@ class TestAuthIntegration:
     def test_get_me_sem_token_retorna_401(self, client: TestClient):
         res = client.get("/auth/me")
         assert res.status_code == 401
+
+    def test_fluxo_esqueci_e_redefinir_senha_sucesso(self, client: TestClient):
+        client.post(
+            "/auth/register",
+            json={
+                "nome": "Usuario Recuperacao",
+                "email": "recuperar.senha@provedor.com",
+                "senha": "SenhaAntiga123!",
+            },
+        )
+
+        res_esqueci = client.post(
+            "/auth/esqueci-senha",
+            json={"email": "recuperar.senha@provedor.com"},
+        )
+        assert res_esqueci.status_code == 200
+        dados_esqueci = res_esqueci.json()
+        assert "message" in dados_esqueci
+        token = dados_esqueci.get("reset_token")
+        assert token is not None
+
+        res_redefinir = client.post(
+            "/auth/redefinir-senha",
+            json={"token": token, "nova_senha": "SenhaNova456!"},
+        )
+        assert res_redefinir.status_code == 200
+        assert "sucesso" in res_redefinir.json()["message"]
+
+        login_novo = client.post(
+            "/auth/login",
+            json={"email": "recuperar.senha@provedor.com", "senha": "SenhaNova456!"},
+        )
+        assert login_novo.status_code == 200
+
+    def test_alterar_senha_usuario_autenticado(self, client: TestClient):
+        client.post(
+            "/auth/register",
+            json={
+                "nome": "Usuario Troca Senha",
+                "email": "troca.senha@provedor.com",
+                "senha": "SenhaAtual123!",
+            },
+        )
+
+        login_res = client.post(
+            "/auth/login",
+            json={"email": "troca.senha@provedor.com", "senha": "SenhaAtual123!"},
+        )
+        token = login_res.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        res_erro = client.post(
+            "/auth/alterar-senha",
+            headers=headers,
+            json={"senha_atual": "SenhaErrada999!", "nova_senha": "SenhaNova123!"},
+        )
+        assert res_erro.status_code == 400
+
+        res_sucesso = client.post(
+            "/auth/alterar-senha",
+            headers=headers,
+            json={"senha_atual": "SenhaAtual123!", "nova_senha": "NovaSenhaSegura789!"},
+        )
+        assert res_sucesso.status_code == 200
+        assert "sucesso" in res_sucesso.json()["message"]
+

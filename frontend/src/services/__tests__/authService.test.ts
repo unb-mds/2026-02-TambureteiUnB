@@ -175,3 +175,34 @@ test("login com usuario diferente limpa o historico SIGAA da conta anterior", as
 
   assert.equal(storageData.has("tamburetei_historico_sigaa"), false);
 });
+
+test("requestPasswordReset, resetPassword e changePassword executam chamadas corretas", async (t) => {
+  const calls: { url: string; method?: string; body?: string }[] = [];
+
+  t.mock.method(globalThis, "fetch", async (url: string, init?: RequestInit) => {
+    calls.push({
+      url,
+      method: init?.method,
+      body: typeof init?.body === "string" ? init.body : undefined,
+    });
+    return new Response(JSON.stringify({ message: "Operação realizada com sucesso." }), {
+      status: 200,
+    });
+  });
+
+  const { requestPasswordReset, resetPassword, changePassword } = await import("../authService.ts");
+
+  await requestPasswordReset({ email: "aluno@unb.br" });
+  assert.equal(calls[0].url.endsWith("/auth/esqueci-senha"), true);
+  assert.equal(calls[0].method, "POST");
+  assert.match(calls[0].body || "", /aluno@unb\.br/);
+
+  await resetPassword({ token: "token-reset-123", nova_senha: "NovaSenhaForte123!" });
+  assert.equal(calls[1].url.endsWith("/auth/redefinir-senha"), true);
+  assert.match(calls[1].body || "", /token-reset-123/);
+
+  await changePassword({ senha_atual: "SenhaVelha123!", nova_senha: "SenhaNova456!" });
+  assert.equal(calls[2].url.endsWith("/auth/alterar-senha"), true);
+  assert.match(calls[2].body || "", /SenhaNova456!/);
+});
+

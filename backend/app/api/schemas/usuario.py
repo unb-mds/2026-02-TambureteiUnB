@@ -107,3 +107,72 @@ class Token(BaseModel):
 
 class UsuarioDesativado(BaseModel):
     detail: str = "Conta desativada com sucesso. Suas contribuições foram preservadas."
+
+
+class EsqueciSenhaInput(BaseModel):
+    email: EmailStr = Field(..., description="E-mail cadastrado na plataforma")
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validar_email(cls, v: str) -> str:
+        if not isinstance(v, str):
+            raise PydanticCustomError("email_invalido", "O e-mail deve ser um texto.")
+        v = v.strip().lower()
+        try:
+            valid = validate_email(v, check_deliverability=False)
+            return valid.normalized
+        except EmailNotValidError:
+            raise PydanticCustomError(
+                "email_invalido",
+                "Por favor, informe um endereço de e-mail válido (exemplo: usuario@dominio.com)."
+            )
+
+
+class RedefinirSenhaInput(BaseModel):
+    token: str = Field(..., description="Token de recuperação recebido por e-mail")
+    nova_senha: str = Field(..., description="Nova senha do estudante")
+
+    @field_validator("nova_senha")
+    @classmethod
+    def validar_complexidade_senha(cls, v: str) -> str:
+        if len(v) < 8:
+            raise PydanticCustomError("senha_curta", "A senha deve possuir pelo menos 8 caracteres.")
+        if len(v) > 72:
+            raise PydanticCustomError("senha_longa", "A senha não pode ultrapassar 72 caracteres.")
+        if not re.search(r"[A-Z]", v):
+            raise PydanticCustomError("senha_sem_maiuscula", "A senha deve conter pelo menos uma letra maiúscula.")
+        if not re.search(r"[a-z]", v):
+            raise PydanticCustomError("senha_sem_minuscula", "A senha deve conter pelo menos uma letra minúscula.")
+        if not re.search(r"[0-9]", v):
+            raise PydanticCustomError("senha_sem_numero", "A senha deve conter pelo menos um número.")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>\-_=+]", v):
+            raise PydanticCustomError("senha_sem_especial", "A senha deve conter pelo menos um caractere especial (!@#$%^&* etc.).")
+        return v
+
+
+class AlterarSenhaInput(BaseModel):
+    senha_atual: str = Field(..., description="Senha atual do estudante")
+    nova_senha: str = Field(..., description="Nova senha desejada")
+
+    @field_validator("nova_senha")
+    @classmethod
+    def validar_complexidade_senha(cls, v: str) -> str:
+        if len(v) < 8:
+            raise PydanticCustomError("senha_curta", "A senha deve possuir pelo menos 8 caracteres.")
+        if len(v) > 72:
+            raise PydanticCustomError("senha_longa", "A senha não pode ultrapassar 72 caracteres.")
+        if not re.search(r"[A-Z]", v):
+            raise PydanticCustomError("senha_sem_maiuscula", "A senha deve conter pelo menos uma letra maiúscula.")
+        if not re.search(r"[a-z]", v):
+            raise PydanticCustomError("senha_sem_minuscula", "A senha deve conter pelo menos uma letra minúscula.")
+        if not re.search(r"[0-9]", v):
+            raise PydanticCustomError("senha_sem_numero", "A senha deve conter pelo menos um número.")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>\-_=+]", v):
+            raise PydanticCustomError("senha_sem_especial", "A senha deve conter pelo menos um caractere especial (!@#$%^&* etc.).")
+        return v
+
+
+class MensagemAuthResponse(BaseModel):
+    message: str
+    reset_token: str | None = None
+
