@@ -11,4 +11,5 @@ for (const [matriculados, aprovados, taxa, expected] of [[10, 0, 0, 0], [0, 0, 0
 }
 test("histórico vazio não é substituído no adaptador", () => {
   assert.equal(adaptBackendDisciplina(base).historicalPerformance, undefined);
+  assert.equal(adaptBackendDisciplina(base).resources, 0);
 });

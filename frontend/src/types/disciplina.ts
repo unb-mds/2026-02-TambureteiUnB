@@ -263,7 +263,7 @@ export function adaptBackendDisciplina(
     failedGrade,
     failedAttendance,
     withdrawn,
-    resources: 12,
+    resources: 0,
     popularity: 85,
     ementa: full?.ementa || undefined,
     historicalPerformance: historicalPerf,
