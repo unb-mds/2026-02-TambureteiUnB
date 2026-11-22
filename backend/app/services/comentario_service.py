@@ -18,6 +18,19 @@ from app.repositories.turma_repo import turma_repo
 
 class ComentarioService:
     @staticmethod
+    def _validar_turma_da_disciplina(db: Session, turma_id: int | None, disciplina_id: int) -> None:
+        if turma_id is None:
+            return
+        turma = turma_repo.get_by_id(db, turma_id)
+        if not turma:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Turma não encontrada.")
+        if turma.disciplina_id != disciplina_id:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="A turma informada não pertence à disciplina selecionada.",
+            )
+
+    @staticmethod
     def _resolver_disciplina(db: Session, disciplina_id_ou_slug: int | str):
         if isinstance(disciplina_id_ou_slug, int) or (
             isinstance(disciplina_id_ou_slug, str) and disciplina_id_ou_slug.isdigit()
@@ -37,15 +50,9 @@ class ComentarioService:
     ) -> Comentario:
 
         if not disciplina_repo.get_by_id(db, dados.disciplina_id):
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada."
-            )
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada.")
 
-        if dados.turma_id is not None:
-            if not turma_repo.get_by_id(db, dados.turma_id):
-                raise HTTPException(
-                    status.HTTP_404_NOT_FOUND, detail="Turma não encontrada."
-                )
+        self._validar_turma_da_disciplina(db, dados.turma_id, dados.disciplina_id)
 
         novo_comentario = Comentario(
             usuario_id=current_user.id,
@@ -67,9 +74,7 @@ class ComentarioService:
     ) -> Comentario:
         disciplina = self._resolver_disciplina(db, disciplina_id_ou_slug)
         if not disciplina:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada."
-            )
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada.")
 
         payload = ComentarioCreate(
             disciplina_id=disciplina.id,
@@ -93,15 +98,9 @@ class ComentarioService:
 
         disciplina = self._resolver_disciplina(db, disciplina_id)
         if not disciplina:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada."
-            )
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada.")
 
-        if turma_id is not None:
-            if not turma_repo.get_by_id(db, turma_id):
-                raise HTTPException(
-                    status.HTTP_404_NOT_FOUND, detail="Turma não encontrada."
-                )
+        self._validar_turma_da_disciplina(db, turma_id, disciplina.id)
 
         items, total = comentario_repo.listar_por_disciplina_paginado(
             db,
@@ -131,9 +130,7 @@ class ComentarioService:
 
         comentario = comentario_repo.get_by_id(db, comentario_id)
         if not comentario:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND, detail="Comentário não encontrado."
-            )
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Comentário não encontrado.")
 
         if comentario.usuario_id != current_user.id:
             raise HTTPException(
@@ -148,15 +145,11 @@ class ComentarioService:
         comentario.moderado_por = None
         return comentario_repo.update(db, comentario)
 
-    def excluir_comentario(
-        self, db: Session, comentario_id: int, current_user: Usuario
-    ) -> None:
+    def excluir_comentario(self, db: Session, comentario_id: int, current_user: Usuario) -> None:
 
         comentario = comentario_repo.get_by_id(db, comentario_id)
         if not comentario:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND, detail="Comentário não encontrado."
-            )
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Comentário não encontrado.")
 
         if comentario.usuario_id != current_user.id:
             raise HTTPException(
