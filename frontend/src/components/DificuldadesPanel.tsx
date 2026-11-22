@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import {
   DIFFICULTY_LEVEL_CONFIG,
   type DifficultyAlert,
@@ -17,7 +17,7 @@ import {
   submitDifficultyAlert,
 } from "../services/difficultyService";
 import { getStoredToken } from "../services/httpClient";
-import { getStoredUser } from "../services/authService";
+import { getStoredUser, isAuthenticated, subscribeAuthChange } from "../services/authService";
 
 export interface DificuldadesPanelProps {
   disciplineId?: number;
@@ -39,6 +39,7 @@ interface DifficultyFormProps {
   content: string;
   onChangeContent: (val: string) => void;
   isAnonymous: boolean;
+  authorDisplayName: string;
   onChangeAnonymous: (val: boolean) => void;
   isSubmitting: boolean;
   formError: string | null;
@@ -57,6 +58,7 @@ function DifficultyForm({
   content,
   onChangeContent,
   isAnonymous,
+  authorDisplayName,
   onChangeAnonymous,
   isSubmitting,
   formError,
@@ -193,15 +195,20 @@ function DifficultyForm({
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        <label className="inline-flex items-center gap-2 text-sm text-[#5F6368] cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isAnonymous}
-            onChange={(e) => onChangeAnonymous(e.target.checked)}
-            className="h-4 w-4 rounded border-[#D8D1FA] text-[#5B4BDB] focus:ring-[#5B4BDB]"
-          />
-          Publicar como estudante anônimo
-        </label>
+        <div className="flex flex-col gap-1">
+          <label className="inline-flex items-center gap-2 text-sm text-[#5F6368] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(e) => onChangeAnonymous(e.target.checked)}
+              className="h-4 w-4 rounded border-[#D8D1FA] text-[#5B4BDB] focus:ring-[#5B4BDB]"
+            />
+            Publicar como estudante anônimo
+          </label>
+          <span className="text-xs text-[#5F6368]">
+            Autor exibido: <strong>{isAnonymous ? "Estudante Anônimo" : authorDisplayName}</strong>
+          </span>
+        </div>
 
         <button
           type="submit"
@@ -402,7 +409,14 @@ export default function DificuldadesPanel({
   ementa,
   historicalFailureRate = 0,
 }: DificuldadesPanelProps) {
-  const router = useRouter();
+  const authenticated = useSyncExternalStore(
+    subscribeAuthChange,
+    isAuthenticated,
+    () => false
+  );
+  const storedUser = authenticated ? getStoredUser() : null;
+  const authorDisplayName = storedUser?.nome?.trim() || "Estudante UnB";
+
   const [alerts, setAlerts] = useState<DifficultyAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>("TODOS");
@@ -476,6 +490,9 @@ export default function DificuldadesPanel({
   };
 
   const handleOpenForm = (preselectUnit?: string) => {
+    if (!authenticated || !isAuthenticated()) {
+      return;
+    }
     setFormError(null);
     if (preselectUnit) {
       setSelectedUnit(preselectUnit);
@@ -492,9 +509,9 @@ export default function DificuldadesPanel({
     const token = getStoredToken();
     const currentUser = getStoredUser();
 
-    if (!token && !currentUser) {
-      router.push(
-        `/login?redirect=${encodeURIComponent(`/disciplinas/${disciplineSlug}`)}`
+    if (!authenticated || (!token && !currentUser)) {
+      setFormError(
+        "Faça login com sua conta de estudante para registrar dificuldades na ementa."
       );
       return;
     }
@@ -570,16 +587,43 @@ export default function DificuldadesPanel({
 
         <button
           type="button"
+          disabled={!authenticated}
+          title={!authenticated ? "Faça login para registrar dificuldades" : undefined}
           onClick={() =>
             isFormOpen ? setIsFormOpen(false) : handleOpenForm()
           }
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#5B4BDB] text-white text-sm font-semibold hover:bg-[#4938C4] transition-colors shrink-0 cursor-pointer"
+          className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors shrink-0 ${
+            authenticated
+              ? "bg-[#5B4BDB] hover:bg-[#4938C4] cursor-pointer"
+              : "bg-gray-300 cursor-not-allowed opacity-60"
+          }`}
         >
-          {isFormOpen ? "Fechar formulário" : "+ Registrar Dificuldade"}
+          {authenticated
+            ? isFormOpen
+              ? "Fechar formulário"
+              : "+ Registrar Dificuldade"
+            : "Faça login para relatar"}
         </button>
       </div>
 
-      {isFormOpen && (
+      {!authenticated && (
+        <div
+          role="status"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD] px-4 py-3 text-xs sm:text-sm text-[#5B4BDB]"
+        >
+          <span>
+            Apenas estudantes autenticados podem registrar dificuldades na ementa.
+          </span>
+          <Link
+            href="/login"
+            className="rounded-lg bg-[#5B4BDB] px-3 py-1.5 text-xs font-bold text-white hover:brightness-110 transition-all"
+          >
+            Fazer login
+          </Link>
+        </div>
+      )}
+
+      {authenticated && isFormOpen && (
         <DifficultyForm
           syllabusUnits={syllabusUnits}
           activeSelectedUnit={activeSelectedUnit}
@@ -591,6 +635,7 @@ export default function DificuldadesPanel({
           content={content}
           onChangeContent={setContent}
           isAnonymous={isAnonymous}
+          authorDisplayName={authorDisplayName}
           onChangeAnonymous={setIsAnonymous}
           isSubmitting={isSubmitting}
           formError={formError}
