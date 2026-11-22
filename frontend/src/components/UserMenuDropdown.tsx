@@ -197,30 +197,6 @@ export default function UserMenuDropdown({
               <span className="text-xs font-semibold">Meu perfil</span>
             </Link>
 
-            {/* Opção: Segurança da conta */}
-            <Link
-              href="/perfil?aba=seguranca"
-              role="menuitem"
-              onClick={handleClose}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-[#E4E4E7] transition-colors hover:bg-[#27272A] hover:text-white"
-            >
-              <svg
-                className="h-4 w-4 text-[#A1A1AA]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-              <span>Segurança da conta</span>
-            </Link>
-
             {/* Opção: Sair da conta */}
             <button
               type="button"
