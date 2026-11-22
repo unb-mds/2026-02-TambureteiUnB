@@ -1,0 +1,55 @@
+{
+  "base": "d8a28c7207726bae339c661659eec8abb452d44e",
+  "method": "Interface real com servidor local de respostas controladas; serviço de comentários real com repositórios simulados; sem acesso ao banco",
+  "cases": {
+    "download": {
+      "href": "#",
+      "visibleMaterials": 20
+    },
+    "paginacao": {
+      "apiTotal": 21,
+      "visibleBeforeSearch": 20,
+      "requests": [
+        "/cadeiras/auditoria-download/materiais"
+      ],
+      "page2": {
+        "items": [
+          {
+            "id": 1,
+            "disciplina_id": 10,
+            "titulo": "Resumo antigo",
+            "tipo": "RESUMO",
+            "formato": "pdf",
+            "tamanho_bytes": 100,
+            "status_curadoria": "APROVADO",
+            "status_moderacao": "PUBLICADO",
+            "created_at": "2026-11-20T12:00:00Z"
+          }
+        ],
+        "total": 21,
+        "pagina": 2,
+        "tamanho_pagina": 20
+      }
+    },
+    "historico": {
+      "apiMetricas": [],
+      "rows": 6
+    },
+    "zero": {
+      "apiRate": 0,
+      "ui": "0 alunos\nSem dados\n\nTaxa de Aprovação"
+    },
+    "erro": {
+      "status": 503,
+      "ui": "Ainda não há materiais cadastrados nesta categoria."
+    },
+    "comentario": {
+      "disciplina_do_comentario": 10,
+      "turma_do_comentario": 99,
+      "disciplina_real_da_turma": 20,
+      "resultado_observado": "aceito pelo serviço",
+      "resultado_esperado": "rejeitar a associação incompatível",
+      "persistencia": "simulada; banco não acessado"
+    }
+  }
+}
