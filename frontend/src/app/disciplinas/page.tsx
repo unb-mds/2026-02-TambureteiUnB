@@ -305,7 +305,20 @@ function DisciplinasContent() {
                   }}
                   className="sr-only peer"
                 />
-                <div className="w-10 h-5.5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-[#5B4BDB]"></div>
+                <div
+                  className={`relative w-10 h-5.5 rounded-full transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 ${
+                    onlyWithClasses ? "bg-[#5B4BDB]" : "bg-gray-200"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`absolute top-[2px] left-[2px] h-4.5 w-4.5 rounded-full bg-white border transition-transform ${
+                      onlyWithClasses
+                        ? "translate-x-4.5 border-white"
+                        : "translate-x-0 border-gray-300"
+                    }`}
+                  />
+                </div>
                 <span className="ml-3 text-xs sm:text-sm font-semibold text-[#202124]">
                   Apenas disciplinas com turmas ofertadas
                 </span>
