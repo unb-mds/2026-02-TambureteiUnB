@@ -16,13 +16,13 @@ function getTurnoBadgeClasses(turno: TurnoTurma): string {
   switch (turno) {
     case "Matutino":
     case "Diurno":
-      return "bg-amber-50 text-amber-700 border-amber-200/80";
+      return "bg-[var(--status-warning-bg)] text-[var(--status-warning-text)] border-[var(--status-warning-border)]";
     case "Vespertino":
-      return "bg-orange-50 text-orange-700 border-orange-200/80";
+      return "bg-[var(--primary-soft)] text-[var(--primary-text)] border-[var(--border-subtle)]";
     case "Noturno":
-      return "bg-indigo-50 text-indigo-700 border-indigo-200/80";
+      return "bg-[var(--primary-soft)] text-[var(--primary-text)] border-[var(--border-subtle)]";
     default:
-      return "bg-gray-100 text-gray-700 border-gray-200";
+      return "bg-[var(--status-neutral-bg)] text-[var(--status-neutral-text)] border-[var(--status-neutral-border)]";
   }
 }
 

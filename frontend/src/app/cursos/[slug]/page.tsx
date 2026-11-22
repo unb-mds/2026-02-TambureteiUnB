@@ -414,7 +414,7 @@ export default function CourseDisciplinesPage() {
                       {/* Seletor Interativo de Anos-Base (ex: 2024, 2023, 2022, 2021) */}
                       {availableMetricYears.length > 1 ? (
                         <div
-                          className="flex items-center gap-1 bg-[#F0EEFB] p-1 rounded-xl"
+                          className="flex flex-wrap items-center gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-1"
                           role="group"
                           aria-label="Filtro de ano das métricas do curso"
                         >
@@ -423,10 +423,11 @@ export default function CourseDisciplinesPage() {
                               key={yr}
                               type="button"
                               onClick={() => setSelectedMetricYear(yr)}
+                              aria-pressed={activeMetricYear === yr}
                               className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
                                 activeMetricYear === yr
                                   ? "bg-[#5B4BDB] text-white shadow-xs"
-                                  : "text-gray-600 hover:text-[#5B4BDB] hover:bg-white/60"
+                                  : "text-[var(--text-muted)] hover:text-[var(--primary-text)] hover:bg-[var(--surface)]"
                               }`}
                             >
                               Ano {yr}

@@ -35,6 +35,7 @@ nav:
   - Arquitetura & Banco de Dados:
       - Arquitetura do Sistema & ADRs: arquitetura.md
       - Arquitetura da Interface: arquitetura_ui.md
+      - Cores dos Indicadores: cores_indicadores.md
       - Dicionário de Dados Relacional: banco_de_dados.md
   - Engenharia de Dados & ETL:
       - Pipeline de Dados & ETL: pipeline_etl.md
