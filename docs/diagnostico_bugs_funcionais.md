@@ -193,3 +193,8 @@ Sugestão de agrupamento para revisão:
 Os commits devem acompanhar responsabilidades concluídas, com testes que comprovem o problema e a correção. Não dividir mudanças artificiais apenas para aumentar a contagem.
 
 Não houve publicação, criação de issues ou PRs, correção de código funcional nem merge nesta etapa. A PR de moderação #201 foi consultada: ela modifica a curadoria, não o componente público de materiais examinado aqui.
+
+
+## Atualização de acompanhamento
+
+Os registros acima preservam a reprodução da revisão-base. As correções de download, listagem e erro estão preparadas na branch local `fix/materiais-publicos`; ver [validação de materiais](correcao_materiais_publicos.md). Os demais casos seguem em branches independentes de comentários, métricas e Início/Cursos, planejadas para a Sprint 12. Não houve publicação desta revisão.
