@@ -87,14 +87,31 @@ class MaterialService:
             raise
 
     def listar(
-        self, db: Session, id_ou_slug: int | str, titulo: str | None, pagina: int, tamanho_pagina: int, tipo: str | None = None
+        self,
+        db: Session,
+        id_ou_slug: int | str,
+        titulo: str | None,
+        pagina: int,
+        tamanho_pagina: int,
+        tipo: str | None = None,
+        tipos: list[str] | None = None,
     ) -> MaterialPage:
         disciplina = self.resolver_disciplina(db, id_ou_slug)
         tipo_filtro = tipo.strip().upper() if tipo else None
-        if tipo_filtro and tipo_filtro not in self.TIPOS_PERMITIDOS:
-            raise HTTPException(422, f"Tipo inválido. Tipos permitidos: {sorted(self.TIPOS_PERMITIDOS)}")
+        tipos_filtro = sorted({item.strip().upper() for item in tipos}) if tipos else None
+        if tipo_filtro and tipos_filtro:
+            raise HTTPException(422, "Informe apenas tipo ou tipos para filtrar os materiais.")
+        informados = tipos_filtro or ([tipo_filtro] if tipo_filtro else [])
+        if any(item not in self.TIPOS_PERMITIDOS for item in informados):
+            raise HTTPException(422, "Tipo de material inválido.")
         materiais, total = material_repo.listar_ativos(
-            db, disciplina.id, titulo.strip() if titulo else None, pagina, tamanho_pagina, tipo=tipo_filtro
+            db,
+            disciplina.id,
+            titulo.strip() if titulo else None,
+            pagina,
+            tamanho_pagina,
+            tipo=tipo_filtro,
+            tipos=tipos_filtro,
         )
         return MaterialPage(items=materiais, total=total, pagina=pagina, tamanho_pagina=tamanho_pagina)
 

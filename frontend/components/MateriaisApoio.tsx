@@ -3,7 +3,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "@/services/authService";
-import { listMaterials } from "@/services/materialService";
+import Pagination from "@/components/Pagination";
+import { ApiError } from "@/services/httpClient";
+import type { MaterialType } from "@/types/material";
+import { listMaterials, downloadMaterial } from "@/services/materialService";
 
 export interface MaterialItem {
   id: string;
@@ -42,6 +45,11 @@ interface MateriaisApoioProps {
   onOpenUploadModal?: () => void;
 }
 
+const MATERIALS_PER_PAGE = 20;
+const CATEGORY_TYPES: Record<"resumos" | "links" | "provas", MaterialType[]> = {
+  resumos: ["RESUMO", "DICA"], links: ["ARQUIVO"], provas: ["PROVA_ANTIGA"],
+};
+
 export default function MateriaisApoio({
   disciplineName,
   disciplineIdOrSlug,
@@ -63,6 +71,14 @@ export default function MateriaisApoio({
       ? "[TRIAGEM EM ANDAMENTO] Seu material foi enviado para verificacao automatica. A lista sera atualizada assim que for aprovado."
       : null;
 
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [listError, setListError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const requestSequence = useRef(0);
+
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
@@ -71,8 +87,12 @@ export default function MateriaisApoio({
       return [];
     }
 
+    const currentRequest = ++requestSequence.current;
     try {
-      const response = await listMaterials(disciplineIdOrSlug);
+      const response = await listMaterials(disciplineIdOrSlug, {
+        titulo: searchQuery.trim(), tipos: CATEGORY_TYPES[activeTab],
+        pagina: page, tamanho_pagina: MATERIALS_PER_PAGE,
+      });
       const rawItems: BackendMaterialItem[] = response?.items || [];
       const mappedItems: MaterialItem[] = rawItems.map((item) => ({
         id: String(item.id),
@@ -83,30 +103,34 @@ export default function MateriaisApoio({
         created_at: item.created_at
           ? new Date(item.created_at).toLocaleDateString("pt-BR")
           : "Recente",
-        url: item.url || item.arquivo_url || "#",
         upvotes: item.upvotes || 0,
         isLikedByMe: false,
         authorAlias: item.usuario?.nome || item.authorAlias || "Estudante",
         professor: item.professor || undefined,
       }));
 
-      if (isMountedRef.current) {
+      if (isMountedRef.current && currentRequest === requestSequence.current) {
+        setListError(null);
+        setTotal(response.total);
         setMaterials(mappedItems);
       }
       return mappedItems;
     } catch (error) {
-      console.error("Erro ao carregar materiais da disciplina:", error);
+      if (isMountedRef.current && currentRequest === requestSequence.current) {
+        setListError(error instanceof ApiError ? error.message : "Não foi possível carregar os materiais. Tente novamente.");
+      }
       return [];
     }
-  }, [disciplineIdOrSlug]);
+  }, [disciplineIdOrSlug, searchQuery, activeTab, page]);
 
   useEffect(() => {
     isMountedRef.current = true;
 
+    let cancelled = false;
     async function loadInitial() {
       setLoading(true);
       await fetchMaterials();
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !cancelled) {
         setLoading(false);
       }
     }
@@ -114,13 +138,15 @@ export default function MateriaisApoio({
     void loadInitial();
 
     return () => {
+      cancelled = true;
       isMountedRef.current = false;
+      requestSequence.current += 1;
       if (pollTimerRef.current) {
         clearTimeout(pollTimerRef.current);
         pollTimerRef.current = null;
       }
     };
-  }, [fetchMaterials]);
+  }, [fetchMaterials, retryCount]);
 
   useEffect(() => {
     if (refreshTrigger <= 0 || !disciplineIdOrSlug) {
@@ -134,21 +160,26 @@ export default function MateriaisApoio({
 
     const currentTrigger = refreshTrigger;
     const targetIds = pendingMaterialIds.filter(Boolean);
+    let cancelled = false;
     let attempts = 0;
     const maxAttempts = 15;
 
     const pollForPublication = async () => {
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current || cancelled) return;
       attempts += 1;
-      const items = await fetchMaterials();
-      if (!isMountedRef.current) return;
+      const response = await listMaterials(disciplineIdOrSlug, { pagina: 1, tamanho_pagina: 100 }).catch(() => null);
+      const items = response?.items ?? [];
+      if (!isMountedRef.current || cancelled) return;
 
       const published =
         targetIds.length > 0
-          ? items.find((item) => targetIds.includes(item.id))
+          ? items.find((item) => targetIds.includes(String(item.id)))
           : undefined;
 
       if (published) {
+        setPage(1);
+        setSearchQuery("");
+        setRetryCount(value => value + 1);
         if (published.tipo === "PROVA_ANTIGA") {
           setActiveTab("provas");
         } else if (published.tipo === "ARQUIVO") {
@@ -184,6 +215,7 @@ export default function MateriaisApoio({
     }, 3000);
 
     return () => {
+      cancelled = true;
       if (pollTimerRef.current) {
         clearTimeout(pollTimerRef.current);
         pollTimerRef.current = null;
@@ -219,28 +251,29 @@ export default function MateriaisApoio({
     );
   };
 
-  const filteredMaterials = materials.filter((item) => {
-    const matchesTab = (() => {
-      if (activeTab === "resumos") {
-        return item.tipo === "RESUMO" || item.tipo === "DICA";
+  const filteredMaterials = materials;
+  const handleDownload = async (material: MaterialItem) => {
+    setDownloadError(null);
+    setDownloadingId(material.id);
+    try {
+      const blob = await downloadMaterial(Number(material.id));
+      const url = URL.createObjectURL(blob);
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `material-${material.id}.${material.formato.toLowerCase()}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
-      if (activeTab === "provas") {
-        return item.tipo === "PROVA_ANTIGA";
-      }
-      if (activeTab === "links") {
-        return item.tipo === "ARQUIVO" || item.formato.toLowerCase() === "link";
-      }
-      return true;
-    })();
-
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch =
-      item.titulo.toLowerCase().includes(searchLower) ||
-      (item.professor && item.professor.toLowerCase().includes(searchLower)) ||
-      item.authorAlias.toLowerCase().includes(searchLower);
-
-    return matchesTab && matchesSearch;
-  });
+    } catch (error) {
+      setDownloadError(error instanceof ApiError ? error.message : "Não foi possível baixar o material. Tente novamente.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   return (
     <section className="mt-8 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
@@ -287,7 +320,7 @@ export default function MateriaisApoio({
         <div className="flex flex-wrap items-center gap-1.5 rounded-2xl bg-[#F4F3FA] p-1.5 border border-[#ECEAF5]">
           <button
             type="button"
-            onClick={() => setActiveTab("resumos")}
+            onClick={() => { setActiveTab("resumos"); setPage(1); }}
             className={`rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === "resumos"
                 ? "bg-white text-[#5B4BDB] shadow-xs"
@@ -298,7 +331,7 @@ export default function MateriaisApoio({
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("links")}
+            onClick={() => { setActiveTab("links"); setPage(1); }}
             className={`rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === "links"
                 ? "bg-white text-[#5B4BDB] shadow-xs"
@@ -309,7 +342,7 @@ export default function MateriaisApoio({
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("provas")}
+            onClick={() => { setActiveTab("provas"); setPage(1); }}
             className={`rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === "provas"
                 ? "bg-white text-[#5B4BDB] shadow-xs"
@@ -324,8 +357,9 @@ export default function MateriaisApoio({
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por título ou professor..."
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+            placeholder="Buscar material por título..."
+            aria-label="Buscar material por título"
             className="w-full rounded-xl bg-[#FAFAFC] border border-[#DDD9F1] py-2 pl-9 pr-3 text-xs sm:text-sm text-[#202124] placeholder-gray-400 outline-none focus:border-[#5B4BDB] focus:ring-1 focus:ring-[#5B4BDB]"
           />
           <svg
@@ -343,9 +377,15 @@ export default function MateriaisApoio({
         </div>
       </div>
 
+      {downloadError && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{downloadError}</p>}
       {loading ? (
         <div className="py-12 text-center text-sm text-gray-400">
           Carregando materiais de apoio...
+        </div>
+      ) : listError ? (
+        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+          <p>{listError}</p>
+          <button type="button" onClick={() => setRetryCount(value => value + 1)} className="mt-3 font-semibold underline">Tentar novamente</button>
         </div>
       ) : filteredMaterials.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#DDD9F1] p-8 text-center">
@@ -390,19 +430,19 @@ export default function MateriaisApoio({
               </div>
 
               <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                <a
-                  href={material.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => void handleDownload(material)}
+                  disabled={downloadingId !== null}
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5B4BDB] hover:underline"
                 >
-                  Acessar material
+                  {downloadingId === material.id ? "Baixando..." : "Baixar material"}
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                     <polyline points="15 3 21 3 21 9" />
                     <line x1="10" y1="14" x2="21" y2="3" />
                   </svg>
-                </a>
+                </button>
 
                 <button
                   type="button"
@@ -429,6 +469,9 @@ export default function MateriaisApoio({
             </div>
           ))}
         </div>
+      )}
+      {!loading && !listError && (
+        <Pagination currentPage={page} totalPages={Math.ceil(total / MATERIALS_PER_PAGE)} onPageChange={setPage} totalItems={total} itemsPerPage={MATERIALS_PER_PAGE} itemName="materiais" />
       )}
     </section>
   );

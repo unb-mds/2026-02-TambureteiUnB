@@ -92,3 +92,12 @@ export function generateSemesterFilters(
   return filters;
 }
 
+
+export const COURSES_PER_PAGE = 25;
+
+export function paginateCourses(courses: readonly Course[], requestedPage: number) {
+  const totalPages = Math.max(1, Math.ceil(courses.length / COURSES_PER_PAGE));
+  const currentPage = Math.max(1, Math.min(requestedPage, totalPages));
+  const start = (currentPage - 1) * COURSES_PER_PAGE;
+  return { items: courses.slice(start, start + COURSES_PER_PAGE), currentPage, totalPages };
+}

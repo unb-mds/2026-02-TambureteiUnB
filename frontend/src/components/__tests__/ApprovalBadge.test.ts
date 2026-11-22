@@ -15,7 +15,7 @@ test("ApprovalBadge exibe porcentagem real para métricas válidas", () => {
 });
 
 test("ApprovalBadge exibe badge neutro sem métrica válida", () => {
-  for (const approval of [null, undefined, 0]) {
+  for (const approval of [null, undefined, NaN, Infinity, -1, 101]) {
     const markup = renderToStaticMarkup(
       createElement(ApprovalBadge, { approval })
     );
@@ -25,4 +25,10 @@ test("ApprovalBadge exibe badge neutro sem métrica válida", () => {
     assert.match(markup, /text-gray-500/);
     assert.doesNotMatch(markup, /% de aprovação/);
   }
+});
+
+test("ApprovalBadge distingue taxa zero da ausência de dados", () => {
+  const markup = renderToStaticMarkup(createElement(ApprovalBadge, { approval: 0 }));
+  assert.match(markup, /0% de aprovação/);
+  assert.doesNotMatch(markup, /Sem dados/);
 });

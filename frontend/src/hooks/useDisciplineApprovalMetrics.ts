@@ -1,5 +1,7 @@
 "use client";
 
+import { hasApprovalData } from "@/utils/academicMetrics";
+
 import { useEffect, useRef, useState } from "react";
 import { getDisciplineBySlug } from "@/services/disciplineService";
 import type { Discipline } from "@/types/disciplina";
@@ -14,13 +16,10 @@ export default function useDisciplineApprovalMetrics(
 
   useEffect(() => {
     for (const discipline of disciplines) {
-      const hasApprovalData =
-        typeof discipline.approval === "number" &&
-        Number.isFinite(discipline.approval) &&
-        discipline.approval > 0;
+      const hasApproval = hasApprovalData(discipline.approval);
 
       if (
-        hasApprovalData ||
+        hasApproval ||
         !discipline.slug ||
         requestedSlugs.current.has(discipline.slug)
       ) {

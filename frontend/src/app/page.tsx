@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useMemo, useSyncExternalStore } from "react";
+import React, { useSyncExternalStore, useState, useMemo } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GuestBanner from "@/components/GuestBanner";
 import Button from "@/components/Button";
+import Pagination from "@/components/Pagination";
 import { authService } from "@/services/authService";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
 import { getCourses } from "@/services/courseService";
@@ -13,37 +14,44 @@ import { exportCoursesOpenData } from "@/services/openDataService";
 import useAsyncList from "@/hooks/useAsyncList";
 import {
   filterCourses,
+  paginateCourses,
+  COURSES_PER_PAGE,
   getCampusBadgeClasses,
 } from "@/utils/courseCatalog";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
-
-const subscribeAuth = (onStoreChange: () => void) => {
-  window.addEventListener(authService.AUTH_CHANGE_EVENT, onStoreChange);
-  window.addEventListener("storage", onStoreChange);
-
-  return () => {
-    window.removeEventListener(authService.AUTH_CHANGE_EVENT, onStoreChange);
-    window.removeEventListener("storage", onStoreChange);
-  };
-};
 
 export default function HomePage() {
   const { items: courses, loading } = useAsyncList(
     getCourses,
     "Erro ao carregar cursos da API:"
   );
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
   const isLoggedIn = useSyncExternalStore(
-    subscribeAuth,
-    () => authService.isAuthenticated(),
-    () => false
+    authService.subscribeAuthChange,
+    authService.isAuthenticated,
+    () => false,
   );
 
   // Filtro e busca em tempo real do catálogo na Landing Page
   const filteredCourses = useMemo(() => {
     return filterCourses(courses, searchQuery, selectedCampus);
   }, [courses, searchQuery, selectedCampus]);
+
+  const paginated = paginateCourses(filteredCourses, currentPage);
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+  const handleCampusChange = (value: CampusFilter) => {
+    setSelectedCampus(value);
+    setCurrentPage(1);
+  };
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="min-h-screen bg-[#F7F7FA] flex flex-col font-sans">
@@ -126,7 +134,7 @@ export default function HomePage() {
               <input
                 type="search"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Buscar curso por nome ou departamento..."
                 aria-label="Buscar curso por nome ou departamento"
                 className="w-full pl-10 pr-4 py-2.5 bg-[#F7F7FA] border border-[#E8E6F8] rounded-xl text-sm text-[#202124] placeholder-gray-400 focus:bg-white focus:border-[#5B4BDB] focus:ring-4 focus:ring-[#5B4BDB]/15 transition-all outline-none"
@@ -134,7 +142,7 @@ export default function HomePage() {
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => handleSearchChange("")}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                   aria-label="Limpar busca"
                 >
@@ -154,7 +162,7 @@ export default function HomePage() {
                     key={campus}
                     type="button"
                     aria-pressed={active}
-                    onClick={() => setSelectedCampus(campus)}
+                    onClick={() => handleCampusChange(campus)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                       active
                         ? "bg-[#5B4BDB] text-white shadow-xs"
@@ -183,8 +191,8 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCampus("Todos");
+                  handleSearchChange("");
+                  handleCampusChange("Todos");
                 }}
                 className="text-xs text-[#5B4BDB] hover:text-[#4F3EC9] font-semibold hover:underline"
               >
@@ -229,8 +237,9 @@ export default function HomePage() {
               ))}
             </div>
           ) : filteredCourses.length > 0 ? (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCourses.map((course: Course) => (
+              {paginated.items.map((course: Course) => (
                 <div
                   key={course.slug || course.id}
                   className="group bg-white rounded-2xl border border-[#E8E6F8] p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 transition-all flex flex-col justify-between"
@@ -398,6 +407,15 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+            <Pagination
+              currentPage={paginated.currentPage}
+              totalPages={paginated.totalPages}
+              onPageChange={handlePageChange}
+              totalItems={filteredCourses.length}
+              itemsPerPage={COURSES_PER_PAGE}
+              itemName="cursos"
+            />
+            </>
           ) : (
             /* Estado Vazio */
             <div className="bg-white rounded-3xl border border-[#E8E6F8] p-12 text-center max-w-md mx-auto">
@@ -421,8 +439,8 @@ export default function HomePage() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCampus("Todos");
+                  handleSearchChange("");
+                  handleCampusChange("Todos");
                 }}
               >
                 Limpar filtros
