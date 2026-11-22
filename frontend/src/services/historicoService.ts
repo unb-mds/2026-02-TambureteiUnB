@@ -1,4 +1,4 @@
-import { API_BASE_URL, ApiError, getStoredToken } from "./httpClient";
+import { API_BASE_URL, ApiError, getStoredToken } from "./httpClient.ts";
 
 export const HISTORICO_STORAGE_KEY = "tamburetei_historico_sigaa";
 
@@ -111,15 +111,27 @@ export async function uploadHistoricoPdf(
   return response.json() as Promise<HistoricoImportacaoResponse>;
 }
 
+function getHistoricoStorage(): Storage | null {
+  if (typeof window !== "undefined" && window.localStorage) {
+    return window.localStorage;
+  }
+  if (typeof localStorage !== "undefined") {
+    return localStorage;
+  }
+  return null;
+}
+
 export function saveImportedHistorico(data: HistoricoImportacaoResponse): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(HISTORICO_STORAGE_KEY, JSON.stringify(data));
+  const storage = getHistoricoStorage();
+  if (!storage) return;
+  storage.setItem(HISTORICO_STORAGE_KEY, JSON.stringify(data));
 }
 
 export function loadImportedHistorico(): HistoricoImportacaoResponse | null {
-  if (typeof window === "undefined") return null;
+  const storage = getHistoricoStorage();
+  if (!storage) return null;
   try {
-    const raw = window.localStorage.getItem(HISTORICO_STORAGE_KEY);
+    const raw = storage.getItem(HISTORICO_STORAGE_KEY);
     return raw ? (JSON.parse(raw) as HistoricoImportacaoResponse) : null;
   } catch {
     return null;
@@ -127,6 +139,10 @@ export function loadImportedHistorico(): HistoricoImportacaoResponse | null {
 }
 
 export function clearImportedHistorico(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(HISTORICO_STORAGE_KEY);
+  const storage = getHistoricoStorage();
+  if (!storage) return;
+  storage.removeItem(HISTORICO_STORAGE_KEY);
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    window.dispatchEvent(new Event("tamburetei-historico-change"));
+  }
 }
