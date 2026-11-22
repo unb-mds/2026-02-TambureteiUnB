@@ -971,7 +971,7 @@ function DisciplineDetailContent() {
             )}
           </section>
 
-          <section className="rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
+          <section className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-xs sm:p-8">
             
             <div className="mb-7 flex flex-col md:flex-row md:items-start justify-between gap-5">
               <div>
@@ -992,7 +992,7 @@ function DisciplineDetailContent() {
                   <select
                     value={period}
                     onChange={(event) => setPeriod(event.target.value)}
-                    className="w-full appearance-none rounded-xl bg-[#F7F7FA] border border-[#DDD9F1] px-4 py-2.5 pr-10 text-xs sm:text-sm font-medium text-[#202124] outline-none focus:border-[#5B4BDB]"
+                    className="w-full appearance-none rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-2.5 pr-10 text-xs font-medium text-[var(--foreground)] outline-none focus:border-[var(--primary)] sm:text-sm"
                   >
                     <option>Todos os semestres (2020 a 2025)</option>
                     <option>Últimos 2 anos</option>
@@ -1033,7 +1033,7 @@ function DisciplineDetailContent() {
                 >
                   <div className="mb-4 flex items-center justify-between">
                     <div
-                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-2xs"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface)] shadow-2xs"
                       style={{ color: metric.iconColor }}
                     >
                       <svg
@@ -1062,7 +1062,7 @@ function DisciplineDetailContent() {
                   >
                     {metric.value}
                   </div>
-                  <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-700">
+                  <p className="mt-1 text-xs font-semibold text-[var(--text-muted)] sm:text-sm">
                     {metric.label}
                   </p>
                 </div>
@@ -1070,18 +1070,18 @@ function DisciplineDetailContent() {
             </div>
 
             
-            <div className="rounded-2xl bg-[#FAFAFC] p-5 sm:p-6 border border-[#ECEAF5]">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5 sm:p-6">
               <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-[#202124]">
+                  <h3 className="text-base font-bold text-[var(--foreground)] sm:text-lg">
                     Evolução semestral
                   </h3>
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                     Distribuição percentual dos resultados por semestre
                   </p>
                 </div>
                 
-                <span className="self-start sm:self-auto rounded-full bg-[#EDE9FD] px-3 py-1 text-xs font-semibold text-[#5B4BDB]">
+                <span className="self-start rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--primary-text)] sm:self-auto">
                   Base acumulada:{" "}
                   {totalMatriculados > 0
                     ? `${totalMatriculados} ${totalMatriculados === 1 ? "matrícula" : "matrículas"}`
@@ -1091,14 +1091,14 @@ function DisciplineDetailContent() {
 
               
               {performanceList.length === 0 ? (
-                <p role="status" className="rounded-xl border border-[#ECEAF5] bg-white p-5 text-sm text-gray-600">
+                <p role="status" className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]">
                   Não há histórico semestral público disponível para esta disciplina. Registros com baixa amostragem são preservados conforme a LGPD.
                 </p>
               ) : (
                 <>
               <div className="flex h-64 gap-3 sm:gap-5">
                 {/* Eixo Y */}
-                <div className="flex w-8 sm:w-10 flex-col justify-between pb-7 text-right text-[11px] font-medium text-gray-500">
+                <div className="flex w-8 flex-col justify-between pb-7 text-right text-[11px] font-medium text-[var(--text-muted)] sm:w-10">
                   <span>100%</span>
                   <span>75%</span>
                   <span>50%</span>
@@ -1107,11 +1107,11 @@ function DisciplineDetailContent() {
                 </div>
 
                 
-                <div className="relative flex min-w-0 flex-1 items-end justify-around border-b border-l border-[#DCD9E9] px-2 sm:px-8 pb-7">
+                <div className="relative flex min-w-0 flex-1 items-end justify-around border-b border-l border-[var(--border-subtle)] px-2 pb-7 sm:px-8">
                   {[25, 50, 75, 100].map((line) => (
                     <div
                       key={line}
-                      className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[#E4E2EC]"
+                      className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[var(--border-subtle)]"
                       style={{ bottom: `${line}%` }}
                     />
                   ))}
@@ -1166,35 +1166,35 @@ function DisciplineDetailContent() {
                           <div
                             style={{
                               height: `${approvedPct}%`,
-                              background: "#10B981",
+                              background: "var(--status-success-text)",
                             }}
                             title={`Aprovação: ${approvedPct}% (${item.approved})`}
                           />
                           <div
                             style={{
                               height: `${failedPct}%`,
-                              background: "#EF4444",
+                              background: "var(--status-danger-text)",
                             }}
                             title={`Reprovação por nota: ${failedPct}% (${item.failed})`}
                           />
                           <div
                             style={{
                               height: `${absentPct}%`,
-                              background: "#F59E0B",
+                              background: "var(--status-warning-text)",
                             }}
                             title={`Reprovação por falta: ${absentPct}% (${item.absent})`}
                           />
                           <div
                             style={{
                               height: `${withdrawnPct}%`,
-                              background: "#94A3B8",
+                              background: "var(--status-neutral-text)",
                             }}
                             title={`Trancamento: ${withdrawnPct}% (${item.withdrawn})`}
                           />
                         </div>
 
                         
-                        <span className="absolute -bottom-6 max-sm:-bottom-8 max-sm:-rotate-45 whitespace-nowrap text-[11px] font-medium text-gray-600">
+                        <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-[var(--text-muted)] max-sm:-bottom-8 max-sm:-rotate-45">
                           {item.semester}
                         </span>
                       </div>
@@ -1206,14 +1206,14 @@ function DisciplineDetailContent() {
               
               <div className="mt-8 flex flex-wrap justify-center gap-4 sm:gap-7 pt-2">
                 {[
-                  ["Aprovação", "#10B981"],
-                  ["Reprovação por nota", "#EF4444"],
-                  ["Reprovação por falta", "#F59E0B"],
-                  ["Trancamento", "#94A3B8"],
+                  ["Aprovação", "var(--status-success-text)"],
+                  ["Reprovação por nota", "var(--status-danger-text)"],
+                  ["Reprovação por falta", "var(--status-warning-text)"],
+                  ["Trancamento", "var(--status-neutral-text)"],
                 ].map(([label, color]) => (
                   <div
                     key={label}
-                    className="flex items-center gap-2 text-xs font-medium text-gray-600"
+                    className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]"
                   >
                     <span
                       className="h-2.5 w-2.5 rounded-xs"
@@ -1224,15 +1224,15 @@ function DisciplineDetailContent() {
                 ))}
               </div>
 
-              <div className="mt-6 overflow-x-auto rounded-xl border border-[#ECEAF5] bg-white">
+              <div className="mt-6 overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
                 <table
                   aria-label={`Tabela de desempenho historico semestral de ${discipline.name}`}
-                  className="w-full text-left text-xs text-gray-700"
+                  className="w-full text-left text-xs text-[var(--foreground)]"
                 >
                   <caption className="sr-only">
                     Distribuicao semestral de aprovados, reprovados por nota, reprovados por falta e trancamentos da disciplina {discipline.code} - {discipline.name}
                   </caption>
-                  <thead className="bg-[#F7F7FA] text-[11px] font-bold uppercase tracking-wider text-gray-600 border-b border-[#ECEAF5]">
+                  <thead className="border-b border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     <tr>
                       <th scope="col" className="px-3.5 py-2.5">Semestre</th>
                       <th scope="col" className="px-3.5 py-2.5">Avaliados</th>
@@ -1242,7 +1242,7 @@ function DisciplineDetailContent() {
                       <th scope="col" className="px-3.5 py-2.5">Trancamentos</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F0EFF8]">
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
                     {performanceList.map((item) => {
                       const total =
                         (item.approved || 0) +
@@ -1252,27 +1252,27 @@ function DisciplineDetailContent() {
                       const pct = (val: number) =>
                         total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
                       return (
-                        <tr key={`row-${item.semester}`} className="hover:bg-[#FAFAFC]">
-                          <th scope="row" className="px-3.5 py-2 font-bold text-[#202124]">
+                        <tr key={`row-${item.semester}`} className="hover:bg-[var(--surface-soft)]">
+                          <th scope="row" className="px-3.5 py-2 font-bold text-[var(--foreground)]">
                             {item.semester}
                           </th>
                           <td className="px-3.5 py-2">{total > 0 ? total : "Sem dados"}</td>
-                          <td className="px-3.5 py-2 font-semibold text-[#067A59]">
+                          <td className="px-3.5 py-2 font-semibold text-[var(--status-success-text)]">
                             {(item.approved || 0) > 0
                               ? `${pct(item.approved || 0)}% (${item.approved})`
                               : "Sem dados"}
                           </td>
-                          <td className="px-3.5 py-2 text-[#C52C2C]">
+                          <td className="px-3.5 py-2 text-[var(--status-danger-text)]">
                             {(item.failed || 0) > 0
                               ? `${pct(item.failed || 0)}% (${item.failed})`
                               : "Sem dados"}
                           </td>
-                          <td className="px-3.5 py-2 text-[#9A5700]">
+                          <td className="px-3.5 py-2 text-[var(--status-warning-text)]">
                             {(item.absent || 0) > 0
                               ? `${pct(item.absent || 0)}% (${item.absent})`
                               : "Sem dados"}
                           </td>
-                          <td className="px-3.5 py-2 text-[#526174]">
+                          <td className="px-3.5 py-2 text-[var(--status-neutral-text)]">
                             {(item.withdrawn || 0) > 0
                               ? `${pct(item.withdrawn || 0)}% (${item.withdrawn})`
                               : "Sem dados"}

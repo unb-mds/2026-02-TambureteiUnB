@@ -1,6 +1,9 @@
 "use client";
 
-import { hasApprovalData } from "@/utils/academicMetrics";
+import {
+  formatPositiveMetric,
+  hasApprovalData,
+} from "@/utils/academicMetrics";
 
 import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
@@ -428,7 +431,12 @@ function DisciplinasContent() {
                     detailed?.matriculados ??
                     discipline.metrica_consolidada?.matriculados ??
                     0;
-                  const hasMetrics = hasApprovalData(resolvedApproval);
+                  const hasMetrics =
+                    resolvedMatriculados > 0 ||
+                    (hasApprovalData(resolvedApproval) && resolvedApproval > 0) ||
+                    resolvedFailedGrade > 0 ||
+                    resolvedFailedAttendance > 0 ||
+                    resolvedWithdrawn > 0;
                   const hasClasses =
                     discipline.total_turmas !== undefined &&
                     discipline.total_turmas > 0;
@@ -490,9 +498,7 @@ function DisciplinasContent() {
                                 Aprovação
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedApproval && resolvedApproval > 0
-                                  ? `${resolvedApproval}%`
-                                  : "Sem dados"}
+                                {formatPositiveMetric(resolvedApproval, "%")}
                               </span>
                             </div>
 
@@ -508,9 +514,7 @@ function DisciplinasContent() {
                                 Repr. Nota
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedFailedGrade > 0
-                                  ? `${resolvedFailedGrade}%`
-                                  : "Sem dados"}
+                                {formatPositiveMetric(resolvedFailedGrade, "%")}
                               </span>
                             </div>
 
@@ -526,9 +530,7 @@ function DisciplinasContent() {
                                 Repr. Falta
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedFailedAttendance > 0
-                                  ? `${resolvedFailedAttendance}%`
-                                  : "Sem dados"}
+                                {formatPositiveMetric(resolvedFailedAttendance, "%")}
                               </span>
                             </div>
 
@@ -544,9 +546,7 @@ function DisciplinasContent() {
                                 Trancamentos
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedWithdrawn > 0
-                                  ? `${resolvedWithdrawn}%`
-                                  : "Sem dados"}
+                                {formatPositiveMetric(resolvedWithdrawn, "%")}
                               </span>
                             </div>
                           </div>
