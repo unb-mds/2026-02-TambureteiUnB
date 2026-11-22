@@ -215,9 +215,31 @@ export default function ProfilePage() {
               Meu perfil
             </h1>
           </div>
-          <span className="w-fit rounded-full border border-[#D8D4F5] bg-white px-3 py-1.5 text-xs font-semibold text-[#5142C5]">
-            {isRealProfile ? "Histórico SIGAA importado" : "Painel demonstrativo"}
-          </span>
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <a
+              href="#security-section-title"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E8E6F8] bg-white px-3 py-1.5 text-xs font-semibold text-[#5B4BDB] shadow-2xs transition-colors hover:border-[#D8D4F5] hover:bg-[#F0EEFC]"
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+              <span>Alterar senha</span>
+            </a>
+            <span className="w-fit rounded-full border border-[#D8D4F5] bg-white px-3 py-1.5 text-xs font-semibold text-[#5142C5]">
+              {isRealProfile ? "Histórico SIGAA importado" : "Painel demonstrativo"}
+            </span>
+          </div>
         </header>
 
         <section
