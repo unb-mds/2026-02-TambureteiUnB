@@ -422,9 +422,10 @@ function DisciplineDetailContent() {
           ? `${discipline.approval}%`
           : "Sem dados",
       count: formatAlunos(metrica?.aprovados),
-      color: "#067A59",
-      iconColor: "#10B981",
-      background: "#E9F9F3",
+      color: "var(--status-success-text)",
+      iconColor: "var(--status-success-text)",
+      background: "var(--status-success-bg)",
+      border: "var(--status-success-border)",
       icon: (
         <path
           d="M5 10.5l3 3L15 6.5"
@@ -439,9 +440,10 @@ function DisciplineDetailContent() {
       label: "Reprovação por Nota",
       value: `${discipline.failedGrade ?? 0}%`,
       count: formatAlunos(metrica?.reprovados_nota),
-      color: "#C52C2C",
-      iconColor: "#EF4444",
-      background: "#FFF0F0",
+      color: "var(--status-danger-text)",
+      iconColor: "var(--status-danger-text)",
+      background: "var(--status-danger-bg)",
+      border: "var(--status-danger-border)",
       icon: (
         <path
           d="M5 6l4 4 3-3 4 4M13 11h3V8"
@@ -456,9 +458,10 @@ function DisciplineDetailContent() {
       label: "Reprovação por Falta",
       value: `${discipline.failedAttendance ?? 0}%`,
       count: formatAlunos(metrica?.reprovados_falta),
-      color: "#9A5700",
-      iconColor: "#F59E0B",
-      background: "#FFF7E8",
+      color: "var(--status-warning-text)",
+      iconColor: "var(--status-warning-text)",
+      background: "var(--status-warning-bg)",
+      border: "var(--status-warning-border)",
       icon: (
         <>
           <circle
@@ -481,9 +484,10 @@ function DisciplineDetailContent() {
       label: "Trancamentos",
       value: `${discipline.withdrawn ?? 0}%`,
       count: formatAlunos(metrica?.trancamentos),
-      color: "#526174",
-      iconColor: "#64748B",
-      background: "#F1F5F9",
+      color: "var(--status-neutral-text)",
+      iconColor: "var(--status-neutral-text)",
+      background: "var(--status-neutral-bg)",
+      border: "var(--status-neutral-border)",
       icon: (
         <path
           d="M7 6v8M13 6v8"
@@ -995,7 +999,7 @@ function DisciplineDetailContent() {
                   className="rounded-2xl p-5 border"
                   style={{
                     background: metric.background,
-                    borderColor: `${metric.iconColor}33`,
+                    borderColor: metric.border,
                   }}
                 >
                   <div className="mb-4 flex items-center justify-between">
