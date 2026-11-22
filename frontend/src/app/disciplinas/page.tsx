@@ -477,7 +477,9 @@ function DisciplinasContent() {
                                 Aprovação
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedApproval}%
+                                {resolvedApproval && resolvedApproval > 0
+                                  ? `${resolvedApproval}%`
+                                  : "Sem dados"}
                               </span>
                             </div>
 
@@ -493,7 +495,9 @@ function DisciplinasContent() {
                                 Repr. Nota
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedFailedGrade}%
+                                {resolvedFailedGrade > 0
+                                  ? `${resolvedFailedGrade}%`
+                                  : "Sem dados"}
                               </span>
                             </div>
 
@@ -509,7 +513,9 @@ function DisciplinasContent() {
                                 Repr. Falta
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedFailedAttendance}%
+                                {resolvedFailedAttendance > 0
+                                  ? `${resolvedFailedAttendance}%`
+                                  : "Sem dados"}
                               </span>
                             </div>
 
@@ -525,7 +531,9 @@ function DisciplinasContent() {
                                 Trancamentos
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedWithdrawn}%
+                                {resolvedWithdrawn > 0
+                                  ? `${resolvedWithdrawn}%`
+                                  : "Sem dados"}
                               </span>
                             </div>
                           </div>
