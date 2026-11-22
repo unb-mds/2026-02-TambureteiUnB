@@ -19,7 +19,14 @@ class MaterialRepository(BaseRepository[Conteudo]):
         db.refresh(material)
 
     def listar_ativos(
-        self, db: Session, disciplina_id: int, titulo: str | None, pagina: int, tamanho_pagina: int, tipo: str | None = None
+        self,
+        db: Session,
+        disciplina_id: int,
+        titulo: str | None,
+        pagina: int,
+        tamanho_pagina: int,
+        tipo: str | None = None,
+        tipos: list[str] | None = None,
     ) -> tuple[list[Conteudo], int]:
         filtros = [
             Conteudo.disciplina_id == disciplina_id,
@@ -27,14 +34,19 @@ class MaterialRepository(BaseRepository[Conteudo]):
             Conteudo.status_curadoria == "APROVADO",
             Conteudo.status_moderacao == "ativo",
         ]
+        if tipos:
+            filtros.append(Conteudo.tipo.in_(tipos))
         if tipo:
             filtros.append(Conteudo.tipo == tipo)
         if titulo:
             filtros.append(Conteudo.titulo.icontains(titulo, autoescape=True))
         total = db.scalar(select(func.count()).select_from(Conteudo).where(*filtros)) or 0
         consulta = (
-            select(Conteudo).where(*filtros).order_by(Conteudo.id.desc())
-            .offset((pagina - 1) * tamanho_pagina).limit(tamanho_pagina)
+            select(Conteudo)
+            .where(*filtros)
+            .order_by(Conteudo.id.desc())
+            .offset((pagina - 1) * tamanho_pagina)
+            .limit(tamanho_pagina)
         )
         return list(db.scalars(consulta)), total
 

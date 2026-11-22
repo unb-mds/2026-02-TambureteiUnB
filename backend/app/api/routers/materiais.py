@@ -46,10 +46,13 @@ def listar_materiais(
     service: Annotated[MaterialService, Depends(get_material_service)],
     titulo: Annotated[str | None, Query(max_length=200)] = None,
     tipo: Annotated[str | None, Query(description="Filtro opcional por tipo de material")] = None,
+    tipos: Annotated[
+        list[str] | None, Query(max_length=4, description="Tipos da categoria; não combinar com tipo")
+    ] = None,
     pagina: Annotated[int, Query(ge=1)] = 1,
     tamanho_pagina: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> MaterialPage:
-    return service.listar(db, id, titulo, pagina, tamanho_pagina, tipo=tipo)
+    return service.listar(db, id, titulo, pagina, tamanho_pagina, tipo=tipo, tipos=tipos)
 
 
 @router.get("/materiais/{id}/download", response_class=FileResponse)
