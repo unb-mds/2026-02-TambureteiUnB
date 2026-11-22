@@ -1,5 +1,14 @@
-import type { UserLoginInput, UserRegisterInput, AuthToken, UserResponse } from "../types/auth.ts";
-import { request, setStoredToken, removeStoredToken, hasStoredToken } from "./httpClient.ts";
+import type {
+  UserLoginInput,
+  UserRegisterInput,
+  AuthToken,
+  UserResponse,
+  ForgotPasswordInput,
+  ResetPasswordInput,
+  ChangePasswordInput,
+  MessageResponse,
+} from "../types/auth.ts";
+import { request, setStoredToken, removeStoredToken, hasStoredToken, ApiError } from "./httpClient.ts";
 import { clearImportedHistorico } from "./historicoService.ts";
 
 export const AUTH_CHANGE_EVENT = "tamburetei-auth-change";
@@ -96,6 +105,45 @@ export async function register(data: UserRegisterInput): Promise<UserResponse> {
 }
 
 /**
+ * Solicita o envio do e-mail com link seguro de recuperação de senha via rota de API do Next.js (Nodemailer).
+ */
+export async function requestPasswordReset(data: ForgotPasswordInput): Promise<MessageResponse> {
+  // Chamada para a rota interna Next.js que dispara o e-mail via Nodemailer
+  const response = await fetch("/api/auth/esqueci-senha", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new ApiError(payload.message || "Erro ao solicitar recuperação de senha.", response.status);
+  }
+
+  return payload;
+}
+
+/**
+ * Redefine a senha esquecida a partir do token de recuperação.
+ */
+export async function resetPassword(data: ResetPasswordInput): Promise<MessageResponse> {
+  return request<MessageResponse>("/auth/redefinir-senha", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Altera a senha do usuário autenticado no sistema.
+ */
+export async function changePassword(data: ChangePasswordInput): Promise<MessageResponse> {
+  return request<MessageResponse>("/auth/alterar-senha", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
  * Remove a sessão e o token JWT ativo, notificando a interface.
  */
 export function logout(): void {
@@ -154,6 +202,9 @@ export const authService = {
   getStoredUser,
   setStoredUser,
   removeStoredUser,
+  requestPasswordReset,
+  resetPassword,
+  changePassword,
   AUTH_CHANGE_EVENT,
 };
 
