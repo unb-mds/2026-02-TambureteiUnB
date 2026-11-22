@@ -60,7 +60,7 @@ function ProfileLoading() {
   return (
     <main
       aria-label="Carregando perfil"
-      className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8"
+      className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6 lg:px-8"
     >
       <div className="h-8 w-56 animate-pulse rounded-lg bg-gray-200" />
       <div className="mt-6 h-48 animate-pulse rounded-3xl bg-white" />
@@ -163,7 +163,7 @@ export default function ProfilePage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#F7F7FA] font-sans">
       <Navbar />
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-[#5B4BDB]">

@@ -197,7 +197,8 @@ export default function MinhaGrade() {
       setAdding(false);
     }
   }
-  const nextSemester = nextPlanningSemester(offeredSemesters[0] || "");
+  const currentSemester = offeredSemesters[0] || "";
+  const nextSemester = nextPlanningSemester(currentSemester);
   const semesters = [
     ...new Set([
       ...offeredSemesters,
@@ -205,6 +206,7 @@ export default function MinhaGrade() {
       ...(nextSemester ? [nextSemester] : []),
     ]),
   ]
+    .filter((value) => !currentSemester || value >= currentSemester)
     .sort()
     .reverse();
   const chosen = selectedClasses(entries, semester);

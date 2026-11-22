@@ -32,9 +32,12 @@ class HistoricoComponenteItem(BaseModel):
     semestre: str
     codigo: str
     nome: str
+    slug: Optional[str] = None
     professores: List[str] = Field(default_factory=list)
     ch: int = 0
     turma: Optional[str] = None
+    horario: Optional[str] = None
+    local: Optional[str] = None
     frequencia: Optional[float] = None
     mencao: Optional[str] = None
     situacao: str

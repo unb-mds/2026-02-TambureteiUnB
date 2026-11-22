@@ -393,6 +393,34 @@ class HistoricoImportacaoService:
 
         db.commit()
 
+        # Enriquece componentes em andamento (MATR) com slug, horário e local reais do banco
+        for item in extraido.cursando:
+            disc_db = (
+                db.query(Disciplina)
+                .filter(func.upper(Disciplina.codigo) == item.codigo.upper())
+                .first()
+            )
+            if disc_db is not None:
+                item.slug = disc_db.slug
+
+            cod_turma = _normalizar_codigo_turma(item.turma)
+            if not cod_turma or disc_db is None:
+                continue
+            turma_db = (
+                db.query(Turma)
+                .filter(
+                    Turma.disciplina_id == disc_db.id,
+                    Turma.codigo_turma == cod_turma,
+                    Turma.semestre == item.semestre,
+                )
+                .first()
+            )
+            if turma_db is not None:
+                item.horario = turma_db.horario
+                item.local = turma_db.local
+                if not item.professores and turma_db.professores:
+                    item.professores = [p.nome for p in turma_db.professores]
+
         return HistoricoImportacaoResponse(
             autenticidade_estrutural_valida=True,
             dados_academicos=extraido.dados_academicos,
