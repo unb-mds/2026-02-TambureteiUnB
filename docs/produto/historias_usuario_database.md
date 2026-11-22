@@ -163,16 +163,20 @@ Eu, como Engenheiro de Banco de Dados, desejo versionar o esquema em migrações
 **Nessa issue deve ser feito:**
 - Configurar o arquivo `alembic.ini` e o runner `alembic/env.py` mapeando `Base.metadata`
 - Versionar a estrutura do banco e seus índices por migrações Alembic, preservando revisões publicadas
-- Manter `init.sql` compatível com o baseline `007` da base atual; evoluções posteriores são aplicadas pelo Alembic
+- Manter `init.sql` e a cadeia linear do Alembic sincronizados até a revisão ativa (`015_moderacao_ia` — Head)
 - Configurar volume no `docker-compose.yml` montando o script em `/docker-entrypoint-initdb.d/init.sql`
 
 **Critérios de aceitação:**
-- Subir o contêiner do PostgreSQL 17 e aplicar as migrações pendentes, incluindo a integração de materiais
+- Subir o contêiner do PostgreSQL 17 e aplicar as migrações pendentes, incluindo a integração de materiais, curadoria, denúncias e visão materializada
 - Executar `alembic upgrade head` sem erros de sintaxe ou conflito de tipos
 - Possibilitar reverter todo o esquema de forma limpa via `alembic downgrade base`
 
-## Arquivos de apoio — integração da Feature 5.2
+## Evoluções Lineares da Release 2 (Migrações `008` a `015`)
 
-A tabela `conteudos` também representa arquivos privados com `tipo=ARQUIVO`. Os campos opcionais `caminho_arquivo`, `formato`, `tamanho_bytes` e `status_moderacao` descrevem o upload; os binários ficam no volume privado `materiais_data`. Links e resumos anteriores preservam URL, dados e curadoria. Novos arquivos aguardam curadoria com `status_curadoria=PENDENTE`; consultas públicas exigem aprovação e moderação `ativo`.
-
-A migração linear `009_arquivos_conteudos` estende a entidade após `008`, sem criar uma tabela `materiais`. Consulte [os contratos e testes](feature_5_2_materiais.md).
+- **`008_add_doacoes_estatisticas`:** Tabela `doacoes_estatisticas` para coleta colaborativa de índices de turmas extraídos do SIGAA por estudantes autenticados (US 3.1.1).
+- **`009_arquivos_conteudos`:** A tabela `conteudos` passa a representar arquivos privados com `tipo = 'ARQUIVO'`, adicionando `caminho_arquivo`, `formato`, `tamanho_bytes` e `status_moderacao` (binários no volume privado `materiais_data`). Consulte [os contratos e testes](../engenharia/feature_5_2_materiais.md).
+- **`010_curadorias`:** Tabela `curadorias` para auditoria transacional imutável das decisões de aprovação ou recusa sobre arquivos submetidos (RN06).
+- **`011_denuncias`:** Tabela `denuncias` com alvo único (`comentario_id` ou `conteudo_id`), unicidade por usuário e gatilho de retenção preventiva ao atingir 3 denúncias pendentes (US 5.3.1 e US 5.3.2).
+- **`012_estatisticas_consolidadas` e `013_estat_disciplina_semestre`:** Tabela `estatisticas_consolidadas` e índice composto `(disciplina_id, semestre_referencia)` para persistência das métricas oficiais validadas pelo Motor de Consenso/Quórum (US 3.2.2).
+- **`014_mv_evasao_campus`:** Visão materializada `mv_evasao_campus` com índice único `(campus, ano)` para leitura agregada de evasão institucional por campus (US 6.1.1).
+- **`015_moderacao_ia`:** Colunas `motivo_moderacao`, `confianca_ia` e `moderado_por` em `conteudos` e `comentarios`, além de suporte a `perfil_moderador = 'IA'` em `curadorias` para triagem autônoma híbrida via Ollama local.

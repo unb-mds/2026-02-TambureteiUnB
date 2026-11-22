@@ -65,9 +65,9 @@ Esta seção documenta a especificação de requisitos do **Tamburetei UnB**, de
 
 | Requisito | Descrição | Release | Status |
 | :--- | :--- | :--- | :--- |
-| **RF01, RF02, RF03** | Autenticação simples, sessão JWT e controle de perfis | R1 / R2 | Planejado |
-| **RF04, RF05, RF06** | Catálogo, busca de disciplinas e exportação de dados | R1 | Em andamento |
-| **RF07, RF08** | Ementas oficiais e painéis de indicadores DPO/INEP | R1 | Em andamento |
-| **RF09, RF10, RF11** | Crowdsourcing de situação, resumos e dificuldades | R2 | Planejado |
-| **RF12, RF13, RF14, RF15, RF16** | Comentários anônimos, submissões, upvotes, curadoria humana e triagem autônoma via Ollama local | R2 | Em andamento |
+| **RF01, RF02, RF03** | Autenticação simples, sessão JWT e controle de perfis (RBAC) | R1 / R2 | Implementado e Validado |
+| **RF04, RF05, RF06** | Catálogo, busca de disciplinas e exportação de dados | R1 | Implementado e Validado |
+| **RF07, RF08** | Ementas oficiais e painéis de indicadores DPO/INEP | R1 / R2 | Implementado e Validado |
+| **RF09, RF10, RF11** | Crowdsourcing de situação ("Já cursei"), materiais e dificuldades | R2 | Implementado e Validado |
+| **RF12, RF13, RF14, RF15, RF16** | Comentários sob pseudônimo, submissões, upvotes, curadoria humana (`/moderacao`) e triagem autônoma via Ollama local | R2 | Implementado e Validado |
 | **RNF01 a RNF08** | Desempenho, LGPD, camadas, Alembic, Docker e resiliência *fail-safe* da IA local | R1 & R2 | Ativo |
