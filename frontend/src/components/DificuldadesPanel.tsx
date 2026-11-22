@@ -15,6 +15,7 @@ import {
   DIFFICULTY_MIN_CHARS,
   listDifficultyAlerts,
   submitDifficultyAlert,
+  toggleDifficultyVote,
 } from "../services/difficultyService";
 import { getStoredToken } from "../services/httpClient";
 import { getStoredUser, isAuthenticated, subscribeAuthChange } from "../services/authService";
@@ -315,12 +316,14 @@ function SyllabusUnitsGrid({
 interface DifficultyAlertsListProps {
   isLoading: boolean;
   alerts: DifficultyAlert[];
+  authenticated: boolean;
   onToggleLike: (alertId: string) => void;
 }
 
 function DifficultyAlertsList({
   isLoading,
   alerts,
+  authenticated,
   onToggleLike,
 }: DifficultyAlertsListProps) {
   if (isLoading) {
@@ -384,11 +387,15 @@ function DifficultyAlertsList({
 
               <button
                 type="button"
+                disabled={!authenticated}
+                title={!authenticated ? "Faça login para concordar" : undefined}
                 onClick={() => onToggleLike(alert.id)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                  alert.isLikedByMe
-                    ? "bg-[#5B4BDB] text-white border-[#5B4BDB]"
-                    : "bg-[#F4F3FA] text-[#5B4BDB] border-[#E0DDF2] hover:bg-[#EDE9FD]"
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                  !authenticated
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70"
+                    : alert.isLikedByMe
+                    ? "bg-[#5B4BDB] text-white border-[#5B4BDB] cursor-pointer"
+                    : "bg-[#F4F3FA] text-[#5B4BDB] border-[#E0DDF2] hover:bg-[#EDE9FD] cursor-pointer"
                 }`}
               >
                 <span>Concordo ({alert.upvotes})</span>
@@ -454,7 +461,7 @@ export default function DificuldadesPanel({
     return () => {
       active = false;
     };
-  }, [disciplineSlug, disciplineId, disciplineCode]);
+  }, [disciplineSlug, disciplineId, disciplineCode, authenticated]);
 
   const summary = useMemo(
     () =>
@@ -475,7 +482,14 @@ export default function DificuldadesPanel({
     return [...filtered].sort((a, b) => b.upvotes - a.upvotes);
   }, [alerts, selectedUnitFilter]);
 
-  const handleToggleLike = (alertId: string) => {
+  const handleToggleLike = async (alertId: string) => {
+    if (!authenticated || !isAuthenticated()) {
+      return;
+    }
+
+    const previousItem = alerts.find((item) => item.id === alertId);
+    if (!previousItem) return;
+
     setAlerts((prev) =>
       prev.map((item) => {
         if (item.id !== alertId) return item;
@@ -487,6 +501,30 @@ export default function DificuldadesPanel({
         };
       })
     );
+
+    const numericId = Number(alertId);
+    if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+      return;
+    }
+
+    try {
+      const synced = await toggleDifficultyVote(numericId);
+      setAlerts((prev) =>
+        prev.map((item) =>
+          item.id === alertId
+            ? {
+                ...item,
+                upvotes: synced.upvotes,
+                isLikedByMe: synced.liked_by_me,
+              }
+            : item
+        )
+      );
+    } catch {
+      setAlerts((prev) =>
+        prev.map((item) => (item.id === alertId ? previousItem : item))
+      );
+    }
   };
 
   const handleOpenForm = (preselectUnit?: string) => {
@@ -655,6 +693,7 @@ export default function DificuldadesPanel({
         <DifficultyAlertsList
           isLoading={isLoading}
           alerts={filteredAlerts}
+          authenticated={authenticated}
           onToggleLike={handleToggleLike}
         />
       </div>

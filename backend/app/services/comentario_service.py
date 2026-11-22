@@ -1,5 +1,6 @@
 import math
 from typing import Optional
+from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.schemas.comentario import (
     ComentarioCadeiraCreate,
     ComentarioCreate,
+    ComentarioResponse,
     ComentarioUpdate,
 )
 from app.models.comentario import Comentario
@@ -94,6 +96,7 @@ class ComentarioService:
         size: int,
         topico: Optional[str] = None,
         apenas_dificuldades: bool = False,
+        current_user_id: Optional[UUID] = None,
     ) -> dict:
 
         disciplina = self._resolver_disciplina(db, disciplina_id)
@@ -112,12 +115,50 @@ class ComentarioService:
             apenas_dificuldades=apenas_dificuldades,
         )
 
+        comentario_ids = [item.id for item in items]
+        votos_por_id = comentario_repo.contar_votos_comentarios(db, comentario_ids)
+        votados_usuario = (
+            comentario_repo.listar_votos_usuario(db, comentario_ids, current_user_id)
+            if current_user_id is not None
+            else set()
+        )
+        items_resposta = [
+            ComentarioResponse.model_validate(item).model_copy(
+                update={
+                    "upvotes": votos_por_id.get(item.id, 0),
+                    "liked_by_me": item.id in votados_usuario,
+                }
+            )
+            for item in items
+        ]
+
         return {
-            "items": items,
+            "items": items_resposta,
             "total": total,
             "page": page,
             "size": size,
             "pages": math.ceil(total / size) if total > 0 else 0,
+        }
+
+    def alternar_voto(
+        self,
+        db: Session,
+        comentario_id: int,
+        current_user: Usuario,
+    ) -> dict:
+        comentario = comentario_repo.get_by_id(db, comentario_id)
+        if not comentario or comentario.status_moderacao != "PUBLICADO":
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                detail="Comentário não encontrado ou ainda não publicado.",
+            )
+        upvotes, liked_by_me = comentario_repo.alternar_voto_comentario(
+            db, comentario_id, current_user.id
+        )
+        return {
+            "comentario_id": comentario_id,
+            "upvotes": upvotes,
+            "liked_by_me": liked_by_me,
         }
 
     def editar_comentario(

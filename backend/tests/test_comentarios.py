@@ -193,3 +193,38 @@ def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, db: Ses
     assert data["total"] == 1
     assert data["items"][0]["topico_dificuldade"] == "[CRITICO] Integrais Múltiplas"
 
+
+def test_alternar_voto_comentario_persiste_e_desfaz_rn03(
+    client: TestClient, student_headers, disciplina, comentario_do_aluno
+):
+    sem_login = client.post(f"/comentarios/{comentario_do_aluno.id}/voto")
+    assert sem_login.status_code == 401
+
+    voto_on = client.post(
+        f"/comentarios/{comentario_do_aluno.id}/voto", headers=student_headers
+    )
+    assert voto_on.status_code == 200
+    assert voto_on.json() == {
+        "comentario_id": comentario_do_aluno.id,
+        "upvotes": 1,
+        "liked_by_me": True,
+    }
+
+    listagem = client.get(
+        f"/cadeiras/{disciplina.id}/comentarios", headers=student_headers
+    )
+    assert listagem.status_code == 200
+    assert listagem.json()["items"][0]["upvotes"] == 1
+    assert listagem.json()["items"][0]["liked_by_me"] is True
+
+    voto_off = client.post(
+        f"/comentarios/{comentario_do_aluno.id}/voto", headers=student_headers
+    )
+    assert voto_off.status_code == 200
+    assert voto_off.json() == {
+        "comentario_id": comentario_do_aluno.id,
+        "upvotes": 0,
+        "liked_by_me": False,
+    }
+
+

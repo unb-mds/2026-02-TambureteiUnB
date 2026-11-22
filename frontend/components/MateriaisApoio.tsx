@@ -321,7 +321,7 @@ export default function MateriaisApoio({
           className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD] px-4 py-3 text-xs sm:text-sm text-[#5B4BDB]"
         >
           <span>
-            Apenas estudantes autenticados podem compartilhar ou baixar materiais.
+            Apenas estudantes autenticados podem compartilhar materiais.
           </span>
           <Link
             href="/login"
@@ -458,19 +458,10 @@ export default function MateriaisApoio({
                 <button
                   type="button"
                   onClick={() => void handleDownload(material)}
-                  disabled={!authenticated || downloadingId !== null}
-                  title={!authenticated ? "Faça login para baixar materiais" : undefined}
-                  className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                    authenticated
-                      ? "text-[#5B4BDB] hover:underline cursor-pointer"
-                      : "text-gray-400 cursor-not-allowed opacity-60"
-                  }`}
+                  disabled={downloadingId !== null}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5B4BDB] hover:underline cursor-pointer disabled:opacity-50"
                 >
-                  {downloadingId === material.id
-                    ? "Baixando..."
-                    : authenticated
-                    ? "Baixar material"
-                    : "Login para baixar"}
+                  {downloadingId === material.id ? "Baixando..." : "Baixar material"}
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                     <polyline points="15 3 21 3 21 9" />

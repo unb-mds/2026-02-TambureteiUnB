@@ -15,7 +15,7 @@ test("MateriaisApoio bloqueia compartilhamento e exibe aviso de login sem alert(
     })
   );
 
-  assert.match(markup, /Apenas estudantes autenticados podem compartilhar ou baixar materiais/);
+  assert.match(markup, /Apenas estudantes autenticados podem compartilhar materiais/);
   assert.match(markup, /href="\/login"/);
   assert.match(markup, /Faça login para compartilhar/);
 
