@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
+
+const THEME_BOOTSTRAP_SCRIPT = `try {
+  var preference = localStorage.getItem("tamburetei-theme");
+  var dark = preference === "dark";
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.documentElement.classList.toggle("dark", dark);
+  document.documentElement.style.colorScheme = dark ? "dark" : "light";
+} catch {
+  document.documentElement.dataset.theme = "light";
+}`;
 
 export const metadata: Metadata = {
   title: "Tamburetei UnB - Plataforma Acadêmica",
@@ -16,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="h-full antialiased" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -28,17 +38,6 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col font-sans">
-        <Script id="theme-bootstrap" strategy="beforeInteractive">
-          {`try {
-            var preference = localStorage.getItem("tamburetei-theme");
-            var dark = preference === "dark";
-            document.documentElement.dataset.theme = dark ? "dark" : "light";
-            document.documentElement.classList.toggle("dark", dark);
-            document.documentElement.style.colorScheme = dark ? "dark" : "light";
-          } catch {
-            document.documentElement.dataset.theme = "light";
-          }`}
-        </Script>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

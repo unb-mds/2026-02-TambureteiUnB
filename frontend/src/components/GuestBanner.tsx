@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { authService } from "@/services/authService";
 
@@ -9,36 +9,26 @@ export interface GuestBannerProps {
   onDismiss?: () => void;
 }
 
+const subscribeAuth = (onStoreChange: () => void) => {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(authService.AUTH_CHANGE_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+  return () => {
+    window.removeEventListener(authService.AUTH_CHANGE_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+};
+
 export const GuestBanner: React.FC<GuestBannerProps> = ({
   className = "",
   onDismiss,
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() =>
-    authService.isAuthenticated()
+  const isLoggedIn = useSyncExternalStore(
+    subscribeAuth,
+    () => authService.isAuthenticated(),
+    () => false
   );
-
-  useEffect(() => {
-    const syncAuth = () => {
-      const authenticated = authService.isAuthenticated();
-      setIsLoggedIn((prevAuthenticated) => {
-        if (prevAuthenticated && !authenticated) {
-          setIsDismissed(false);
-        }
-        return authenticated;
-      });
-    };
-
-    syncAuth();
-
-    window.addEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-    window.addEventListener("storage", syncAuth);
-
-    return () => {
-      window.removeEventListener(authService.AUTH_CHANGE_EVENT, syncAuth);
-      window.removeEventListener("storage", syncAuth);
-    };
-  }, []);
 
   if (!authService.shouldShowGuestBanner(isLoggedIn, isDismissed)) return null;
 
