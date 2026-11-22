@@ -468,3 +468,7 @@ html[data-theme="dark"] [class~="border-[#B8B1ED]"],
 html[data-theme="dark"] [class~="border-[#D8D1FA]"] {
   border-color: var(--border-subtle);
 }
+
+/* Controles interativos indicam a possibilidade de clique. */
+:where(button, a[href], select, summary, label[for], [role="button"], [role="tab"], [role="switch"], input[type="checkbox"], input[type="radio"], input[type="file"], input[type="submit"], input[type="button"]) { cursor: pointer; }
+:where(button:disabled, select:disabled, input:disabled, [aria-disabled="true"]) { cursor: not-allowed; }

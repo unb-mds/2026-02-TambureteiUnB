@@ -183,6 +183,7 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
           >
             Disciplinas
           </Link>
+          <Link href="/minha-grade" className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${isActive("/minha-grade") ? "bg-[#5B4BDB]/10 text-[#5B4BDB]" : "text-gray-600 hover:text-[#5B4BDB] hover:bg-gray-50"}`}>Minha grade</Link>
         </nav>
 
         {/* Canto Superior Direito: Perfil (Figma) se logado, ou Botões se deslogado */}
@@ -380,6 +381,7 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
             >
               Disciplinas
             </Link>
+            <Link href="/minha-grade" onClick={() => setMobileMenuOpen(false)} className={`px-4 py-3 rounded-xl text-sm font-semibold ${isActive("/minha-grade") ? "bg-[#5B4BDB]/10 text-[#5B4BDB]" : "text-gray-600"}`}>Minha grade</Link>
           </div>
 
           <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
