@@ -2,6 +2,7 @@
 
 import React, { useSyncExternalStore, useState, useMemo } from "react";
 import Link from "next/link";
+import PasAdmissionCard from "@/components/PasAdmissionCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GuestBanner from "@/components/GuestBanner";
@@ -278,6 +279,8 @@ export default function HomePage() {
                     <h3 className="text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
                       {course.nome}
                     </h3>
+
+                    <PasAdmissionCard course={course} />
 
                     {/* Identificador de Estrutura Curricular / Matriz (Estilo NoFluxo) */}
                     {course.matriz_curricular && (
