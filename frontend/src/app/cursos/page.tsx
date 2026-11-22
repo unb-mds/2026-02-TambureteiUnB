@@ -12,11 +12,13 @@ import { exportCoursesOpenData } from "@/services/openDataService";
 import useAsyncList from "@/hooks/useAsyncList";
 import {
   filterCourses,
+  paginateCourses,
+  COURSES_PER_PAGE,
   getCampusBadgeClasses,
 } from "@/utils/courseCatalog";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
 
-const ITEMS_PER_PAGE = 25;
+const ITEMS_PER_PAGE = COURSES_PER_PAGE;
 
 export default function CursosPage() {
   const { items: courses, loading } = useAsyncList(
@@ -42,13 +44,8 @@ export default function CursosPage() {
     setCurrentPage(1);
   };
 
-  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / ITEMS_PER_PAGE));
-  const activePage = Math.min(currentPage, totalPages);
-
-  const paginatedCourses = useMemo(() => {
-    const start = (activePage - 1) * ITEMS_PER_PAGE;
-    return filteredCourses.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredCourses, activePage]);
+  const { items: paginatedCourses, currentPage: activePage, totalPages } =
+    paginateCourses(filteredCourses, currentPage);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -154,8 +151,8 @@ export default function CursosPage() {
             <button
               type="button"
               onClick={() => {
-                setSearchQuery("");
-                setSelectedCampus("Todos");
+                handleSearchChange("");
+                handleCampusChange("Todos");
               }}
               className="text-xs text-[#5B4BDB] hover:text-[#4F3EC9] font-semibold hover:underline"
             >
