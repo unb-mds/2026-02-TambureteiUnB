@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "@/services/authService";
-import { listMaterials } from "@/services/materialService";
+import { ApiError } from "@/services/httpClient";
+import { listMaterials, downloadMaterial } from "@/services/materialService";
 
 export interface MaterialItem {
   id: string;
@@ -63,6 +64,9 @@ export default function MateriaisApoio({
       ? "[TRIAGEM EM ANDAMENTO] Seu material foi enviado para verificacao automatica. A lista sera atualizada assim que for aprovado."
       : null;
 
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
@@ -83,7 +87,6 @@ export default function MateriaisApoio({
         created_at: item.created_at
           ? new Date(item.created_at).toLocaleDateString("pt-BR")
           : "Recente",
-        url: item.url || item.arquivo_url || "#",
         upvotes: item.upvotes || 0,
         isLikedByMe: false,
         authorAlias: item.usuario?.nome || item.authorAlias || "Estudante",
@@ -241,6 +244,29 @@ export default function MateriaisApoio({
 
     return matchesTab && matchesSearch;
   });
+  const handleDownload = async (material: MaterialItem) => {
+    setDownloadError(null);
+    setDownloadingId(material.id);
+    try {
+      const blob = await downloadMaterial(Number(material.id));
+      const url = URL.createObjectURL(blob);
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `material-${material.id}.${material.formato.toLowerCase()}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch (error) {
+      setDownloadError(error instanceof ApiError ? error.message : "Não foi possível baixar o material. Tente novamente.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
 
   return (
     <section className="mt-8 rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
@@ -343,6 +369,7 @@ export default function MateriaisApoio({
         </div>
       </div>
 
+      {downloadError && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{downloadError}</p>}
       {loading ? (
         <div className="py-12 text-center text-sm text-gray-400">
           Carregando materiais de apoio...
@@ -390,19 +417,19 @@ export default function MateriaisApoio({
               </div>
 
               <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                <a
-                  href={material.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => void handleDownload(material)}
+                  disabled={downloadingId !== null}
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5B4BDB] hover:underline"
                 >
-                  Acessar material
+                  {downloadingId === material.id ? "Baixando..." : "Baixar material"}
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                     <polyline points="15 3 21 3 21 9" />
                     <line x1="10" y1="14" x2="21" y2="3" />
                   </svg>
-                </a>
+                </button>
 
                 <button
                   type="button"
