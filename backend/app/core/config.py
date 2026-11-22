@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     # Limiar para baixa amostragem LGPD / DPO (< 5 alunos)
     AMOSTRAGEM_MINIMA_LGPD: int = 5
 
+    # Importação de Histórico Escolar SIGAA (PDF)
+    HISTORICO_MAX_BYTES: int = Field(default=10 * 1024 * 1024, gt=0)
+    HISTORICO_MIN_AMOSTRAS: int = Field(default=int(os.getenv("HISTORICO_MIN_AMOSTRAS", "5")), ge=1)
+
     # Quórum mínimo de doações idênticas para consolidar uma turma (US 3.2.1)
     QUORUM_MINIMO_DOACOES: int = 3
 

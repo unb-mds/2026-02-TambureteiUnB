@@ -1,6 +1,7 @@
 "use client";
 
 import { hasApprovalData } from "@/utils/academicMetrics";
+import { normalizeSearchTerm } from "@/utils/search";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
 import DificuldadesPanel from "@/components/DificuldadesPanel";
 import MateriaisApoio from "@/components/MateriaisApoio";
@@ -156,9 +157,14 @@ function DisciplineDetailContent() {
     [selectedShift, syncUrlParams]
   );
 
+  const [classSearchQuery, setClassSearchQuery] = useState("");
+  const [onlyClassesWithData, setOnlyClassesWithData] = useState(false);
+
   const handleResetClassFilters = useCallback(() => {
     setSelectedShift("Todos");
     setSortBy("code_asc");
+    setClassSearchQuery("");
+    setOnlyClassesWithData(false);
     setClassPage(1);
     syncUrlParams("Todos", "code_asc");
   }, [syncUrlParams]);
@@ -282,12 +288,35 @@ function DisciplineDetailContent() {
     };
   }, [discipline, slug, simulateClassesError, classesRetryCount]);
 
-  // Filtragem por turno e ordenação reativa
+  // Filtragem por turno, busca por professor/turma/semestre, dados e ordenação reativa
   const filteredAndSortedClasses = useMemo(() => {
+    const qNorm = normalizeSearchTerm(classSearchQuery);
     const filtered = classes.filter((item) => {
-      if (selectedShift === "Todos") return true;
-      const normalized = normalizeClassShift(item.turno, item.horarios);
-      return normalized === selectedShift;
+      if (selectedShift !== "Todos") {
+        const normalized = normalizeClassShift(item.turno, item.horarios);
+        if (normalized !== selectedShift) return false;
+      }
+
+      if (onlyClassesWithData) {
+        const hasAcademicData =
+          Boolean(item.estatistica) || (item.amostrasComunidade ?? 0) > 0;
+        if (!hasAcademicData) return false;
+      }
+
+      if (qNorm) {
+        const profNorm = normalizeSearchTerm(item.professor);
+        const codNorm = normalizeSearchTerm(item.codigoTurma);
+        const semNorm = normalizeSearchTerm(item.semestre ?? "");
+        if (
+          !profNorm.includes(qNorm) &&
+          !codNorm.includes(qNorm) &&
+          !semNorm.includes(qNorm)
+        ) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     return [...filtered].sort((a, b) => {
@@ -299,7 +328,7 @@ function DisciplineDetailContent() {
         sensitivity: "base",
       });
     });
-  }, [classes, selectedShift, sortBy]);
+  }, [classes, selectedShift, sortBy, classSearchQuery, onlyClassesWithData]);
 
   const paginatedClasses = paginateClasses(filteredAndSortedClasses, classPage);
 
@@ -907,6 +936,16 @@ function DisciplineDetailContent() {
                   totalCount={classes.length}
                   filteredCount={filteredAndSortedClasses.length}
                   onResetFilters={handleResetClassFilters}
+                  searchQuery={classSearchQuery}
+                  onSearchChange={(val) => {
+                    setClassSearchQuery(val);
+                    setClassPage(1);
+                  }}
+                  onlyWithData={onlyClassesWithData}
+                  onOnlyWithDataChange={(only) => {
+                    setOnlyClassesWithData(only);
+                    setClassPage(1);
+                  }}
                 />
 
                 {filteredAndSortedClasses.length > 0 ? (
