@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import AcademicProfileDashboard from "@/components/AcademicProfileDashboard";
@@ -70,7 +70,26 @@ function ProfileLoading() {
 }
 
 export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen flex-col bg-[#F7F7FA] font-sans">
+          <Navbar />
+          <ProfileLoading />
+          <Footer />
+        </div>
+      }
+    >
+      <ProfilePageContent />
+    </Suspense>
+  );
+}
+
+function ProfilePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("aba") === "seguranca" ? "security" : "overview";
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const authenticated = useSyncExternalStore(
     subscribeAuthChange,
@@ -367,6 +386,7 @@ export default function ProfilePage() {
           onConsent={() => setHasAcademicConsent(true)}
           onRevokeConsent={() => setHasAcademicConsent(false)}
           importedData={importedHistorico}
+          initialSection={initialTab}
         />
       </main>
       <Footer />

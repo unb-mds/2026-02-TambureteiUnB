@@ -199,7 +199,7 @@ export default function UserMenuDropdown({
 
             {/* Opção: Segurança da conta */}
             <Link
-              href="/alterar-senha"
+              href="/perfil?aba=seguranca"
               role="menuitem"
               onClick={handleClose}
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-[#E4E4E7] transition-colors hover:bg-[#27272A] hover:text-white"

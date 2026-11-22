@@ -9,12 +9,14 @@ import type {
 } from "../services/historicoService";
 import { request } from "../services/httpClient";
 import { SIGAA_TIME_SLOTS as SIGAA_SLOTS, type BackendTurmaResponse } from "../types/turma";
+import SecurityTabContent from "./SecurityTabContent";
 
 export interface AcademicProfileDashboardProps {
   consented: boolean;
   onConsent: () => void;
   onRevokeConsent: () => void;
   importedData?: HistoricoImportacaoResponse | null;
+  initialSection?: ProfileSectionId;
 }
 
 const profileSections = [
@@ -22,9 +24,10 @@ const profileSections = [
   { id: "degree", label: "Minha graduação" },
   { id: "history", label: "Histórico" },
   { id: "performance", label: "Desempenho" },
+  { id: "security", label: "Segurança e Senha" },
 ] as const;
 
-type ProfileSectionId = (typeof profileSections)[number]["id"];
+export type ProfileSectionId = (typeof profileSections)[number]["id"];
 
 const disciplineHistory = [
   {
@@ -1032,6 +1035,8 @@ function renderSection(
       return <HistorySection importedData={importedData} />;
     case "performance":
       return <PerformanceSection importedData={importedData} />;
+    case "security":
+      return <SecurityTabContent />;
   }
 }
 
@@ -1053,14 +1058,16 @@ export default function AcademicProfileDashboard({
   onConsent,
   onRevokeConsent,
   importedData = null,
+  initialSection = "overview",
 }: AcademicProfileDashboardProps) {
   const [activeSection, setActiveSection] =
-    useState<ProfileSectionId>("overview");
+    useState<ProfileSectionId>(initialSection);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeSectionIndex = profileSections.findIndex(
     (section) => section.id === activeSection
   );
-  const canShowContent = consented || Boolean(importedData);
+  const isSecurity = activeSection === "security";
+  const canShowContent = consented || Boolean(importedData) || isSecurity;
 
   function handleTabKeyDown(
     event: KeyboardEvent<HTMLButtonElement>,

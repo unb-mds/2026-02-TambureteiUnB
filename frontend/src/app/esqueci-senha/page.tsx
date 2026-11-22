@@ -11,7 +11,6 @@ export default function EsqueciSenhaPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [resetToken, setResetToken] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | undefined>();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,7 +29,6 @@ export default function EsqueciSenhaPage() {
     setEmailError(undefined);
     setIsLoading(true);
     setFeedback(null);
-    setResetToken(null);
 
     try {
       const res = await requestPasswordReset({ email: cleanEmail });
@@ -38,9 +36,6 @@ export default function EsqueciSenhaPage() {
         type: "success",
         message: res.message,
       });
-      if (res.reset_token) {
-        setResetToken(res.reset_token);
-      }
     } catch (err: unknown) {
       const msg = err instanceof ApiError ? err.message : "Não foi possível processar a solicitação no momento.";
       setFeedback({ type: "error", message: msg });
@@ -86,17 +81,6 @@ export default function EsqueciSenhaPage() {
               }`}
             >
               <p>{feedback.message}</p>
-              {resetToken && (
-                <div className="mt-3 border-t border-emerald-200 pt-3">
-                  <p className="font-semibold text-emerald-900 mb-1">Link de redefinição de acesso:</p>
-                  <Link
-                    href={`/redefinir-senha?token=${resetToken}`}
-                    className="text-[#5B4BDB] underline font-bold break-all hover:text-[#4F3EC9]"
-                  >
-                    Clique aqui para redefinir sua senha agora
-                  </Link>
-                </div>
-              )}
             </div>
           )}
 

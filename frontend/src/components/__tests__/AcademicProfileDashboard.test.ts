@@ -22,6 +22,7 @@ test("AcademicProfileDashboard mostra navegação e exige consentimento para a d
   assert.match(markup, /Minha graduação/);
   assert.match(markup, /Histórico/);
   assert.match(markup, /Desempenho/);
+  assert.match(markup, /Segurança e Senha/);
   assert.doesNotMatch(markup, /Planejamento/);
   assert.doesNotMatch(markup, /Comunidade/);
   assert.match(markup, /Concordar e abrir demonstração/);
@@ -46,11 +47,11 @@ test("AcademicProfileDashboard exibe a visão geral após consentimento", () => 
 });
 
 test("getAdjacentProfileSection navega pelas abas e envolve as extremidades", () => {
-  assert.equal(getAdjacentProfileSection(0, "ArrowLeft"), 3);
-  assert.equal(getAdjacentProfileSection(3, "ArrowRight"), 0);
+  assert.equal(getAdjacentProfileSection(0, "ArrowLeft"), 4);
+  assert.equal(getAdjacentProfileSection(4, "ArrowRight"), 0);
   assert.equal(getAdjacentProfileSection(1, "ArrowRight"), 2);
   assert.equal(getAdjacentProfileSection(2, "Home"), 0);
-  assert.equal(getAdjacentProfileSection(1, "End"), 3);
+  assert.equal(getAdjacentProfileSection(1, "End"), 4);
   assert.equal(getAdjacentProfileSection(2, "Enter"), null);
 });
 

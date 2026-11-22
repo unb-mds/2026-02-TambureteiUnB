@@ -262,7 +262,7 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
                   Meu perfil
                 </Link>
                 <Link
-                  href="/alterar-senha"
+                  href="/perfil?aba=seguranca"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-[#5B4BDB]/5 hover:text-[#5B4BDB]"
                 >
