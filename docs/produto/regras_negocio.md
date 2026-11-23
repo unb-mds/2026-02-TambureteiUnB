@@ -53,6 +53,6 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 5. **Reprodutibilidade:** Todo o ambiente deve subir integralmente via Docker Compose sem comandos manuais no sistema operacional hospedeiro.
 
 
-### Aplicação da moderação aos arquivos da Feature 5.2
+### Aplicação da moderação aos arquivos e relatos (Features 5.2 e 5.3)
 
-Os registros de links e conteúdos em `conteudos` seguem curadoria prévia. Os arquivos também estão em `conteudos`, com `tipo=ARQUIVO`, aprovação inicial da US 5.2.1 e download condicionado aos estados de curadoria e moderação. Os endpoints administrativos da Feature 5.3 continuam fora desta entrega.
+Os registros de links e uploads binários (`tipo = 'ARQUIVO'`) compartilham a entidade unificada `conteudos`, com download e listagem pública condicionados a `status_curadoria = 'APROVADO'` e `status_moderacao = 'ativo'`. Os endpoints administrativos da Feature 5.3 (`/moderacao/materiais`, `/moderacao/conteudos/{id}/curadoria` e `/moderacao/denuncias`) registram auditoria transacional em `curadorias` e `denuncias`.

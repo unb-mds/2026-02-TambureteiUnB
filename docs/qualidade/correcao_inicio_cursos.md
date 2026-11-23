@@ -23,9 +23,9 @@ A PR desta correção tem `develop` como base. A compatibilidade com a integraç
 - Fundo institucional escuro: `rgb(32, 32, 36)`, igual à superfície de Matriculados. Fundo claro preservado: `rgb(250, 249, 254)`.
 - Tela móvel de 390 pixels sem transbordamento horizontal.
 
-![Card institucional no tema escuro](assets/correcao-inicio/card-escuro.png)
+![Card institucional no tema escuro](../assets/correcao-inicio/card-escuro.png)
 
-![Paginação da tela inicial](assets/correcao-inicio/paginacao.png)
+![Paginação da tela inicial](../assets/correcao-inicio/paginacao.png)
 
 ## Rastreabilidade
 

@@ -104,38 +104,45 @@ nav:
   - Visão Geral: index.md
   - Começando:
       - Ambiente & Execução:
-          - Guia de Desenvolvimento: desenvolvimento.md
-          - Popular Banco de Dados: popular_banco_de_dados.md
-          - Roteiro de Demonstração: roteiro_demonstracao.md
+          - Guia de Desenvolvimento: comecando/desenvolvimento.md
+          - Popular Banco de Dados: comecando/popular_banco_de_dados.md
+          - Como Contribuir: comecando/como_contribuir.md
   - Engenharia & Back-end:
       - Arquitetura & Banco:
-          - Arquitetura & ADRs: arquitetura.md
-          - Arquitetura da Interface: arquitetura_ui.md
-          - Cores dos Indicadores: cores_indicadores.md
-          - Dicionário de Dados: banco_de_dados.md
+          - Arquitetura & ADRs: engenharia/arquitetura.md
+          - Arquitetura da Interface: engenharia/arquitetura_ui.md
+          - Cores dos Indicadores: engenharia/cores_indicadores.md
+          - Dicionário de Dados: engenharia/banco_de_dados.md
       - Dados & Ingestão:
-          - Pipeline ETL: pipeline_etl.md
-          - Notas de Corte PAS: notas_corte_pas.md
+          - Pipeline ETL: engenharia/pipeline_etl.md
+          - Notas de Corte PAS: engenharia/notas_corte_pas.md
       - Funcionalidades:
-          - Materiais de Apoio: feature_5_2_materiais.md
-          - Moderação e Curadoria: moderacao_curadoria.md
-          - Ocupação de Turmas: ocupacao_turmas.md
+          - Dashboard Institucional: engenharia/dashboard_institucional.md
+          - Autenticação e Comunidade: engenharia/autenticacao_comunidade.md
+          - Materiais de Apoio: engenharia/feature_5_2_materiais.md
+          - Moderação e Curadoria: engenharia/moderacao_curadoria.md
+          - Ocupação de Turmas: engenharia/ocupacao_turmas.md
   - Produto & Domínio:
       - Requisitos & Regras:
-          - Requisitos do Sistema: requisitos.md
-          - Regras de Negócio: regras_negocio.md
+          - Requisitos do Sistema: produto/requisitos.md
+          - Regras de Negócio: produto/regras_negocio.md
       - Histórias de Usuário:
-          - Backend: historias_usuario_backend.md
-          - Frontend: historias_usuario_frontend.md
-          - Banco de Dados: historias_usuario_database.md
+          - Backend: produto/historias_usuario_backend.md
+          - Frontend: produto/historias_usuario_frontend.md
+          - Banco de Dados: produto/historias_usuario_database.md
   - AI Usage:
       - Governança & Skills:
-          - Uso de IA & Agentes: ai_usage.md
+          - Uso de IA & Agentes: ai/ai_usage.md
   - Qualidade & Releases:
       - Registros Técnicos:
-          - Integração de Materiais: revisao_integracao_materiais.md
-          - Revisão da PR 95: revisao_pr95.md
-          - Listagem de Turmas: issue_turmas_nao_listadas.md
+          - Integração de Materiais: qualidade/revisao_integracao_materiais.md
+          - Revisão da PR 95: qualidade/revisao_pr95.md
+          - Listagem de Turmas: qualidade/issue_turmas_nao_listadas.md
+          - Diagnóstico de Bugs: qualidade/diagnostico_bugs_funcionais.md
+          - Correção Início e Cursos: qualidade/correcao_inicio_cursos.md
+          - Correção Materiais Públicos: qualidade/correcao_materiais_publicos.md
+          - Correção Métricas da Disciplina: qualidade/correcao_metricas_disciplina.md
+          - Vínculo de Comentários e Turmas: qualidade/correcao_vinculo_comentarios.md
       - Releases & Sprints:
           - Release v0.6.0: releases/v0.6.0.md
           - Release v0.7.0: releases/v0.7.0.md

@@ -34,9 +34,9 @@ Valores inválidos, como negativos ou não inteiros, também não viram quantida
 
 Os dados das capturas são fictícios e foram criados somente no ambiente de validação, separado do ambiente local já existente.
 
-![Cards com ocupação real e ausência explícita](assets/ocupacao-turmas-desktop.png)
+![Cards com ocupação real e ausência explícita](../assets/ocupacao-turmas-desktop.png)
 
-[Captura em celular](assets/ocupacao-turmas-mobile.png).
+[Captura em celular](../assets/ocupacao-turmas-mobile.png).
 
 ## Verificação
 
