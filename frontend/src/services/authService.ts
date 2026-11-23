@@ -9,6 +9,7 @@ import type {
   ChangePasswordInput,
   MessageResponse,
 } from "../types/auth.ts";
+import { request, setStoredToken, removeStoredToken, hasStoredToken, ApiError } from "./httpClient.ts";
 import {
   clearImportedHistorico,
   loadImportedHistorico,
