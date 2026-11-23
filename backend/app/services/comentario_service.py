@@ -42,6 +42,19 @@ class ComentarioService:
             disc = disciplina_repo.get_by_codigo(db, termo.upper())
         return disc
 
+    @staticmethod
+    def _resolver_autor_alias(dados_alias: Optional[str], current_user: Usuario) -> str:
+        alias = (dados_alias or "").strip()
+        if not alias or alias.lower() in {
+            "estudante anônimo",
+            "estudante anonimo",
+            "@estudante_anonimo",
+            "anônimo",
+            "anonimo",
+        }:
+            return "Estudante Anônimo"
+        return current_user.nome
+
     def criar_comentario(
         self,
         db: Session,
@@ -59,7 +72,7 @@ class ComentarioService:
             disciplina_id=dados.disciplina_id,
             turma_id=dados.turma_id,
             conteudo=dados.conteudo,
-            autor_alias=dados.autor_alias or "Estudante Anônimo",
+            autor_alias=self._resolver_autor_alias(dados.autor_alias, current_user),
             topico_dificuldade=dados.topico_dificuldade,
             status_moderacao="PENDENTE",
         )
@@ -79,7 +92,7 @@ class ComentarioService:
         payload = ComentarioCreate(
             disciplina_id=disciplina.id,
             turma_id=dados.turma_id,
-            autor_alias=dados.autor_alias or "Estudante Anônimo",
+            autor_alias=self._resolver_autor_alias(dados.autor_alias, current_user),
             topico_dificuldade=dados.topico_dificuldade,
             conteudo=dados.conteudo,
         )

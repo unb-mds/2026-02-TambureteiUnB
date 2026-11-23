@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -13,6 +13,7 @@ from app.api.schemas.comentario import (
     ComentarioResponse,
 )
 from app.services.comentario_service import comentario_service
+from app.services.moderacao_ia_service import processar_moderacao_comentario_bg
 
 router = APIRouter(prefix="/cadeiras", tags=["Cadeiras (Disciplinas)"])
 
@@ -86,10 +87,13 @@ def listar_comentarios_cadeira(
 def criar_comentario_cadeira(
     disciplina_id: str,
     dados: ComentarioCadeiraCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
     """Registra um novo comentário ou alerta de dificuldade em uma cadeira identificada por ID, slug ou código."""
-    return comentario_service.criar_comentario_por_cadeira(
+    comentario = comentario_service.criar_comentario_por_cadeira(
         db, disciplina_id, dados, current_user
     )
+    background_tasks.add_task(processar_moderacao_comentario_bg, comentario.id)
+    return comentario
