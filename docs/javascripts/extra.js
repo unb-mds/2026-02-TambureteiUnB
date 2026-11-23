@@ -17,7 +17,7 @@
     {
       label: "Requisitos",
       path: "produto/requisitos/",
-      match: ["produto/", "requisitos", "regras_negocio", "historias_usuario_"]
+      match: ["produto/", "requisitos", "regras_negocio", "gestao_agil", "historias_usuario_"]
     },
     {
       label: "Dados",
@@ -246,9 +246,130 @@
     }
   }
 
+  function setupTransientSearchHighlight() {
+    var searchParams;
+    try {
+      searchParams = new URLSearchParams(window.location.search);
+    } catch (_err) {
+      return;
+    }
+    if (!searchParams.has("h")) return;
+
+    var urlCleaned = false;
+    var clearingStarted = false;
+    var observer = null;
+
+    function cleanHighlightQuery() {
+      if (urlCleaned) return;
+      urlCleaned = true;
+      try {
+        var url = new URL(window.location.href);
+        if (url.searchParams.has("h")) {
+          url.searchParams.delete("h");
+          window.history.replaceState(
+            window.history.state,
+            "",
+            url.pathname + url.search + url.hash
+          );
+        }
+      } catch (_err) {}
+    }
+
+    function unwrapMarks(marks) {
+      marks.forEach(function (mark) {
+        var parent = mark.parentNode;
+        if (!parent) return;
+        while (mark.firstChild) {
+          parent.insertBefore(mark.firstChild, mark);
+        }
+        parent.removeChild(mark);
+        parent.normalize();
+      });
+    }
+
+    function detachListeners() {
+      document.removeEventListener("click", onDocumentClick);
+      document.removeEventListener("keydown", onKeyDown);
+      var input = document.querySelector(".md-search__input");
+      if (input) {
+        input.removeEventListener("focus", onSearchFocus);
+      }
+    }
+
+    function clearHighlights() {
+      if (clearingStarted) return;
+      var content = document.querySelector(".md-content__inner");
+      if (!content) return;
+      var marks = Array.prototype.slice.call(content.querySelectorAll("mark"));
+      if (!marks.length) return;
+
+      clearingStarted = true;
+      cleanHighlightQuery();
+      detachListeners();
+
+      marks.forEach(function (mark) {
+        mark.classList.add("tmb-mark--clearing");
+      });
+
+      window.setTimeout(function () {
+        unwrapMarks(marks);
+      }, 260);
+    }
+
+    function onDocumentClick(event) {
+      if (event.target && event.target.closest && event.target.closest(".md-search")) {
+        return;
+      }
+      var selection = window.getSelection ? window.getSelection().toString() : "";
+      if (selection) return;
+      window.setTimeout(clearHighlights, 0);
+    }
+
+    function onKeyDown(event) {
+      if (event.key === "Escape") {
+        clearHighlights();
+      }
+    }
+
+    function onSearchFocus() {
+      clearHighlights();
+    }
+
+    document.addEventListener("click", onDocumentClick);
+    document.addEventListener("keydown", onKeyDown);
+    var searchInput = document.querySelector(".md-search__input");
+    if (searchInput) {
+      searchInput.addEventListener("focus", onSearchFocus);
+    }
+
+    var content = document.querySelector(".md-content__inner");
+    if (content && content.querySelector("mark")) {
+      window.setTimeout(cleanHighlightQuery, 250);
+    } else if (content && typeof MutationObserver === "function") {
+      observer = new MutationObserver(function () {
+        if (content.querySelector("mark")) {
+          observer.disconnect();
+          observer = null;
+          window.setTimeout(cleanHighlightQuery, 250);
+        }
+      });
+      observer.observe(content, { childList: true, subtree: true });
+      window.setTimeout(function () {
+        if (observer) {
+          observer.disconnect();
+          observer = null;
+        }
+        cleanHighlightQuery();
+      }, 2500);
+    } else {
+      window.setTimeout(cleanHighlightQuery, 800);
+    }
+  }
+
   function initPortal() {
     mountTopNav();
     renderMermaidDiagrams();
+    setupTransientSearchHighlight();
   }
 
   if (document.readyState === "loading") {

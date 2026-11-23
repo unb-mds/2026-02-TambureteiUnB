@@ -126,6 +126,7 @@ nav:
       - Requisitos & Regras:
           - Requisitos do Sistema: produto/requisitos.md
           - Regras de Negócio: produto/regras_negocio.md
+          - Gestão Ágil e Sprints: produto/gestao_agil.md
       - Histórias de Usuário:
           - Backend: produto/historias_usuario_backend.md
           - Frontend: produto/historias_usuario_frontend.md
