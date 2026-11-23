@@ -228,3 +228,25 @@ def test_alternar_voto_comentario_persiste_e_desfaz_rn03(
     }
 
 
+def test_criar_comentario_forca_nome_usuario_real_em_vez_de_alias_falso(
+    client: TestClient, student_headers, student_user, disciplina
+):
+    payload = {
+        "disciplina_id": disciplina.id,
+        "autor_alias": "@estudante_fcte",
+        "conteudo": "Tentativa de enviar alias falso pelo payload.",
+    }
+    response = client.post("/comentarios", json=payload, headers=student_headers)
+    assert response.status_code == 201
+    assert response.json()["autor_alias"] == student_user.nome
+
+
+def test_criar_comentario_cadeira_sem_autenticacao_retorna_401(client: TestClient, disciplina):
+    payload = {
+        "autor_alias": "Hacker",
+        "conteudo": "Tentativa de comentar sem estar autenticado.",
+    }
+    response = client.post(f"/cadeiras/{disciplina.slug}/comentarios", json=payload)
+    assert response.status_code == 401
+
+
