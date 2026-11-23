@@ -15,7 +15,6 @@ import {
   saveImportedHistorico,
   HISTORICO_CHANGE_EVENT,
 } from "./historicoService.ts";
-
 export const AUTH_CHANGE_EVENT = "tamburetei-auth-change";
 const USER_STORAGE_KEY = "tamburetei_user";
 

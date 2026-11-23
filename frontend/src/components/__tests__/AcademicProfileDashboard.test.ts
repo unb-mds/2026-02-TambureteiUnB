@@ -20,10 +20,10 @@ test("AcademicProfileDashboard mostra navegação e exige consentimento para a d
 
   assert.match(markup, /Visão geral/);
   assert.match(markup, /Minha graduação/);
+  assert.doesNotMatch(markup, /Planejamento/);
   assert.match(markup, /Histórico/);
   assert.match(markup, /Desempenho/);
   assert.match(markup, /Segurança e Senha/);
-  assert.doesNotMatch(markup, /Planejamento/);
   assert.doesNotMatch(markup, /Comunidade/);
   assert.match(markup, /Concordar e abrir demonstração/);
   assert.match(markup, /Não consultamos o SIGAA/);

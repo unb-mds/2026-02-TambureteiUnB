@@ -9,6 +9,7 @@ import type {
 } from "../services/historicoService";
 import { request } from "../services/httpClient";
 import { SIGAA_TIME_SLOTS as SIGAA_SLOTS, type BackendTurmaResponse } from "../types/turma";
+import MinhaGraduacaoSection from "./MinhaGraduacaoSection";
 import SecurityTabContent from "./SecurityTabContent";
 
 export interface AcademicProfileDashboardProps {
@@ -280,45 +281,6 @@ function Metric({
   );
 }
 
-function ProgressBar({
-  label,
-  value,
-  max,
-  unit = "h",
-}: {
-  label: string;
-  value: number;
-  max: number;
-  unit?: string;
-}) {
-  const percentage = Math.round((value / max) * 100);
-
-  return (
-    <div>
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">
-        <span className="font-semibold text-[#202124]">{label}</span>
-        <span className="text-xs font-medium text-gray-600">
-          {value.toLocaleString("pt-BR")} de {max.toLocaleString("pt-BR")}{" "}
-          {unit} ·{" "}
-          {percentage}%
-        </span>
-      </div>
-      <div
-        role="progressbar"
-        aria-label={label}
-        aria-valuemin={0}
-        aria-valuemax={max}
-        aria-valuenow={value}
-        className="h-2.5 overflow-hidden rounded-full bg-[#E8E6F8]"
-      >
-        <div
-          className="h-full rounded-full bg-[#5B4BDB]"
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 function SectionHeading({
   eyebrow,
@@ -630,151 +592,6 @@ function OverviewSection({
   );
 }
 
-function DegreeSection({
-  importedData,
-}: {
-  importedData?: HistoricoImportacaoResponse | null;
-}) {
-  if (importedData) {
-    const { carga_horaria: ch, pendentes } = importedData;
-    const pct =
-      ch.exigido.total > 0
-        ? Math.round((ch.integralizado.total / ch.exigido.total) * 100)
-        : 0;
-
-    return (
-      <div>
-        <SectionHeading
-          eyebrow="Minha graduação"
-          title="Progresso curricular"
-          description="Cargas horárias e componentes obrigatórios pendentes extraídos do seu currículo oficial."
-        />
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Metric
-            label="Carga integralizada"
-            value={`${ch.integralizado.total} h`}
-            detail={`De ${ch.exigido.total} h exigidas`}
-          />
-          <Metric
-            label="Carga pendente"
-            value={`${ch.pendente.total} h`}
-            detail={`${ch.pendente.obrigatorias} h obrig. · ${ch.pendente.optativas} h opt.`}
-          />
-          <Metric
-            label="Conclusão do curso"
-            value={`${pct}%`}
-            detail={importedData.dados_academicos.curriculo || "Currículo ativo"}
-          />
-        </div>
-        <section className="mt-4 rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-          <h3 className="font-bold text-[#202124]">Integralização por requisito</h3>
-          <div className="mt-5 space-y-5">
-            {ch.exigido.obrigatorias > 0 && (
-              <ProgressBar
-                label="Carga obrigatória"
-                value={ch.integralizado.obrigatorias}
-                max={ch.exigido.obrigatorias}
-              />
-            )}
-            {ch.exigido.optativas > 0 && (
-              <ProgressBar
-                label="Carga optativa"
-                value={ch.integralizado.optativas}
-                max={ch.exigido.optativas}
-              />
-            )}
-            {ch.exigido.total > 0 && (
-              <ProgressBar
-                label="Carga horária total"
-                value={ch.integralizado.total}
-                max={ch.exigido.total}
-              />
-            )}
-          </div>
-        </section>
-        <section className="mt-4 rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-          <h3 className="font-bold text-[#202124]">
-            Componentes obrigatórios pendentes ({pendentes.length})
-          </h3>
-          {pendentes.length === 0 ? (
-            <p className="mt-2 text-sm text-gray-500">
-              Nenhuma pendência obrigatória listada no histórico.
-            </p>
-          ) : (
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-              {pendentes.map((pend) => (
-                <li
-                  key={pend.codigo}
-                  className="flex items-center justify-between gap-2 rounded-xl bg-[#F7F7FA] px-3 py-2.5 text-sm text-gray-700"
-                >
-                  <span className="truncate">
-                    <strong className="text-[#202124]">{pend.codigo}</strong> · {pend.nome}
-                  </span>
-                  <span className="shrink-0 text-xs font-semibold text-[#5B4BDB]">
-                    {pend.matriculado ? "Matriculado" : `${pend.ch} h`}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <SectionHeading
-        eyebrow="Minha graduação"
-        title="Progresso curricular"
-        description="Acompanhe créditos, cargas horárias e requisitos que ainda precisam ser cumpridos."
-      />
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Metric label="Créditos concluídos" value="132" detail="De 240 previstos" />
-        <Metric label="Créditos pendentes" value="108" detail="Obrigatórios e optativos" />
-        <Metric label="Conclusão estimada" value="55%" detail="Progresso demonstrativo" />
-      </div>
-      <section className="mt-4 rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-        <h3 className="font-bold text-[#202124]">Integralização por requisito</h3>
-        <div className="mt-5 space-y-5">
-          <ProgressBar label="Carga obrigatória" value={1920} max={2400} />
-          <ProgressBar label="Carga optativa" value={720} max={1200} />
-          <ProgressBar
-            label="Créditos totais"
-            value={132}
-            max={240}
-            unit="créditos"
-          />
-        </div>
-      </section>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-          <h3 className="font-bold text-[#202124]">Pendências curriculares</h3>
-          <ul className="mt-3 space-y-2 text-sm text-gray-700">
-            <li className="rounded-xl bg-[#F7F7FA] px-3 py-2.5">
-              Projeto Final de Curso · obrigatório
-            </li>
-            <li className="rounded-xl bg-[#F7F7FA] px-3 py-2.5">
-              Atividades complementares · 120 h restantes
-            </li>
-            <li className="rounded-xl bg-[#F7F7FA] px-3 py-2.5">
-              Optativas · 480 h restantes
-            </li>
-          </ul>
-        </section>
-        <section className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-          <h3 className="font-bold text-[#202124]">Pré-requisitos a conferir</h3>
-          <p className="mt-2 text-sm leading-6 text-gray-600">
-            Projeto Final de Curso depende da conclusão das disciplinas de
-            formação específica. Consulte a matriz curricular oficial antes de
-            planejar a matrícula.
-          </p>
-        </section>
-      </div>
-    </div>
-  );
-}
-
 export function HistorySection({
   importedData,
 }: {
@@ -1030,7 +847,7 @@ function renderSection(
     case "overview":
       return <OverviewSection importedData={importedData} />;
     case "degree":
-      return <DegreeSection importedData={importedData} />;
+      return <MinhaGraduacaoSection importedData={importedData} />;
     case "history":
       return <HistorySection importedData={importedData} />;
     case "performance":
@@ -1066,8 +883,10 @@ export default function AcademicProfileDashboard({
   const activeSectionIndex = profileSections.findIndex(
     (section) => section.id === activeSection
   );
-  const isSecurity = activeSection === "security";
-  const canShowContent = consented || Boolean(importedData) || isSecurity;
+  const canShowContent =
+    consented ||
+    Boolean(importedData) ||
+    activeSection === "security";
 
   function handleTabKeyDown(
     event: KeyboardEvent<HTMLButtonElement>,
@@ -1110,7 +929,7 @@ export default function AcademicProfileDashboard({
       <div
         role="tablist"
         aria-label="Seções do perfil acadêmico"
-        className="-mx-1 mt-5 flex gap-1 overflow-x-auto px-1 pb-2"
+        className="mt-5 grid grid-cols-2 gap-1.5 sm:grid-cols-5"
       >
         {profileSections.map((section, index) => (
           <button
@@ -1126,9 +945,9 @@ export default function AcademicProfileDashboard({
             tabIndex={activeSection === section.id ? 0 : -1}
             onClick={() => setActiveSection(section.id)}
             onKeyDown={(event) => handleTabKeyDown(event, index)}
-            className={`shrink-0 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5B4BDB] focus-visible:ring-offset-2 ${
+            className={`w-full rounded-xl px-3 py-2.5 text-center text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5B4BDB] focus-visible:ring-offset-2 ${
               activeSection === section.id
-                ? "bg-[#5B4BDB] text-white"
+                ? "bg-[#5B4BDB] text-white shadow-xs"
                 : "text-gray-600 hover:bg-[#F0EEFF] hover:text-[#5142C5]"
             }`}
           >

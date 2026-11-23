@@ -88,7 +88,13 @@ export default function ProfilePage() {
 function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("aba") === "seguranca" ? "security" : "overview";
+  const abaParam = searchParams.get("aba");
+  const initialSection =
+    abaParam === "seguranca"
+      ? "security"
+      : abaParam === "graduacao"
+      ? "degree"
+      : "overview";
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const authenticated = useSyncExternalStore(
@@ -394,7 +400,7 @@ function ProfilePageContent() {
           onConsent={() => setHasAcademicConsent(true)}
           onRevokeConsent={() => setHasAcademicConsent(false)}
           importedData={importedHistorico}
-          initialSection={initialTab}
+          initialSection={initialSection}
         />
       </main>
       <Footer />
