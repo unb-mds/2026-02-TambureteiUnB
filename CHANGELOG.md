@@ -4,6 +4,22 @@ Todas as mudanças notáveis documentadas por release do projeto **Tamburetei Un
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o versionamento adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.10.0] - 2026-11-20
+
+Detalhes completos na [Release v0.10.0 no GitHub](https://github.com/unb-mds/2026-02-TambureteiUnB/releases/tag/v0.10.0).
+
+### Adicionado
+- Consulta de estatísticas históricas de turmas filtradas por intervalo de anos e consolidação no fluxo de detalhe das disciplinas.
+- Exportação de dados abertos públicos em CSV e JSON integrada à visualização das estatísticas acadêmicas (`RF06`).
+- Página dedicada de turmas ofertadas por disciplina com paginação e cartões simplificados.
+- Validação de acessibilidade para leitores de tela e conformidade semântica em formulários e tabelas.
+
+### Corrigido
+- Ocultação do banner de acesso visitante para usuários autenticados.
+- Exibição da ocupação real de matriculados e ajuste visual nos cartões de turmas.
+
+---
+
 ## [0.9.0] - 2026-11-13
 
 Detalhes completos em [docs/releases/v0.9.0.md](docs/releases/v0.9.0.md).

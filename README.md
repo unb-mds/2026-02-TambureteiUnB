@@ -8,7 +8,7 @@
 
 O **Tamburetei UnB** é uma plataforma aberta para explorar indicadores de aprovação, evasão, matrizes curriculares e relatos colaborativos das disciplinas da Universidade de Brasília (UnB), com conformidade **LGPD (*Privacy by Design*)**.
 
-[Sobre](#sobre-o-projeto) · [Documentação](https://unb-mds.github.io/2026-02-TambureteiUnB/) · [Como Executar](#como-executar-o-projeto-localmente) · [Testes](#como-rodar-os-testes) · [Como Contribuir](CONTRIBUTING.md)
+[Sobre](#sobre-o-projeto) · [Documentação](https://unb-mds.github.io/2026-02-TambureteiUnB/) · [Como Executar](#como-executar-o-projeto-localmente) · [Testes](#como-rodar-os-testes) · [Como Contribuir](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -33,6 +33,12 @@ O projeto trabalha com um **dataset anonimizado**, obtido por meio da **Lei de A
 A proposta é transformar esses dados em informações que possam ser exploradas e analisadas de maneira transparente, permitindo uma melhor compreensão do desempenho acadêmico na UnB.
 
 O projeto é inspirado no **Tamburetei**, desenvolvido pela OpenDevUFCG, que utiliza dados acadêmicos para produzir análises reprodutíveis por meio de notebooks.
+
+### Público-Alvo
+
+* **Visitantes e calouros:** consultam livremente indicadores históricos, notas de corte do PAS, grades curriculares, ementas, materiais públicos e comentários sem necessidade de cadastro.
+* **Estudantes da UnB (autenticados):** registram situação nas disciplinas ("Já cursei"), contribuem com estatísticas de turmas, enviam materiais e comentários sob pseudônimo, importam o histórico do SIGAA e montam sua grade semanal.
+* **Moderadores e curadores:** revisam materiais, comentários e denúncias (`RN04`) na fila administrativa, com apoio da triagem híbrida por IA local.
 
 ### Arquitetura em Camadas
 
@@ -226,8 +232,9 @@ docker compose down -v
 A documentação detalhada de arquitetura, requisitos, modelagem e guias está organizada em subpastas de domínio dentro de `docs/` e publicada em [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/).
 
 ### Principais Documentos e Guias:
-* **[Documento de Visão](docs/index.md):** Contexto do problema, objetivos, valor entregue e escopo.
-* **[Guia de Contribuição](CONTRIBUTING.md) & [Como Contribuir](docs/comecando/como_contribuir.md):** Fluxo de branches, TDD, Conventional Commits e portas de qualidade do CI.
+* **[Documento de Visão](docs/index.md):** Contexto do problema, objetivos, valor entregue, fluxo de navegação e escopo.
+* **[Guia de Contribuição](CONTRIBUTING.md), [Como Contribuir](docs/comecando/como_contribuir.md) & [Código de Conduta](CODE_OF_CONDUCT.md):** Fluxo de branches, TDD, Conventional Commits, portas de qualidade do CI e diretrizes da comunidade.
+* **[Gestão Ágil, Sprints e Rastreabilidade](docs/produto/gestao_agil.md) & [Histórico de Versões](CHANGELOG.md):** Story Map no Figma, atas de reunião, milestones e evolução consolidada por release.
 * **[Requisitos do Sistema](docs/produto/requisitos.md) & [Regras de Negócio](docs/produto/regras_negocio.md):** Requisitos funcionais, não funcionais e políticas de governança e anonimização.
 * **[Arquitetura do Sistema & ADRs](docs/engenharia/arquitetura.md):** Visão arquitetural C4, Clean Architecture, diagramas de sequência de ponta a ponta e registros de decisões arquiteturais (ADRs 01 a 08).
 * **[Dicionário de Dados Relacional](docs/engenharia/banco_de_dados.md):** Mapa de relacionamentos e detalhamento dos esquemas do PostgreSQL 17 (17 tabelas + 1 Materialized View).
