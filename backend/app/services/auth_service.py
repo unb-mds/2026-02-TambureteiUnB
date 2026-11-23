@@ -1,3 +1,4 @@
+import logging
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,8 @@ from app.core.security import (
 from app.models.usuario import Usuario
 from app.repositories.usuario_repo import usuario_repo
 from app.services.email_service import email_service
+
+logger = logging.getLogger(__name__)
 
 class AuthService:
     def cadastrar_usuario(self, db: Session, dados_usuario: UsuarioCreate) -> Usuario:
