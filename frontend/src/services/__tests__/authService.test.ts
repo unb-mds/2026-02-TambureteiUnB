@@ -128,7 +128,7 @@ test("GuestBanner.tsx e page.tsx condicionam a renderizacao ao estado de autenti
   assert.match(markup, /guest-banner/);
 });
 
-test("logout remove o historico SIGAA salvo localmente", () => {
+test("logout limpa o snapshot ativo de historico mas preserva chave isolada do usuario", () => {
   storageData.clear();
   storageData.set("tamburetei_auth_token", "token-1");
   storageData.set(
@@ -136,12 +136,47 @@ test("logout remove o historico SIGAA salvo localmente", () => {
     JSON.stringify({ id: "user-1", nome: "Usuario A", email: "a@unb.br", role: "STUDENT", is_active: true })
   );
   storageData.set("tamburetei_historico_sigaa", JSON.stringify({ dados_academicos: { ira: 4.1 } }));
+  storageData.set("tamburetei_historico_sigaa_user_user-1", JSON.stringify({ dados_academicos: { ira: 4.1 } }));
 
   logout();
 
   assert.equal(storageData.has("tamburetei_auth_token"), false);
   assert.equal(storageData.has("tamburetei_user"), false);
   assert.equal(storageData.has("tamburetei_historico_sigaa"), false);
+  assert.equal(storageData.has("tamburetei_historico_sigaa_user_user-1"), true);
+});
+
+test("login com mesmo usuario restaura o historico previamente salvo apos logout", async (t) => {
+  storageData.clear();
+  storageData.set(
+    "tamburetei_historico_sigaa_user_user-1",
+    JSON.stringify({ dados_academicos: { ira: 4.5 } })
+  );
+
+  t.mock.method(globalThis, "fetch", async (url: string) => {
+    if (url.endsWith("/auth/login")) {
+      return new Response(
+        JSON.stringify({ access_token: "token-user-1", token_type: "bearer" }),
+        { status: 200 }
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        id: "user-1",
+        nome: "Usuario A",
+        email: "a@unb.br",
+        role: "STUDENT",
+        is_active: true,
+      }),
+      { status: 200 }
+    );
+  });
+
+  await login({ email: "a@unb.br", senha: "Password123" });
+
+  assert.equal(storageData.has("tamburetei_historico_sigaa"), true);
+  const restored = JSON.parse(storageData.get("tamburetei_historico_sigaa")!);
+  assert.equal(restored.dados_academicos.ira, 4.5);
 });
 
 test("login com usuario diferente limpa o historico SIGAA da conta anterior", async (t) => {
