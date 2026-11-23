@@ -560,12 +560,25 @@ export default function MinhaGrade() {
             {!!conflicts.length && (
               <div
                 role="alert"
-                className="rounded-xl border border-red-400/40 bg-red-500/10 p-4 text-sm"
+                className="rounded-2xl border-2 border-red-500/50 bg-red-500/10 p-5 text-sm shadow-sm"
               >
-                <strong>Choque de horário</strong>
-                {conflicts.map((pair) => (
-                  <p key={pair}>{pair}</p>
-                ))}
+                <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                  <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <strong className="text-base font-bold">Atenção: Choque de Horário Detectado!</strong>
+                </div>
+                <p className="mt-2 text-xs text-[var(--text-muted)]">
+                  As seguintes disciplinas estão coincidindo no mesmo dia e horário. Para resolver o conflito, escolha outra turma no seletor ao lado ou clique em &ldquo;Gerar grade sem conflitos&rdquo;:
+                </p>
+                <ul className="mt-3 space-y-1.5 font-semibold text-red-700 dark:text-red-300">
+                  {conflicts.map((pair) => (
+                    <li key={pair} className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                      <span>{pair}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
             {!!unknown.length && (

@@ -37,6 +37,12 @@ const SITUACOES_APROVADAS = new Set([
   "APROVADA",
 ]);
 
+// Mapeamento bidirecional de equivalências curriculares da UnB / FCTE
+const EQUIVALENCIAS_DISCIPLINAS: Record<string, string[]> = {
+  FGA0161: ["FGA0302"],
+  FGA0302: ["FGA0161"],
+};
+
 interface MatrizCurricularItem {
   codigo: string;
   nome: string;
@@ -172,12 +178,16 @@ export default function MinhaGraduacaoSection({
       let mencao: string | null = null;
       let semestreConclusao: string | null = null;
 
-      if (concluidasMap.has(codeUpper)) {
+      // Verifica conclusão direta ou por equivalência curricular (ex.: FGA0161 <-> FGA0302)
+      const equivCodes = [codeUpper, ...(EQUIVALENCIAS_DISCIPLINAS[codeUpper] || [])];
+      const matchedConcluidaCode = equivCodes.find((code) => concluidasMap.has(code));
+
+      if (matchedConcluidaCode) {
         status = "Concluída";
-        const info = concluidasMap.get(codeUpper);
+        const info = concluidasMap.get(matchedConcluidaCode);
         mencao = info?.mencao ?? null;
         semestreConclusao = info?.semestre ?? null;
-      } else if (cursandoSet.has(codeUpper)) {
+      } else if (equivCodes.some((code) => cursandoSet.has(code))) {
         status = "Em andamento";
       }
 
