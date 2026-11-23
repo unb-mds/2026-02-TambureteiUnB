@@ -104,7 +104,6 @@ function DisciplineDetailContent() {
   );
 
   const [period, setPeriod] = useState("Todos os semestres (2020 a 2025)");
-  const [completed, setCompleted] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [materialsReloadTrigger, setMaterialsReloadTrigger] = useState(0);
   const [pendingMaterialIds, setPendingMaterialIds] = useState<string[]>([]);
@@ -435,11 +434,15 @@ function DisciplineDetailContent() {
   // Extração dos dados consolidados reais da disciplina
   const metrica = discipline.metrica_consolidada;
   const totalMatriculados = metrica?.matriculados ?? 0;
+  const hasConsolidatedMetrics =
+    hasApprovalData(discipline.approval) || totalMatriculados > 0;
 
   // Formatação segura de quantidades de alunos
   const formatAlunos = (qtd: number | undefined) => {
-    const val = qtd ?? 0;
-    return `${val} ${val === 1 ? "aluno" : "alunos"}`;
+    if (!hasConsolidatedMetrics || !qtd || qtd <= 0) {
+      return "Sem dados";
+    }
+    return `${qtd} ${qtd === 1 ? "aluno" : "alunos"}`;
   };
 
   // Cards de métricas consumindo as taxas centralizadas no adaptador
@@ -447,7 +450,7 @@ function DisciplineDetailContent() {
     {
       label: "Taxa de Aprovação",
       value:
-        hasApprovalData(discipline.approval)
+        hasApprovalData(discipline.approval) && (discipline.approval ?? 0) > 0
           ? `${discipline.approval}%`
           : "Sem dados",
       count: formatAlunos(metrica?.aprovados),
@@ -467,7 +470,10 @@ function DisciplineDetailContent() {
     },
     {
       label: "Reprovação por Nota",
-      value: `${discipline.failedGrade ?? 0}%`,
+      value:
+        hasConsolidatedMetrics && (discipline.failedGrade ?? 0) > 0
+          ? `${discipline.failedGrade}%`
+          : "Sem dados",
       count: formatAlunos(metrica?.reprovados_nota),
       color: "var(--status-danger-text)",
       iconColor: "var(--status-danger-text)",
@@ -485,7 +491,10 @@ function DisciplineDetailContent() {
     },
     {
       label: "Reprovação por Falta",
-      value: `${discipline.failedAttendance ?? 0}%`,
+      value:
+        hasConsolidatedMetrics && (discipline.failedAttendance ?? 0) > 0
+          ? `${discipline.failedAttendance}%`
+          : "Sem dados",
       count: formatAlunos(metrica?.reprovados_falta),
       color: "var(--status-warning-text)",
       iconColor: "var(--status-warning-text)",
@@ -511,7 +520,10 @@ function DisciplineDetailContent() {
     },
     {
       label: "Trancamentos",
-      value: `${discipline.withdrawn ?? 0}%`,
+      value:
+        hasConsolidatedMetrics && (discipline.withdrawn ?? 0) > 0
+          ? `${discipline.withdrawn}%`
+          : "Sem dados",
       count: formatAlunos(metrica?.trancamentos),
       color: "var(--status-neutral-text)",
       iconColor: "var(--status-neutral-text)",
@@ -599,53 +611,29 @@ function DisciplineDetailContent() {
 
               
               <div className="flex flex-wrap sm:flex-nowrap lg:flex-wrap xl:flex-nowrap items-center gap-3 w-full lg:w-auto shrink-0 pt-2 lg:pt-1">
-                                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!completed) {
-                        const confirmou = window.confirm(
-                          `Confirmar que você já concluiu ${discipline.name}? Essa informação apoia a comunidade na identificação de estudantes veteranos.`
-                        );
-                        if (confirmou) {
-                          setCompleted(true);
-                        }
-                      } else {
-                        setCompleted(false);
-                      }
-                    }}
-                    aria-pressed={completed}
-                    className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                      completed
-                        ? "bg-[#E9F9F3] text-[#067A59] border border-[#A7E6CF]"
-                        : "bg-[#EDE9FD] text-[#5B4BDB] border border-[#D8D1FA] hover:bg-[#5B4BDB]/15"
-                    }`}
+                <div
+                  title="Quantidade de registros acadêmicos enviados para esta disciplina"
+                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap bg-[#EDE9FD] text-[#5B4BDB] border border-[#D8D1FA] select-none"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 18 18"
+                    fill="none"
+                    aria-hidden="true"
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 18 18"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M2.5 6.5L9 3l6.5 3.5L9 10 2.5 6.5Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M5 8.2v3.3c1.2 1.6 6.8 1.6 8 0V8.2M15.5 7v4"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span>{completed ? "Materia cursada" : "Ja cursei essa materia"}</span>
-                    <span className="ml-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
-                      {(discipline.metrica_consolidada?.aprovados || 0) + (completed ? 1 : 0)}
-                    </span>
-                  </button>
+                    <path
+                      d="M3 13.5V9.5M7.5 13.5V5.5M12 13.5V7.5M15.5 13.5H2.5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span>Dados fornecidos</span>
+                  <span className="ml-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
+                    {discipline.metrica_consolidada?.aprovados || 0}
+                  </span>
                 </div>
 
                 <button
@@ -983,7 +971,7 @@ function DisciplineDetailContent() {
             )}
           </section>
 
-          <section className="rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
+          <section className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-xs sm:p-8">
             
             <div className="mb-7 flex flex-col md:flex-row md:items-start justify-between gap-5">
               <div>
@@ -1004,7 +992,7 @@ function DisciplineDetailContent() {
                   <select
                     value={period}
                     onChange={(event) => setPeriod(event.target.value)}
-                    className="w-full appearance-none rounded-xl bg-[#F7F7FA] border border-[#DDD9F1] px-4 py-2.5 pr-10 text-xs sm:text-sm font-medium text-[#202124] outline-none focus:border-[#5B4BDB]"
+                    className="w-full appearance-none rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-2.5 pr-10 text-xs font-medium text-[var(--foreground)] outline-none focus:border-[var(--primary)] sm:text-sm"
                   >
                     <option>Todos os semestres (2020 a 2025)</option>
                     <option>Últimos 2 anos</option>
@@ -1045,7 +1033,7 @@ function DisciplineDetailContent() {
                 >
                   <div className="mb-4 flex items-center justify-between">
                     <div
-                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-2xs"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface)] shadow-2xs"
                       style={{ color: metric.iconColor }}
                     >
                       <svg
@@ -1074,7 +1062,7 @@ function DisciplineDetailContent() {
                   >
                     {metric.value}
                   </div>
-                  <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-700">
+                  <p className="mt-1 text-xs font-semibold text-[var(--text-muted)] sm:text-sm">
                     {metric.label}
                   </p>
                 </div>
@@ -1082,32 +1070,35 @@ function DisciplineDetailContent() {
             </div>
 
             
-            <div className="rounded-2xl bg-[#FAFAFC] p-5 sm:p-6 border border-[#ECEAF5]">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5 sm:p-6">
               <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-[#202124]">
+                  <h3 className="text-base font-bold text-[var(--foreground)] sm:text-lg">
                     Evolução semestral
                   </h3>
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                     Distribuição percentual dos resultados por semestre
                   </p>
                 </div>
                 
-                <span className="self-start sm:self-auto rounded-full bg-[#EDE9FD] px-3 py-1 text-xs font-semibold text-[#5B4BDB]">
-                  Base acumulada: {totalMatriculados} {totalMatriculados === 1 ? "matrícula" : "matrículas"}
+                <span className="self-start rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--primary-text)] sm:self-auto">
+                  Base acumulada:{" "}
+                  {totalMatriculados > 0
+                    ? `${totalMatriculados} ${totalMatriculados === 1 ? "matrícula" : "matrículas"}`
+                    : "Sem dados"}
                 </span>
               </div>
 
               
               {performanceList.length === 0 ? (
-                <p role="status" className="rounded-xl border border-[#ECEAF5] bg-white p-5 text-sm text-gray-600">
+                <p role="status" className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]">
                   Não há histórico semestral público disponível para esta disciplina. Registros com baixa amostragem são preservados conforme a LGPD.
                 </p>
               ) : (
                 <>
               <div className="flex h-64 gap-3 sm:gap-5">
                 {/* Eixo Y */}
-                <div className="flex w-8 sm:w-10 flex-col justify-between pb-7 text-right text-[11px] font-medium text-gray-500">
+                <div className="flex w-8 flex-col justify-between pb-7 text-right text-[11px] font-medium text-[var(--text-muted)] sm:w-10">
                   <span>100%</span>
                   <span>75%</span>
                   <span>50%</span>
@@ -1116,11 +1107,11 @@ function DisciplineDetailContent() {
                 </div>
 
                 
-                <div className="relative flex min-w-0 flex-1 items-end justify-around border-b border-l border-[#DCD9E9] px-2 sm:px-8 pb-7">
+                <div className="relative flex min-w-0 flex-1 items-end justify-around border-b border-l border-[var(--border-subtle)] px-2 pb-7 sm:px-8">
                   {[25, 50, 75, 100].map((line) => (
                     <div
                       key={line}
-                      className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[#E4E2EC]"
+                      className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[var(--border-subtle)]"
                       style={{ bottom: `${line}%` }}
                     />
                   ))}
@@ -1175,35 +1166,35 @@ function DisciplineDetailContent() {
                           <div
                             style={{
                               height: `${approvedPct}%`,
-                              background: "#10B981",
+                              background: "var(--status-success-text)",
                             }}
                             title={`Aprovação: ${approvedPct}% (${item.approved})`}
                           />
                           <div
                             style={{
                               height: `${failedPct}%`,
-                              background: "#EF4444",
+                              background: "var(--status-danger-text)",
                             }}
                             title={`Reprovação por nota: ${failedPct}% (${item.failed})`}
                           />
                           <div
                             style={{
                               height: `${absentPct}%`,
-                              background: "#F59E0B",
+                              background: "var(--status-warning-text)",
                             }}
                             title={`Reprovação por falta: ${absentPct}% (${item.absent})`}
                           />
                           <div
                             style={{
                               height: `${withdrawnPct}%`,
-                              background: "#94A3B8",
+                              background: "var(--status-neutral-text)",
                             }}
                             title={`Trancamento: ${withdrawnPct}% (${item.withdrawn})`}
                           />
                         </div>
 
                         
-                        <span className="absolute -bottom-6 max-sm:-bottom-8 max-sm:-rotate-45 whitespace-nowrap text-[11px] font-medium text-gray-600">
+                        <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-[var(--text-muted)] max-sm:-bottom-8 max-sm:-rotate-45">
                           {item.semester}
                         </span>
                       </div>
@@ -1215,14 +1206,14 @@ function DisciplineDetailContent() {
               
               <div className="mt-8 flex flex-wrap justify-center gap-4 sm:gap-7 pt-2">
                 {[
-                  ["Aprovação", "#10B981"],
-                  ["Reprovação por nota", "#EF4444"],
-                  ["Reprovação por falta", "#F59E0B"],
-                  ["Trancamento", "#94A3B8"],
+                  ["Aprovação", "var(--status-success-text)"],
+                  ["Reprovação por nota", "var(--status-danger-text)"],
+                  ["Reprovação por falta", "var(--status-warning-text)"],
+                  ["Trancamento", "var(--status-neutral-text)"],
                 ].map(([label, color]) => (
                   <div
                     key={label}
-                    className="flex items-center gap-2 text-xs font-medium text-gray-600"
+                    className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]"
                   >
                     <span
                       className="h-2.5 w-2.5 rounded-xs"
@@ -1233,15 +1224,15 @@ function DisciplineDetailContent() {
                 ))}
               </div>
 
-              <div className="mt-6 overflow-x-auto rounded-xl border border-[#ECEAF5] bg-white">
+              <div className="mt-6 overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
                 <table
                   aria-label={`Tabela de desempenho historico semestral de ${discipline.name}`}
-                  className="w-full text-left text-xs text-gray-700"
+                  className="w-full text-left text-xs text-[var(--foreground)]"
                 >
                   <caption className="sr-only">
                     Distribuicao semestral de aprovados, reprovados por nota, reprovados por falta e trancamentos da disciplina {discipline.code} - {discipline.name}
                   </caption>
-                  <thead className="bg-[#F7F7FA] text-[11px] font-bold uppercase tracking-wider text-gray-600 border-b border-[#ECEAF5]">
+                  <thead className="border-b border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     <tr>
                       <th scope="col" className="px-3.5 py-2.5">Semestre</th>
                       <th scope="col" className="px-3.5 py-2.5">Avaliados</th>
@@ -1251,7 +1242,7 @@ function DisciplineDetailContent() {
                       <th scope="col" className="px-3.5 py-2.5">Trancamentos</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F0EFF8]">
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
                     {performanceList.map((item) => {
                       const total =
                         (item.approved || 0) +
@@ -1261,22 +1252,30 @@ function DisciplineDetailContent() {
                       const pct = (val: number) =>
                         total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
                       return (
-                        <tr key={`row-${item.semester}`} className="hover:bg-[#FAFAFC]">
-                          <th scope="row" className="px-3.5 py-2 font-bold text-[#202124]">
+                        <tr key={`row-${item.semester}`} className="hover:bg-[var(--surface-soft)]">
+                          <th scope="row" className="px-3.5 py-2 font-bold text-[var(--foreground)]">
                             {item.semester}
                           </th>
-                          <td className="px-3.5 py-2">{total}</td>
-                          <td className="px-3.5 py-2 font-semibold text-[#067A59]">
-                            {pct(item.approved || 0)}% ({item.approved || 0})
+                          <td className="px-3.5 py-2">{total > 0 ? total : "Sem dados"}</td>
+                          <td className="px-3.5 py-2 font-semibold text-[var(--status-success-text)]">
+                            {(item.approved || 0) > 0
+                              ? `${pct(item.approved || 0)}% (${item.approved})`
+                              : "Sem dados"}
                           </td>
-                          <td className="px-3.5 py-2 text-[#C52C2C]">
-                            {pct(item.failed || 0)}% ({item.failed || 0})
+                          <td className="px-3.5 py-2 text-[var(--status-danger-text)]">
+                            {(item.failed || 0) > 0
+                              ? `${pct(item.failed || 0)}% (${item.failed})`
+                              : "Sem dados"}
                           </td>
-                          <td className="px-3.5 py-2 text-[#9A5700]">
-                            {pct(item.absent || 0)}% ({item.absent || 0})
+                          <td className="px-3.5 py-2 text-[var(--status-warning-text)]">
+                            {(item.absent || 0) > 0
+                              ? `${pct(item.absent || 0)}% (${item.absent})`
+                              : "Sem dados"}
                           </td>
-                          <td className="px-3.5 py-2 text-[#526174]">
-                            {pct(item.withdrawn || 0)}% ({item.withdrawn || 0})
+                          <td className="px-3.5 py-2 text-[var(--status-neutral-text)]">
+                            {(item.withdrawn || 0) > 0
+                              ? `${pct(item.withdrawn || 0)}% (${item.withdrawn})`
+                              : "Sem dados"}
                           </td>
                         </tr>
                       );

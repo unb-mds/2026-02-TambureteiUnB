@@ -137,6 +137,24 @@ export function nextPlanningSemester(latest: string): string | undefined {
   return match[2] === "1" ? `${match[1]}.2` : `${Number(match[1]) + 1}.1`;
 }
 
+export function getPlanningSemesters(
+  offeredSemesters: string[],
+  savedSemester?: string,
+  nextSemester?: string,
+): string[] {
+  const currentSemester = offeredSemesters[0] || "";
+  return [
+    ...new Set([
+      ...offeredSemesters,
+      ...(savedSemester ? [savedSemester] : []),
+      ...(nextSemester ? [nextSemester] : []),
+    ]),
+  ]
+    .filter((semester) => !currentSemester || semester >= currentSemester)
+    .sort()
+    .reverse();
+}
+
 export function validateGradeExport(entries: GradeEntry[], semester: string) {
   const selected = selectedClasses(entries, semester);
   const conflicting = new Map<string, GradeEntry>();

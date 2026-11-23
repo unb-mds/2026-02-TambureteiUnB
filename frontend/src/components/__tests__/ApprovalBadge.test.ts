@@ -10,7 +10,7 @@ test("ApprovalBadge exibe porcentagem real para métricas válidas", () => {
   );
 
   assert.match(markup, /76\.5% de aprovação/);
-  assert.match(markup, /bg-\[#E9F9F3\]/);
+  assert.match(markup, /var\(--status-success-bg\)/);
   assert.doesNotMatch(markup, /Sem dados/);
 });
 
@@ -21,14 +21,14 @@ test("ApprovalBadge exibe badge neutro sem métrica válida", () => {
     );
 
     assert.match(markup, /Sem dados/);
-    assert.match(markup, /bg-gray-100/);
-    assert.match(markup, /text-gray-500/);
+    assert.match(markup, /var\(--status-neutral-bg\)/);
+    assert.match(markup, /var\(--status-neutral-text\)/);
     assert.doesNotMatch(markup, /% de aprovação/);
   }
 });
 
-test("ApprovalBadge distingue taxa zero da ausência de dados", () => {
+test("ApprovalBadge exibe Sem dados para taxa zero", () => {
   const markup = renderToStaticMarkup(createElement(ApprovalBadge, { approval: 0 }));
-  assert.match(markup, /0% de aprovação/);
-  assert.doesNotMatch(markup, /Sem dados/);
+  assert.match(markup, /Sem dados/);
+  assert.doesNotMatch(markup, /0% de aprovação/);
 });

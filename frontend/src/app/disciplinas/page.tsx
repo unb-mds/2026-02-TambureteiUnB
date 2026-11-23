@@ -1,6 +1,9 @@
 "use client";
 
-import { hasApprovalData } from "@/utils/academicMetrics";
+import {
+  formatPositiveMetric,
+  hasApprovalData,
+} from "@/utils/academicMetrics";
 
 import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
@@ -16,12 +19,17 @@ import useAsyncList from "@/hooks/useAsyncList";
 import {
   GLOBAL_CAMPUSES,
   GLOBAL_AREAS,
-  GLOBAL_DEPARTMENTS,
   Discipline,
 } from "@/types/disciplina";
 import { normalizeSearchTerm } from "@/utils/search";
+import { getDepartmentOptions } from "@/utils/disciplineDepartments";
 import ApprovalBadge from "@/components/ApprovalBadge";
-import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
+import { useDisciplineDetailedMetrics } from "@/hooks/useDisciplineApprovalMetrics";
+import {
+  DISCIPLINE_SORT_OPTIONS,
+  sortDisciplines,
+  type DisciplineSortOption,
+} from "@/utils/disciplineSorting";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -37,8 +45,12 @@ function DisciplinasContent() {
   const [query, setQuery] = useState(initialQuery);
   const [campus, setCampus] = useState("Todos os Campi");
   const [department, setDepartment] = useState("Todos os Departamentos");
+  const departmentOptions = useMemo(
+    () => getDepartmentOptions(disciplines),
+    [disciplines],
+  );
   const [area, setArea] = useState("Todas");
-  const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
+  const [sort, setSort] = useState<DisciplineSortOption>("approval_desc");
   const [onlyWithClasses, setOnlyWithClasses] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -50,7 +62,7 @@ function DisciplinasContent() {
   const filteredResults: Discipline[] = useMemo(() => {
     const normalizedQuery = normalizeSearchTerm(query);
 
-    return disciplines.filter((discipline) => {
+    const filtered = disciplines.filter((discipline) => {
       const matchesTurmas =
         !onlyWithClasses ||
         (discipline.total_turmas !== undefined && discipline.total_turmas > 0);
@@ -65,25 +77,13 @@ function DisciplinasContent() {
         discipline.campusFilter === campus ||
         discipline.campus === campus;
       const matchesDepartment =
-        department === "Todos os Departamentos" || discipline.department === department;
+        department === "Todos os Departamentos" ||
+        discipline.departmentName === department;
       const matchesArea = area === "Todas" || discipline.area === area;
 
       return matchesQuery && matchesCampus && matchesDepartment && matchesArea;
-    }).sort((a, b) => {
-      if (sort === "Menor taxa de aprovação") {
-        const approvalA =
-          hasApprovalData(a.approval)
-            ? a.approval
-            : Number.POSITIVE_INFINITY;
-        const approvalB =
-          hasApprovalData(b.approval)
-            ? b.approval
-            : Number.POSITIVE_INFINITY;
-        return approvalA - approvalB;
-      }
-      if (sort === "Mais materiais") return b.resources - a.resources;
-      return b.popularity - a.popularity;
     });
+    return sortDisciplines(filtered, sort);
   }, [disciplines, query, campus, department, area, sort, onlyWithClasses]);
 
   const totalPages = Math.max(1, Math.ceil(filteredResults.length / ITEMS_PER_PAGE));
@@ -93,7 +93,7 @@ function DisciplinasContent() {
     const start = (activePage - 1) * ITEMS_PER_PAGE;
     return filteredResults.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredResults, activePage]);
-  const approvalMetrics = useDisciplineApprovalMetrics(paginatedResults);
+  const detailedMetrics = useDisciplineDetailedMetrics(paginatedResults);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -117,7 +117,7 @@ function DisciplinasContent() {
     setCurrentPage(1);
   };
 
-  const handleSortChange = (newSort: "Mais populares" | "Menor taxa de aprovação" | "Mais materiais") => {
+  const handleSortChange = (newSort: DisciplineSortOption) => {
     setSort(newSort);
     setCurrentPage(1);
   };
@@ -131,7 +131,7 @@ function DisciplinasContent() {
     setCampus("Todos os Campi");
     setDepartment("Todos os Departamentos");
     setArea("Todas");
-    setSort("Mais populares");
+    setSort("approval_desc");
     setOnlyWithClasses(true);
     setCurrentPage(1);
   };
@@ -244,8 +244,13 @@ function DisciplinasContent() {
                     onChange={(event) => handleDepartmentChange(event.target.value)}
                     className="w-full appearance-none rounded-xl bg-[#F7F7FA] border border-[#E1DFEA] px-4 py-2.5 pr-10 text-xs font-medium text-[#202124] outline-none focus:border-[#5B4BDB]"
                   >
-                    {GLOBAL_DEPARTMENTS.map((item) => (
-                      <option key={item}>{item}</option>
+                    <option value="Todos os Departamentos">
+                      Todos os Departamentos
+                    </option>
+                    {departmentOptions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
                     ))}
                   </select>
                   <svg
@@ -305,13 +310,28 @@ function DisciplinasContent() {
                   }}
                   className="sr-only peer"
                 />
-                <div className="w-10 h-5.5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-[#5B4BDB]"></div>
-                <span className="ml-3 text-xs sm:text-sm font-semibold text-[#202124]">
+                <div
+                  className={`relative w-10 h-5.5 rounded-full transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 ${
+                    onlyWithClasses
+                      ? "bg-[var(--primary)]"
+                      : "border border-[var(--border-subtle)] bg-[var(--surface-muted)]"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`absolute top-[2px] left-[2px] h-4.5 w-4.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] transition-transform ${
+                      onlyWithClasses
+                        ? "translate-x-4.5"
+                        : "translate-x-0"
+                    }`}
+                  />
+                </div>
+                <span className="ml-3 text-xs sm:text-sm font-semibold text-[var(--foreground)]">
                   Apenas disciplinas com turmas ofertadas
                 </span>
               </label>
 
-              <span className="text-[11px] font-medium text-gray-500 bg-[#F7F7FA] px-2.5 py-1 rounded-full border border-gray-200">
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-muted)]">
                 {onlyWithClasses ? "Ocultando sem turmas" : "Exibindo todas (inclusive sem turmas)"}
               </span>
             </div>
@@ -335,13 +355,15 @@ function DisciplinasContent() {
                 <select
                   value={sort}
                   onChange={(event) =>
-                    handleSortChange(event.target.value as "Mais populares" | "Menor taxa de aprovação" | "Mais materiais")
+                    handleSortChange(event.target.value as DisciplineSortOption)
                   }
                   className="w-full appearance-none rounded-xl bg-white border border-[#E1DFEA] px-3.5 py-2 pr-8 text-xs font-semibold text-[#202124] outline-none focus:border-[#5B4BDB]"
                 >
-                  <option>Mais populares</option>
-                  <option>Menor taxa de aprovação</option>
-                  <option>Mais materiais</option>
+                  {DISCIPLINE_SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
                 <svg
                   className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
@@ -401,7 +423,31 @@ function DisciplinasContent() {
           ) : filteredResults.length > 0 ? (
             <>
               <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paginatedResults.map((discipline) => (
+                {paginatedResults.map((discipline) => {
+                  const detailed = detailedMetrics[discipline.slug];
+                  const resolvedApproval =
+                    detailed?.approval ?? discipline.approval;
+                  const resolvedFailedGrade =
+                    detailed?.failedGrade ?? discipline.failedGrade ?? 0;
+                  const resolvedFailedAttendance =
+                    detailed?.failedAttendance ?? discipline.failedAttendance ?? 0;
+                  const resolvedWithdrawn =
+                    detailed?.withdrawn ?? discipline.withdrawn ?? 0;
+                  const resolvedMatriculados =
+                    detailed?.matriculados ??
+                    discipline.metrica_consolidada?.matriculados ??
+                    0;
+                  const hasMetrics =
+                    resolvedMatriculados > 0 ||
+                    (hasApprovalData(resolvedApproval) && resolvedApproval > 0) ||
+                    resolvedFailedGrade > 0 ||
+                    resolvedFailedAttendance > 0 ||
+                    resolvedWithdrawn > 0;
+                  const hasClasses =
+                    discipline.total_turmas !== undefined &&
+                    discipline.total_turmas > 0;
+
+                  return (
                   <article
                     key={discipline.slug || discipline.code}
                     className="group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#E8E6F8] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all"
@@ -412,24 +458,26 @@ function DisciplinasContent() {
                           <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
                             {discipline.code}
                           </span>
-                          {discipline.total_turmas !== undefined && (
-                            discipline.total_turmas > 0 ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                {discipline.total_turmas} {discipline.total_turmas === 1 ? "turma" : "turmas"}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-200">
-                                Sem turmas
-                              </span>
-                            )
-                          )}
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                            style={{
+                              backgroundColor: hasClasses
+                                ? "var(--primary-soft)"
+                                : "var(--status-neutral-bg)",
+                              borderColor: hasClasses
+                                ? "var(--border-subtle)"
+                                : "var(--status-neutral-border)",
+                              color: hasClasses
+                                ? "var(--primary-text)"
+                                : "var(--status-neutral-text)",
+                            }}
+                          >
+                            {hasClasses
+                              ? `${discipline.total_turmas} ${discipline.total_turmas === 1 ? "turma" : "turmas"}`
+                              : "Sem dados"}
+                          </span>
                         </div>
-                        <ApprovalBadge
-                          approval={
-                            approvalMetrics[discipline.slug] ??
-                            discipline.approval
-                          }
-                        />
+                        <ApprovalBadge approval={resolvedApproval} />
                       </div>
 
                       <h2 className="text-base sm:text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
@@ -440,7 +488,125 @@ function DisciplinasContent() {
                         {discipline.departmentName} <span className="mx-1 text-[#C4C1D8]">•</span> {discipline.campus}
                       </p>
 
-                      <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-700">
+                      {/* Painel de métricas adaptado automaticamente ao tema claro/escuro */}
+                      {hasMetrics ? (
+                        <div className="mt-4 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div
+                              className="rounded-xl p-2.5 flex flex-col justify-between border"
+                              style={{
+                                backgroundColor: "var(--status-success-bg)",
+                                borderColor: "var(--status-success-border)",
+                                color: "var(--status-success-text)",
+                              }}
+                            >
+                              <span className="text-[10px] uppercase font-bold tracking-wider opacity-90">
+                                Aprovação
+                              </span>
+                              <span className="text-sm font-extrabold mt-0.5">
+                                {formatPositiveMetric(resolvedApproval, "%")}
+                              </span>
+                            </div>
+
+                            <div
+                              className="rounded-xl p-2.5 flex flex-col justify-between border"
+                              style={{
+                                backgroundColor: "var(--status-danger-bg)",
+                                borderColor: "var(--status-danger-border)",
+                                color: "var(--status-danger-text)",
+                              }}
+                            >
+                              <span className="text-[10px] uppercase font-bold tracking-wider opacity-90">
+                                Repr. Nota
+                              </span>
+                              <span className="text-sm font-extrabold mt-0.5">
+                                {formatPositiveMetric(resolvedFailedGrade, "%")}
+                              </span>
+                            </div>
+
+                            <div
+                              className="rounded-xl p-2.5 flex flex-col justify-between border"
+                              style={{
+                                backgroundColor: "var(--status-warning-bg)",
+                                borderColor: "var(--status-warning-border)",
+                                color: "var(--status-warning-text)",
+                              }}
+                            >
+                              <span className="text-[10px] uppercase font-bold tracking-wider opacity-90">
+                                Repr. Falta
+                              </span>
+                              <span className="text-sm font-extrabold mt-0.5">
+                                {formatPositiveMetric(resolvedFailedAttendance, "%")}
+                              </span>
+                            </div>
+
+                            <div
+                              className="rounded-xl p-2.5 flex flex-col justify-between border"
+                              style={{
+                                backgroundColor: "var(--status-neutral-bg)",
+                                borderColor: "var(--status-neutral-border)",
+                                color: "var(--status-neutral-text)",
+                              }}
+                            >
+                              <span className="text-[10px] uppercase font-bold tracking-wider opacity-90">
+                                Trancamentos
+                              </span>
+                              <span className="text-sm font-extrabold mt-0.5">
+                                {formatPositiveMetric(resolvedWithdrawn, "%")}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            className="flex items-center justify-between text-[11px] px-1 pt-0.5"
+                            style={{ color: "var(--text-muted)" }}
+                          >
+                            <span>
+                              Discentes:{" "}
+                              <strong>
+                                {resolvedMatriculados > 0
+                                  ? `${resolvedMatriculados} ${resolvedMatriculados === 1 ? "aluno" : "alunos"}`
+                                  : "Sem dados"}
+                              </strong>
+                            </span>
+                            <span>
+                              {hasClasses
+                                ? `${discipline.total_turmas} ${discipline.total_turmas === 1 ? "turma" : "turmas"}`
+                                : "Sem dados"}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          className="mt-4 rounded-xl p-3 border flex items-center justify-between gap-2"
+                          style={{
+                            backgroundColor: "var(--surface-soft)",
+                            borderColor: "var(--border-subtle)",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-[10px] uppercase font-bold tracking-wider">
+                              Estatísticas
+                            </span>
+                            <span className="text-xs font-semibold mt-0.5">
+                              Sem dados
+                            </span>
+                          </div>
+                          <div className="flex flex-col text-right">
+                            <span className="text-[10px] uppercase font-bold tracking-wider">
+                              Turmas
+                            </span>
+                            <span className="text-xs font-semibold mt-0.5">
+                              {hasClasses
+                                ? `${discipline.total_turmas} ${discipline.total_turmas === 1 ? "turma" : "turmas"}`
+                                : "Sem dados"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-3.5 flex items-center gap-2 text-xs font-semibold text-gray-700">
                         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-[#7C6CF0]">
                           <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
                           <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -454,7 +620,13 @@ function DisciplinasContent() {
                           <path d="M3 11a2.5 2.5 0 0 1 2.5-2.5H13" stroke="currentColor" strokeWidth="1.3" />
                         </svg>
                         <span>
-                          <strong className="text-gray-800">{discipline.resources}</strong> materiais e relatos
+                          {discipline.resources > 0 ? (
+                            <>
+                              <strong className="text-gray-800">{discipline.resources}</strong> materiais e relatos
+                            </>
+                          ) : (
+                            "Sem dados de materiais"
+                          )}
                         </span>
                       </div>
                     </div>
@@ -469,7 +641,8 @@ function DisciplinasContent() {
                       </Link>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </section>
 
               <Pagination

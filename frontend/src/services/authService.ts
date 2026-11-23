@@ -1,5 +1,6 @@
 import type { UserLoginInput, UserRegisterInput, AuthToken, UserResponse } from "../types/auth.ts";
 import { request, setStoredToken, removeStoredToken, hasStoredToken } from "./httpClient.ts";
+import { clearImportedHistorico } from "./historicoService.ts";
 
 export const AUTH_CHANGE_EVENT = "tamburetei-auth-change";
 const USER_STORAGE_KEY = "tamburetei_user";
@@ -58,6 +59,7 @@ export async function getCurrentUser(): Promise<UserResponse | null> {
  * o JWT retornado no localStorage e obtendo o perfil.
  */
 export async function login(credentials: UserLoginInput): Promise<AuthToken> {
+  const previousUser = getStoredUser();
   const token = await request<AuthToken>("/auth/login", {
     method: "POST",
     body: JSON.stringify(credentials),
@@ -68,6 +70,9 @@ export async function login(credentials: UserLoginInput): Promise<AuthToken> {
     try {
       const user = await request<UserResponse>("/auth/me");
       if (user) {
+        if (previousUser?.id && user.id !== previousUser.id) {
+          clearImportedHistorico();
+        }
         setStoredUser(user);
       }
     } catch {
@@ -96,6 +101,7 @@ export async function register(data: UserRegisterInput): Promise<UserResponse> {
 export function logout(): void {
   removeStoredToken();
   removeStoredUser();
+  clearImportedHistorico();
   if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
     window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
   }

@@ -48,6 +48,7 @@ flowchart LR
 | `DificuldadesPanel` | Dificuldades e comentários acadêmicos por tópico |
 | `AcademicProfileDashboard` | Dashboard do perfil acadêmico com leitura de histórico SIGAA importado |
 | `ModerationCard` | Decisão sobre materiais pendentes |
+| `CommentModerationCard` | Decisão sobre comentários pendentes na fila de curadoria |
 | `DenunciaModerationCard` | Visualização e decisão sobre denúncias |
 | `ModerationActionModal` | Confirmação de ações de moderação |
 

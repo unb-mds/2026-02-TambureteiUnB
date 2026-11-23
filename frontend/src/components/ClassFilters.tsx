@@ -187,13 +187,28 @@ export default function ClassFilters({
               onChange={(e) => onOnlyWithDataChange(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-10 h-5.5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-[#5B4BDB]" />
-            <span className="ml-3 text-xs sm:text-sm font-semibold text-[#202124]">
+            <div
+              className={`relative w-10 h-5.5 rounded-full transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 ${
+                onlyWithData
+                  ? "bg-[var(--primary)]"
+                  : "border border-[var(--border-subtle)] bg-[var(--surface-muted)]"
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`absolute top-[2px] left-[2px] h-4.5 w-4.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] transition-transform ${
+                  onlyWithData
+                    ? "translate-x-4.5"
+                    : "translate-x-0"
+                }`}
+              />
+            </div>
+            <span className="ml-3 text-xs sm:text-sm font-semibold text-[var(--foreground)]">
               Mostrar Apenas Com Dados
             </span>
           </label>
 
-          <span className="text-[11px] font-medium text-gray-500 bg-[#F7F7FA] px-2.5 py-1 rounded-full border border-gray-200">
+          <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-muted)]">
             {onlyWithData
               ? "Ocultando turmas sem dados"
               : "Exibindo todas as turmas"}
