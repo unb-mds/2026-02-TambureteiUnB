@@ -1,4 +1,4 @@
-# 🏗️ Arquitetura Geral do Sistema — Tamburetei UnB
+# Arquitetura Geral do Sistema — Tamburetei UnB
 
 > **Documento Oficial de Engenharia de Software, Arquitetura e Decisões Técnicas (ADRs)**  
 > **Disciplina:** Métodos de Desenvolvimento de Software (MDS 2026/2) — FCTE / Universidade de Brasília (UnB)  
@@ -28,7 +28,7 @@ O **Tamburetei UnB** adota uma arquitetura em camadas baseada no modelo **Client
 │   [ Frontend — Next.js 16 + React 19 + TypeScript ]                                              │
 │       ├── App Router (src/app/: rotas de páginas /cursos, /disciplinas, /login)                  │
 │       ├── Componentes Reutilizáveis (src/components/: Navbar, Pagination, FilterBar)             │
-│       └── Cliente HTTP Desacoplado (src/services/: authService, disciplineService, courseService)│
+│       └── Cliente HTTP (src/services/: authService, disciplineService, courseService)            │
 └────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
                                                  │
                                                  │ Chamadas Assíncronas RESTful / JSON
@@ -57,8 +57,8 @@ O **Tamburetei UnB** adota uma arquitetura em camadas baseada no modelo **Client
 │                               CAMADA DE PERSISTÊNCIA & STORAGE                                   │
 │                                                                                                  │
 │   [ PostgreSQL 17 Oficial ] ◄────────────── [ Pipeline ETL & Anonimização (DPO / SIGAA) ]        │
-│       ├── 14 Tabelas de Domínio                  ├── Extratores de Dados Oficiais                │
-│       └── Controle Alembic (Revisão 007)         ├── Sanitizador LGPD (Privacy by Design)        │
+│       ├── 17 Tabelas + 1 Materialized View       ├── Extratores de Dados Oficiais                │
+│       └── Controle Alembic (Revisão 015)         ├── Sanitizador LGPD (Privacy by Design)        │
 │                                                  └── Carga em Lote (app.pipeline.cli)            │
 │                                                                                                  │
 │   [ Adminer Web UI (:8085) ] ──(Inspeção Local)──► [ PostgreSQL 17 ]                             │
@@ -78,7 +78,7 @@ O **Tamburetei UnB** adota uma arquitetura em camadas baseada no modelo **Client
 
 A seleção tecnológica priorizou maturidade, desempenho assíncrono, tipagem estática e reprodutibilidade:
 
-### 🌐 Frontend
+### Frontend
 | Tecnologia | Versão | Propósito no Projeto |
 | :--- | :--- | :--- |
 | **Next.js** | 16.x | Framework React com App Router, renderização híbrida e rotas otimizadas |
@@ -87,7 +87,7 @@ A seleção tecnológica priorizou maturidade, desempenho assíncrono, tipagem e
 | **Tailwind CSS** | 4.x | Estilização utilitária de alto desempenho aderente ao Design System do Figma |
 | **Fetch API / HttpClient** | Nativo | Cliente HTTP desacoplado com tratamento de erros de rede e injeção de tokens |
 
-### ⚙️ Backend
+### Backend
 | Tecnologia | Versão | Propósito no Projeto |
 | :--- | :--- | :--- |
 | **Python** | 3.12 | Linguagem principal do ecossistema de dados e backend |
@@ -98,13 +98,13 @@ A seleção tecnológica priorizou maturidade, desempenho assíncrono, tipagem e
 | **Python-Jose / Passlib** | 3.x / 1.7+ | Criptografia de senhas (bcrypt) e emissão de tokens JWT assinados |
 | **Pytest** | 9.x | Framework de testes unitários e de integração com isolamento de fixtures |
 
-### 🗄️ Dados e Infraestrutura
+### Dados e Infraestrutura
 | Tecnologia | Versão | Propósito no Projeto |
 | :--- | :--- | :--- |
 | **PostgreSQL** | 17 | Sistema de gerenciamento de banco de dados relacional de missão crítica |
 | **Adminer** | Latest | Interface gráfica web leve para gerenciamento e depuração do banco local (:8085) |
 | **Docker & Docker Compose** | 3.8+ | Isolamento de contêineres e padronização do ambiente local e de produção |
-| **MkDocs & ReadTheDocs** | Latest | Geração da documentação técnica e arquitetural estática via GitHub Pages |
+| **MkDocs & Material for MkDocs** | Latest | Geração da documentação técnica e arquitetural estática via GitHub Pages |
 
 ---
 
@@ -125,9 +125,9 @@ O backend adota o padrão **Clean Architecture**, onde cada camada possui um con
 ```
 
 1. **Camada de Transporte / API (`app/api/`):**
-   * Routers divididos por domínio funcional (`auth.py`, `cursos.py`, `disciplinas.py`, `conteudos.py`, `comentarios.py`, `moderacao.py`).
+   * Routers divididos por domínio funcional (`auth.py`, `cursos.py`, `disciplinas.py`, `turmas.py`, `professores.py`, `catalogo.py`, `comentarios.py`, `comunidade.py`, `materiais.py`, `estatisticas_consolidadas.py`, `dashboard.py`, `moderacao.py`, `perfil.py`).
    * Injeção de dependência via `FastAPI Depends` para sessões de banco e usuário autenticado (`deps.py`).
-   * Schemas Pydantic em `app/schemas/` que validam os dados de entrada e formatam as saídas JSON.
+   * Schemas Pydantic em `app/api/schemas/` que validam os dados de entrada e formatam as saídas JSON.
 
 2. **Camada de Serviços / Casos de Uso (`app/services/`):**
    * Orquestra a execução das regras de negócio (cálculo de taxas de aprovação, validação de quórum, moderação).
@@ -150,21 +150,25 @@ O backend adota o padrão **Clean Architecture**, onde cada camada possui um con
 
 ```text
 2026-02-TambureteiUnB/
-├── docs/                      # Documentação técnica e arquitetural (MkDocs)
-│   ├── arquitetura.md         # Arquitetura oficial, Clean Architecture e ADRs
-│   ├── banco_de_dados.md      # Dicionário de dados relacional e esquemas
-│   ├── desenvolvimento.md     # Guia do desenvolvedor e roteiro de smoke test
-│   ├── pipeline_etl.md        # Documentação da pipeline de ingestão e LGPD
-│   └── ...
+├── docs/                      # Documentação técnica e arquitetural (Material for MkDocs)
+│   ├── index.md               # Documento de Visão e hub do portal
+│   ├── comecando/             # Guias de setup, banco de dados e contribuição
+│   ├── engenharia/            # Arquitetura, dicionário de dados, ETL, dashboard e features
+│   ├── produto/               # Requisitos, regras de negócio e histórias de usuário
+│   ├── ai/                    # Governança de IA e skills do projeto
+│   ├── qualidade/             # Registros técnicos de revisão e integração
+│   ├── releases/              # Histórico de entregas (v0.6.0 a v0.9.0)
+│   ├── assets/                # Identidade visual e evidências de telas
+│   ├── stylesheets/           # Design System customizado (extra.css)
+│   └── javascripts/           # Navegação contextual do portal (extra.js)
 ├── backend/                   # API RESTful (FastAPI + Clean Architecture)
 │   ├── app/
-│   │   ├── api/               # Routers REST, dependências de autenticação
+│   │   ├── api/               # Routers REST, dependências (deps.py) e schemas Pydantic (schemas/)
 │   │   ├── core/              # Configurações de ambiente, segurança (JWT)
 │   │   ├── domain/            # Regras de negócio puras (sem dependências externas)
 │   │   ├── models/            # Modelos ORM do SQLAlchemy 2.0
 │   │   ├── pipeline/          # Extratores e scripts de carga (DPO, SIGAA)
 │   │   ├── repositories/      # Camada de abstração de dados (SQLAlchemy)
-│   │   ├── schemas/           # Schemas de validação e serialização Pydantic
 │   │   └── services/          # Serviços da aplicação e orquestração
 │   ├── alembic/               # Migrações versionadas (Database-as-Code)
 │   └── tests/                 # Suíte de testes automatizados com Pytest
@@ -176,8 +180,9 @@ O backend adota o padrão **Clean Architecture**, onde cada camada possui um con
 │   │   ├── components/        # Componentes reutilizáveis (Navbar, Pagination, Button, Input)
 │   │   ├── services/          # Serviços modulares de API (httpClient, auth, course, discipline)
 │   │   └── types/             # Definições de tipos TypeScript do domínio
+├── CONTRIBUTING.md            # Guia oficial de contribuição do repositório
 ├── docker-compose.yml         # Orquestração local dos contêineres (db, backend, adminer)
-├── init.sql                   # Esquema DDL inicial do PostgreSQL (baseline 007)
+├── init.sql                   # Esquema DDL inicial do PostgreSQL (baseline 015_moderacao_ia)
 ├── mkdocs.yml                 # Configuração do portal de documentação MkDocs
 └── README.md                  # Apresentação do projeto e guia passo a passo
 ```
@@ -336,7 +341,7 @@ Demonstra a submissão de índices extraídos do SIGAA por um estudante e o proc
                │                                                                                                                       │
                ▼ (Quórum mínimo atingido com valores concordantes)                                                                     ▼ (Quórum pendente)
      [Grava Estatística Consolidada]                                                                                          [Registra doação individual]
-     INSERT INTO metricas_consolidadas (...) ON CONFLICT DO UPDATE                                                            Aguardando novos envios
+     INSERT INTO estatisticas_consolidadas (...) ON CONFLICT DO UPDATE                                                        Aguardando novos envios
                │                                                                                                                       │
                └─────────────────────────────────────────────────────────────┬─────────────────────────────────────────────────────────┘
                                                                              ▼
@@ -354,34 +359,36 @@ Demonstra a submissão de índices extraídos do SIGAA por um estudante e o proc
 | **1-2** | Estudante | Backend API | `POST /turmas/{id}/doacoes` com token JWT discente | Validação de autenticação obrigatória via `get_current_user` |
 | **3** | Backend API | Backend API | Valida percentuais com Pydantic | Garante que $\sum (\text{taxas}) = 100\%$ |
 | **4** | Backend API | PostgreSQL | Persiste a contribuição associada ao usuário | Tabela protegida contra manipulação direta |
-| **5** | Service | Domínio Puro | Avalia se a turma atingiu quórum de $N$ doações idênticas | Regra pura auditável e testada contra mutantes (Mutmut) |
+| **5** | Service | Domínio Puro | Avalia se a turma atingiu quórum de $N$ doações idênticas (`QUORUM_MINIMO_DOACOES`) | Regra pura auditável e testada contra mutantes (Mutmut) |
 | **6-7** | Backend API | Frontend | HTTP `201 Created` | Feedback imediato ao discente sem expor identidade de outros |
+
+> **Consulta e gestão do quórum:** administradores acompanham o progresso em `GET /turmas/{turma_id}/doacoes/quorum` e podem acionar recálculo em `POST /estatisticas-consolidadas/turmas/{turma_id}/recalcular`; as taxas já validadas ficam públicas em `GET /estatisticas-consolidadas`.
 
 ---
 
-### Fluxo 4: Submissão Multipart, Curadoria e Download Seguro de Materiais
+### Fluxo 4: Submissão Multipart, Triagem Híbrida (Ollama), Curadoria e Download Seguro
 
 Apresenta o ciclo de vida completo de um material de apoio acadêmico (resumos, provas anteriores):
 
 ```text
-[Estudante] ── 1. Envia formulário com PDF (< 5 MB) ──► [Frontend] ── 2. POST /disciplinas/{id}/materiais ──► [Backend API]
-                                                                                                                   │
-                                                                                                                   │ 3. Valida MIME, extensão e tamanho
-                                                                                                                   ▼
-                                                                                                          [Volume Docker /storage]
-                                                                                                          Grava /storage/materiais/{uuid}.pdf
-                                                                                                                   │
-                                                                                                                   │ 4. INSERT com status 'PENDENTE'
-                                                                                                                   ▼
-                                                                                                          [PostgreSQL 17]
-                                                                                                                   │
-[Estudante] ◄── 5. HTTP 201 Created (Notifica envio e status em análise) ─────────────────────────────────────────┘
+[Estudante] ── 1. Envia formulário com PDF (< 5 MB) ──► [Frontend] ── 2. POST /cadeiras/{id}/materiais ──► [Backend API]
+                                                                                                                │
+                                                                                                                │ 3. Valida MIME, extensão e tamanho
+                                                                                                                ▼
+                                                                                                       [Volume Docker /storage]
+                                                                                                       Grava /storage/materiais/{uuid}.pdf
+                                                                                                                │
+                                                                                                                │ 4. INSERT com status 'PENDENTE'
+                                                                                                                ▼
+                                                                                                       [PostgreSQL 17]
+                                                                                                                │
+[Estudante] ◄── 5. HTTP 201 Created (Notifica envio e agenda BackgroundTasks -> Ollama local) ──────────────────┘
 
-[Moderador] ── 6. Acessa fila de curadoria (/moderacao) ──► [Backend API] ── 7. Lista materiais com status 'PENDENTE'
+[Moderador] ── 6. Acessa fila de curadoria (/moderacao) ──► [Backend API] ── 7. Lista materiais 'PENDENTE' (com parecer/confiança IA)
                                                                   │
-                                                                  │ 8. PATCH /moderacao/materiais/{id} status='APROVADO'
+                                                                  │ 8. PATCH /moderacao/conteudos/{id}/curadoria status='APROVADO'
                                                                   ▼
-                                                          [PostgreSQL 17] (Atualiza status para 'APROVADO')
+                                                          [PostgreSQL 17] (Grava decisão + auditoria em curadorias)
 
 [Usuário] ── 9. Solicita download do material ──► [Backend API: GET /materiais/{id}/download] ──► [Volume Docker]
                                                         │
@@ -394,26 +401,26 @@ Apresenta o ciclo de vida completo de um material de apoio acadêmico (resumos, 
 
 | Passo | Origem | Destino | Ação / Carga de Dados | Resposta / Garantia |
 | :---: | :--- | :--- | :--- | :--- |
-| **1-2** | Estudante | Backend API | Envio `multipart/form-data` do arquivo | Exige token JWT e valida limite de 5 MB |
+| **1-2** | Estudante | Backend API | `POST /cadeiras/{id}/materiais` (`multipart/form-data`) | Exige token JWT (`STUDENT`) e valida limite de 5 MiB |
 | **3** | Backend API | Volume Local | Sanitização do nome e geração de UUID seguro | Impede ataques de *Path Traversal* e injeção de arquivos |
-| **4-5** | Backend API | PostgreSQL | Cria registro com `status_curadoria = 'PENDENTE'` | Material não é retornado em buscas públicas até aprovação |
-| **6-8** | Moderador | Backend API | Curadoria por usuário com perfil `MODERATOR` ou `ADMIN` | Atualiza status via RBAC para `APROVADO` |
-| **9-10**| Usuário | Backend API | Endpoint autenticado de download seguro | API entrega stream com tipo MIME correspondente |
+| **4-5** | Backend API | PostgreSQL | Cria registro `PENDENTE` e dispara triagem `BackgroundTasks` (Ollama local) | Confiança $\ge 0.80$ decide automaticamente (`moderado_por = 'IA'`); casos ambíguos seguem na fila |
+| **6-8** | Moderador | Backend API | `PATCH /moderacao/conteudos/{id}/curadoria` (`MODERATOR` / `ADMIN`) | Atualiza status e grava auditoria transacional em `curadorias` |
+| **9-10**| Usuário | Backend API | `GET /materiais/{id}/download` autenticado | API entrega stream apenas se `APROVADO` e `ativo` |
 
 ---
 
-### Fluxo 5: Relatos Comunitários sob Pseudônimo (*Alias*), Threads Aninhadas e Denúncias
+### Fluxo 5: Relatos Comunitários sob Pseudônimo (*Alias*), Triagem por IA e Denúncias
 
-Ilustra a publicação de comentários em árvore respeitando a regra de anonimato discente (RN01), com gatilho de moderação reativa por denúncias:
+Ilustra a publicação de comentários em árvore respeitando a regra de anonimato discente (RN01), triagem assíncrona via Ollama (ADR 08) e retenção preventiva por denúncias (RN04):
 
 ```text
 [Estudante Autor] ── 1. Publica comentário (/comentarios) ──► [Backend API]
                                                                      │
-                                                                     │ 2. Valida filtros éticos (palavras proibidas)
+                                                                     │ 2. Valida filtros éticos (RN04) e privacidade (RN01)
                                                                      ▼
                                                              [Domain / Ética]
                                                                      │
-                                                                     │ 3. INSERT com autor_alias público
+                                                                     │ 3. INSERT 'PENDENTE' com autor_alias + BackgroundTasks (Ollama)
                                                                      ▼
                                                              [PostgreSQL 17]
                                                                      │
@@ -422,19 +429,19 @@ Ilustra a publicação de comentários em árvore respeitando a regra de anonima
 [Estudante Denunciante] ── 5. Clica em "Denunciar Comentário" ──► [Backend API: POST /comentarios/{id}/denuncias]
                                                                         │
                                                                         │ 6. INSERT INTO denuncias
-                                                                        │ 7. SELECT COUNT(*) FROM denuncias
+                                                                        │ 7. SELECT COUNT(*) FROM denuncias (status='PENDENTE')
                                                                         ▼
                                                                 [PostgreSQL 17]
                                                                         │
         ┌───────────────────────────────────────────────────────────────┴──────────────────────────────────────────────────────┐
         │                                                                                                                       │
         ▼ (Total de denúncias >= 3)                                                                                             ▼ (Total < 3)
-[Oculta comentário automaticamente]                                                                                    [Mantém visível para análise]
-UPDATE comentarios SET status_moderacao = 'OCULTO'                                                                     Registra notificação para moderador
+[Retenção preventiva automática]                                                                                       [Mantém visível para análise]
+UPDATE comentarios SET status_moderacao = 'PENDENTE'                                                                   Registra na Central de Denúncias
         │                                                                                                                       │
         └───────────────────────────────────────────────────────────────┬───────────────────────────────────────────────────────┘
                                                                         ▼
-[Frontend: Confirma recebimento da denúncia e remove da visualização se ocultado]
+[Frontend: Confirma recebimento da denúncia; relato retido vai para fila /moderacao]
 ```
 
 #### Detalhamento das Etapas:
@@ -442,15 +449,15 @@ UPDATE comentarios SET status_moderacao = 'OCULTO'                              
 | Passo | Origem | Destino | Ação / Carga de Dados | Resposta / Garantia |
 | :---: | :--- | :--- | :--- | :--- |
 | **1-2** | Autor | Backend API | Submissão de texto com vínculo opcional a comentário pai | Validação ética e impedimento de identificação nominal |
-| **3-4** | Backend API | PostgreSQL | Armazena autor interno para moderação e gera pseudônimo | Proteção por padrão (*Privacy by Design* / RN01) |
+| **3-4** | Backend API | PostgreSQL | Armazena autor interno, gera pseudônimo e agenda triagem assíncrona (Ollama) | Proteção por padrão (RN01); confiança $\ge 0.80$ publica ou oculta automaticamente |
 | **5-7** | Denunciante | Backend API | Submissão de denúncia fundamentada | Registro individual impedindo votos duplicados de denúncia |
-| **8** | Backend API | PostgreSQL | Se limite $\ge 3$ for atingido, oculta imediatamente | Moderação reativa automática protegendo a comunidade |
+| **8** | Backend API | PostgreSQL | Se limite $\ge 3$ for atingido, retém como `PENDENTE` | Retenção preventiva até deliberação em `/moderacao` (`EXCLUIR_CONTEUDO` ou `DESCARTAR_DENUNCIA`) |
 
 ---
 
 ## 6. Modelagem de Dados
 
-A camada de persistência é estruturada no PostgreSQL 17 em torno de 14 tabelas canônicas e migrações versionadas via Alembic.
+A camada de persistência é estruturada no PostgreSQL 17 em torno de 17 tabelas de domínio, 1 visão materializada (`mv_evasao_campus`) e migrações versionadas via Alembic (baseline `015_moderacao_ia`).
 
 ### Visão Estrutural por Módulos
 
@@ -471,16 +478,22 @@ A camada de persistência é estruturada no PostgreSQL 17 em torno de 14 tabelas
 │  • metricas_academicas          (Séries históricas de aprovação/reprovação DPO/LAI)      │
 │  • metricas_consolidadas        (Acumulado por matéria com supressão LGPD RN07)          │
 │  • metricas_cursos              (Indicadores de fluxo, vagas e evasão do Censo INEP)     │
+│  • estatisticas_consolidadas    (Métricas oficiais validadas pelo Motor de Quórum)       │
+│  • mv_evasao_campus             (Materialized View de evasão agregada por campus e ano)  │
 ├──────────────────────────────────────────────────────────────────────────────────────────┤
 │  MÓDULO COLABORATIVO E COMUNIDADE:                                                       │
 │  • situacoes_disciplinas        (Crowdsourcing "Já cursei essa matéria")                 │
-│  • conteudos                    (Materiais de estudo, provas e links úteis)              │
+│  • doacoes_estatisticas         (Submissões colaborativas de índices de turmas SIGAA)    │
+│  • amostras_historico           (Amostras anonimizadas de Histórico SIGAA em memória)    │
+│  • conteudos                    (Materiais de estudo, uploads privados e links úteis)    │
+│  • curadorias                   (Auditoria imutável de decisões sobre materiais RN06)    │
 │  • comentarios                  (Discussões com pseudônimo e respostas aninhadas)        │
 │  • votos_uteis                  (Upvotes de relevância da comunidade acadêmica)          │
+│  • denuncias                    (Central de Denúncias RN04 e retenção preventiva)        │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-> 📖 **Dicionário de Dados Completo e Detalhado:**  
+> **Dicionário de Dados Completo e Detalhado:**  
 > A especificação exaustiva de colunas, tipos, chaves estrangeiras, restrições de integridade e índices de cada tabela está documentada em [**Dicionário de Dados — Modelo Relacional**](banco_de_dados.md).
 
 ---
@@ -492,12 +505,12 @@ Mapeamento explícito entre os épicos de negócio e os componentes arquiteturai
 | Épico de Negócio | Histórias de Usuário Relacionadas | Componentes Frontend (Next.js) | Componentes Backend (FastAPI) | Componentes Database (PostgreSQL 17) |
 | :--- | :--- | :--- | :--- | :--- |
 | **Épico 1: Autenticação e Segurança** | Backend: US 1.1.1, 1.1.2, 1.1.3<br>Frontend: US 1.1.1, 1.1.2<br>Database: US 1.1.1 | `/cadastro`, `/login`, `AuthContext`, `httpClient` | `api/routers/auth.py`, `core/security.py`, `services/auth_service.py` | Tabela `usuarios`, índice único `ix_usuarios_email` |
-| **Épico 2: Gestão Curricular e Catálogo** | Backend: US 2.1.1, 2.2.1, 4.1.1, 4.1.2<br>Frontend: US 2.1.1, 2.1.2, 3.1.1<br>Database: US 2.1.1, 2.1.2 | `/disciplinas`, `/disciplinas/[slug]`, `Pagination`, cards de matérias | `api/routers/disciplinas.py`, `services/disciplina_service.py`, `repositories/disciplina_repo.py` | Tabelas `cursos`, `disciplinas`, `cursos_disciplinas`, `professores`, `turmas`, índices em `slug` e `codigo` |
-| **Épico 3: Séries Históricas e Métricas** | Backend: US 3.1.1, 3.2.1, 3.2.2<br>Frontend: US 3.1.2, 4.1.1<br>Database: US 3.1.1, 4.1.1 | Seção de estatísticas em `/disciplinas/[slug]`, badges de aprovação | `api/routers/catalogo.py`, `services/disciplina_service.py`, `repositories/disciplina_repo.py` | Tabelas `metricas_academicas`, `metricas_consolidadas`, índice composto `(disciplina_id, ano)` |
+| **Épico 2: Gestão Curricular e Catálogo** | Backend: US 2.1.1, 2.2.1, 4.1.1, 4.1.2<br>Frontend: US 2.1.1, 2.1.2, 3.1.1<br>Database: US 2.1.1, 2.1.2 | `/disciplinas`, `/disciplinas/[slug]`, `/minha-grade`, `GradeCalendar`, `Pagination` | `api/routers/disciplinas.py`, `api/routers/professores.py`, `api/routers/turmas.py`, `services/disciplina_service.py`, `repositories/disciplina_repo.py` | Tabelas `cursos`, `disciplinas`, `cursos_disciplinas`, `professores`, `turmas`, índices em `slug` e `codigo` |
+| **Épico 3: Séries Históricas, Quórum e Perfil** | Backend: US 3.1.1, 3.2.1, 3.2.2<br>Frontend: US 3.1.2, 4.1.1<br>Database: US 3.1.1, 4.1.1 | Seção de estatísticas em `/disciplinas/[slug]`, `ClassPerformancePieForm`, `/perfil` | `api/routers/catalogo.py`, `api/routers/turmas.py`, `api/routers/estatisticas_consolidadas.py`, `api/routers/perfil.py`, `services/doacao_service.py`, `services/historico_importacao_service.py` | `metricas_academicas`, `metricas_consolidadas`, `doacoes_estatisticas`, `estatisticas_consolidadas`, `amostras_historico` |
 | **Épico 4: Crowdsourcing ("Já cursei")** | Backend: RF06, RN02<br>Frontend: US 4.1.1<br>Database: US 4.1.1 | Componente de registro acadêmico em `/disciplinas/[slug]` | `api/routers/catalogo.py`, `services/situacao_service.py` | Tabela `situacoes_disciplinas` com constraint `UNIQUE(usuario_id, disciplina_id)` |
-| **Épico 5: Conteúdos e Materiais** | Backend: US 5.2.1, 5.2.2, 5.2.3<br>Frontend: US 4.2.1, 4.2.2<br>Database: US 5.1.1 | Seção de materiais, botão de envio, listagem de recursos | `api/routers/conteudos.py`, `services/conteudo_service.py` | Tabelas `conteudos`, `votos_uteis`, volume Docker `/storage` |
-| **Épico 6: Comunidade e Relatos** | Backend: US 5.1.1, 5.1.2, 5.1.3<br>Frontend: US 5.1.1<br>Database: US 5.1.2 | Seção de comentários aninhados sob pseudônimo (*alias*) | `api/routers/comentarios.py`, `services/comentario_service.py` | Tabela `comentarios` (auto-relacionamento `parent_id`) e `votos_uteis` |
-| **Épico 7: Catálogo de Cursos e Métricas** | Backend: US 6.1.1, 6.2.1<br>Frontend: US 6.1.1<br>Database: RN08 | `/cursos`, `/cursos/[slug]`, filtros por campus (FGA, Darcy, FCE, FUP) | `api/routers/cursos.py`, `services/curso_service.py` | Tabelas `cursos`, `metricas_cursos`, índices por `campus` e `slug` |
+| **Épico 5: Conteúdos, Materiais e Triagem IA** | Backend: US 5.2.1, 5.2.2, 5.2.3, RF16<br>Frontend: US 4.2.1, 4.2.2<br>Database: US 5.1.1 | Seção de materiais, `MaterialModal`, `MateriaisApoio`, `/moderacao` | `api/routers/materiais.py`, `api/routers/moderacao.py`, `services/material_service.py`, `services/moderacao_ia_service.py` | Tabelas `conteudos`, `curadorias`, `votos_uteis`, volume Docker `/storage` |
+| **Épico 6: Comunidade, Denúncias e IA (ADR 08)** | Backend: US 5.1.1, 5.1.2, 5.1.3, 5.3.1, 5.3.2, RF16<br>Frontend: US 5.1.1<br>Database: US 5.1.2 | `ComentariosFrontend`, `DificuldadesPanel`, central em `/moderacao` | `api/routers/comentarios.py`, `api/routers/comunidade.py`, `api/routers/disciplinas.py`, `api/routers/moderacao.py`, `services/comentario_service.py`, `services/moderacao_ia_service.py` | Tabela `comentarios` (`parent_id`), `denuncias` e `votos_uteis` |
+| **Épico 7: Cursos, PAS e Dashboard Institucional** | Backend: US 6.1.1, 6.2.1, 6.2.2, 6.2.3<br>Frontend: US 6.1.1<br>Database: RN08 | `/`, `/cursos`, `/cursos/[slug]`, `PasAdmissionCard`, `OpenDataExportBar` | `api/routers/cursos.py`, `api/routers/dashboard.py`, `services/curso_service.py`, `services/dashboard_service.py` | Tabelas `cursos`, `metricas_cursos` e view `mv_evasao_campus` |
 
 ---
 

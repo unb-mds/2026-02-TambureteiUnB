@@ -58,7 +58,6 @@ def listar_materiais(
 @router.get("/materiais/{id}/download", response_class=FileResponse)
 def baixar_material(
     id: Annotated[int, Path(gt=0)],
-    usuario: Annotated[Usuario, Depends(require_role("STUDENT"))],
     db: Annotated[Session, Depends(get_db)],
     service: Annotated[MaterialService, Depends(get_material_service)],
 ) -> FileResponse:

@@ -58,7 +58,8 @@ def executar(etapa: str) -> None:
                 assert len(historico.json()) == 1
             lista = client.get(f"/cadeiras/{disciplina.id}/materiais").json()
             assert any(item["id"] == material.id for item in lista["items"])
-            assert client.get(f"/materiais/{material.id}/download").status_code == 401
+            resposta_publica = client.get(f"/materiais/{material.id}/download")
+            assert resposta_publica.status_code == 200 and resposta_publica.content == PDF
             resposta = client.get(f"/materiais/{material.id}/download", headers=headers)
             assert resposta.status_code == 200 and resposta.content == PDF
             assert "attachment" in resposta.headers["content-disposition"]

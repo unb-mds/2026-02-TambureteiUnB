@@ -1,4 +1,4 @@
-# 🔄 Pipeline de Dados e Ingestão ETL (SIGAA e Dados Abertos)
+# Pipeline de Dados e Ingestão ETL (SIGAA e Dados Abertos)
 
 Este documento descreve a especificação técnica, a arquitetura em camadas, as políticas de conformidade com a LGPD e os procedimentos operacionais do **Pipeline de Dados e ETL** do **Tamburetei UnB**, atendendo aos entregáveis técnicos da **Release 1 (R1)** da disciplina Métodos de Desenvolvimento de Software (MDS 2026/2 — FCTE/UnB).
 
@@ -10,7 +10,7 @@ O pipeline de dados é o componente de engenharia de dados responsável por auto
 
 1. **Ingestão de Turmas e Catálogo Curricular:** Extração de ofertas de turmas, componentes curriculares, docentes e horários a partir do SIGAA e do Portal de Dados Abertos da UnB.
 2. **Ingestão de Séries Históricas:** Coleta de indicadores de aprovação, reprovação por nota/falta e trancamentos disponibilizados pelo Decanato de Planejamento, Orçamento e Avaliação Institucional (DPO), INEP e LAI.
-3. **Higienização e Governança:** Limpeza de strings, normalização para *Title Case*, geração canônica de *slugs* para URLs amigáveis (`/cadeiras/:slug`) e garantia de conformidade com a LGPD (*Privacy by Design*).
+3. **Higienização e Governança:** Limpeza de strings, normalização para *Title Case*, geração canônica de *slugs* para URLs amigáveis (`/disciplinas/[slug]`) e garantia de conformidade com a LGPD (*Privacy by Design*).
 4. **Carga Idempotente e Exportação:** Ingestão estruturada no banco relacional PostgreSQL 17 via SQLAlchemy 2.0 e exportação de datasets limpos em CSV e JSON ([RF06]).
 
 ```mermaid
@@ -135,17 +135,22 @@ Com os contêineres em execução (`docker compose up -d`):
    docker compose exec backend python -m app.pipeline.cli --source metricas --input-metricas app/pipeline/data/sample_metricas.csv
    ```
 
-5. **Execução completa integrada (SIGAA + Métricas DPO/INEP):**
+5. **Processar métricas de cursos (fluxo e evasão DPO/INEP):**
+   ```bash
+   docker compose exec backend python -m app.pipeline.cli --source metricas-cursos --todos-anos
+   ```
+
+6. **Execução completa integrada (SIGAA + Métricas DPO/INEP):**
    ```bash
    docker compose exec backend python -m app.pipeline.cli --source all --input-file app/pipeline/data/sample_turmas.csv --input-metricas app/pipeline/data/sample_metricas.csv
    ```
 
-6. **Processar o dataset de 6.133 turmas da UnB de 2026.1:**
+7. **Processar o dataset de 6.133 turmas da UnB de 2026.1:**
    ```bash
    docker compose exec backend python -m app.pipeline.cli --source sigaa --input-file app/pipeline/data/raw/turmas_unb_20260226_FULL.csv --dry-run
    ```
 
-7. **Scraping online ao vivo do SIGAA:**
+8. **Scraping online ao vivo do SIGAA:**
    ```bash
    docker compose exec backend python -m app.pipeline.cli --source sigaa --semestre 2026.1 --dry-run
    ```

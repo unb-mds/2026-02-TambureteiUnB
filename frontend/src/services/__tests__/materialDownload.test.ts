@@ -27,11 +27,15 @@ test("download envia JWT e preserva o conteúdo binário", async t => {
   assert.match(String(fetch.mock.calls[0].arguments[0]), /\/materiais\/7\/download$/);
 });
 
-test("visitante não consulta o arquivo", async t => {
+test("visitante consegue baixar material público sem token", async t => {
   mockWindow(t, null);
-  const fetch = t.mock.method(globalThis, "fetch", async () => new Response());
-  await assert.rejects(downloadMaterial(7), (e: unknown) => e instanceof ApiError && e.status === 401);
-  assert.equal(fetch.mock.callCount(), 0);
+  const fetch = t.mock.method(globalThis, "fetch", async (_url: unknown, options?: RequestInit) => {
+    assert.equal(new Headers(options?.headers).get("Authorization"), null);
+    return new Response("%PDF-1.7 publico", { headers: { "Content-Type": "application/pdf" } });
+  });
+  const blob = await downloadMaterial(7);
+  assert.equal(await blob.text(), "%PDF-1.7 publico");
+  assert.equal(fetch.mock.callCount(), 1);
 });
 
 for (const status of [401, 403, 404, 503]) {

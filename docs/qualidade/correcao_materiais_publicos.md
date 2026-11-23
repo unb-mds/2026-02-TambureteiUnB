@@ -18,7 +18,7 @@ O acompanhamento pós-upload continua consultando os materiais recentes para ide
 - Navegador com API simulada: páginas de 20/20/3 itens; pesquisa de material fora da primeira página; download com JWT e conteúdo PDF conferido; resposta antiga descartada; erro 503 e nova tentativa; filtro de provas.
 - Testes reais de API confirmam busca global, páginas sem duplicação, categoria RESUMO/DICA, preservação do filtro singular e exclusão de arquivos pendentes.
 
-![Materiais com download e categoria filtrada](assets/diagnostico-bugs/materiais-corrigidos.png)
+![Materiais com download e categoria filtrada](../assets/diagnostico-bugs/materiais-corrigidos.png)
 
 ## Relação com o diagnóstico
 

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { isAuthenticated } from "@/services/authService";
+import React, { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
+import Link from "next/link";
+import { isAuthenticated, subscribeAuthChange } from "@/services/authService";
 import Pagination from "@/components/Pagination";
 import { ApiError } from "@/services/httpClient";
 import type { MaterialType } from "@/types/material";
@@ -57,7 +57,11 @@ export default function MateriaisApoio({
   pendingMaterialIds = [],
   onOpenUploadModal,
 }: MateriaisApoioProps) {
-  const router = useRouter();
+  const authenticated = useSyncExternalStore(
+    subscribeAuthChange,
+    isAuthenticated,
+    () => false
+  );
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"resumos" | "links" | "provas">("resumos");
@@ -224,9 +228,7 @@ export default function MateriaisApoio({
   }, [refreshTrigger, pendingMaterialIds, disciplineIdOrSlug, fetchMaterials]);
 
   const handleShareClick = () => {
-    if (!isAuthenticated()) {
-      alert("Apenas estudantes cadastrados podem compartilhar materiais. Faça login na sua conta para colaborar!");
-      router.push("/login");
+    if (!authenticated || !isAuthenticated()) {
       return;
     }
 
@@ -297,15 +299,38 @@ export default function MateriaisApoio({
 
         <button
           type="button"
+          disabled={!authenticated}
+          title={!authenticated ? "Faça login para compartilhar materiais" : undefined}
           onClick={handleShareClick}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#5B4BDB] px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-xs transition-all hover:brightness-110 active:scale-95 cursor-pointer"
+          className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-xs transition-all ${
+            authenticated
+              ? "bg-[#5B4BDB] hover:brightness-110 active:scale-95 cursor-pointer"
+              : "bg-gray-300 cursor-not-allowed opacity-60"
+          }`}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 5v14M5 12h14" />
           </svg>
-          Compartilhar Material
+          {authenticated ? "Compartilhar Material" : "Faça login para compartilhar"}
         </button>
       </div>
+
+      {!authenticated && (
+        <div
+          role="status"
+          className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD] px-4 py-3 text-xs sm:text-sm text-[#5B4BDB]"
+        >
+          <span>
+            Apenas estudantes autenticados podem compartilhar materiais.
+          </span>
+          <Link
+            href="/login"
+            className="rounded-lg bg-[#5B4BDB] px-3 py-1.5 text-xs font-bold text-white hover:brightness-110 transition-all"
+          >
+            Fazer login
+          </Link>
+        </div>
+      )}
 
       {displayedTriageNotice && (
         <div
@@ -434,7 +459,7 @@ export default function MateriaisApoio({
                   type="button"
                   onClick={() => void handleDownload(material)}
                   disabled={downloadingId !== null}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5B4BDB] hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5B4BDB] hover:underline cursor-pointer disabled:opacity-50"
                 >
                   {downloadingId === material.id ? "Baixando..." : "Baixar material"}
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

@@ -1,6 +1,6 @@
 # Feature 5.2 — Compartilhamento e upload de materiais
 
-Implementação das US 5.2.1, 5.2.2 e 5.2.3 de [Histórias de Usuário do Backend](historias_usuario_backend.md), integrada à `develop` de referência `a1b236a` (migração `008`), na branch `feat/integracao-materiais`.
+Implementação das US 5.2.1, 5.2.2 e 5.2.3 de [Histórias de Usuário do Backend](../produto/historias_usuario_backend.md), integrada à `develop` de referência `a1b236a` (migração `008`), na branch `feat/integracao-materiais`.
 
 ## 1. Escopo e decisões de integração
 

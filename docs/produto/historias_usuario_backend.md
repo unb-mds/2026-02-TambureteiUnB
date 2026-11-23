@@ -36,7 +36,7 @@ Depende de: US 1.1.2
 Eu, como usuário autenticado, desejo excluir a minha conta, a fim de encerrar o meu acesso à plataforma quando não desejar mais utilizá-la.
  
 **Nessa issue deve ser feito:**
-- Criar endpoint `DELETE /users/me`
+- Criar endpoint `DELETE /users/me` *(implementado na API como `DELETE /auth/me`)*
 - Identificar o usuário autenticado via token JWT
 - Desativar a conta do usuário, impedindo novos logins
 - Manter as contribuições já realizadas pelo usuário, a fim de não afetar o sistema de validação das estatísticas
@@ -455,27 +455,7 @@ Eu, como usuário (visitante ou autenticado), desejo acessar um endpoint único 
 
 Histórias não correspondem necessariamente a tabelas individuais: a HU02 utiliza três entidades, enquanto consulta, submissão e curadoria de materiais compartilham `conteudos`.
 
-## 6. Pendências para implementação futura
-
-As observações abaixo registram decisões ou verificações necessárias. Não representam funcionalidades já implementadas nem autorização para ampliar o escopo do produto.
-
-| Tema | Situação identificada | Encaminhamento necessário |
-| --- | --- | --- |
-| Numeração dos requisitos | Há divergências entre o contexto e `docs/requisitos.md`. | Unificar os identificadores e atualizar a rastreabilidade. |
-| Privacidade das situações | Há vínculo interno entre usuário e situação acadêmica. | Conciliar a política textual com a persistência prevista e definir acesso e retenção desses registros. |
-| Baixa amostragem | O esquema histórico já está agregado por disciplina e semestre. | Definir tratamento no pipeline, preservando a proteção também em filtros e exportações. |
-| Proveniência dos indicadores | Não há representação explícita de fonte ou versão da carga. | Definir como documentar origem, atualização e reprodutibilidade do dataset. |
-| Evasão e tempo de formação | O modelo não contém os dados necessários a esses indicadores institucionais. | Detalhar histórias e dados específicos quando esse escopo for trabalhado; não inferir evasão a partir de reprovação ou trancamento. |
-| Denúncias de comentários | Existe estado de moderação, mas não registro de denúncias. | Detalhar a história complementar e as informações necessárias ao fluxo. |
-| Auditoria da curadoria | Apenas o estado atual do material é armazenado. | Decidir se serão registrados responsável, motivo e histórico das decisões. |
-| Formatos de contribuição | A URL é obrigatória para todos os tipos de conteúdo. | Definir suporte a dicas e resumos em texto e eventual envio de arquivos. |
-| Integridade dos votos | O destino do voto não possui chave estrangeira. | Definir garantia de existência e tratamento de exclusões. |
-| Respostas em comentários | A referência ao comentário original não garante mesma disciplina. | Validar a associação e definir comportamento de respostas após ocultação do original. |
-| Consistência de métricas | Faltam garantias completas para contagens e taxas. | Definir validações, denominadores e política de valores ausentes ou inconsistentes. |
-| Datas de atualização | `DEFAULT NOW()` só fornece o valor inicial. | Garantir a atualização dos campos nas operações de alteração. |
-| Exclusão de contas | O SQL remove situações, comentários e votos em cascata e preserva materiais sem autor. | Confirmar se esse comportamento atende às regras de retenção e aos efeitos desejados sobre discussões e contagens. |
-
-## 7. Orientações para a implementação
+## 6. Orientações para a implementação
 
 - Evoluir o esquema por migrações versionadas do Alembic, conforme a arquitetura do projeto.
 - Implementar regras de negócio no domínio e nos serviços, persistência nos repositórios e validação de entrada e saída nos schemas da API.

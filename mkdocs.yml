@@ -5,16 +5,44 @@ repo_name: unb-mds/2026-02-TambureteiUnB
 repo_url: https://github.com/unb-mds/2026-02-TambureteiUnB
 
 theme:
-  name: readthedocs
-  highlightjs: true
-  hljs_languages:
-    - python
-    - yaml
-    - bash
-    - sql
-    - json
+  name: material
+  language: pt
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  palette:
+    - scheme: default
+      primary: white
+      accent: deep purple
+      toggle:
+        icon: material/weather-night
+        name: Alternar para modo escuro
+    - scheme: slate
+      primary: black
+      accent: deep purple
+      toggle:
+        icon: material/weather-sunny
+        name: Alternar para modo claro
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
 
 markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: false
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -23,35 +51,100 @@ markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
 
+extra_css:
+  - stylesheets/extra.css
+
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
   - https://unpkg.com/mermaid@10/dist/mermaid.min.js
+  - javascripts/extra.js
+
+extra:
+  generator: false
+
+copyright: >
+  <div class="tmb-footer">
+    <div class="tmb-footer__top">
+      <div class="tmb-footer__brand">
+        <svg class="tmb-footer__logo" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <ellipse cx="40" cy="70" rx="24" ry="3.5" fill="#9385F7" fill-opacity="0.22" />
+          <path d="M25 27L19 67" stroke="#6C5CE7" stroke-width="4" stroke-linecap="round" />
+          <path d="M55 27L61 67" stroke="#6C5CE7" stroke-width="4" stroke-linecap="round" />
+          <path d="M34 27L31 64" stroke="#9385F7" stroke-width="3.2" stroke-linecap="round" />
+          <path d="M46 27L49 64" stroke="#9385F7" stroke-width="3.2" stroke-linecap="round" />
+          <path d="M22 48H58" stroke="#F4C542" stroke-width="3.5" stroke-linecap="round" />
+          <path d="M32 43H48" stroke="#9385F7" stroke-width="2.5" stroke-linecap="round" />
+          <rect x="16" y="17" width="48" height="10" rx="5" fill="#6C5CE7" />
+          <rect x="20" y="19" width="40" height="3" rx="1.5" fill="#9385F7" fill-opacity="0.55" />
+        </svg>
+        <div class="tmb-footer__brand-text">
+          <span class="tmb-footer__title">Tamburetei <span class="tmb-footer__title-accent">UnB</span></span>
+          <span class="tmb-footer__subtitle">Informação que te apoia • FCTE / UnB • MDS 2026/2</span>
+        </div>
+      </div>
+      <div class="tmb-footer__actions">
+        <a href="https://github.com/unb-mds/2026-02-TambureteiUnB" target="_blank" rel="noopener" class="tmb-footer__gh" aria-label="Repositório no GitHub" title="Repositório no GitHub">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+    <div class="tmb-footer__divider"></div>
+    <div class="tmb-footer__bottom">
+      <span>Comunidade universitária aberta e colaborativa — Grupo G9 (Universidade de Brasília).</span>
+      <div class="tmb-footer__links">
+        <a href="https://github.com/unb-mds/2026-02-TambureteiUnB" target="_blank" rel="noopener">Repositório</a>
+        <a href="https://github.com/unb-mds/2026-02-TambureteiUnB/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="https://github.com/unb-mds/2026-02-TambureteiUnB/pulls" target="_blank" rel="noopener">Pull Requests</a>
+      </div>
+    </div>
+  </div>
 
 nav:
-  - Documento de Visão: index.md
-  - Planejamento & Requisitos:
-      - Requisitos do Sistema: requisitos.md
-      - Regras de Negócio & Governança: regras_negocio.md
-  - Arquitetura & Banco de Dados:
-      - Arquitetura do Sistema & ADRs: arquitetura.md
-      - Arquitetura da Interface: arquitetura_ui.md
-      - Cores dos Indicadores: cores_indicadores.md
-      - Dicionário de Dados Relacional: banco_de_dados.md
-  - Engenharia de Dados & ETL:
-      - Pipeline de Dados & ETL: pipeline_etl.md
-      - Notas de Corte PAS: notas_corte_pas.md
-      - Como Popular o Banco de Dados: popular_banco_de_dados.md
-  - Histórias de Usuário:
-      - Backend: historias_usuario_backend.md
-      - Frontend: historias_usuario_frontend.md
-      - Banco de Dados: historias_usuario_database.md
-  - Revisão da Integração de Materiais: revisao_integracao_materiais.md
-  - Materiais de Apoio (Feature 5.2): feature_5_2_materiais.md
-  - Moderação e Curadoria: moderacao_curadoria.md
-  - Roteiro de Demonstração: roteiro_demonstracao.md
-  - Guia do Desenvolvedor: desenvolvimento.md
-  - Releases & Sprints:
-      - Release v0.6.0 (Sprint 6): releases/v0.6.0.md
-      - Release v0.7.0 (Sprint 7): releases/v0.7.0.md
-      - Release v0.8.0 (Sprint 8): releases/v0.8.0.md
-      - Release v0.9.0 (Sprint 9): releases/v0.9.0.md
+  - Visão Geral: index.md
+  - Começando:
+      - Ambiente & Execução:
+          - Guia de Desenvolvimento: comecando/desenvolvimento.md
+          - Popular Banco de Dados: comecando/popular_banco_de_dados.md
+          - Como Contribuir: comecando/como_contribuir.md
+  - Engenharia & Back-end:
+      - Arquitetura & Banco:
+          - Arquitetura & ADRs: engenharia/arquitetura.md
+          - Arquitetura da Interface: engenharia/arquitetura_ui.md
+          - Cores dos Indicadores: engenharia/cores_indicadores.md
+          - Dicionário de Dados: engenharia/banco_de_dados.md
+      - Dados & Ingestão:
+          - Pipeline ETL: engenharia/pipeline_etl.md
+          - Notas de Corte PAS: engenharia/notas_corte_pas.md
+      - Funcionalidades:
+          - Dashboard Institucional: engenharia/dashboard_institucional.md
+          - Autenticação e Comunidade: engenharia/autenticacao_comunidade.md
+          - Materiais de Apoio: engenharia/feature_5_2_materiais.md
+          - Moderação e Curadoria: engenharia/moderacao_curadoria.md
+          - Ocupação de Turmas: engenharia/ocupacao_turmas.md
+  - Produto & Domínio:
+      - Requisitos & Regras:
+          - Requisitos do Sistema: produto/requisitos.md
+          - Regras de Negócio: produto/regras_negocio.md
+      - Histórias de Usuário:
+          - Backend: produto/historias_usuario_backend.md
+          - Frontend: produto/historias_usuario_frontend.md
+          - Banco de Dados: produto/historias_usuario_database.md
+  - AI Usage:
+      - Governança & Skills:
+          - Uso de IA & Agentes: ai/ai_usage.md
+  - Qualidade & Releases:
+      - Registros Técnicos:
+          - Integração de Materiais: qualidade/revisao_integracao_materiais.md
+          - Revisão da PR 95: qualidade/revisao_pr95.md
+          - Listagem de Turmas: qualidade/issue_turmas_nao_listadas.md
+          - Diagnóstico de Bugs: qualidade/diagnostico_bugs_funcionais.md
+          - Correção Início e Cursos: qualidade/correcao_inicio_cursos.md
+          - Correção Materiais Públicos: qualidade/correcao_materiais_publicos.md
+          - Correção Métricas da Disciplina: qualidade/correcao_metricas_disciplina.md
+          - Vínculo de Comentários e Turmas: qualidade/correcao_vinculo_comentarios.md
+      - Releases & Sprints:
+          - Release v0.6.0: releases/v0.6.0.md
+          - Release v0.7.0: releases/v0.7.0.md
+          - Release v0.8.0: releases/v0.8.0.md
+          - Release v0.9.0: releases/v0.9.0.md
