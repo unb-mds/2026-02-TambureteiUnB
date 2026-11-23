@@ -93,6 +93,9 @@ export default function ProfilePage() {
     }
   }, [authenticated, router]);
 
+  const storedUser = getStoredUser();
+  const currentUserId = storedUser?.id ?? null;
+
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -102,7 +105,7 @@ export default function ProfilePage() {
     setUploadSuccess(null);
     try {
       const result = await uploadHistoricoPdf(file);
-      saveImportedHistorico(result);
+      saveImportedHistorico(result, { userId: currentUserId });
       window.dispatchEvent(new Event(HISTORICO_CHANGE_EVENT));
       setHasAcademicConsent(true);
       setUploadSuccess(
@@ -114,6 +117,12 @@ export default function ProfilePage() {
           ? err.message
           : "Não foi possível importar o Histórico Escolar."
       );
+      // Preserva explicitamente o histórico válido previamente importado
+      const previousValidHistorico = loadImportedHistorico({ userId: currentUserId });
+      if (previousValidHistorico) {
+        saveImportedHistorico(previousValidHistorico, { userId: currentUserId });
+        window.dispatchEvent(new Event(HISTORICO_CHANGE_EVENT));
+      }
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -123,7 +132,7 @@ export default function ProfilePage() {
   }
 
   function handleClearHistorico() {
-    clearImportedHistorico();
+    clearImportedHistorico({ userId: currentUserId });
     window.dispatchEvent(new Event(HISTORICO_CHANGE_EVENT));
     setUploadSuccess(null);
     setUploadError(null);
@@ -139,7 +148,6 @@ export default function ProfilePage() {
     );
   }
 
-  const storedUser = getStoredUser();
   const dadosReais = importedHistorico?.dados_academicos;
   const isRealProfile = Boolean(dadosReais);
   const displayName = isRealProfile
