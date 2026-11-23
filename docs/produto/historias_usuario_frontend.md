@@ -224,3 +224,14 @@ Eu, como visitante ou estudante, desejo acessar a página inicial com indicadore
 - Apresentar a interface inicial de forma clara, organizada e convidativa
 - Permitir download dos arquivos de dados abertos com apenas um clique
 - Interface totalmente responsiva e compatível com as diretrizes de acessibilidade (a11y)
+
+---
+
+## Evoluções da Release 2
+
+Para preservar o backlog original das sprints iniciais, as histórias acima mantêm os identificadores e rascunhos de planejamento. Na implementação atual da interface web (consulte [Arquitetura da Interface](../engenharia/arquitetura_ui.md)), o escopo evoluiu nos seguintes pontos:
+
+- **Rotas de Disciplinas (`/disciplinas` e `/disciplinas/[slug]`):** o catálogo e as páginas individuais de matérias passaram a utilizar o prefixo `/disciplinas` no App Router (consumindo `/cadeiras` e `/catalogo/cadeiras` na API), incorporando ainda filtros de turmas, doação colaborativa de estatísticas (`ClassPerformancePieForm`) e painel de dificuldades por tópico (`DificuldadesPanel`).
+- **Página Inicial e Cursos (`/`, `/cursos` e `/cursos/[slug]`):** a Home e o catálogo de cursos reúnem filtros por campus (`FCTE`, Darcy Ribeiro, `FCE`, `FUP`), notas de corte do PAS (`PasAdmissionCard`) e exportação de dados abertos (`OpenDataExportBar`), enquanto a matriz curricular e os indicadores de formação/evasão ficam na página de cada curso.
+- **Novos Fluxos Discentes (`/minha-grade` e `/perfil`):** adição do planejador semanal de grade horária com detecção de conflitos e exportação em PDF (`/minha-grade`) e do painel de perfil acadêmico com importação de Histórico Escolar SIGAA (PDF) em memória (`/perfil`).
+- **Painel de Moderação (`/moderacao`):** ampliação da tela administrativa com abas dedicadas para curadoria de materiais (`ModerationCard`), curadoria de comentários pendentes (`CommentModerationCard`) e Central de Denúncias (`DenunciaModerationCard` + `ModerationActionModal`).

@@ -464,3 +464,12 @@ Histórias não correspondem necessariamente a tabelas individuais: a HU02 utili
 - Tratar os registros de exemplo do SQL como dados de demonstração, sem apresentá-los como indicadores oficiais validados.
 
 Este documento descreve as necessidades de dados e os comportamentos esperados. A conclusão de cada história deve ser verificada por sua implementação e pelos respectivos critérios de aceitação.
+
+---
+
+## Evoluções finais da Release 2
+
+Além dos épicos acima (que já contemplam a triagem via Ollama na US 5.3.3 e o dashboard institucional no Épico 6), as seguintes evoluções passaram a integrar a API do backend:
+
+- **Curadoria administrativa de comentários (`GET /moderacao/comentarios` e `PATCH /moderacao/comentarios/{id}/curadoria`):** adição das rotas protegidas em `app/api/routers/moderacao.py` para listar e deliberar sobre comentários pendentes na fila de curadoria.
+- **Importação de Histórico Escolar SIGAA PDF (`POST /perfil/importar-historico`):** adição do router `app/api/routers/perfil.py` e do serviço `HistoricoImportacaoService` para processar o PDF em memória, descartando dados nominais e registrando apenas amostras anonimizadas em `amostras_historico` (`RN01` e `RN07`).

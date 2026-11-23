@@ -36,14 +36,9 @@ O projeto é inspirado no **Tamburetei**, desenvolvido pela OpenDevUFCG, que uti
 
 ### Arquitetura em Camadas
 
-```mermaid
-flowchart LR
-    U[Estudante / Visitante] --> FE[Frontend Next.js 16]
-    FE -->|REST / JWT| API[Backend FastAPI - Clean Architecture]
-    API --> DB[(PostgreSQL 17)]
-    ETL[Pipeline ETL & LGPD] --> DB
-    API -->|Triagem assincrona| IA[Ollama Local]
-```
+<p align="center">
+  <img src="docs/assets/arquitetura-readme.png" alt="Arquitetura em Camadas do Tamburetei UnB: Frontend Next.js 16, Backend FastAPI, Pipeline ETL, PostgreSQL 17 e Ollama Local" width="100%" />
+</p>
 
 ### Links Oficiais do Projeto:
 * **Portal de Documentação Oficial (MkDocs):** [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/)
