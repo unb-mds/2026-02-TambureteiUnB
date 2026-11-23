@@ -64,6 +64,17 @@ class Settings(BaseSettings):
         le=1.0,
     )
 
+    # Identidade e Configuracoes de E-mail (SMTP)
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", os.getenv("SMTP_PASS", ""))
+    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "tambureteiunb@gmail.com")
+    SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "Tamburetei UnB")
+    SMTP_TLS: bool = os.getenv("SMTP_TLS", "true").lower() in ("true", "1", "yes")
+    SMTP_SSL: bool = os.getenv("SMTP_SSL", "false").lower() in ("true", "1", "yes")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
     @field_validator("QUORUM_MINIMO_DOACOES", mode="before")
     @classmethod
     def rejeitar_bool_no_quorum(cls, v):

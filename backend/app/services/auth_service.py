@@ -14,9 +14,11 @@ from app.core.security import (
     create_access_token,
     create_password_reset_token,
     verify_password_reset_token,
+    invalidate_password_reset_token,
 )
 from app.models.usuario import Usuario
 from app.repositories.usuario_repo import usuario_repo
+from app.services.email_service import email_service
 
 class AuthService:
     def cadastrar_usuario(self, db: Session, dados_usuario: UsuarioCreate) -> Usuario:
@@ -88,12 +90,15 @@ class AuthService:
     def solicitar_recuperacao_senha(self, db: Session, dados: EsqueciSenhaInput) -> dict:
         """
         Gera um token assinado de recuperação de senha com validade de 15 minutos.
+        Envia e-mail de recuperação de forma assíncrona ou direta se configurado.
         Retorna mensagem amigável sem revelar se o e-mail existe na base (prevenção de enumeração).
         """
         user = usuario_repo.get_by_email(db, email=dados.email)
         token = None
         if user and user.is_active:
             token = create_password_reset_token(user.email)
+            # Despacho desacoplado de e-mail via EmailService do backend
+            email_service.send_password_reset_email(to_email=user.email, reset_token=token)
 
         return {
             "message": "Se o e-mail informado estiver cadastrado, as instruções para redefinição foram enviadas.",
@@ -120,6 +125,8 @@ class AuthService:
 
         user.password_hash = get_password_hash(dados.nova_senha)
         db.commit()
+        invalidate_password_reset_token(dados.token)
+        email_service.send_password_change_confirmation(to_email=user.email)
 
         return {"message": "Senha redefinida com sucesso. Você já pode fazer login."}
 
@@ -141,6 +148,7 @@ class AuthService:
 
         current_user.password_hash = get_password_hash(dados.nova_senha)
         db.commit()
+        email_service.send_password_change_confirmation(to_email=current_user.email)
 
         return {"message": "Senha alterada com sucesso."}
 

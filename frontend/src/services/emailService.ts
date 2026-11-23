@@ -37,7 +37,7 @@ export async function sendPasswordResetEmail({
   resetLink,
 }: SendPasswordResetEmailParams): Promise<boolean> {
   const mailer = getEmailTransporter();
-  const from = process.env.SMTP_FROM || "Tamburetei UnB <nao-responda@tamburetei.unb.br>";
+  const from = process.env.SMTP_FROM || "Tamburetei UnB <tambureteiunb@gmail.com>";
 
   const mailOptions = {
     from,
