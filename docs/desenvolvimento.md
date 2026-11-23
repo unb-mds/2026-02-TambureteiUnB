@@ -1,17 +1,17 @@
-# 💻 Guia de Desenvolvimento
+# Guia de Desenvolvimento
 
 Este guia orienta o time de desenvolvimento sobre a inicialização do ambiente, fluxo de versionamento Git, migrações de banco de dados e testes automatizados.
 
 ---
 
-## 🚀 Como Subir o Projeto com Docker
+## Como Subir o Projeto com Docker
 
 ### 1. Configurar variáveis de ambiente
 Copie o modelo de variáveis de ambiente na raiz do projeto:
 ```bash
 cp .env.example .env
 ```
-> ⚠️ **Atenção:** O arquivo `.env` contém credenciais locais e nunca deve ser versionado no Git. Apenas o `.env.example` é público.
+> **Atenção:** O arquivo `.env` contém credenciais locais e nunca deve ser versionado no Git. Apenas o `.env.example` é público.
 
 ### 2. Construir e iniciar os contêineres
 ```bash
@@ -26,7 +26,7 @@ Serviços disponibilizados:
 
 ---
 
-## 🌿 Fluxo de Trabalho Git e Branches
+## Fluxo de Trabalho Git e Branches
 
 Para manter o repositório organizado e em conformidade com as boas práticas de MDS:
 
@@ -45,7 +45,7 @@ Para manter o repositório organizado e em conformidade com as boas práticas de
 
 ---
 
-## 🗄️ Migrações de Banco com Alembic (Database-as-Code)
+## Migrações de Banco com Alembic (Database-as-Code)
 
 Toda evolução do banco de dados é versionada via Alembic:
 
@@ -63,11 +63,11 @@ docker compose exec backend alembic revision --autogenerate -m "descricao_da_alt
 ```bash
 docker compose exec backend python -m app.pipeline.cli --source sigaa --departamento 673 --semestre 2026.2
 ```
-> 📖 Para opções avançadas (toda a UnB, métricas históricas, etc.), consulte o documento **[Como Popular o Banco de Dados](popular_banco_de_dados.md)**.
+> Para opções avançadas (toda a UnB, métricas históricas, etc.), consulte o documento **[Como Popular o Banco de Dados](popular_banco_de_dados.md)**.
 
 ---
 
-## 🧪 Testes Automatizados e Qualidade
+## Testes Automatizados e Qualidade
 
 O projeto organiza os testes automatizados em duas categorias principais:
 
@@ -99,7 +99,7 @@ docker compose exec backend pytest --cov=app --cov-report=term-missing
 docker compose exec backend mutmut run
 ```
 
-## 🧪 Roteiro de Validação Rápida (Smoke Test)
+## Roteiro de Validação Rápida (Smoke Test)
 
 Este roteiro homologado permite que novos desenvolvedores e avaliadores validem a saúde operacional e a integração ponta a ponta de toda a stack em **menos de 5 minutos**:
 
@@ -157,7 +157,7 @@ Abra o navegador em `http://localhost:3000` e valide os fluxos ativos da aplica�
 
 ---
 
-## 📖 Visualizar e Construir a Documentação (MkDocs)
+## Visualizar e Construir a Documentação (MkDocs)
 
 ### Visualizar localmente em tempo real:
 Para evitar colisão de portas com a API FastAPI (que roda na porta 8000), execute o servidor de documentação especificando a porta **8001**:
@@ -170,4 +170,4 @@ Acesse no seu navegador: **[http://localhost:8001](http://localhost:8001)**
 ```bash
 mkdocs build
 ```
-> 💡 A pasta `site/` gerada pelo comando de build deve constar no `.gitignore` para não poluir o repositório (se ainda não constar, adicione `site/`).
+> A pasta `site/` gerada pelo comando de build deve constar no `.gitignore` para não poluir o repositório (se ainda não constar, adicione `site/`).

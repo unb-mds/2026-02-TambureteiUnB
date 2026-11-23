@@ -1,13 +1,13 @@
 # [BUG] Turmas não são listadas no frontend devido à ausência do ID da disciplina e incompatibilidade no endpoint /turmas
 
-## 📌 Descrição do Problema
+## Descrição do Problema
 Na página de detalhes de uma disciplina (`/disciplinas/[slug]`), a seção de **Turmas Ofertadas** exibe permanentemente o estado vazio (*"Nenhuma turma ofertada para a disciplina"*), mesmo quando existem turmas cadastradas no banco de dados para aquela cadeira no semestre letivo.
 
 Após a remoção dos dados mockados na PR `feat/listagem-turmas-reais`, a integração real falha silenciosamente e nenhuma turma é renderizada na interface.
 
 ---
 
-## 🔍 Análise da Causa Raiz
+## Análise da Causa Raiz
 
 1. **Ausência do campo `id` no Schema Pydantic da Disciplina (Backend):**
    - O frontend precisa do `id` numérico da disciplina para consultar suas turmas.
@@ -32,7 +32,7 @@ Após a remoção dos dados mockados na PR `feat/listagem-turmas-reais`, a integ
 
 ---
 
-## 🛑 Passos para Reproduzir
+## Passos para Reproduzir
 
 1. Subir o ambiente localmente via Docker (`docker compose up -d`).
 2. Popular o banco com dados de disciplinas e turmas (ex: `sample_turmas.csv` ou pipeline ETL).
@@ -43,7 +43,7 @@ Após a remoção dos dados mockados na PR `feat/listagem-turmas-reais`, a integ
 
 ---
 
-## 🛠️ Solução Proposta
+## Solução Proposta
 
 ### 1. Backend (`backend/app/api/schemas/disciplina.py`)
 - Adicionar o campo `id: Optional[int] = None` (ou `int`) na classe `DisciplinaResumo`, permitindo que tanto a listagem geral quanto a busca detalhada por slug retornem o `id` da disciplina.
@@ -60,7 +60,7 @@ Após a remoção dos dados mockados na PR `feat/listagem-turmas-reais`, a integ
 
 ---
 
-## ✅ Critérios de Aceitação (DoD)
+## Critérios de Aceitação (DoD)
 
 - [ ] `GET /cadeiras/{slug}` retorna o campo `id` no payload JSON.
 - [ ] `GET /turmas` aceita `disciplina_id` (inteiro) OU `disciplina_slug` (string).
@@ -70,7 +70,7 @@ Após a remoção dos dados mockados na PR `feat/listagem-turmas-reais`, a integ
 
 ---
 
-## 📁 Arquivos Relacionados
+## Arquivos Relacionados
 - `backend/app/api/schemas/disciplina.py`
 - `backend/app/api/routers/turmas.py`
 - `backend/app/services/turma_service.py`

@@ -1,4 +1,4 @@
-# 🏗️ Arquitetura Geral do Sistema — Tamburetei UnB
+# Arquitetura Geral do Sistema — Tamburetei UnB
 
 > **Documento Oficial de Engenharia de Software, Arquitetura e Decisões Técnicas (ADRs)**  
 > **Disciplina:** Métodos de Desenvolvimento de Software (MDS 2026/2) — FCTE / Universidade de Brasília (UnB)  
@@ -78,7 +78,7 @@ O **Tamburetei UnB** adota uma arquitetura em camadas baseada no modelo **Client
 
 A seleção tecnológica priorizou maturidade, desempenho assíncrono, tipagem estática e reprodutibilidade:
 
-### 🌐 Frontend
+### Frontend
 | Tecnologia | Versão | Propósito no Projeto |
 | :--- | :--- | :--- |
 | **Next.js** | 16.x | Framework React com App Router, renderização híbrida e rotas otimizadas |
@@ -87,7 +87,7 @@ A seleção tecnológica priorizou maturidade, desempenho assíncrono, tipagem e
 | **Tailwind CSS** | 4.x | Estilização utilitária de alto desempenho aderente ao Design System do Figma |
 | **Fetch API / HttpClient** | Nativo | Cliente HTTP desacoplado com tratamento de erros de rede e injeção de tokens |
 
-### ⚙️ Backend
+### Backend
 | Tecnologia | Versão | Propósito no Projeto |
 | :--- | :--- | :--- |
 | **Python** | 3.12 | Linguagem principal do ecossistema de dados e backend |
@@ -98,7 +98,7 @@ A seleção tecnológica priorizou maturidade, desempenho assíncrono, tipagem e
 | **Python-Jose / Passlib** | 3.x / 1.7+ | Criptografia de senhas (bcrypt) e emissão de tokens JWT assinados |
 | **Pytest** | 9.x | Framework de testes unitários e de integração com isolamento de fixtures |
 
-### 🗄️ Dados e Infraestrutura
+### Dados e Infraestrutura
 | Tecnologia | Versão | Propósito no Projeto |
 | :--- | :--- | :--- |
 | **PostgreSQL** | 17 | Sistema de gerenciamento de banco de dados relacional de missão crítica |
@@ -480,7 +480,7 @@ A camada de persistência é estruturada no PostgreSQL 17 em torno de 14 tabelas
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-> 📖 **Dicionário de Dados Completo e Detalhado:**  
+> **Dicionário de Dados Completo e Detalhado:**  
 > A especificação exaustiva de colunas, tipos, chaves estrangeiras, restrições de integridade e índices de cada tabela está documentada em [**Dicionário de Dados — Modelo Relacional**](banco_de_dados.md).
 
 ---
