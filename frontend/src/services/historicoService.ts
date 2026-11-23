@@ -22,6 +22,15 @@ export type {
 };
 
 export const HISTORICO_STORAGE_KEY = "tamburetei_historico_sigaa";
+export const HISTORICO_USER_STORAGE_PREFIX = "tamburetei_historico_sigaa_user_";
+export const HISTORICO_CHANGE_EVENT = "tamburetei-historico-change";
+
+export function getHistoricoUserStorageKey(userId?: number | string | null): string {
+  if (userId !== undefined && userId !== null && String(userId).trim() !== "") {
+    return `${HISTORICO_USER_STORAGE_PREFIX}${String(userId).trim()}`;
+  }
+  return HISTORICO_STORAGE_KEY;
+}
 
 const HISTORICO_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -73,16 +82,32 @@ function getHistoricoStorage(): Storage | null {
   return null;
 }
 
-export function saveImportedHistorico(data: HistoricoImportacaoResponse): void {
+export function saveImportedHistorico(
+  data: HistoricoImportacaoResponse,
+  options?: HistoricoStorageOptions
+): void {
   const storage = getHistoricoStorage();
   if (!storage) return;
-  storage.setItem(HISTORICO_STORAGE_KEY, JSON.stringify(data));
+  const serialized = JSON.stringify(data);
+  storage.setItem(HISTORICO_STORAGE_KEY, serialized);
+  if (options?.userId) {
+    storage.setItem(getHistoricoUserStorageKey(options.userId), serialized);
+  }
 }
 
-export function loadImportedHistorico(): HistoricoImportacaoResponse | null {
+export function loadImportedHistorico(
+  options?: HistoricoStorageOptions
+): HistoricoImportacaoResponse | null {
   const storage = getHistoricoStorage();
   if (!storage) return null;
   try {
+    if (options?.userId) {
+      const userKey = getHistoricoUserStorageKey(options.userId);
+      const userRaw = storage.getItem(userKey);
+      if (userRaw) {
+        return JSON.parse(userRaw) as HistoricoImportacaoResponse;
+      }
+    }
     const raw = storage.getItem(HISTORICO_STORAGE_KEY);
     return raw ? (JSON.parse(raw) as HistoricoImportacaoResponse) : null;
   } catch {
@@ -90,11 +115,14 @@ export function loadImportedHistorico(): HistoricoImportacaoResponse | null {
   }
 }
 
-export function clearImportedHistorico(): void {
+export function clearImportedHistorico(options?: HistoricoStorageOptions): void {
   const storage = getHistoricoStorage();
   if (!storage) return;
   storage.removeItem(HISTORICO_STORAGE_KEY);
+  if (options?.userId) {
+    storage.removeItem(getHistoricoUserStorageKey(options.userId));
+  }
   if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
-    window.dispatchEvent(new Event("tamburetei-historico-change"));
+    window.dispatchEvent(new Event(HISTORICO_CHANGE_EVENT));
   }
 }
