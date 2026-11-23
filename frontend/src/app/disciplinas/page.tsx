@@ -1,6 +1,9 @@
 "use client";
 
-import { hasApprovalData } from "@/utils/academicMetrics";
+import {
+  formatPositiveMetric,
+  hasApprovalData,
+} from "@/utils/academicMetrics";
 
 import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
@@ -16,12 +19,17 @@ import useAsyncList from "@/hooks/useAsyncList";
 import {
   GLOBAL_CAMPUSES,
   GLOBAL_AREAS,
-  GLOBAL_DEPARTMENTS,
   Discipline,
 } from "@/types/disciplina";
 import { normalizeSearchTerm } from "@/utils/search";
+import { getDepartmentOptions } from "@/utils/disciplineDepartments";
 import ApprovalBadge from "@/components/ApprovalBadge";
 import { useDisciplineDetailedMetrics } from "@/hooks/useDisciplineApprovalMetrics";
+import {
+  DISCIPLINE_SORT_OPTIONS,
+  sortDisciplines,
+  type DisciplineSortOption,
+} from "@/utils/disciplineSorting";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -37,8 +45,12 @@ function DisciplinasContent() {
   const [query, setQuery] = useState(initialQuery);
   const [campus, setCampus] = useState("Todos os Campi");
   const [department, setDepartment] = useState("Todos os Departamentos");
+  const departmentOptions = useMemo(
+    () => getDepartmentOptions(disciplines),
+    [disciplines],
+  );
   const [area, setArea] = useState("Todas");
-  const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
+  const [sort, setSort] = useState<DisciplineSortOption>("approval_desc");
   const [onlyWithClasses, setOnlyWithClasses] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -50,7 +62,7 @@ function DisciplinasContent() {
   const filteredResults: Discipline[] = useMemo(() => {
     const normalizedQuery = normalizeSearchTerm(query);
 
-    return disciplines.filter((discipline) => {
+    const filtered = disciplines.filter((discipline) => {
       const matchesTurmas =
         !onlyWithClasses ||
         (discipline.total_turmas !== undefined && discipline.total_turmas > 0);
@@ -65,25 +77,13 @@ function DisciplinasContent() {
         discipline.campusFilter === campus ||
         discipline.campus === campus;
       const matchesDepartment =
-        department === "Todos os Departamentos" || discipline.department === department;
+        department === "Todos os Departamentos" ||
+        discipline.departmentName === department;
       const matchesArea = area === "Todas" || discipline.area === area;
 
       return matchesQuery && matchesCampus && matchesDepartment && matchesArea;
-    }).sort((a, b) => {
-      if (sort === "Menor taxa de aprovação") {
-        const approvalA =
-          hasApprovalData(a.approval)
-            ? a.approval
-            : Number.POSITIVE_INFINITY;
-        const approvalB =
-          hasApprovalData(b.approval)
-            ? b.approval
-            : Number.POSITIVE_INFINITY;
-        return approvalA - approvalB;
-      }
-      if (sort === "Mais materiais") return b.resources - a.resources;
-      return b.popularity - a.popularity;
     });
+    return sortDisciplines(filtered, sort);
   }, [disciplines, query, campus, department, area, sort, onlyWithClasses]);
 
   const totalPages = Math.max(1, Math.ceil(filteredResults.length / ITEMS_PER_PAGE));
@@ -117,7 +117,7 @@ function DisciplinasContent() {
     setCurrentPage(1);
   };
 
-  const handleSortChange = (newSort: "Mais populares" | "Menor taxa de aprovação" | "Mais materiais") => {
+  const handleSortChange = (newSort: DisciplineSortOption) => {
     setSort(newSort);
     setCurrentPage(1);
   };
@@ -131,7 +131,7 @@ function DisciplinasContent() {
     setCampus("Todos os Campi");
     setDepartment("Todos os Departamentos");
     setArea("Todas");
-    setSort("Mais populares");
+    setSort("approval_desc");
     setOnlyWithClasses(true);
     setCurrentPage(1);
   };
@@ -244,8 +244,13 @@ function DisciplinasContent() {
                     onChange={(event) => handleDepartmentChange(event.target.value)}
                     className="w-full appearance-none rounded-xl bg-[#F7F7FA] border border-[#E1DFEA] px-4 py-2.5 pr-10 text-xs font-medium text-[#202124] outline-none focus:border-[#5B4BDB]"
                   >
-                    {GLOBAL_DEPARTMENTS.map((item) => (
-                      <option key={item}>{item}</option>
+                    <option value="Todos os Departamentos">
+                      Todos os Departamentos
+                    </option>
+                    {departmentOptions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
                     ))}
                   </select>
                   <svg
@@ -307,24 +312,26 @@ function DisciplinasContent() {
                 />
                 <div
                   className={`relative w-10 h-5.5 rounded-full transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 ${
-                    onlyWithClasses ? "bg-[#5B4BDB]" : "bg-gray-200"
+                    onlyWithClasses
+                      ? "bg-[var(--primary)]"
+                      : "border border-[var(--border-subtle)] bg-[var(--surface-muted)]"
                   }`}
                 >
                   <span
                     aria-hidden="true"
-                    className={`absolute top-[2px] left-[2px] h-4.5 w-4.5 rounded-full bg-white border transition-transform ${
+                    className={`absolute top-[2px] left-[2px] h-4.5 w-4.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] transition-transform ${
                       onlyWithClasses
-                        ? "translate-x-4.5 border-white"
-                        : "translate-x-0 border-gray-300"
+                        ? "translate-x-4.5"
+                        : "translate-x-0"
                     }`}
                   />
                 </div>
-                <span className="ml-3 text-xs sm:text-sm font-semibold text-[#202124]">
+                <span className="ml-3 text-xs sm:text-sm font-semibold text-[var(--foreground)]">
                   Apenas disciplinas com turmas ofertadas
                 </span>
               </label>
 
-              <span className="text-[11px] font-medium text-gray-500 bg-[#F7F7FA] px-2.5 py-1 rounded-full border border-gray-200">
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-muted)]">
                 {onlyWithClasses ? "Ocultando sem turmas" : "Exibindo todas (inclusive sem turmas)"}
               </span>
             </div>
@@ -348,13 +355,15 @@ function DisciplinasContent() {
                 <select
                   value={sort}
                   onChange={(event) =>
-                    handleSortChange(event.target.value as "Mais populares" | "Menor taxa de aprovação" | "Mais materiais")
+                    handleSortChange(event.target.value as DisciplineSortOption)
                   }
                   className="w-full appearance-none rounded-xl bg-white border border-[#E1DFEA] px-3.5 py-2 pr-8 text-xs font-semibold text-[#202124] outline-none focus:border-[#5B4BDB]"
                 >
-                  <option>Mais populares</option>
-                  <option>Menor taxa de aprovação</option>
-                  <option>Mais materiais</option>
+                  {DISCIPLINE_SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
                 <svg
                   className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
@@ -428,7 +437,12 @@ function DisciplinasContent() {
                     detailed?.matriculados ??
                     discipline.metrica_consolidada?.matriculados ??
                     0;
-                  const hasMetrics = hasApprovalData(resolvedApproval);
+                  const hasMetrics =
+                    resolvedMatriculados > 0 ||
+                    (hasApprovalData(resolvedApproval) && resolvedApproval > 0) ||
+                    resolvedFailedGrade > 0 ||
+                    resolvedFailedAttendance > 0 ||
+                    resolvedWithdrawn > 0;
                   const hasClasses =
                     discipline.total_turmas !== undefined &&
                     discipline.total_turmas > 0;
@@ -490,9 +504,7 @@ function DisciplinasContent() {
                                 Aprovação
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedApproval && resolvedApproval > 0
-                                  ? `${resolvedApproval}%`
-                                  : "Sem dados"}
+                                {formatPositiveMetric(resolvedApproval, "%")}
                               </span>
                             </div>
 
@@ -508,9 +520,7 @@ function DisciplinasContent() {
                                 Repr. Nota
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedFailedGrade > 0
-                                  ? `${resolvedFailedGrade}%`
-                                  : "Sem dados"}
+                                {formatPositiveMetric(resolvedFailedGrade, "%")}
                               </span>
                             </div>
 
@@ -526,9 +536,7 @@ function DisciplinasContent() {
                                 Repr. Falta
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedFailedAttendance > 0
-                                  ? `${resolvedFailedAttendance}%`
-                                  : "Sem dados"}
+                                {formatPositiveMetric(resolvedFailedAttendance, "%")}
                               </span>
                             </div>
 
@@ -544,9 +552,7 @@ function DisciplinasContent() {
                                 Trancamentos
                               </span>
                               <span className="text-sm font-extrabold mt-0.5">
-                                {resolvedWithdrawn > 0
-                                  ? `${resolvedWithdrawn}%`
-                                  : "Sem dados"}
+                                {formatPositiveMetric(resolvedWithdrawn, "%")}
                               </span>
                             </div>
                           </div>

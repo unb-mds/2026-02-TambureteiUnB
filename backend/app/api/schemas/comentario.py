@@ -78,8 +78,18 @@ class ComentarioResponse(BaseModel):
     parent_id: Optional[int] = None
     status_moderacao: str
     created_at: datetime
+    upvotes: int = 0
+    liked_by_me: bool = False
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ComentarioVotoResponse(BaseModel):
+    """Schema de saída após alternar voto útil (Concordo) em comentário."""
+
+    comentario_id: int
+    upvotes: int
+    liked_by_me: bool
 
 
 class ComentarioListaPaginada(BaseModel):

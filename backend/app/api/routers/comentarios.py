@@ -6,6 +6,7 @@ from app.api.schemas.comentario import (
     ComentarioCreate,
     ComentarioResponse,
     ComentarioUpdate,
+    ComentarioVotoResponse,
 )
 from app.api.schemas.denuncia import (
     DenunciaComentarioPayload,
@@ -78,6 +79,19 @@ def excluir_comentario(
     Somente o autor do comentário pode excluí-lo.
     """
     comentario_service.excluir_comentario(db, comentario_id, current_user)
+
+
+@router.post(
+    "/{comentario_id}/voto",
+    response_model=ComentarioVotoResponse,
+)
+def alternar_voto_comentario(
+    comentario_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    """Alterna o voto útil (Concordo) de um estudante autenticado no comentário (RN03)."""
+    return comentario_service.alternar_voto(db, comentario_id, current_user)
 
 
 @router.post(

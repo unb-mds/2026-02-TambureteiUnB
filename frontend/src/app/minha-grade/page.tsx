@@ -24,6 +24,7 @@ import {
   hasConflict,
   meetings,
   selectedClasses,
+  getPlanningSemesters,
   type GradeEntry,
 } from "@/utils/gradePlanner";
 type GradeDraft = { id: string; name: string; semester: string; entries: GradeEntry[] };
@@ -224,16 +225,11 @@ export default function MinhaGrade() {
   }
   const currentSemester = offeredSemesters[0] || "";
   const nextSemester = nextPlanningSemester(currentSemester);
-  const semesters = [
-    ...new Set([
-      ...offeredSemesters,
-      ...(data.semester ? [data.semester] : []),
-      ...(nextSemester ? [nextSemester] : []),
-    ]),
-  ]
-    .filter((value) => !currentSemester || value >= currentSemester)
-    .sort()
-    .reverse();
+  const semesters = getPlanningSemesters(
+    offeredSemesters,
+    data.semester,
+    nextSemester,
+  );
   const chosen = selectedClasses(entries, semester);
   const exportValidation = validateGradeExport(entries, semester);
   const conflicts = chosen.flatMap((a, i) =>

@@ -1,10 +1,10 @@
-# ⚖️ Regras de Negócio e Governança
+# Regras de Negócio e Governança
 
 O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conformidade legal com a LGPD e ética acadêmica na Universidade de Brasília (UnB).
 
 ---
 
-## 📌 Regras de Negócio (RN)
+## Regras de Negócio (RN)
 
 ### [RN01] Privacidade por Padrão e Anonimato Discente
 * A plataforma **não** armazena nem processa número de matrícula, CPF ou histórico acadêmico nominal dos estudantes, sendo igualmente vedada a exposição de cabeçalhos identificados em provas e materiais.
@@ -44,7 +44,7 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 
 ---
 
-## 🎯 Critérios de Qualidade da Disciplina (MDS 2026/2)
+## Critérios de Qualidade da Disciplina (MDS 2026/2)
 
 1. **Cobertura de Código:** Mínimo de **70% de cobertura** de linhas no módulo de domínio (`app/domain/`).
 2. **Escore de Mutação:** Mínimo de **50% de mortes** de mutantes nas regras de negócio com Mutmut.
@@ -53,6 +53,6 @@ O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conform
 5. **Reprodutibilidade:** Todo o ambiente deve subir integralmente via Docker Compose sem comandos manuais no sistema operacional hospedeiro.
 
 
-### Aplicação da moderação aos arquivos da Feature 5.2
+### Aplicação da moderação aos arquivos e relatos (Features 5.2 e 5.3)
 
-Os registros de links e conteúdos em `conteudos` seguem curadoria prévia. Os arquivos também estão em `conteudos`, com `tipo=ARQUIVO`, aprovação inicial da US 5.2.1 e download condicionado aos estados de curadoria e moderação. Os endpoints administrativos da Feature 5.3 continuam fora desta entrega.
+Os registros de links e uploads binários (`tipo = 'ARQUIVO'`) compartilham a entidade unificada `conteudos`, com download e listagem pública condicionados a `status_curadoria = 'APROVADO'` e `status_moderacao = 'ativo'`. Os endpoints administrativos da Feature 5.3 (`/moderacao/materiais`, `/moderacao/conteudos/{id}/curadoria` e `/moderacao/denuncias`) registram auditoria transacional em `curadorias` e `denuncias`.

@@ -28,7 +28,7 @@ Eu, como Engenheiro de Banco de Dados, desejo modelar as tabelas `cursos` e `dis
 
 **Nessa issue deve ser feito:**
 - Criar tabela `cursos`: `id` (SERIAL PK), `codigo_mec` (VARCHAR 20 UNIQUE), `nome` (VARCHAR 150), `campus` (VARCHAR 100), `grau` (VARCHAR 50), `turno` (VARCHAR 50), `slug` (VARCHAR 150 UNIQUE) e `created_at`
-- Criar tabela `disciplinas`: `id` (SERIAL PK), `codigo` (VARCHAR 30), `slug` (VARCHAR 150 UNIQUE), `nome` (VARCHAR 150), `departamento` (VARCHAR 100), `creditos` (INT), `carga_horaria` (INT), `ementa` (TEXT) e `created_at`
+- Criar tabela `disciplinas`: `id` (SERIAL PK), `codigo` (VARCHAR 30), `slug` (VARCHAR 150 UNIQUE), `nome` (VARCHAR 150), `departamento` (VARCHAR 100 — expandido para 255 na migração `005`), `creditos` (INT), `carga_horaria` (INT), `ementa` (TEXT) e `created_at`
 - Criar índices nos campos `slug` e `codigo_mec` da tabela `cursos`, e nos campos `slug` e `codigo` da tabela `disciplinas`
 - Garantir suporte a textos longos de ementa em Markdown utilizando o mecanismo nativo TOAST do PostgreSQL
 
@@ -126,7 +126,7 @@ Depende de: US 1.1.1, US 2.1.1
 Eu, como Engenheiro de Banco de Dados, desejo modelar a tabela `comentarios`, a fim de possibilitar discussões sob pseudônimo e respostas aninhadas (threads).
 
 **Nessa issue deve ser feito:**
-- Criar tabela `comentarios`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` ON DELETE SET NULL), `autor_alias` (VARCHAR 50 default 'Estudante Anônimo'), `topico_dificuldade` (VARCHAR 150), `conteudo` (TEXT), `parent_id` (BIGINT), `created_at` (TIMESTAMPTZ) e `status_moderacao` (VARCHAR 20)
+- Criar tabela `comentarios`: `id` (BIGSERIAL PK), `disciplina_id` (FK `disciplinas.id` ON DELETE CASCADE), `usuario_id` (FK `usuarios.id` — definido no `init.sql` como `NOT NULL ON DELETE CASCADE`, com desativação lógica da conta em `usuarios.is_active`), `autor_alias` (VARCHAR 50 default 'Estudante Anônimo'), `topico_dificuldade` (VARCHAR 150), `conteudo` (TEXT), `parent_id` (BIGINT), `created_at` (TIMESTAMPTZ) e `status_moderacao` (VARCHAR 20)
 - Configurar chave estrangeira auto-referencial em `parent_id` apontando para `comentarios.id` com `ON DELETE CASCADE`
 - Adicionar constraint CHECK para os status de moderação: `'PUBLICADO'`, `'PENDENTE'`, `'OCULTO'`
 - Criar índices nas colunas `disciplina_id` e `parent_id`
@@ -163,16 +163,20 @@ Eu, como Engenheiro de Banco de Dados, desejo versionar o esquema em migrações
 **Nessa issue deve ser feito:**
 - Configurar o arquivo `alembic.ini` e o runner `alembic/env.py` mapeando `Base.metadata`
 - Versionar a estrutura do banco e seus índices por migrações Alembic, preservando revisões publicadas
-- Manter `init.sql` compatível com o baseline `007` da base atual; evoluções posteriores são aplicadas pelo Alembic
+- Manter `init.sql` e a cadeia linear do Alembic sincronizados até a revisão ativa (`015_moderacao_ia` — Head)
 - Configurar volume no `docker-compose.yml` montando o script em `/docker-entrypoint-initdb.d/init.sql`
 
 **Critérios de aceitação:**
-- Subir o contêiner do PostgreSQL 17 e aplicar as migrações pendentes, incluindo a integração de materiais
+- Subir o contêiner do PostgreSQL 17 e aplicar as migrações pendentes, incluindo a integração de materiais, curadoria, denúncias e visão materializada
 - Executar `alembic upgrade head` sem erros de sintaxe ou conflito de tipos
 - Possibilitar reverter todo o esquema de forma limpa via `alembic downgrade base`
 
-## Arquivos de apoio — integração da Feature 5.2
+## Evoluções Lineares da Release 2 (Migrações `008` a `015`)
 
-A tabela `conteudos` também representa arquivos privados com `tipo=ARQUIVO`. Os campos opcionais `caminho_arquivo`, `formato`, `tamanho_bytes` e `status_moderacao` descrevem o upload; os binários ficam no volume privado `materiais_data`. Links e resumos anteriores preservam URL, dados e curadoria. Novos arquivos aguardam curadoria com `status_curadoria=PENDENTE`; consultas públicas exigem aprovação e moderação `ativo`.
-
-A migração linear `009_arquivos_conteudos` estende a entidade após `008`, sem criar uma tabela `materiais`. Consulte [os contratos e testes](feature_5_2_materiais.md).
+- **`008_add_doacoes_estatisticas`:** Tabela `doacoes_estatisticas` para coleta colaborativa de índices de turmas extraídos do SIGAA por estudantes autenticados (US 3.1.1).
+- **`009_arquivos_conteudos`:** A tabela `conteudos` passa a representar arquivos privados com `tipo = 'ARQUIVO'`, adicionando `caminho_arquivo`, `formato`, `tamanho_bytes` e `status_moderacao` (binários no volume privado `materiais_data`). Consulte [os contratos e testes](../engenharia/feature_5_2_materiais.md).
+- **`010_curadorias`:** Tabela `curadorias` para auditoria transacional imutável das decisões de aprovação ou recusa sobre arquivos submetidos (RN06).
+- **`011_denuncias`:** Tabela `denuncias` com alvo único (`comentario_id` ou `conteudo_id`), unicidade por usuário e gatilho de retenção preventiva ao atingir 3 denúncias pendentes (US 5.3.1 e US 5.3.2).
+- **`012_estatisticas_consolidadas` e `013_estat_disciplina_semestre`:** Tabela `estatisticas_consolidadas` e índice composto `(disciplina_id, semestre_referencia)` para persistência das métricas oficiais validadas pelo Motor de Consenso/Quórum (US 3.2.2).
+- **`014_mv_evasao_campus`:** Visão materializada `mv_evasao_campus` com índice único `(campus, ano)` para leitura agregada de evasão institucional por campus (US 6.1.1).
+- **`015_moderacao_ia`:** Colunas `motivo_moderacao`, `confianca_ia` e `moderado_por` em `conteudos` e `comentarios`, além de suporte a `perfil_moderador = 'IA'` em `curadorias` para triagem autônoma híbrida via Ollama local.

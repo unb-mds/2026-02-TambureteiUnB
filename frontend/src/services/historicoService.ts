@@ -1,74 +1,35 @@
 import { API_BASE_URL, ApiError, getStoredToken } from "./httpClient.ts";
+import type {
+  HistoricoCargaHoraria,
+  HistoricoCargaItem,
+  HistoricoComponenteItem,
+  HistoricoContribuicaoResumo,
+  HistoricoDadosAcademicos,
+  HistoricoImportacaoResponse,
+  HistoricoPendenteItem,
+  HistoricoStorageOptions,
+} from "../types/historico.ts";
+
+export type {
+  HistoricoCargaHoraria,
+  HistoricoCargaItem,
+  HistoricoComponenteItem,
+  HistoricoContribuicaoResumo,
+  HistoricoDadosAcademicos,
+  HistoricoImportacaoResponse,
+  HistoricoPendenteItem,
+  HistoricoStorageOptions,
+};
 
 export const HISTORICO_STORAGE_KEY = "tamburetei_historico_sigaa";
+export const HISTORICO_USER_STORAGE_PREFIX = "tamburetei_historico_sigaa_user_";
+export const HISTORICO_CHANGE_EVENT = "tamburetei-historico-change";
 
-export interface HistoricoDadosAcademicos {
-  curso: string | null;
-  curriculo: string | null;
-  status: string | null;
-  periodo_inicial: string | null;
-  periodo_atual: number | null;
-  prazo_conclusao: string | null;
-  ira: number | null;
-  mp: number | null;
-  data_emissao: string | null;
-  codigo_verificacao: string | null;
-}
-
-export interface HistoricoCargaItem {
-  obrigatorias: number;
-  optativas: number;
-  complementares: number;
-  total: number;
-}
-
-export interface HistoricoCargaHoraria {
-  exigido: HistoricoCargaItem;
-  integralizado: HistoricoCargaItem;
-  pendente: HistoricoCargaItem;
-}
-
-export interface HistoricoComponenteItem {
-  semestre: string;
-  codigo: string;
-  nome: string;
-  slug?: string | null;
-  professores: string[];
-  ch: number;
-  turma: string | null;
-  horario?: string | null;
-  local?: string | null;
-  frequencia: number | null;
-  mencao: string | null;
-  situacao: string;
-  natureza_simbolo: string | null;
-}
-
-export interface HistoricoPendenteItem {
-  codigo: string;
-  nome: string;
-  ch: number;
-  matriculado: boolean;
-}
-
-export interface HistoricoContribuicaoResumo {
-  total_elegiveis: number;
-  novas_contribuicoes: number;
-  duplicadas_ignoradas: number;
-  disciplinas_nao_encontradas: string[];
-  turmas_atualizadas: number;
-  turmas_liberadas_lgpd: number;
-  minimo_amostras_lgpd: number;
-}
-
-export interface HistoricoImportacaoResponse {
-  autenticidade_estrutural_valida: boolean;
-  dados_academicos: HistoricoDadosAcademicos;
-  carga_horaria: HistoricoCargaHoraria;
-  cursadas: HistoricoComponenteItem[];
-  cursando: HistoricoComponenteItem[];
-  pendentes: HistoricoPendenteItem[];
-  contribuicao: HistoricoContribuicaoResumo;
+export function getHistoricoUserStorageKey(userId?: number | string | null): string {
+  if (userId !== undefined && userId !== null && String(userId).trim() !== "") {
+    return `${HISTORICO_USER_STORAGE_PREFIX}${String(userId).trim()}`;
+  }
+  return HISTORICO_STORAGE_KEY;
 }
 
 const HISTORICO_MAX_BYTES = 10 * 1024 * 1024;
@@ -121,16 +82,32 @@ function getHistoricoStorage(): Storage | null {
   return null;
 }
 
-export function saveImportedHistorico(data: HistoricoImportacaoResponse): void {
+export function saveImportedHistorico(
+  data: HistoricoImportacaoResponse,
+  options?: HistoricoStorageOptions
+): void {
   const storage = getHistoricoStorage();
   if (!storage) return;
-  storage.setItem(HISTORICO_STORAGE_KEY, JSON.stringify(data));
+  const serialized = JSON.stringify(data);
+  storage.setItem(HISTORICO_STORAGE_KEY, serialized);
+  if (options?.userId) {
+    storage.setItem(getHistoricoUserStorageKey(options.userId), serialized);
+  }
 }
 
-export function loadImportedHistorico(): HistoricoImportacaoResponse | null {
+export function loadImportedHistorico(
+  options?: HistoricoStorageOptions
+): HistoricoImportacaoResponse | null {
   const storage = getHistoricoStorage();
   if (!storage) return null;
   try {
+    if (options?.userId) {
+      const userKey = getHistoricoUserStorageKey(options.userId);
+      const userRaw = storage.getItem(userKey);
+      if (userRaw) {
+        return JSON.parse(userRaw) as HistoricoImportacaoResponse;
+      }
+    }
     const raw = storage.getItem(HISTORICO_STORAGE_KEY);
     return raw ? (JSON.parse(raw) as HistoricoImportacaoResponse) : null;
   } catch {
@@ -138,11 +115,14 @@ export function loadImportedHistorico(): HistoricoImportacaoResponse | null {
   }
 }
 
-export function clearImportedHistorico(): void {
+export function clearImportedHistorico(options?: HistoricoStorageOptions): void {
   const storage = getHistoricoStorage();
   if (!storage) return;
   storage.removeItem(HISTORICO_STORAGE_KEY);
+  if (options?.userId) {
+    storage.removeItem(getHistoricoUserStorageKey(options.userId));
+  }
   if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
-    window.dispatchEvent(new Event("tamburetei-historico-change"));
+    window.dispatchEvent(new Event(HISTORICO_CHANGE_EVENT));
   }
 }

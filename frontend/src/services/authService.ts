@@ -9,7 +9,12 @@ import type {
   MessageResponse,
 } from "../types/auth.ts";
 import { request, setStoredToken, removeStoredToken, hasStoredToken, ApiError } from "./httpClient.ts";
-import { clearImportedHistorico } from "./historicoService.ts";
+import {
+  clearImportedHistorico,
+  loadImportedHistorico,
+  saveImportedHistorico,
+  HISTORICO_CHANGE_EVENT,
+} from "./historicoService.ts";
 
 export const AUTH_CHANGE_EVENT = "tamburetei-auth-change";
 const USER_STORAGE_KEY = "tamburetei_user";
@@ -83,12 +88,17 @@ export async function login(credentials: UserLoginInput): Promise<AuthToken> {
           clearImportedHistorico();
         }
         setStoredUser(user);
+        const userHistorico = loadImportedHistorico({ userId: user.id });
+        if (userHistorico) {
+          saveImportedHistorico(userHistorico);
+        }
       }
     } catch {
       // Ignora falha inicial de perfil
     }
     if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
       window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+      window.dispatchEvent(new Event(HISTORICO_CHANGE_EVENT));
     }
   }
   return token;
@@ -145,6 +155,7 @@ export async function changePassword(data: ChangePasswordInput): Promise<Message
 
 /**
  * Remove a sessão e o token JWT ativo, notificando a interface.
+ * O histórico do usuário continua salvo sob sua chave dedicada para restauração ao relogar.
  */
 export function logout(): void {
   removeStoredToken();

@@ -1,10 +1,10 @@
-# 🚀 Como Popular o Banco de Dados (Guia Rápido do Time)
+# Como Popular o Banco de Dados (Guia Rápido do Time)
 
 Este guia prático foi criado para orientar todos os membros do grupo sobre **como popular o banco de dados local** (PostgreSQL) com dados reais do SIGAA da UnB, matrizes curriculares dos cursos e métricas históricas de desempenho.
 
 ---
 
-## ⚡ Pré-requisitos
+## Pré-requisitos
 
 Antes de executar qualquer comando, certifique-se de que os contêineres Docker do projeto estão rodando e que as migrações do banco estão aplicadas:
 
@@ -18,7 +18,7 @@ docker compose exec backend alembic upgrade head
 
 ---
 
-## 🎯 1. Comando Recomendado para Desenvolvimento (FGA — Campus Gama)
+## 1. Comando Recomendado para Desenvolvimento (FGA — Campus Gama)
 
 Para o desenvolvimento diário, **não é necessário raspar a universidade inteira**. O comando abaixo extrai e popula tudo sobre o campus do Gama (**departamento 673**) para o semestre **2026.2**:
 
@@ -39,7 +39,7 @@ docker compose exec backend python -m app.pipeline.cli --source sigaa --departam
 
 ---
 
-## 🌐 2. Populando Todos os Departamentos e Cursos da UnB
+## 2. Populando Todos os Departamentos e Cursos da UnB
 
 Se você precisar de dados de toda a universidade (Darcy Ribeiro, FGA, FCE e FUP):
 
@@ -52,11 +52,11 @@ docker compose exec backend python -m app.pipeline.cli --source sigaa --semestre
 ```bash
 docker compose exec backend python -m app.pipeline.cli --source sigaa --semestre 2026.2 --todos-cursos --todos-curriculos
 ```
-> ⏱️ **Nota:** Como a UnB possui mais de 150 cursos de graduação e mais de 200 departamentos, a opção com `--todos-curriculos` realiza centenas de requisições ao SIGAA e pode levar alguns minutos.
+> **Nota:** Como a UnB possui mais de 150 cursos de graduação e mais de 200 departamentos, a opção com `--todos-curriculos` realiza centenas de requisições ao SIGAA e pode levar alguns minutos.
 
 ---
 
-## 📈 3. Populando Métricas Históricas de Desempenho e Fluxo (DPO / INEP)
+## 3. Populando Métricas Históricas de Desempenho e Fluxo (DPO / INEP)
 
 ### Métricas de Disciplinas (Aprovação, Reprovação e Trancamento):
 Para carregar as séries históricas de aprovação, reprovação por nota, reprovação por falta e trancamentos:
@@ -80,7 +80,7 @@ docker compose exec backend python -m app.pipeline.cli --source all --departamen
 
 ---
 
-## 🔍 4. Modo de Simulação / Teste (`--dry-run`)
+## 4. Modo de Simulação / Teste (`--dry-run`)
 
 Se você quiser testar o pipeline sem fazer nenhuma alteração no banco de dados, adicione a flag `--dry-run`:
 
@@ -91,7 +91,7 @@ Ele apenas extrai, higieniza os dados e gera os arquivos `.json` e `.csv` na pas
 
 ---
 
-## 🧹 5. Como Zerar o Banco de Dados (Reset Completo)
+## 5. Como Zerar o Banco de Dados (Reset Completo)
 
 Caso você queira apagar todos os dados de teste e recomeçar a população do zero:
 
@@ -101,27 +101,31 @@ from app.core.database import engine
 from sqlalchemy import text
 
 tables = [
-    'comentarios', 'votos_uteis', 'conteudos', 'situacoes_disciplinas',
-    'metricas_academicas', 'metricas_consolidadas', 'metricas_cursos',
-    'turmas_professores', 'cursos_disciplinas', 'turmas', 'professores',
-    'disciplinas', 'cursos', 'usuarios'
+    'denuncias', 'curadorias', 'comentarios', 'votos_uteis', 'conteudos',
+    'amostras_historico', 'doacoes_estatisticas', 'estatisticas_consolidadas',
+    'situacoes_disciplinas', 'metricas_academicas', 'metricas_consolidadas',
+    'metricas_cursos', 'turmas_professores', 'cursos_disciplinas', 'turmas',
+    'professores', 'disciplinas', 'cursos', 'usuarios'
 ]
 
 with engine.begin() as conn:
     conn.execute(text('TRUNCATE TABLE ' + ', '.join(tables) + ' RESTART IDENTITY CASCADE;'))
+    conn.execute(text('REFRESH MATERIALIZED VIEW mv_evasao_campus;'))
 print('Banco de dados zerado com sucesso!')
 "
 ```
 
 ---
 
-## ✅ 6. Como Verificar se os Dados Foram Inseridos
+## 6. Como Verificar se os Dados Foram Inseridos
 
 Depois de rodar o comando de carga, você pode conferir os dados de 3 formas:
 
 ### 1. Via Terminal (SQL rápido):
+*(Os comandos abaixo usam as credenciais padrão do `.env.example`; ajuste caso tenha alterado `POSTGRES_USER` ou `POSTGRES_DB` no seu `.env`.)*
+
 ```bash
-docker compose exec db psql -U postgres -d tamburetei -c "
+docker compose exec db psql -U tamburetei_dev -d tamburetei_db -c "
 SELECT 
     d.codigo, 
     d.nome, 
@@ -139,7 +143,7 @@ LIMIT 10;
 
 E para conferir as métricas dos cursos:
 ```bash
-docker compose exec db psql -U postgres -d tamburetei -c "
+docker compose exec db psql -U tamburetei_dev -d tamburetei_db -c "
 SELECT c.nome, m.ano, m.matriculados, m.taxa_sucesso, m.taxa_evasao 
 FROM metricas_cursos m 
 JOIN cursos c ON m.curso_id = c.id 
@@ -154,10 +158,10 @@ Abra no navegador: **[http://localhost:8000/docs](http://localhost:8000/docs)**
 - Teste a rota `GET /cadeiras/{slug}` para ver detalhes, pré-requisitos clicáveis e cursos vinculados.
 
 ### 3. Pelo Adminer (Interface Visual do Banco):
-Abra no navegador: **[http://localhost:8085](http://localhost:8085)** (porta padrão mapeada no `docker-compose.yml`)
+Abra no navegador: **[http://localhost:8085](http://localhost:8085)** (porta padrão mapeada no `docker-compose.yml`, usando as credenciais padrão do `.env.example`)
 - **Sistema:** PostgreSQL
 - **Servidor:** `db`
-- **Usuário:** `postgres`
-- **Senha:** `postgres` (ou a definida no seu `.env`)
-- **Base de dados:** `tamburetei`
+- **Usuário:** `tamburetei_dev`
+- **Senha:** `postgres` (ou a definida em `POSTGRES_PASSWORD` no seu `.env`)
+- **Base de dados:** `tamburetei_db`
 
