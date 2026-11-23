@@ -133,7 +133,17 @@ class TestAuthIntegration:
         res = client.get("/auth/me")
         assert res.status_code == 401
 
-    def test_fluxo_esqueci_e_redefinir_senha_sucesso(self, client: TestClient):
+    def test_fluxo_esqueci_e_redefinir_senha_sucesso(self, client: TestClient, monkeypatch: pytest.MonkeyPatch):
+        token_capturado: dict[str, str] = {}
+
+        def fake_send_password_reset_email(to_email: str, reset_token: str) -> bool:
+            token_capturado["email"] = to_email
+            token_capturado["token"] = reset_token
+            return True
+
+        from app.services.email_service import email_service
+        monkeypatch.setattr(email_service, "send_password_reset_email", fake_send_password_reset_email)
+
         client.post(
             "/auth/register",
             json={
@@ -150,8 +160,10 @@ class TestAuthIntegration:
         assert res_esqueci.status_code == 200
         dados_esqueci = res_esqueci.json()
         assert "message" in dados_esqueci
-        token = dados_esqueci.get("reset_token")
+        assert "reset_token" not in dados_esqueci
+        token = token_capturado.get("token")
         assert token is not None
+        assert token_capturado.get("email") == "recuperar.senha@provedor.com"
 
         res_redefinir = client.post(
             "/auth/redefinir-senha",

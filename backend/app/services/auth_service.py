@@ -98,11 +98,15 @@ class AuthService:
         if user and user.is_active:
             token = create_password_reset_token(user.email)
             # Despacho desacoplado de e-mail via EmailService do backend
-            email_service.send_password_reset_email(to_email=user.email, reset_token=token)
+            enviado = email_service.send_password_reset_email(to_email=user.email, reset_token=token)
+            if not enviado:
+                logger.warning(
+                    "[AuthService] Falha ou alerta ao disparar e-mail de recuperacao de senha para '%s'.",
+                    user.email,
+                )
 
         return {
             "message": "Se o e-mail informado estiver cadastrado, as instruções para redefinição foram enviadas.",
-            "reset_token": token,
         }
 
     def redefinir_senha(self, db: Session, dados: RedefinirSenhaInput) -> dict:

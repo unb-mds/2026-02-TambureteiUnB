@@ -174,5 +174,4 @@ class AlterarSenhaInput(BaseModel):
 
 class MensagemAuthResponse(BaseModel):
     message: str
-    reset_token: str | None = None
 

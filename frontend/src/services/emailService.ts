@@ -59,7 +59,7 @@ export async function sendPasswordResetEmail({
             Redefinir minha senha
           </a>
         </div>
-        <p style="color: #6B7280; font-size: 12px; line-height: 1.5; margin-top: 24px; border-top: 1px solid #F3F4F6; pt: 16px;">
+        <p style="color: #6B7280; font-size: 12px; line-height: 1.5; margin-top: 24px; border-top: 1px solid #F3F4F6; padding-top: 16px;">
           Se você não solicitou a alteração de senha, ignore este e-mail. Sua senha permanecerá inalterada.<br>
           Link direto: <a href="${resetLink}" style="color: #5B4BDB;">${resetLink}</a>
         </p>

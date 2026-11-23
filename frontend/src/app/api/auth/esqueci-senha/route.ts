@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendPasswordResetEmail } from "@/services/emailService";
 
 // Rate limiting simples em memória por IP e por e-mail para prevenir abusos
 // Limite: máximo 3 solicitações a cada 15 minutos por IP / e-mail
@@ -73,20 +72,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Se o backend retornou um token (usuário existe na base), envia o e-mail via Nodemailer
-    if (data.reset_token) {
-      const origin = req.nextUrl.origin || "http://localhost:3000";
-      const resetLink = `${origin}/redefinir-senha?token=${data.reset_token}`;
-
-      await sendPasswordResetEmail({
-        to: normalizedEmail,
-        resetLink,
-      });
-    }
-
-    // Retorna mensagem amigável sem vazar token de redefinição para o navegador
     return NextResponse.json({
       message:
+        data.message ||
         "Se o e-mail informado estiver cadastrado, as instruções e o link seguro de redefinição foram enviados para a sua caixa de entrada.",
     });
   } catch (error) {
