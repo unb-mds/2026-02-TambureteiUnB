@@ -12,6 +12,7 @@ export interface BackendComentarioItem {
   status_moderacao?: string;
   created_at: string;
   upvotes?: number;
+  liked_by_me?: boolean;
 }
 
 export interface BackendComentarioPage {
@@ -265,7 +266,7 @@ export function adaptBackendCommentToDifficultyAlert(
     createdAt: formatAlertDate(raw.created_at),
     rawCreatedAt: raw.created_at,
     upvotes: typeof raw.upvotes === "number" ? raw.upvotes : 0,
-    isLikedByMe: false,
+    isLikedByMe: Boolean(raw.liked_by_me),
   };
 }
 

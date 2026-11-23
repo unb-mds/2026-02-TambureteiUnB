@@ -1,9 +1,12 @@
 import math
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
+from uuid import UUID
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.comentario import Comentario
+from app.models.voto import VotoUtil
 from app.repositories.base import BaseRepository
 
 
@@ -74,6 +77,73 @@ class ComentarioRepository(BaseRepository[Comentario]):
             .order_by(Comentario.created_at.desc())
             .all()
         )
+
+    def contar_votos_comentarios(
+        self, db: Session, comentario_ids: List[int]
+    ) -> Dict[int, int]:
+        if not comentario_ids:
+            return {}
+        rows = (
+            db.query(VotoUtil.target_id, func.count(VotoUtil.id))
+            .filter(
+                VotoUtil.target_type == "COMENTARIO",
+                VotoUtil.target_id.in_(comentario_ids),
+            )
+            .group_by(VotoUtil.target_id)
+            .all()
+        )
+        return {int(target_id): int(total) for target_id, total in rows}
+
+    def listar_votos_usuario(
+        self, db: Session, comentario_ids: List[int], usuario_id: UUID
+    ) -> Set[int]:
+        if not comentario_ids:
+            return set()
+        rows = (
+            db.query(VotoUtil.target_id)
+            .filter(
+                VotoUtil.target_type == "COMENTARIO",
+                VotoUtil.usuario_id == usuario_id,
+                VotoUtil.target_id.in_(comentario_ids),
+            )
+            .all()
+        )
+        return {int(row[0]) for row in rows}
+
+    def alternar_voto_comentario(
+        self, db: Session, comentario_id: int, usuario_id: UUID
+    ) -> Tuple[int, bool]:
+        existente = (
+            db.query(VotoUtil)
+            .filter(
+                VotoUtil.target_type == "COMENTARIO",
+                VotoUtil.target_id == comentario_id,
+                VotoUtil.usuario_id == usuario_id,
+            )
+            .first()
+        )
+        if existente is not None:
+            db.delete(existente)
+            liked_by_me = False
+        else:
+            db.add(
+                VotoUtil(
+                    usuario_id=usuario_id,
+                    target_type="COMENTARIO",
+                    target_id=comentario_id,
+                )
+            )
+            liked_by_me = True
+        db.commit()
+        total = (
+            db.query(func.count(VotoUtil.id))
+            .filter(
+                VotoUtil.target_type == "COMENTARIO",
+                VotoUtil.target_id == comentario_id,
+            )
+            .scalar()
+        )
+        return int(total or 0), liked_by_me
 
 
 comentario_repo = ComentarioRepository()

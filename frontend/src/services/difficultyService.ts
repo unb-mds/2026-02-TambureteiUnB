@@ -281,9 +281,24 @@ export async function submitDifficultyAlert(
   }
 }
 
+export interface DifficultyVoteResponse {
+  comentario_id: number;
+  upvotes: number;
+  liked_by_me: boolean;
+}
+
+export async function toggleDifficultyVote(
+  commentId: number
+): Promise<DifficultyVoteResponse> {
+  return request<DifficultyVoteResponse>(`/comentarios/${commentId}/voto`, {
+    method: "POST",
+  });
+}
+
 export const difficultyService = {
   listDifficultyAlerts,
   submitDifficultyAlert,
+  toggleDifficultyVote,
 };
 
 export default difficultyService;

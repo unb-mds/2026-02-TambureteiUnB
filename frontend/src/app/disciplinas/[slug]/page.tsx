@@ -11,6 +11,7 @@ import React, {
   useEffect,
   useMemo,
   useCallback,
+  useSyncExternalStore,
   Suspense,
 } from "react";
 import Link from "next/link";
@@ -35,7 +36,7 @@ import ClassFilters, {
 import MaterialModal from "@/components/MaterialModal";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
 import ClassPerformancePieForm from "@/components/ClassPerformancePieForm";
-import { isAuthenticated } from "@/services/authService";
+import { isAuthenticated, subscribeAuthChange } from "@/services/authService";
 import {
   getDisciplineBySlug,
   getClassesByDiscipline,
@@ -108,13 +109,18 @@ function DisciplineDetailContent() {
   const [materialsReloadTrigger, setMaterialsReloadTrigger] = useState(0);
   const [pendingMaterialIds, setPendingMaterialIds] = useState<string[]>([]);
 
+  const authenticated = useSyncExternalStore(
+    subscribeAuthChange,
+    isAuthenticated,
+    () => false
+  );
+
   const handleOpenMaterialModal = useCallback(() => {
-    if (!isAuthenticated()) {
-      router.push("/login");
+    if (!authenticated || !isAuthenticated()) {
       return;
     }
     setShowMaterialModal(true);
-  }, [router]);
+  }, [authenticated]);
 
   const syncUrlParams = useCallback(
     (nextShift: ClassShiftFilter, nextSort: ClassSortOption) => {
@@ -638,12 +644,18 @@ function DisciplineDetailContent() {
 
                 <button
                   type="button"
+                  disabled={!authenticated}
+                  title={!authenticated ? "Faça login para adicionar materiais" : undefined}
                   onClick={handleOpenMaterialModal}
                   data-reload-count={materialsReloadTrigger}
-                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-[#5B4BDB] px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-all hover:brightness-110 shadow-xs active:scale-95"
+                  className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-all shadow-xs ${
+                    authenticated
+                      ? "bg-[#5B4BDB] hover:brightness-110 active:scale-95 cursor-pointer"
+                      : "bg-gray-300 cursor-not-allowed opacity-60"
+                  }`}
                 >
                   <span className="text-base leading-none">+</span>
-                  Adicionar material
+                  {authenticated ? "Adicionar material" : "Faça login para adicionar"}
                 </button>
               </div>
             </div>

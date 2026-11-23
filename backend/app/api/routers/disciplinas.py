@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_optional_current_user
 from app.api.schemas.disciplina import DisciplinaResponse, DisciplinaResumo
 from app.core.database import get_db
 from app.models.usuario import Usuario
@@ -66,6 +66,7 @@ def listar_comentarios_cadeira(
     page: int = Query(1, ge=1, description="Número da página"),
     size: int = Query(20, ge=1, le=100, description="Itens por página"),
     db: Session = Depends(get_db),
+    current_user: Optional[Usuario] = Depends(get_optional_current_user),
 ):
     """Lista comentários e alertas de dificuldade ativos de uma cadeira, com paginação e filtros."""
     return comentario_service.listar_comentarios(
@@ -76,6 +77,7 @@ def listar_comentarios_cadeira(
         size,
         topico=topico,
         apenas_dificuldades=apenas_dificuldades,
+        current_user_id=current_user.id if current_user else None,
     )
 
 
