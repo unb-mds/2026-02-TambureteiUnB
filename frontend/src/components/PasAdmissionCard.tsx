@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { normalizeSearchTerm } from "@/utils/search";
 import type { Course } from "@/types/curso";
@@ -25,6 +28,42 @@ export default function PasAdmissionCard({ course, expanded = false, year = "all
     {admission && !admission.ingressoConjunto && admission.ofertaOriginal && (admission.graus.length > 1 || normalizeSearchTerm(admission.nome) !== normalizeSearchTerm(course.nome)) && <p className="mt-1 text-[10px] text-[var(--text-muted)]">Oferta no boletim: {admission.ofertaOriginal}</p>}
     {!admission && <p className="mt-1 text-[10px] text-[var(--text-muted)]">{selectedSource ? "Sem correspondência validada no boletim deste ciclo." : "Nenhum boletim PAS disponível para o ano selecionado."}</p>}
   </div>;
+
+  const [quotaCycle, setQuotaCycle] = useState("");
+  const quotaSource = expanded && quotaCycle ? history.find(item => item.source.ciclo === quotaCycle)?.source : selectedSource;
+  const quotaAdmission = quotaSource ? findPasAdmission(course, quotaSource) : undefined;
+  const quotaSourceUrl = quotaSource ? `${quotaSource.url}${quotaAdmission ? `#page=${quotaAdmission.pagina}` : ""}` : "";
+  const quotaScores: Partial<Record<string, {minimo: string | null; maximo: string | null; observacao?: string}>> = quotaAdmission?.cotas ?? {};
+  const quotaSection = <details className="group/quota border-t border-[var(--border-subtle)] bg-[var(--surface)]">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-3 text-[11px] font-semibold text-[var(--text-muted)] focus-visible:outline-2 focus-visible:outline-[var(--primary-text)] [&::-webkit-details-marker]:hidden">
+      <span>Ver notas por modalidade de concorrência</span>
+      <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5 shrink-0 transition-transform group-open/quota:rotate-180"><path d="m5 7.5 5 5 5-5" /></svg>
+    </summary>
+    <div className="space-y-3 px-3 pb-3">
+      <p className="text-[10px] text-[var(--text-muted)]">PAS · {quotaSource?.ciclo ?? String(year)} · Argumentos finais dos selecionados</p>
+      {expanded && <label className="block text-[11px] font-semibold">Ciclo das notas de cotas<select aria-label="Ciclo das notas de cotas" className="mt-1 block w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-xs text-[var(--foreground)]" value={quotaSource?.ciclo ?? ""} onChange={event => setQuotaCycle(event.target.value)}>{history.map(item => <option key={item.source.ciclo} value={item.source.ciclo}>{item.source.ciclo}</option>)}</select></label>}
+      {!quotaAdmission ? <p className="text-[11px] text-[var(--text-muted)]">{quotaSource ? "Oferta sem correspondência validada neste ciclo. Não é possível atribuir notas de cotas a este curso." : "Nenhum boletim disponível para o ano selecionado."}</p> : <>
+        <div tabIndex={0} aria-label={`Notas de cotas do PAS ${quotaSource?.ciclo}`} className="max-h-80 overflow-y-auto rounded-lg border border-[var(--border-subtle)] focus-visible:outline-2 focus-visible:outline-[var(--primary-text)]">
+          <ul className="divide-y divide-[var(--border-subtle)]">
+            {quotaSource?.modalidades.map(modality => {
+              const values = quotaScores[modality.id];
+              return <li key={modality.id} className="bg-[var(--surface-muted)] p-3">
+                <p className="text-[10px] text-[var(--text-muted)]">{modality.sistema}</p>
+                <p className="mt-1 text-[11px] font-semibold">{modality.descricao}</p>
+                <dl className="mt-2 grid grid-cols-2 gap-3 text-[10px]">
+                  <div><dt className="text-[var(--text-muted)]">Mínimo</dt><dd className="mt-0.5 text-sm font-semibold">{values ? formatPasScore(values.minimo) : "Não disponível"}</dd></div>
+                  <div><dt className="text-[var(--text-muted)]">Máximo</dt><dd className="mt-0.5 text-sm font-semibold">{values ? formatPasScore(values.maximo) : "Não disponível"}</dd></div>
+                </dl>
+                {values?.observacao && <p className="mt-2 text-[10px] leading-relaxed text-[var(--text-muted)]">{values.observacao}</p>}
+              </li>;
+            })}
+          </ul>
+        </div>
+        <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">“Não informado” corresponde à ausência de argumento no boletim, não a nota zero. As modalidades e os limites de renda são os desta edição; consulte o edital para as regras de participação.</p>
+      </>}
+      {quotaSource && <a href={quotaSourceUrl} target="_blank" rel="noopener noreferrer" className="inline-block text-[10px] font-semibold text-[var(--primary-text)] underline underline-offset-2">Fonte Cebraspe · ciclo {quotaSource.ciclo}{quotaAdmission ? ` · p. ${quotaAdmission.pagina}` : ""}</a>}
+    </div>
+  </details>;
 
   return (
     <section id={expanded ? "notas-pas" : undefined} aria-label={`Nota PAS de ${course.nome}`} className="mt-3 scroll-mt-24 overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--primary-soft)] text-[var(--foreground)]">
@@ -66,6 +105,7 @@ export default function PasAdmissionCard({ course, expanded = false, year = "all
           </section>
         </div>
       </details>}
+      {quotaSection}
     </section>
   );
 }
