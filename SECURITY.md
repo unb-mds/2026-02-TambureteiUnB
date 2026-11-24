@@ -24,3 +24,4 @@ Inclua, sempre que possível, a rota ou componente afetado, passos para reprodu�
 * Coleta mínima de dados pessoais (sem matrícula, CPF ou histórico nominal armazenado — `RN01` e ADR 05).
 * Senhas protegidas com hash `bcrypt`, autenticação via token JWT e validação estrita de `SECRET_KEY` em produção.
 * Consultas SQL parametrizadas via SQLAlchemy 2.0, CORS restrito em produção e análise estática automatizada com `Bandit` e `Ruff` no pipeline de CI.
+* Proteção de borda em produção via **Cloudflare** (proxy DNS, terminação TLS/HTTPS, mitigação contra DDoS e filtragem de tráfego suspeito na entrada) à frente do proxy reverso **Caddy**, mantendo as portas da aplicação e do banco restritas à rede interna do servidor.
