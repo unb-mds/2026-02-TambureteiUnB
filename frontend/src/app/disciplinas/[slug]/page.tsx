@@ -5,6 +5,7 @@ import { normalizeSearchTerm } from "@/utils/search";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
 import DificuldadesPanel from "@/components/DificuldadesPanel";
 import MateriaisApoio from "@/components/MateriaisApoio";
+import PreRequisitosSection from "@/components/PreRequisitosSection";
 
 import React, {
   useState,
@@ -726,44 +727,28 @@ function DisciplineDetailContent() {
                 </p>
 
                     
-                {(discipline.preRequisitos || discipline.equivalencias) && (
-                  <div className="mt-6 pt-5 border-t border-gray-100 flex flex-col gap-3">
-                    {discipline.preRequisitos &&
-                      discipline.preRequisitos.length > 0 && (
-                        <div>
-                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
-                            Pré-requisitos:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {discipline.preRequisitos.map((req) => (
-                              <span
-                                key={req}
-                                className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
-                              >
-                                {req}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    {discipline.equivalencias &&
-                      discipline.equivalencias.length > 0 && (
-                        <div>
-                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
-                            Equivalências:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {discipline.equivalencias.map((eq) => (
-                              <span
-                                key={eq}
-                                className="rounded-md bg-purple-50 px-2 py-0.5 text-xs text-purple-700"
-                              >
-                                {eq}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                {/* Seção dedicada e navegável de Pré-requisitos (Issue #286) */}
+                <PreRequisitosSection
+                  preRequisitosItens={discipline.preRequisitosItens}
+                  preRequisitosStrings={discipline.preRequisitos}
+                  coRequisitos={discipline.coRequisitos}
+                />
+
+                {discipline.equivalencias && discipline.equivalencias.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                      Equivalências:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {discipline.equivalencias.map((eq) => (
+                        <span
+                          key={eq}
+                          className="rounded-md bg-purple-50 px-2 py-0.5 text-xs text-purple-700"
+                        >
+                          {eq}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
