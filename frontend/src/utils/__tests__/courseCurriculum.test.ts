@@ -29,6 +29,24 @@ test("getOfficialCurriculumUrl resolve link mapeado pelo slug do curso", () => {
   const autoUrl = getOfficialCurriculumUrl({ slug: "engenharia-automotiva" });
   assert.equal(autoUrl, OFFICIAL_CURRICULUM_LINKS["engenharia-automotiva"]);
   assert.match(autoUrl, /id=414919/);
+
+  assert.match(getOfficialCurriculumUrl({ slug: "ciencia-da-computacao" }), /id=414599/);
+  assert.match(getOfficialCurriculumUrl({ slug: "direito-diurno" }), /id=414220/);
+  assert.match(getOfficialCurriculumUrl({ slug: "enfermagem-diurno" }), /id=414295/);
+  assert.match(getOfficialCurriculumUrl({ slug: "enfermagem-enfermeiro-diurno" }), /id=414902/);
+  assert.match(getOfficialCurriculumUrl({ slug: "gestao-ambiental" }), /id=414888/);
+});
+
+test("OFFICIAL_CURRICULUM_LINKS contem apenas URLs oficiais validas do SIGAA para todos os 161 cursos", () => {
+  const entries = Object.entries(OFFICIAL_CURRICULUM_LINKS);
+  assert.equal(entries.length, 161);
+  for (const [slug, url] of entries) {
+    assert.ok(slug.length > 0);
+    assert.match(
+      url,
+      /^https:\/\/sigaa\.unb\.br\/sigaa\/public\/curso\/curriculo\.jsf\?lc=pt_BR&id=\d+$/
+    );
+  }
 });
 
 test("getOfficialCurriculumUrl retorna fallback oficial do SIGAA quando slug nao possui link especifico", () => {
