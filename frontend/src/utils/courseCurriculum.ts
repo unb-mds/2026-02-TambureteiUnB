@@ -5,19 +5,17 @@
 // Mapeamento com links oficiais comprovadamente validos de cursos da UnB no SIGAA
 // IDs verificados no catalogo publico de graduacao da UnB (sigaa.unb.br/sigaa/public/curso/lista.jsf?nivel=G)
 export const OFFICIAL_CURRICULUM_LINKS: Record<string, string> = {
-  // Cursos FGA / FCTE (Gama)
+  // Cursos FGA / FCTE (Gama) com matriz curricular ativa
   "engenharia-de-software":
     "https://sigaa.unb.br/sigaa/public/curso/curriculo.jsf?lc=pt_BR&id=414924",
-  "engenharia-aeroespacial":
-    "https://sigaa.unb.br/sigaa/public/curso/curriculo.jsf?lc=pt_BR&id=414921",
   "engenharia-automotiva":
-    "https://sigaa.unb.br/sigaa/public/curso/curriculo.jsf?lc=pt_BR&id=414922",
+    "https://sigaa.unb.br/sigaa/public/curso/curriculo.jsf?lc=pt_BR&id=414919",
+  "engenharia-aeroespacial":
+    "https://sigaa.unb.br/sigaa/public/curso/curriculo.jsf?lc=pt_BR&id=414916",
   "engenharia-eletronica":
-    "https://sigaa.unb.br/sigaa/public/curso/curriculo.jsf?lc=pt_BR&id=414923",
+    "https://sigaa.unb.br/sigaa/public/curso/curriculo.jsf?lc=pt_BR&id=414926",
   "engenharia-de-energia":
-    "https://sigaa.unb.br/sigaa/public/curso/curriculo.jsf?lc=pt_BR&id=414925",
-  "engenharias-fga":
-    "https://sigaa.unb.br/sigaa/public/curso/portal.jsf?lc=pt_BR&id=414920",
+    "https://sigaa.unb.br/sigaa/public/curso/curriculo.jsf?lc=pt_BR&id=414922",
 };
 
 // URL de consulta pública geral do SIGAA quando não houver ID direto

@@ -24,7 +24,11 @@ test("getOfficialCurriculumUrl resolve link mapeado pelo slug do curso", () => {
 
   const aeroUrl = getOfficialCurriculumUrl({ slug: "engenharia-aeroespacial" });
   assert.equal(aeroUrl, OFFICIAL_CURRICULUM_LINKS["engenharia-aeroespacial"]);
-  assert.match(aeroUrl, /id=414921/);
+  assert.match(aeroUrl, /id=414916/);
+
+  const autoUrl = getOfficialCurriculumUrl({ slug: "engenharia-automotiva" });
+  assert.equal(autoUrl, OFFICIAL_CURRICULUM_LINKS["engenharia-automotiva"]);
+  assert.match(autoUrl, /id=414919/);
 });
 
 test("getOfficialCurriculumUrl retorna fallback oficial do SIGAA quando slug nao possui link especifico", () => {
