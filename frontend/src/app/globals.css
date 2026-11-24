@@ -157,6 +157,42 @@ html[data-theme="dark"] .guest-banner.guest-banner {
   border-color: rgb(216 190 111 / 0.3);
 }
 
+html[data-theme="dark"] .data-collection-banner {
+  background-image: linear-gradient(to right, #232230, #2A2838, #232230);
+  border-color: rgba(124, 108, 240, 0.35);
+}
+
+html[data-theme="dark"] .data-collection-banner .data-collection-banner__icon {
+  background-color: rgba(124, 108, 240, 0.2);
+  color: #9A8FF8;
+}
+
+html[data-theme="dark"] .data-collection-banner .data-collection-banner__badge {
+  background-color: rgba(124, 108, 240, 0.25);
+  color: #C4BEFC;
+}
+
+html[data-theme="dark"] .data-collection-banner .data-collection-banner__text {
+  color: #E4E4E7;
+}
+
+html[data-theme="dark"] .data-collection-banner .data-collection-banner__strong {
+  color: #9A8FF8;
+}
+
+html[data-theme="dark"] .data-collection-banner .data-collection-banner__subtitle {
+  color: #A594F9;
+}
+
+html[data-theme="dark"] .data-collection-banner .data-collection-banner__dismiss {
+  color: #A1A1AA;
+}
+
+html[data-theme="dark"] .data-collection-banner .data-collection-banner__dismiss:hover {
+  background-color: rgba(124, 108, 240, 0.2);
+  color: #FFFFFF;
+}
+
 html[data-theme="dark"] .guest-banner .guest-banner__icon,
 html[data-theme="dark"] .guest-banner .guest-banner__badge {
   background-color: rgb(216 190 111 / 0.12);
