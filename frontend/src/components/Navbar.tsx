@@ -199,40 +199,25 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-[#E8E6F8] bg-white px-4 pt-3 pb-5 shadow-lg animate-in slide-in-from-top-2 duration-150">
           <div className="flex flex-col gap-1.5">
-            <Link
-              href="/"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`px-3 py-2.5 rounded-xl text-base font-medium ${
-                isActive("/")
-                  ? "bg-[#5B4BDB]/10 text-[#5B4BDB]"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              Início
-            </Link>
-            <Link
-              href="/cursos"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`px-3 py-2.5 rounded-xl text-base font-medium ${
-                isActive("/cursos")
-                  ? "bg-[#5B4BDB]/10 text-[#5B4BDB]"
-                : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              Cursos
-            </Link>
-            <Link
-              href="/disciplinas"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`px-3 py-2.5 rounded-xl text-base font-medium ${
-                isActive("/disciplinas")
-                  ? "bg-[#5B4BDB]/10 text-[#5B4BDB]"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              Disciplinas
-            </Link>
-            <Link href="/minha-grade" onClick={() => setMobileMenuOpen(false)} className={`px-4 py-3 rounded-xl text-sm font-semibold ${isActive("/minha-grade") ? "bg-[#5B4BDB]/10 text-[#5B4BDB]" : "text-gray-600"}`}>Minha grade</Link>
+            {[
+              { href: "/", label: "Início" },
+              { href: "/cursos", label: "Cursos" },
+              { href: "/disciplinas", label: "Disciplinas" },
+              { href: "/minha-grade", label: "Minha grade" },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`px-3 py-2.5 rounded-xl text-base font-medium ${
+                  isActive(item.href)
+                    ? "bg-[#5B4BDB]/10 text-[#5B4BDB]"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
 
           <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
