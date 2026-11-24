@@ -4,6 +4,7 @@ import {
   TurnoTurma,
   formatClassOccupancy,
 } from "@/types/turma";
+import { ClassOccupancyPie } from "@/components/ClassPerformancePieForm";
 
 export interface ClassCardProps {
   turma?: Class;
@@ -15,13 +16,13 @@ function getTurnoBadgeClasses(turno: TurnoTurma): string {
   switch (turno) {
     case "Matutino":
     case "Diurno":
-      return "bg-amber-50 text-amber-700 border-amber-200/80";
+      return "bg-[var(--status-warning-bg)] text-[var(--status-warning-text)] border-[var(--status-warning-border)]";
     case "Vespertino":
-      return "bg-orange-50 text-orange-700 border-orange-200/80";
+      return "bg-[var(--primary-soft)] text-[var(--primary-text)] border-[var(--border-subtle)]";
     case "Noturno":
-      return "bg-indigo-50 text-indigo-700 border-indigo-200/80";
+      return "bg-[var(--primary-soft)] text-[var(--primary-text)] border-[var(--border-subtle)]";
     default:
-      return "bg-gray-100 text-gray-700 border-gray-200";
+      return "bg-[var(--status-neutral-bg)] text-[var(--status-neutral-text)] border-[var(--status-neutral-border)]";
   }
 }
 
@@ -140,10 +141,45 @@ export default function ClassCard({
         </dl>
       </div>
 
-      <footer className="mt-4 border-t border-gray-100 pt-3.5">
-        <p className="text-xs font-medium text-gray-700">
-          {formatClassOccupancy(item.vagasOcupadas, item.totalVagas)}
-        </p>
+      <footer className="mt-4 space-y-2.5 border-t border-gray-100 pt-3.5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-medium text-gray-700">
+            {formatClassOccupancy(item.vagasOcupadas, item.totalVagas)}
+          </p>
+          <ClassOccupancyPie classData={item} compact />
+        </div>
+
+        {item.estatistica ? (
+          <div className="rounded-xl bg-[#F7F7FA] px-3 py-2 text-[11px]">
+            <div className="flex flex-wrap items-center justify-between gap-1 font-semibold">
+              <span className="text-emerald-700">
+                Aprovação: {Math.round(item.estatistica.taxa_aprovacao)}%
+              </span>
+              <span className="text-red-600">
+                Reprov.:{" "}
+                {Math.round(
+                  item.estatistica.taxa_reprovacao_nota +
+                    item.estatistica.taxa_reprovacao_falta
+                )}
+                %
+              </span>
+              <span className="text-amber-700">
+                Tranc.: {Math.round(item.estatistica.taxa_trancamento)}%
+              </span>
+            </div>
+            {(item.amostrasComunidade ?? 0) > 0 && (
+              <p className="mt-1 text-[10px] text-gray-500">
+                Baseado em {item.amostrasComunidade}{" "}
+                {item.amostrasComunidade === 1 ? "histórico" : "históricos"}
+              </p>
+            )}
+          </div>
+        ) : (item.amostrasComunidade ?? 0) > 0 ? (
+          <div className="rounded-xl border border-dashed border-[#D8D1FA] bg-[#F8F7FF] px-3 py-2 text-[11px] font-medium text-[#5B4BDB]">
+            Coleta comunidade: {item.amostrasComunidade}/
+            {item.minimoAmostrasLgpd ?? 5} históricos (RN07)
+          </div>
+        ) : null}
       </footer>
     </article>
   );

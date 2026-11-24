@@ -4,10 +4,18 @@ from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.api.schemas.curadoria import DecisaoCuradoria, FilaCuradoria, RegistroCuradoria
+from app.api.schemas.curadoria import (
+    ComentarioPendente,
+    DecisaoComentarioCuradoria,
+    DecisaoCuradoria,
+    FilaComentariosCuradoria,
+    FilaCuradoria,
+    RegistroCuradoria,
+)
 from app.models.curadoria import Curadoria
 from app.models.conteudo import Conteudo
 from app.models.usuario import Usuario
+from app.repositories.comentario_repo import comentario_repo
 from app.repositories.curadoria_repo import curadoria_repo
 from app.services.armazenamento_material import ArmazenamentoMaterial
 
@@ -41,6 +49,9 @@ class CuradoriaService:
                 justificativa=dados.justificativa,
             )
             conteudo.status_curadoria = dados.status
+            conteudo.moderado_por = moderador.role
+            if dados.justificativa:
+                conteudo.motivo_moderacao = dados.justificativa
             if dados.status == "APROVADO":
                 conteudo.status_moderacao = "ativo"
             curadoria_repo.registrar(db, registro)
@@ -53,6 +64,37 @@ class CuradoriaService:
         except SQLAlchemyError as exc:
             db.rollback()
             logger.exception("Falha ao registrar curadoria.")
+            raise HTTPException(503, "Não foi possível registrar a decisão. Tente novamente.") from exc
+
+    def listar_comentarios(self, db: Session, pagina: int, tamanho: int) -> FilaComentariosCuradoria:
+        itens, total = curadoria_repo.listar_comentarios_pendentes(db, pagina, tamanho)
+        return FilaComentariosCuradoria(items=itens, total=total, pagina=pagina, tamanho_pagina=tamanho)
+
+    def decidir_comentario(
+        self, db: Session, comentario_id: int, dados: DecisaoComentarioCuradoria, moderador: Usuario
+    ) -> ComentarioPendente:
+        try:
+            comentario = curadoria_repo.obter_comentario(db, comentario_id, bloquear=True)
+            if comentario is None:
+                raise HTTPException(404, "Comentário não encontrado.")
+            if comentario.status_moderacao != "PENDENTE":
+                raise HTTPException(409, "Este comentário já foi avaliado. Atualize a fila.")
+            comentario.status_moderacao = dados.status
+            comentario.moderado_por = moderador.role
+            if dados.justificativa:
+                comentario.motivo_moderacao = dados.justificativa
+            if dados.status == "OCULTO":
+                comentario_repo.ocultar_descendentes(db, comentario.id, moderador.role)
+            db.flush()
+            resposta = ComentarioPendente.model_validate(comentario)
+            db.commit()
+            return resposta
+        except HTTPException:
+            db.rollback()
+            raise
+        except SQLAlchemyError as exc:
+            db.rollback()
+            logger.exception("Falha ao registrar curadoria de comentário.")
             raise HTTPException(503, "Não foi possível registrar a decisão. Tente novamente.") from exc
 
     def baixar(self, db: Session, conteudo_id: int) -> tuple[Conteudo, Path]:

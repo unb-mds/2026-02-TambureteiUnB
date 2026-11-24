@@ -1,4 +1,7 @@
 "use client";
+
+import { hasApprovalData } from "@/utils/academicMetrics";
+import { normalizeSearchTerm } from "@/utils/search";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
 import DificuldadesPanel from "@/components/DificuldadesPanel";
 import MateriaisApoio from "@/components/MateriaisApoio";
@@ -8,6 +11,7 @@ import React, {
   useEffect,
   useMemo,
   useCallback,
+  useSyncExternalStore,
   Suspense,
 } from "react";
 import Link from "next/link";
@@ -31,19 +35,22 @@ import ClassFilters, {
 } from "@/components/ClassFilters";
 import MaterialModal from "@/components/MaterialModal";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
-import { isAuthenticated } from "@/services/authService";
+import ClassPerformancePieForm from "@/components/ClassPerformancePieForm";
+import { isAuthenticated, subscribeAuthChange } from "@/services/authService";
 import {
   getDisciplineBySlug,
   getClassesByDiscipline,
 } from "@/services/disciplineService";
 import {
   exportDisciplineHistoryOpenData,
-  filterPublicHistoricalPerformance,
   mapHistoricalPerformanceToOpenData,
 } from "@/services/openDataService";
 import {
+  buildDisciplinePeriodOptions,
+  computePeriodMetricsSummary,
+} from "@/utils/disciplinePeriodMetrics";
+import {
   Discipline,
-  DEFAULT_HISTORICAL_PERFORMANCE,
 } from "@/types/disciplina";
 import {
   Class,
@@ -100,18 +107,24 @@ function DisciplineDetailContent() {
     parseInitialSort(searchParams.get("ordem"))
   );
 
-  const [period, setPeriod] = useState("Todos os semestres (2020 a 2025)");
-  const [completed, setCompleted] = useState(false);
+  const [period, setPeriod] = useState("ALL");
+  const [showSemesterEvolution, setShowSemesterEvolution] = useState(true);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [materialsReloadTrigger, setMaterialsReloadTrigger] = useState(0);
+  const [pendingMaterialIds, setPendingMaterialIds] = useState<string[]>([]);
+
+  const authenticated = useSyncExternalStore(
+    subscribeAuthChange,
+    isAuthenticated,
+    () => false
+  );
 
   const handleOpenMaterialModal = useCallback(() => {
-    if (!isAuthenticated()) {
-      router.push("/login");
+    if (!authenticated || !isAuthenticated()) {
       return;
     }
     setShowMaterialModal(true);
-  }, [router]);
+  }, [authenticated]);
 
   const syncUrlParams = useCallback(
     (nextShift: ClassShiftFilter, nextSort: ClassSortOption) => {
@@ -153,9 +166,14 @@ function DisciplineDetailContent() {
     [selectedShift, syncUrlParams]
   );
 
+  const [classSearchQuery, setClassSearchQuery] = useState("");
+  const [onlyClassesWithData, setOnlyClassesWithData] = useState(false);
+
   const handleResetClassFilters = useCallback(() => {
     setSelectedShift("Todos");
     setSortBy("code_asc");
+    setClassSearchQuery("");
+    setOnlyClassesWithData(false);
     setClassPage(1);
     syncUrlParams("Todos", "code_asc");
   }, [syncUrlParams]);
@@ -279,12 +297,35 @@ function DisciplineDetailContent() {
     };
   }, [discipline, slug, simulateClassesError, classesRetryCount]);
 
-  // Filtragem por turno e ordenação reativa
+  // Filtragem por turno, busca por professor/turma/semestre, dados e ordenação reativa
   const filteredAndSortedClasses = useMemo(() => {
+    const qNorm = normalizeSearchTerm(classSearchQuery);
     const filtered = classes.filter((item) => {
-      if (selectedShift === "Todos") return true;
-      const normalized = normalizeClassShift(item.turno, item.horarios);
-      return normalized === selectedShift;
+      if (selectedShift !== "Todos") {
+        const normalized = normalizeClassShift(item.turno, item.horarios);
+        if (normalized !== selectedShift) return false;
+      }
+
+      if (onlyClassesWithData) {
+        const hasAcademicData =
+          Boolean(item.estatistica) || (item.amostrasComunidade ?? 0) > 0;
+        if (!hasAcademicData) return false;
+      }
+
+      if (qNorm) {
+        const profNorm = normalizeSearchTerm(item.professor);
+        const codNorm = normalizeSearchTerm(item.codigoTurma);
+        const semNorm = normalizeSearchTerm(item.semestre ?? "");
+        if (
+          !profNorm.includes(qNorm) &&
+          !codNorm.includes(qNorm) &&
+          !semNorm.includes(qNorm)
+        ) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     return [...filtered].sort((a, b) => {
@@ -296,7 +337,7 @@ function DisciplineDetailContent() {
         sensitivity: "base",
       });
     });
-  }, [classes, selectedShift, sortBy]);
+  }, [classes, selectedShift, sortBy, classSearchQuery, onlyClassesWithData]);
 
   const paginatedClasses = paginateClasses(filteredAndSortedClasses, classPage);
 
@@ -308,7 +349,7 @@ function DisciplineDetailContent() {
           <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
           <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
           <div className="h-32 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="mb-8 grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto">
             {[1, 2, 3, 4].map((i) => (
               <ClassCardSkeleton key={i} />
             ))}
@@ -387,46 +428,56 @@ function DisciplineDetailContent() {
 
   const realHistoricalPerformance =
     discipline.historicalPerformance ?? [];
-  const publicRealPerformance = filterPublicHistoricalPerformance(
-    realHistoricalPerformance
-  );
+  const periodOptions = buildDisciplinePeriodOptions(realHistoricalPerformance);
+  const activePeriod = periodOptions.some((opt) => opt.value === period)
+    ? period
+    : "ALL";
+  const periodSummary = computePeriodMetricsSummary({
+    history: realHistoricalPerformance,
+    consolidatedMetric: discipline.metrica_consolidada,
+    period: activePeriod,
+  });
+
   const exportableHistoryRows = mapHistoricalPerformanceToOpenData(
     discipline.code,
     discipline.name,
-    realHistoricalPerformance,
-    discipline.metrica_consolidada
+    periodSummary.selectedHistory,
+    periodSummary.filteredConsolidatedMetric
   );
   const hasRealExportableHistory = exportableHistoryRows.length > 0;
 
-  const performanceList =
-    publicRealPerformance.length > 0
-      ? publicRealPerformance
-      : realHistoricalPerformance.length > 0
-      ? []
-      : DEFAULT_HISTORICAL_PERFORMANCE;
+  const performanceList = periodSummary.publicHistory;
 
-  // Extração dos dados consolidados reais da disciplina
-  const metrica = discipline.metrica_consolidada;
-  const totalMatriculados = metrica?.matriculados ?? 0;
+  // Extração dos dados consolidados reais da disciplina para o período selecionado
+  const totalDadosFornecidos = discipline.metrica_consolidada?.matriculados ?? 0;
+  const totalMatriculados = periodSummary.matriculados;
+  const hasConsolidatedMetrics =
+    !periodSummary.suppressedByLgpd &&
+    (hasApprovalData(periodSummary.approval) || totalMatriculados > 0);
 
   // Formatação segura de quantidades de alunos
   const formatAlunos = (qtd: number | undefined) => {
-    const val = qtd ?? 0;
-    return `${val} ${val === 1 ? "aluno" : "alunos"}`;
+    if (!hasConsolidatedMetrics || !qtd || qtd <= 0) {
+      return "Sem dados";
+    }
+    return `${qtd} ${qtd === 1 ? "aluno" : "alunos"}`;
   };
 
-  // Cards de métricas consumindo as taxas centralizadas no adaptador
+  // Cards de métricas consumindo o período selecionado
   const metrics = [
     {
       label: "Taxa de Aprovação",
       value:
-        typeof discipline.approval === "number" && discipline.approval > 0
-          ? `${discipline.approval}%`
+        hasConsolidatedMetrics &&
+        hasApprovalData(periodSummary.approval) &&
+        (periodSummary.approval ?? 0) > 0
+          ? `${periodSummary.approval}%`
           : "Sem dados",
-      count: formatAlunos(metrica?.aprovados),
-      color: "#067A59",
-      iconColor: "#10B981",
-      background: "#E9F9F3",
+      count: formatAlunos(periodSummary.aprovados),
+      color: "var(--status-success-text)",
+      iconColor: "var(--status-success-text)",
+      background: "var(--status-success-bg)",
+      border: "var(--status-success-border)",
       icon: (
         <path
           d="M5 10.5l3 3L15 6.5"
@@ -439,11 +490,15 @@ function DisciplineDetailContent() {
     },
     {
       label: "Reprovação por Nota",
-      value: `${discipline.failedGrade ?? 0}%`,
-      count: formatAlunos(metrica?.reprovados_nota),
-      color: "#C52C2C",
-      iconColor: "#EF4444",
-      background: "#FFF0F0",
+      value:
+        hasConsolidatedMetrics && periodSummary.failedGrade > 0
+          ? `${periodSummary.failedGrade}%`
+          : "Sem dados",
+      count: formatAlunos(periodSummary.reprovadosNota),
+      color: "var(--status-danger-text)",
+      iconColor: "var(--status-danger-text)",
+      background: "var(--status-danger-bg)",
+      border: "var(--status-danger-border)",
       icon: (
         <path
           d="M5 6l4 4 3-3 4 4M13 11h3V8"
@@ -456,11 +511,15 @@ function DisciplineDetailContent() {
     },
     {
       label: "Reprovação por Falta",
-      value: `${discipline.failedAttendance ?? 0}%`,
-      count: formatAlunos(metrica?.reprovados_falta),
-      color: "#9A5700",
-      iconColor: "#F59E0B",
-      background: "#FFF7E8",
+      value:
+        hasConsolidatedMetrics && periodSummary.failedAttendance > 0
+          ? `${periodSummary.failedAttendance}%`
+          : "Sem dados",
+      count: formatAlunos(periodSummary.reprovadosFalta),
+      color: "var(--status-warning-text)",
+      iconColor: "var(--status-warning-text)",
+      background: "var(--status-warning-bg)",
+      border: "var(--status-warning-border)",
       icon: (
         <>
           <circle
@@ -481,11 +540,15 @@ function DisciplineDetailContent() {
     },
     {
       label: "Trancamentos",
-      value: `${discipline.withdrawn ?? 0}%`,
-      count: formatAlunos(metrica?.trancamentos),
-      color: "#526174",
-      iconColor: "#64748B",
-      background: "#F1F5F9",
+      value:
+        hasConsolidatedMetrics && periodSummary.withdrawn > 0
+          ? `${periodSummary.withdrawn}%`
+          : "Sem dados",
+      count: formatAlunos(periodSummary.trancamentos),
+      color: "var(--status-neutral-text)",
+      iconColor: "var(--status-neutral-text)",
+      background: "var(--status-neutral-bg)",
+      border: "var(--status-neutral-border)",
       icon: (
         <path
           d="M7 6v8M13 6v8"
@@ -568,63 +631,45 @@ function DisciplineDetailContent() {
 
               
               <div className="flex flex-wrap sm:flex-nowrap lg:flex-wrap xl:flex-nowrap items-center gap-3 w-full lg:w-auto shrink-0 pt-2 lg:pt-1">
-                                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!completed) {
-                        const confirmou = window.confirm(
-                          `Confirmar que você já concluiu ${discipline.name}? Essa informação apoia a comunidade na identificação de estudantes veteranos.`
-                        );
-                        if (confirmou) {
-                          setCompleted(true);
-                        }
-                      } else {
-                        setCompleted(false);
-                      }
-                    }}
-                    aria-pressed={completed}
-                    className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                      completed
-                        ? "bg-[#E9F9F3] text-[#067A59] border border-[#A7E6CF]"
-                        : "bg-[#EDE9FD] text-[#5B4BDB] border border-[#D8D1FA] hover:bg-[#5B4BDB]/15"
-                    }`}
+                <div
+                  title="Quantidade de registros acadêmicos enviados para esta disciplina"
+                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap bg-[#EDE9FD] text-[#5B4BDB] border border-[#D8D1FA] select-none"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 18 18"
+                    fill="none"
+                    aria-hidden="true"
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 18 18"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M2.5 6.5L9 3l6.5 3.5L9 10 2.5 6.5Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M5 8.2v3.3c1.2 1.6 6.8 1.6 8 0V8.2M15.5 7v4"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span>{completed ? "Materia cursada" : "Ja cursei essa materia"}</span>
-                    <span className="ml-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
-                      {(discipline.metrica_consolidada?.aprovados || 0) + (completed ? 1 : 0)}
-                    </span>
-                  </button>
+                    <path
+                      d="M3 13.5V9.5M7.5 13.5V5.5M12 13.5V7.5M15.5 13.5H2.5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span>Dados fornecidos</span>
+                  <span className="ml-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
+                    {totalDadosFornecidos}
+                  </span>
                 </div>
 
                 <button
                   type="button"
+                  disabled={!authenticated}
+                  title={!authenticated ? "Faça login para adicionar materiais" : undefined}
                   onClick={handleOpenMaterialModal}
                   data-reload-count={materialsReloadTrigger}
-                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-[#5B4BDB] px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-all hover:brightness-110 shadow-xs active:scale-95"
+                  className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-all shadow-xs ${
+                    authenticated
+                      ? "bg-[#5B4BDB] hover:brightness-110 active:scale-95 cursor-pointer"
+                      : "bg-gray-300 cursor-not-allowed opacity-60"
+                  }`}
                 >
                   <span className="text-base leading-none">+</span>
-                  Adicionar material
+                  {authenticated ? "Adicionar material" : "Faça login para adicionar"}
                 </button>
               </div>
             </div>
@@ -637,7 +682,10 @@ function DisciplineDetailContent() {
             disciplineSlug={slug}
             disciplineName={discipline.name}
             onClose={() => setShowMaterialModal(false)}
-            onUploadSuccess={() => {
+            onUploadSuccess={(uploadedIds) => {
+              if (uploadedIds && uploadedIds.length > 0) {
+                setPendingMaterialIds(uploadedIds);
+              }
               setMaterialsReloadTrigger((prev) => prev + 1);
             }}
           />
@@ -835,7 +883,7 @@ function DisciplineDetailContent() {
             {classesLoading ? (
               <div
                 aria-label="Carregando lista de turmas"
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5"
+                className="grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto sm:gap-5"
               >
                 {[1, 2, 3, 4].map((skeletonId) => (
                   <ClassCardSkeleton key={skeletonId} />
@@ -902,6 +950,16 @@ function DisciplineDetailContent() {
                   totalCount={classes.length}
                   filteredCount={filteredAndSortedClasses.length}
                   onResetFilters={handleResetClassFilters}
+                  searchQuery={classSearchQuery}
+                  onSearchChange={(val) => {
+                    setClassSearchQuery(val);
+                    setClassPage(1);
+                  }}
+                  onlyWithData={onlyClassesWithData}
+                  onOnlyWithDataChange={(only) => {
+                    setOnlyClassesWithData(only);
+                    setClassPage(1);
+                  }}
                 />
 
                 {filteredAndSortedClasses.length > 0 ? (
@@ -911,10 +969,12 @@ function DisciplineDetailContent() {
                       de {filteredAndSortedClasses.length}{" "}
                       {filteredAndSortedClasses.length === 1 ? "turma" : "turmas"}
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                      {paginatedClasses.items.map((turma) => (
-                        <ClassCard key={turma.id} classData={turma} />
-                      ))}
+                    <div className="overflow-x-auto pb-2">
+                      <div className="grid min-w-[1000px] grid-cols-4 gap-4 sm:gap-5">
+                        {paginatedClasses.items.map((turma) => (
+                          <ClassCard key={turma.id} classData={turma} />
+                        ))}
+                      </div>
                     </div>
                     <Pagination
                       currentPage={paginatedClasses.currentPage}
@@ -937,8 +997,7 @@ function DisciplineDetailContent() {
             )}
           </section>
 
-          
-          <section className="rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
+          <section className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-xs sm:p-8">
             
             <div className="mb-7 flex flex-col md:flex-row md:items-start justify-between gap-5">
               <div>
@@ -957,13 +1016,15 @@ function DisciplineDetailContent() {
                 </span>
                 <div className="relative">
                   <select
-                    value={period}
+                    value={activePeriod}
                     onChange={(event) => setPeriod(event.target.value)}
-                    className="w-full appearance-none rounded-xl bg-[#F7F7FA] border border-[#DDD9F1] px-4 py-2.5 pr-10 text-xs sm:text-sm font-medium text-[#202124] outline-none focus:border-[#5B4BDB]"
+                    className="w-full appearance-none rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-2.5 pr-10 text-xs font-medium text-[var(--foreground)] outline-none focus:border-[var(--primary)] sm:text-sm"
                   >
-                    <option>Todos os semestres (2020 a 2025)</option>
-                    <option>Últimos 2 anos</option>
-                    <option>2025/2</option>
+                    {periodOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                   <svg
                     className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
@@ -985,7 +1046,23 @@ function DisciplineDetailContent() {
               </label>
             </div>
 
-          
+            <ClassPerformancePieForm classes={classes} />
+
+            {periodSummary.suppressedByLgpd && (
+              <div
+                role="status"
+                className="mb-5 flex items-start gap-2.5 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD] px-4 py-3 text-xs sm:text-sm text-[#5B4BDB]"
+              >
+                <span>
+                  <strong>Dados individuais suprimidos pela LGPD (RN07):</strong>{" "}
+                  o período selecionado possui {periodSummary.matriculados}{" "}
+                  {periodSummary.matriculados === 1 ? "matrícula" : "matrículas"}{" "}
+                  (mínimo de 5 para exibição individual). Selecione{" "}
+                  <strong>Todos os semestres</strong> para ver o acumulado consolidado.
+                </span>
+              </div>
+            )}
+
             <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {metrics.map((metric) => (
                 <div
@@ -993,12 +1070,12 @@ function DisciplineDetailContent() {
                   className="rounded-2xl p-5 border"
                   style={{
                     background: metric.background,
-                    borderColor: `${metric.iconColor}33`,
+                    borderColor: metric.border,
                   }}
                 >
                   <div className="mb-4 flex items-center justify-between">
                     <div
-                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-2xs"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface)] shadow-2xs"
                       style={{ color: metric.iconColor }}
                     >
                       <svg
@@ -1027,7 +1104,7 @@ function DisciplineDetailContent() {
                   >
                     {metric.value}
                   </div>
-                  <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-700">
+                  <p className="mt-1 text-xs font-semibold text-[var(--text-muted)] sm:text-sm">
                     {metric.label}
                   </p>
                 </div>
@@ -1035,26 +1112,75 @@ function DisciplineDetailContent() {
             </div>
 
             
-            <div className="rounded-2xl bg-[#FAFAFC] p-5 sm:p-6 border border-[#ECEAF5]">
-              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5 sm:p-6">
+              <div
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                  showSemesterEvolution ? "mb-6" : "mb-0"
+                }`}
+              >
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-[#202124]">
+                  <h3 className="text-base font-bold text-[var(--foreground)] sm:text-lg">
                     Evolução semestral
                   </h3>
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                     Distribuição percentual dos resultados por semestre
                   </p>
                 </div>
-                
-                <span className="self-start sm:self-auto rounded-full bg-[#EDE9FD] px-3 py-1 text-xs font-semibold text-[#5B4BDB]">
-                  Base acumulada: {totalMatriculados} {totalMatriculados === 1 ? "matrícula" : "matrículas"}
-                </span>
+
+                <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                  <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--primary-text)]">
+                    Base acumulada:{" "}
+                    {totalMatriculados > 0
+                      ? `${totalMatriculados} ${totalMatriculados === 1 ? "matrícula" : "matrículas"}`
+                      : "Sem dados"}
+                  </span>
+
+                  <button
+                    type="button"
+                    aria-expanded={showSemesterEvolution}
+                    aria-controls="evolucao-semestral-conteudo"
+                    aria-label={
+                      showSemesterEvolution
+                        ? "Ocultar evolução semestral"
+                        : "Mostrar evolução semestral"
+                    }
+                    onClick={() => setShowSemesterEvolution((prev) => !prev)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-xs font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary-text)] cursor-pointer"
+                  >
+                    <span>{showSemesterEvolution ? "Ocultar" : "Mostrar"}</span>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden="true"
+                      className={`transition-transform duration-200 ${
+                        showSemesterEvolution ? "rotate-180" : "rotate-0"
+                      }`}
+                    >
+                      <path
+                        d="M4 6l4 4 4-4"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
-              
+              {showSemesterEvolution && (
+                <div id="evolucao-semestral-conteudo">
+              {performanceList.length === 0 ? (
+                <p role="status" className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]">
+                  Não há histórico semestral público disponível para esta disciplina. Registros com baixa amostragem são preservados conforme a LGPD.
+                </p>
+              ) : (
+                <>
               <div className="flex h-64 gap-3 sm:gap-5">
                 {/* Eixo Y */}
-                <div className="flex w-8 sm:w-10 flex-col justify-between pb-7 text-right text-[11px] font-medium text-gray-500">
+                <div className="flex w-8 flex-col justify-between pb-7 text-right text-[11px] font-medium text-[var(--text-muted)] sm:w-10">
                   <span>100%</span>
                   <span>75%</span>
                   <span>50%</span>
@@ -1063,16 +1189,22 @@ function DisciplineDetailContent() {
                 </div>
 
                 
-                <div className="relative flex flex-1 items-end justify-around border-b border-l border-[#DCD9E9] px-2 sm:px-8 pb-7">
+                <div className="relative flex min-w-0 flex-1 items-end justify-around border-b border-l border-[var(--border-subtle)] px-2 pb-7 sm:px-8">
                   {[25, 50, 75, 100].map((line) => (
                     <div
                       key={line}
-                      className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[#E4E2EC]"
+                      className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[var(--border-subtle)]"
                       style={{ bottom: `${line}%` }}
                     />
                   ))}
 
-                  {performanceList.map((item) => {
+                  {performanceList.map((item, index) => {
+                    const tooltipAlignment =
+                      index === 0
+                        ? "left-0"
+                        : index >= performanceList.length - 2
+                        ? "right-0"
+                        : "left-1/2 -translate-x-1/2";
                     const total =
                       (item.approved || 0) +
                       (item.failed || 0) +
@@ -1098,51 +1230,53 @@ function DisciplineDetailContent() {
                     return (
                       <div
                         key={item.semester}
-                        className="relative z-10 flex h-full w-10 sm:w-16 flex-col items-center justify-end group"
+                        className="relative z-10 flex h-full min-w-0 w-10 sm:w-16 flex-col items-center justify-end group"
                       >
                         
-                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-nowrap z-20 shadow-md">
+                        <div
+                          className={`absolute -top-12 w-40 ${tooltipAlignment} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-normal text-center z-20 shadow-md`}
+                        >
                           {item.semester}: {approvedPct}% aprov. (
                           {item.approved}/{total})
                         </div>
 
                         
                         <div
-                          className="flex h-full w-8 sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
+                          className="flex h-full w-8 max-w-[75%] sm:max-w-full sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
                           aria-label={`${item.semester}: ${approvedPct}% aprovação, ${failedPct}% reprovação por nota`}
                         >
                           <div
                             style={{
                               height: `${approvedPct}%`,
-                              background: "#10B981",
+                              background: "var(--status-success-text)",
                             }}
                             title={`Aprovação: ${approvedPct}% (${item.approved})`}
                           />
                           <div
                             style={{
                               height: `${failedPct}%`,
-                              background: "#EF4444",
+                              background: "var(--status-danger-text)",
                             }}
                             title={`Reprovação por nota: ${failedPct}% (${item.failed})`}
                           />
                           <div
                             style={{
                               height: `${absentPct}%`,
-                              background: "#F59E0B",
+                              background: "var(--status-warning-text)",
                             }}
                             title={`Reprovação por falta: ${absentPct}% (${item.absent})`}
                           />
                           <div
                             style={{
                               height: `${withdrawnPct}%`,
-                              background: "#94A3B8",
+                              background: "var(--status-neutral-text)",
                             }}
                             title={`Trancamento: ${withdrawnPct}% (${item.withdrawn})`}
                           />
                         </div>
 
                         
-                        <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-gray-600">
+                        <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-[var(--text-muted)] max-sm:-bottom-8 max-sm:-rotate-45">
                           {item.semester}
                         </span>
                       </div>
@@ -1154,14 +1288,14 @@ function DisciplineDetailContent() {
               
               <div className="mt-8 flex flex-wrap justify-center gap-4 sm:gap-7 pt-2">
                 {[
-                  ["Aprovação", "#10B981"],
-                  ["Reprovação por nota", "#EF4444"],
-                  ["Reprovação por falta", "#F59E0B"],
-                  ["Trancamento", "#94A3B8"],
+                  ["Aprovação", "var(--status-success-text)"],
+                  ["Reprovação por nota", "var(--status-danger-text)"],
+                  ["Reprovação por falta", "var(--status-warning-text)"],
+                  ["Trancamento", "var(--status-neutral-text)"],
                 ].map(([label, color]) => (
                   <div
                     key={label}
-                    className="flex items-center gap-2 text-xs font-medium text-gray-600"
+                    className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]"
                   >
                     <span
                       className="h-2.5 w-2.5 rounded-xs"
@@ -1172,15 +1306,15 @@ function DisciplineDetailContent() {
                 ))}
               </div>
 
-              <div className="mt-6 overflow-x-auto rounded-xl border border-[#ECEAF5] bg-white">
+              <div className="mt-6 overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
                 <table
                   aria-label={`Tabela de desempenho historico semestral de ${discipline.name}`}
-                  className="w-full text-left text-xs text-gray-700"
+                  className="w-full text-left text-xs text-[var(--foreground)]"
                 >
                   <caption className="sr-only">
                     Distribuicao semestral de aprovados, reprovados por nota, reprovados por falta e trancamentos da disciplina {discipline.code} - {discipline.name}
                   </caption>
-                  <thead className="bg-[#F7F7FA] text-[11px] font-bold uppercase tracking-wider text-gray-600 border-b border-[#ECEAF5]">
+                  <thead className="border-b border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     <tr>
                       <th scope="col" className="px-3.5 py-2.5">Semestre</th>
                       <th scope="col" className="px-3.5 py-2.5">Avaliados</th>
@@ -1190,7 +1324,7 @@ function DisciplineDetailContent() {
                       <th scope="col" className="px-3.5 py-2.5">Trancamentos</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F0EFF8]">
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
                     {performanceList.map((item) => {
                       const total =
                         (item.approved || 0) +
@@ -1200,22 +1334,30 @@ function DisciplineDetailContent() {
                       const pct = (val: number) =>
                         total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
                       return (
-                        <tr key={`row-${item.semester}`} className="hover:bg-[#FAFAFC]">
-                          <th scope="row" className="px-3.5 py-2 font-bold text-[#202124]">
+                        <tr key={`row-${item.semester}`} className="hover:bg-[var(--surface-soft)]">
+                          <th scope="row" className="px-3.5 py-2 font-bold text-[var(--foreground)]">
                             {item.semester}
                           </th>
-                          <td className="px-3.5 py-2">{total}</td>
-                          <td className="px-3.5 py-2 font-semibold text-[#067A59]">
-                            {pct(item.approved || 0)}% ({item.approved || 0})
+                          <td className="px-3.5 py-2">{total > 0 ? total : "Sem dados"}</td>
+                          <td className="px-3.5 py-2 font-semibold text-[var(--status-success-text)]">
+                            {(item.approved || 0) > 0
+                              ? `${pct(item.approved || 0)}% (${item.approved})`
+                              : "Sem dados"}
                           </td>
-                          <td className="px-3.5 py-2 text-[#C52C2C]">
-                            {pct(item.failed || 0)}% ({item.failed || 0})
+                          <td className="px-3.5 py-2 text-[var(--status-danger-text)]">
+                            {(item.failed || 0) > 0
+                              ? `${pct(item.failed || 0)}% (${item.failed})`
+                              : "Sem dados"}
                           </td>
-                          <td className="px-3.5 py-2 text-[#9A5700]">
-                            {pct(item.absent || 0)}% ({item.absent || 0})
+                          <td className="px-3.5 py-2 text-[var(--status-warning-text)]">
+                            {(item.absent || 0) > 0
+                              ? `${pct(item.absent || 0)}% (${item.absent})`
+                              : "Sem dados"}
                           </td>
-                          <td className="px-3.5 py-2 text-[#526174]">
-                            {pct(item.withdrawn || 0)}% ({item.withdrawn || 0})
+                          <td className="px-3.5 py-2 text-[var(--status-neutral-text)]">
+                            {(item.withdrawn || 0) > 0
+                              ? `${pct(item.withdrawn || 0)}% (${item.withdrawn})`
+                              : "Sem dados"}
                           </td>
                         </tr>
                       );
@@ -1223,6 +1365,10 @@ function DisciplineDetailContent() {
                   </tbody>
                 </table>
               </div>
+                </>
+              )}
+                </div>
+              )}
             </div>
 
             
@@ -1238,9 +1384,9 @@ function DisciplineDetailContent() {
                   exportDisciplineHistoryOpenData(
                     discipline.code,
                     discipline.name,
-                    realHistoricalPerformance,
+                    periodSummary.selectedHistory,
                     format,
-                    { consolidatedMetric: discipline.metrica_consolidada }
+                    { consolidatedMetric: periodSummary.filteredConsolidatedMetric }
                   )
                 }
               />
@@ -1287,9 +1433,11 @@ function DisciplineDetailContent() {
           />
 
           <MateriaisApoio
+            key={discipline.slug || slug}
             disciplineName={discipline.name}
-            disciplineIdOrSlug={discipline.code || slug}
+            disciplineIdOrSlug={discipline.slug || slug}
             refreshTrigger={materialsReloadTrigger}
+            pendingMaterialIds={pendingMaterialIds}
             onOpenUploadModal={() => setShowMaterialModal(true)}
           />
 
@@ -1317,7 +1465,7 @@ export default function DisciplineDetailPage() {
             <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
             <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
             <div className="h-32 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="mb-8 grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto">
               {[1, 2, 3, 4].map((i) => (
                 <ClassCardSkeleton key={i} />
               ))}

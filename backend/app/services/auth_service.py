@@ -1,10 +1,27 @@
+import logging
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.schemas.usuario import UsuarioCreate, UsuarioLogin
-from app.core.security import get_password_hash, verify_password, create_access_token
+from app.api.schemas.usuario import (
+    UsuarioCreate,
+    UsuarioLogin,
+    EsqueciSenhaInput,
+    RedefinirSenhaInput,
+    AlterarSenhaInput,
+)
+from app.core.security import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    create_password_reset_token,
+    verify_password_reset_token,
+    invalidate_password_reset_token,
+)
 from app.models.usuario import Usuario
 from app.repositories.usuario_repo import usuario_repo
+from app.services.email_service import email_service
+
+logger = logging.getLogger(__name__)
 
 class AuthService:
     def cadastrar_usuario(self, db: Session, dados_usuario: UsuarioCreate) -> Usuario:
@@ -72,5 +89,74 @@ class AuthService:
         db.commit()
 
         return {"detail": "Conta desativada com sucesso. Suas contribuições foram preservadas."}
+
+    def solicitar_recuperacao_senha(self, db: Session, dados: EsqueciSenhaInput) -> dict:
+        """
+        Gera um token assinado de recuperação de senha com validade de 15 minutos.
+        Envia e-mail de recuperação de forma assíncrona ou direta se configurado.
+        Retorna mensagem amigável sem revelar se o e-mail existe na base (prevenção de enumeração).
+        """
+        user = usuario_repo.get_by_email(db, email=dados.email)
+        token = None
+        if user and user.is_active:
+            token = create_password_reset_token(user.email)
+            # Despacho desacoplado de e-mail via EmailService do backend
+            enviado = email_service.send_password_reset_email(to_email=user.email, reset_token=token)
+            if not enviado:
+                logger.warning(
+                    "[AuthService] Falha ou alerta ao disparar e-mail de recuperacao de senha para '%s'.",
+                    user.email,
+                )
+
+        return {
+            "message": "Se o e-mail informado estiver cadastrado, as instruções para redefinição foram enviadas.",
+        }
+
+    def redefinir_senha(self, db: Session, dados: RedefinirSenhaInput) -> dict:
+        """
+        Valida o token temporário e atualiza a senha do usuário com hash bcrypt.
+        """
+        email = verify_password_reset_token(dados.token)
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token de recuperação inválido ou expirado. Solicite um novo link.",
+            )
+
+        user = usuario_repo.get_by_email(db, email=email)
+        if not user or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuário associado ao token não encontrado.",
+            )
+
+        user.password_hash = get_password_hash(dados.nova_senha)
+        db.commit()
+        invalidate_password_reset_token(dados.token)
+        email_service.send_password_change_confirmation(to_email=user.email)
+
+        return {"message": "Senha redefinida com sucesso. Você já pode fazer login."}
+
+    def alterar_senha(self, db: Session, current_user: Usuario, dados: AlterarSenhaInput) -> dict:
+        """
+        Permite a um usuário autenticado alterar sua senha mediante validação da senha atual.
+        """
+        if not verify_password(dados.senha_atual, current_user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A senha atual informada está incorreta.",
+            )
+
+        if dados.senha_atual == dados.nova_senha:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A nova senha não pode ser idêntica à senha atual.",
+            )
+
+        current_user.password_hash = get_password_hash(dados.nova_senha)
+        db.commit()
+        email_service.send_password_change_confirmation(to_email=current_user.email)
+
+        return {"message": "Senha alterada com sucesso."}
 
 auth_service = AuthService()

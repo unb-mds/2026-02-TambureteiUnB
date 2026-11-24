@@ -1,56 +1,34 @@
 "use client";
 
-import { useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
+import type {
+  HistoricoComponenteItem,
+  HistoricoImportacaoResponse,
+} from "../services/historicoService";
+import { request } from "../services/httpClient";
+import { SIGAA_TIME_SLOTS as SIGAA_SLOTS, type BackendTurmaResponse } from "../types/turma";
+import MinhaGraduacaoSection from "./MinhaGraduacaoSection";
+import SecurityTabContent from "./SecurityTabContent";
 
 export interface AcademicProfileDashboardProps {
   consented: boolean;
   onConsent: () => void;
   onRevokeConsent: () => void;
+  importedData?: HistoricoImportacaoResponse | null;
+  initialSection?: ProfileSectionId;
 }
 
 const profileSections = [
   { id: "overview", label: "Visão geral" },
   { id: "degree", label: "Minha graduação" },
-  { id: "disciplines", label: "Disciplinas" },
   { id: "history", label: "Histórico" },
   { id: "performance", label: "Desempenho" },
-  { id: "schedule", label: "Horários" },
-  { id: "planning", label: "Planejamento" },
-  { id: "community", label: "Comunidade" },
+  { id: "security", label: "Segurança e Senha" },
 ] as const;
 
-type ProfileSectionId = (typeof profileSections)[number]["id"];
-
-const currentDisciplines = [
-  {
-    code: "DSW-301",
-    name: "Engenharia de Software Experimental",
-    credits: 4,
-    hours: 60,
-    status: "Em andamento",
-    prerequisite: "Requisitos de Software",
-    professor: "Docente demonstrativo",
-  },
-  {
-    code: "DSW-305",
-    name: "Banco de Dados",
-    credits: 4,
-    hours: 60,
-    status: "Em andamento",
-    prerequisite: "Estruturas de Dados",
-    professor: "Docente demonstrativo",
-  },
-  {
-    code: "DSW-309",
-    name: "Sistemas de Informação",
-    credits: 4,
-    hours: 60,
-    status: "Em andamento",
-    prerequisite: "Nenhum",
-    professor: "Docente demonstrativo",
-  },
-];
+export type ProfileSectionId = (typeof profileSections)[number]["id"];
 
 const disciplineHistory = [
   {
@@ -94,6 +72,10 @@ const disciplineHistory = [
     status: "Trancada",
   },
 ];
+
+export function getDisciplineHistoryForSemester(semester: string) {
+  return disciplineHistory.filter((row) => row.semester === semester);
+}
 
 const semesterPerformance = [
   { semester: "2024/1", approvals: 72 },
@@ -145,26 +127,139 @@ const scheduleByDay = [
   },
 ];
 
-const planningItems = [
-  {
-    date: "20 nov",
-    category: "Avaliação",
-    title: "Exercício de modelagem de dados",
-    course: "Banco de Dados",
-  },
-  {
-    date: "24 nov",
-    category: "Entrega",
-    title: "Relatório de projeto",
-    course: "Engenharia de Software Experimental",
-  },
-  {
-    date: "02 dez",
-    category: "Avaliação",
-    title: "Apresentação do seminário",
-    course: "Sistemas de Informação",
-  },
-];
+const WEEK_DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"] as const;
+const SIGAA_DAY_TO_WEEKDAY: Record<string, (typeof WEEK_DAYS)[number]> = {
+  "2": "Segunda",
+  "3": "Terça",
+  "4": "Quarta",
+  "5": "Quinta",
+  "6": "Sexta",
+};
+
+function formatProfessorNames(
+  professores: string[],
+  disciplineName: string
+): string {
+  const escapedName = disciplineName
+    .trim()
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\s+/g, "\\s+");
+  const prefixRegex = escapedName ? new RegExp(`^${escapedName}\\s+`, "i") : null;
+
+  return professores
+    .map((prof) => {
+      let cleaned = prof.trim();
+      if (prefixRegex) {
+        cleaned = cleaned.replace(prefixRegex, "").trim();
+      }
+      const tituloMatch = cleaned.match(
+        /\b(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+/
+      );
+      if (tituloMatch?.index && tituloMatch.index > 0) {
+        cleaned = cleaned.slice(tituloMatch.index).trim();
+      }
+      return cleaned;
+    })
+    .filter(Boolean)
+    .join(", ");
+}
+
+export function buildWeeklySchedule(
+  cursando: HistoricoComponenteItem[],
+  liveSchedules: Record<string, { horario: string; local: string; slug: string | null }>
+) {
+  const columns = new Map<
+    (typeof WEEK_DAYS)[number],
+    Array<{
+      time: string;
+      name: string;
+      place: string;
+      codigo: string;
+      turma: string | null;
+      ch: number;
+      professores: string[];
+      slug: string | null;
+    }>
+  >(WEEK_DAYS.map((day) => [day, []]));
+
+  const sigaaTokenRegex = /([2-6]+)([MTN])([1-6]+)/g;
+
+  for (const discipline of cursando) {
+    const key = `${discipline.codigo}-${discipline.turma || ""}`;
+    const live = liveSchedules[key];
+    const rawHorario = (discipline.horario || live?.horario || "").trim();
+    const rawLocal = (discipline.local || live?.local || "Local a definir").trim();
+    const resolvedSlug = discipline.slug || live?.slug || null;
+    if (!rawHorario) continue;
+
+    const baseInfo = {
+      name: discipline.nome,
+      place: rawLocal,
+      codigo: discipline.codigo,
+      turma: discipline.turma,
+      ch: discipline.ch,
+      professores: discipline.professores,
+      slug: resolvedSlug,
+    };
+
+    const matches = [...rawHorario.toUpperCase().matchAll(sigaaTokenRegex)];
+    if (matches.length > 0) {
+      for (const m of matches) {
+        const [, daysPart, shiftChar, slotsPart] = m;
+        const shift = shiftChar as "M" | "T" | "N";
+        const firstSlot = SIGAA_SLOTS[shift]?.[slotsPart[0]];
+        const lastSlot = SIGAA_SLOTS[shift]?.[slotsPart[slotsPart.length - 1]];
+        const timeRange =
+          firstSlot && lastSlot
+            ? `${firstSlot.start}–${lastSlot.end}`
+            : `${shift}${slotsPart}`;
+
+        for (const d of daysPart) {
+          const weekday = SIGAA_DAY_TO_WEEKDAY[d];
+          if (!weekday) continue;
+          const list = columns.get(weekday)!;
+          if (!list.some((item) => item.codigo === discipline.codigo && item.turma === discipline.turma && item.time === timeRange)) {
+            list.push({ time: timeRange, ...baseInfo });
+          }
+        }
+      }
+      continue;
+    }
+
+    const timeMatch = rawHorario.match(/(\d{2}:\d{2})\s*[-–]\s*(\d{2}:\d{2})/);
+    const timeLabel = timeMatch ? `${timeMatch[1]}–${timeMatch[2]}` : rawHorario;
+    for (const weekday of WEEK_DAYS) {
+      const prefix = weekday.slice(0, 3).toLowerCase();
+      if (rawHorario.toLowerCase().includes(prefix)) {
+        columns.get(weekday)!.push({
+          time: timeLabel,
+          ...baseInfo,
+        });
+      }
+    }
+  }
+
+  return WEEK_DAYS.map((day) => {
+    const sorted = (columns.get(day) ?? []).sort((a, b) => a.time.localeCompare(b.time));
+    const classes: typeof sorted = [];
+    for (const item of sorted) {
+      const [start, end] = item.time.split("–");
+      const previous = classes.find(candidate => {
+        if (candidate.codigo !== item.codigo || candidate.turma !== item.turma) return false;
+        const previousEnd = candidate.time.split("–")[1];
+        // T6 e N1 são consecutivos na oferta SIGAA, com transição de cinco minutos.
+        const crossesEveningShift = previousEnd === SIGAA_SLOTS.T["6"].end && start === SIGAA_SLOTS.N["1"].start;
+        return previousEnd === start || crossesEveningShift;
+      });
+      if (previous && end) {
+        previous.time = `${previous.time.split("–")[0]}–${end}`;
+      } else {
+        classes.push({...item});
+      }
+    }
+    return {day, classes};
+  });
+}
 
 function Metric({
   label,
@@ -186,45 +281,6 @@ function Metric({
   );
 }
 
-function ProgressBar({
-  label,
-  value,
-  max,
-  unit = "h",
-}: {
-  label: string;
-  value: number;
-  max: number;
-  unit?: string;
-}) {
-  const percentage = Math.round((value / max) * 100);
-
-  return (
-    <div>
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">
-        <span className="font-semibold text-[#202124]">{label}</span>
-        <span className="text-xs font-medium text-gray-600">
-          {value.toLocaleString("pt-BR")} de {max.toLocaleString("pt-BR")}{" "}
-          {unit} ·{" "}
-          {percentage}%
-        </span>
-      </div>
-      <div
-        role="progressbar"
-        aria-label={label}
-        aria-valuemin={0}
-        aria-valuemax={max}
-        aria-valuenow={value}
-        className="h-2.5 overflow-hidden rounded-full bg-[#E8E6F8]"
-      >
-        <div
-          className="h-full rounded-full bg-[#5B4BDB]"
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 function SectionHeading({
   eyebrow,
@@ -250,206 +306,368 @@ function SectionHeading({
   );
 }
 
-function OverviewSection() {
+function OverviewSection({
+  importedData,
+}: {
+  importedData?: HistoricoImportacaoResponse | null;
+}) {
+  const [liveSchedules, setLiveSchedules] = useState<
+    Record<string, { horario: string; local: string; slug: string | null }>
+  >({});
+
+  useEffect(() => {
+    if (!importedData || importedData.cursando.length === 0) return;
+
+    const pendentes = importedData.cursando.filter((c) => !c.horario || !c.slug);
+    if (pendentes.length === 0) return;
+
+    let cancelled = false;
+
+    async function syncSchedules() {
+      const updates: Record<
+        string,
+        { horario: string; local: string; slug: string | null }
+      > = {};
+      await Promise.all(
+        pendentes.map(async (item) => {
+          try {
+            const discs = await request<
+              Array<{ id: number; codigo: string; slug?: string }>
+            >(`/cadeiras?codigo=${encodeURIComponent(item.codigo)}`);
+            const disc = discs.find(
+              (d) => d.codigo.toUpperCase() === item.codigo.toUpperCase()
+            );
+            if (!disc) return;
+
+            let horario = item.horario || "";
+            let local = item.local || "Local a definir";
+
+            if (!horario) {
+              const turmas = await request<BackendTurmaResponse[]>(
+                `/turmas?disciplina_id=${disc.id}&semestre=${encodeURIComponent(item.semestre)}`
+              );
+              const codNorm = (item.turma || "").trim().padStart(2, "0");
+              const turmaMatch = turmas.find(
+                (t) =>
+                  t.codigo_turma.trim().padStart(2, "0") === codNorm ||
+                  t.codigo_turma.trim().toUpperCase() ===
+                    (item.turma || "").trim().toUpperCase()
+              );
+              if (turmaMatch?.horario) {
+                horario = turmaMatch.horario;
+                local = turmaMatch.local || local;
+              }
+            }
+
+            if (horario || disc.slug) {
+              updates[`${item.codigo}-${item.turma || ""}`] = {
+                horario,
+                local,
+                slug: disc.slug || item.slug || null,
+              };
+            }
+          } catch {
+            // Ignora falhas pontuais de rede mantendo fallback visual
+          }
+        })
+      );
+
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setLiveSchedules((prev) => ({ ...prev, ...updates }));
+      }
+    }
+
+    syncSchedules();
+    return () => {
+      cancelled = true;
+    };
+  }, [importedData]);
+
+  if (importedData) {
+    const { dados_academicos: dados, carga_horaria: ch, cursando } = importedData;
+    const pct =
+      ch.exigido.total > 0
+        ? Math.round((ch.integralizado.total / ch.exigido.total) * 100)
+        : 0;
+    const totalChSemestre = cursando.reduce((acc, item) => acc + item.ch, 0);
+    const ultimoSemestre = cursando[0]?.semestre || dados.periodo_inicial || "Atual";
+
+    return (
+      <div>
+        <SectionHeading
+          eyebrow="Resumo acadêmico"
+          title="Sua trajetória em um só lugar"
+          description="Disciplinas em andamento, horários das turmas no sistema e resumo curricular do seu Histórico Oficial."
+        />
+        <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Metric
+            label="Período atual"
+            value={dados.periodo_atual ? `${dados.periodo_atual}º período` : "Ativo"}
+            detail={dados.periodo_inicial ? `Ingresso em ${dados.periodo_inicial}` : undefined}
+          />
+          <Metric
+            label="Integralização"
+            value={`${pct}%`}
+            detail={`${ch.integralizado.total} de ${ch.exigido.total} h`}
+          />
+          <Metric
+            label="Disciplinas no semestre"
+            value={String(cursando.length)}
+            detail={`${totalChSemestre} h em andamento`}
+          />
+          <Metric
+            label="IRA / MP"
+            value={dados.ira !== null ? dados.ira.toFixed(4).replace(".", ",") : "—"}
+            detail={
+              dados.mp !== null
+                ? `MP: ${dados.mp.toFixed(4).replace(".", ",")}`
+                : "Média Ponderada"
+            }
+          />
+        </dl>
+
+        <div className="mt-6">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="font-bold text-[#202124]">
+                Horários · Semestre {ultimoSemestre}
+              </h3>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Sincronizados com as turmas ofertadas cadastradas no sistema.
+              </p>
+            </div>
+            <span className="rounded-full bg-[#EDE9FD] px-2.5 py-1 text-xs font-semibold text-[#5B4BDB]">
+              Grade semanal
+            </span>
+          </div>
+
+          <div className="overflow-x-auto pb-2">
+            <div className="grid w-max grid-cols-[repeat(5,224px)] gap-3">
+              {buildWeeklySchedule(cursando, liveSchedules).map(({ day, classes }) => (
+                <section
+                  key={day}
+                  aria-labelledby={`schedule-${day.toLowerCase()}`}
+                  className="rounded-2xl border border-[#E8E6F8] bg-white p-4"
+                >
+                  <h4
+                    id={`schedule-${day.toLowerCase()}`}
+                    className="border-b border-[#E8E6F8] pb-2 font-bold text-[#202124]"
+                  >
+                    {day}
+                  </h4>
+                  {classes.length === 0 ? (
+                    <p className="mt-3 text-xs text-gray-400">Sem aulas</p>
+                  ) : (
+                    <ul className="mt-3">
+                      {classes.map((classItem, idx) => (
+                        <li
+                          key={`${classItem.time}-${classItem.name}`}
+                          className={
+                            idx > 0
+                              ? "mt-3 border-t border-[#E8E6F8] pt-3"
+                              : ""
+                          }
+                        >
+                          <div className="rounded-xl border border-[#E8E6F8] bg-[#F7F7FA] p-3">
+                            <div className="flex flex-wrap items-center justify-between gap-1.5">
+                              <p className="text-xs font-bold text-[#5B4BDB]">
+                                {classItem.time}
+                              </p>
+                              {classItem.turma && (
+                                <span className="rounded-full bg-[#F0EEFF] px-2 py-0.5 text-[10px] font-semibold text-[#5142C5]">
+                                  Turma {classItem.turma}
+                                </span>
+                              )}
+                            </div>
+                            {classItem.slug ? (
+                              <Link
+                                href={`/disciplinas/${classItem.slug}`}
+                                className="mt-1.5 block break-words text-sm font-semibold text-[#202124] hover:text-[#5B4BDB] hover:underline"
+                              >
+                                {classItem.name}
+                              </Link>
+                            ) : (
+                              <p className="mt-1.5 break-words text-sm font-semibold text-[#202124]">
+                                {classItem.name}
+                              </p>
+                            )}
+                            <p className="mt-1 text-xs font-medium text-gray-600">
+                              {classItem.codigo} · {classItem.ch} h
+                            </p>
+                            {(() => {
+                              const formattedProfessors = formatProfessorNames(
+                                classItem.professores,
+                                classItem.name
+                              );
+                              return formattedProfessors ? (
+                                <p className="mt-0.5 text-xs text-gray-500">
+                                  {formattedProfessors}
+                                </p>
+                              ) : null;
+                            })()}
+                            <p className="mt-0.5 text-xs text-gray-500">
+                              {classItem.place}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E8E6F8] bg-white px-4 py-3 text-xs text-gray-500 sm:px-5">
+          <span>
+            Contribuições à comunidade:{" "}
+            <strong className="text-[#5B4BDB]">
+              {importedData.contribuicao.novas_contribuicoes} novas amostras
+            </strong>{" "}
+            ({importedData.contribuicao.duplicadas_ignoradas} já contabilizadas)
+          </span>
+          <span>Mín. LGPD: {importedData.contribuicao.minimo_amostras_lgpd}/turma</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <SectionHeading
         eyebrow="Resumo acadêmico"
         title="Sua trajetória em um só lugar"
-        description="Um resumo do semestre, do progresso curricular e dos próximos compromissos."
+        description="Um resumo do semestre, das disciplinas em andamento e dos horários demonstrativos."
       />
       <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Período atual" value="7º semestre" detail="Ingresso em 2023/1" />
         <Metric label="Integralização" value="55%" detail="132 de 240 créditos" />
         <Metric label="Disciplinas no semestre" value="3" detail="12 créditos em andamento" />
-        <Metric label="Próximo compromisso" value="20 nov" detail="Exercício · Banco de Dados" />
+        <Metric label="IRA demonstrativo" value="4,2000" detail="Índice ilustrativo" />
       </dl>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="font-bold text-[#202124]">Semestre 2026/2</h3>
-              <p className="mt-1 text-xs text-gray-500">
-                Três disciplinas em andamento, conforme dados demonstrativos.
-              </p>
-            </div>
-            <span className="rounded-full bg-[#F0EEFF] px-2.5 py-1 text-xs font-semibold text-[#5142C5]">
-              Graduação
-            </span>
-          </div>
-          <ul className="mt-4 divide-y divide-gray-100">
-            {currentDisciplines.map((discipline) => (
-              <li
-                key={discipline.code}
-                className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+      <div className="mt-6">
+        <h3 className="mb-3 font-bold text-[#202124]">Horários demonstrativos</h3>
+        <div className="overflow-x-auto pb-2">
+          <div className="grid w-max grid-cols-[repeat(5,224px)] gap-3">
+            {scheduleByDay.map(({ day, classes }) => (
+              <section
+                key={day}
+                aria-labelledby={`schedule-${day.toLowerCase()}`}
+                className="rounded-2xl border border-[#E8E6F8] bg-white p-4"
               >
-                <div>
-                  <p className="text-sm font-semibold text-[#202124]">
-                    {discipline.name}
-                  </p>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    {discipline.code} · {discipline.credits} créditos
-                  </p>
-                </div>
-                <span className="w-fit rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                  Em andamento
-                </span>
-              </li>
+                <h4
+                  id={`schedule-${day.toLowerCase()}`}
+                  className="border-b border-[#E8E6F8] pb-2 font-bold text-[#202124]"
+                >
+                  {day}
+                </h4>
+                <ul className="mt-3">
+                  {classes.map((classItem, idx) => (
+                    <li
+                      key={`${classItem.time}-${classItem.name}`}
+                      className={
+                        idx > 0 ? "mt-3 border-t border-[#E8E6F8] pt-3" : ""
+                      }
+                    >
+                      <div className="rounded-xl border border-[#E8E6F8] bg-[#F7F7FA] p-3">
+                        <p className="text-xs font-bold text-[#5B4BDB]">
+                          {classItem.time}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-[#202124]">
+                          {classItem.name}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">{classItem.place}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
-        </section>
-
-        <section className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-          <h3 className="font-bold text-[#202124]">Próximos compromissos</h3>
-          <ul className="mt-3 space-y-3">
-            {planningItems.slice(0, 2).map((item) => (
-              <li key={item.title} className="flex gap-3">
-                <span className="flex h-11 min-w-12 items-center justify-center rounded-xl bg-[#F0EEFF] px-2 text-xs font-bold text-[#5142C5]">
-                  {item.date}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#202124]">
-                    {item.title}
-                  </p>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    {item.category} · {item.course}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 border-t border-gray-100 pt-3 text-xs leading-5 text-gray-500">
-            Datas ilustrativas. O Tamburetei ainda não importa compromissos do
-            SIGAA.
-          </p>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function DegreeSection() {
-  return (
-    <div>
-      <SectionHeading
-        eyebrow="Minha graduação"
-        title="Progresso curricular"
-        description="Acompanhe créditos, cargas horárias e requisitos que ainda precisam ser cumpridos."
-      />
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Metric label="Créditos concluídos" value="132" detail="De 240 previstos" />
-        <Metric label="Créditos pendentes" value="108" detail="Obrigatórios e optativos" />
-        <Metric label="Conclusão estimada" value="55%" detail="Progresso demonstrativo" />
-      </div>
-      <section className="mt-4 rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-        <h3 className="font-bold text-[#202124]">Integralização por requisito</h3>
-        <div className="mt-5 space-y-5">
-          <ProgressBar label="Carga obrigatória" value={1920} max={2400} />
-          <ProgressBar label="Carga optativa" value={720} max={1200} />
-          <ProgressBar
-            label="Créditos totais"
-            value={132}
-            max={240}
-            unit="créditos"
-          />
+          </div>
         </div>
-      </section>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-          <h3 className="font-bold text-[#202124]">Pendências curriculares</h3>
-          <ul className="mt-3 space-y-2 text-sm text-gray-700">
-            <li className="rounded-xl bg-[#F7F7FA] px-3 py-2.5">
-              Projeto Final de Curso · obrigatório
-            </li>
-            <li className="rounded-xl bg-[#F7F7FA] px-3 py-2.5">
-              Atividades complementares · 120 h restantes
-            </li>
-            <li className="rounded-xl bg-[#F7F7FA] px-3 py-2.5">
-              Optativas · 480 h restantes
-            </li>
-          </ul>
-        </section>
-        <section className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-          <h3 className="font-bold text-[#202124]">Pré-requisitos a conferir</h3>
-          <p className="mt-2 text-sm leading-6 text-gray-600">
-            Projeto Final de Curso depende da conclusão das disciplinas de
-            formação específica. Consulte a matriz curricular oficial antes de
-            planejar a matrícula.
-          </p>
-        </section>
       </div>
     </div>
   );
 }
 
-function DisciplinesSection() {
-  return (
-    <div>
-      <SectionHeading
-        eyebrow="Disciplinas"
-        title="Situação das disciplinas"
-        description="Consulte disciplinas em andamento e exemplos de situações acadêmicas."
-      />
-      <div className="space-y-3">
-        {currentDisciplines.map((discipline) => (
-          <article
-            key={discipline.code}
-            className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5"
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold text-[#5B4BDB]">
-                  {discipline.code} · {discipline.credits} créditos ·{" "}
-                  {discipline.hours} h
-                </p>
-                <h3 className="mt-1 font-bold text-[#202124]">
-                  {discipline.name}
-                </h3>
-              </div>
-              <span className="w-fit rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                {discipline.status}
-              </span>
-            </div>
-            <dl className="mt-4 grid gap-3 border-t border-gray-100 pt-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-xs font-semibold text-gray-500">
-                  Pré-requisito
-                </dt>
-                <dd className="mt-1 text-gray-700">{discipline.prerequisite}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold text-gray-500">Docente</dt>
-                <dd className="mt-1 text-gray-700">{discipline.professor}</dd>
-              </div>
-            </dl>
-          </article>
-        ))}
-      </div>
-      <p className="mt-4 rounded-xl bg-white px-4 py-3 text-xs leading-5 text-gray-500">
-        A situação atual não é consultada no SIGAA. Histórico de trancamentos,
-        reprovações e aprovações depende de integração futura.
-      </p>
-    </div>
+export function HistorySection({
+  importedData,
+}: {
+  importedData?: HistoricoImportacaoResponse | null;
+}) {
+  const realRows = useMemo(
+    () =>
+      importedData
+        ? [...importedData.cursadas, ...importedData.cursando].map((c) => ({
+            semester: c.semestre,
+            code: c.codigo,
+            name: c.nome,
+            turma: c.turma || "—",
+            mention: c.mencao || "—",
+            attendance:
+              c.frequencia !== null && c.frequencia !== undefined
+                ? `${c.frequencia.toFixed(1).replace(".", ",")}%`
+                : "—",
+            status: c.situacao,
+          }))
+        : null,
+    [importedData]
   );
-}
 
-function HistorySection() {
+  const semesters = realRows
+    ? [...new Set(realRows.map((r) => r.semester))].sort((a, b) => b.localeCompare(a))
+    : [...new Set(disciplineHistory.map(({ semester }) => semester))];
+  const [selectedSemester, setSelectedSemester] = useState(semesters[0] ?? "");
+  const effectiveSemester = semesters.includes(selectedSemester)
+    ? selectedSemester
+    : semesters[0] ?? "";
+  const semesterHistory = realRows
+    ? realRows.filter((row) => row.semester === effectiveSemester)
+    : getDisciplineHistoryForSemester(effectiveSemester);
+
   return (
     <div>
       <SectionHeading
         eyebrow="Histórico acadêmico"
-        title="Disciplinas cursadas"
-        description="Exemplo de como menção, frequência e situação podem ser organizadas por semestre."
+        title="Histórico por semestre"
+        description="Selecione um semestre para consultar as disciplinas, menções e frequências correspondentes."
       />
+      <div className="mb-4 flex flex-col gap-2 sm:max-w-xs">
+        <label
+          htmlFor="history-semester"
+          className="text-sm font-semibold text-[#202124]"
+        >
+          Semestre
+        </label>
+        <select
+          id="history-semester"
+          value={effectiveSemester}
+          onChange={(event) => setSelectedSemester(event.target.value)}
+          className="rounded-xl border border-[#D8D4F5] bg-white px-3 py-2.5 text-sm font-semibold text-[#202124] outline-none focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/20"
+        >
+          {semesters.map((semester) => (
+            <option key={semester} value={semester}>
+              {semester}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p className="mb-3 text-sm text-gray-600" aria-live="polite">
+        {semesterHistory.length}{" "}
+        {semesterHistory.length === 1 ? "disciplina" : "disciplinas"} em{" "}
+        <span className="font-semibold text-[#202124]">{effectiveSemester}</span>
+      </p>
       <div className="overflow-x-auto rounded-2xl border border-[#E8E6F8] bg-white">
         <table className="min-w-[700px] w-full border-collapse text-left text-sm">
           <caption className="sr-only">
-            Histórico acadêmico demonstrativo por disciplina
+            {realRows
+              ? `Histórico acadêmico oficial do semestre ${effectiveSemester}`
+              : `Histórico acadêmico demonstrativo do semestre ${effectiveSemester}`}
           </caption>
           <thead className="bg-[#F7F7FA] text-xs uppercase tracking-wide text-gray-500">
             <tr>
-              <th scope="col" className="px-4 py-3 font-semibold">Semestre</th>
               <th scope="col" className="px-4 py-3 font-semibold">Disciplina</th>
               <th scope="col" className="px-4 py-3 font-semibold">Menção</th>
               <th scope="col" className="px-4 py-3 font-semibold">Frequência</th>
@@ -457,11 +675,8 @@ function HistorySection() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {disciplineHistory.map((row) => (
-              <tr key={`${row.semester}-${row.code}`}>
-                <th scope="row" className="whitespace-nowrap px-4 py-3 font-semibold text-gray-700">
-                  {row.semester}
-                </th>
+            {semesterHistory.map((row, index) => (
+              <tr key={`${row.semester}-${row.code}-${row.status}-${index}`}>
                 <td className="px-4 py-3">
                   <span className="block font-semibold text-[#202124]">{row.name}</span>
                   <span className="mt-0.5 block text-xs text-gray-500">{row.code}</span>
@@ -471,9 +686,11 @@ function HistorySection() {
                 <td className="px-4 py-3">
                   <span
                     className={
-                      row.status === "Aprovada"
+                      row.status === "Aprovada" || row.status === "APR" || row.status === "CUMP"
                         ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
-                        : "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800"
+                        : row.status === "MATR"
+                          ? "rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--primary-text)]"
+                          : "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800"
                     }
                   >
                     {row.status}
@@ -484,15 +701,98 @@ function HistorySection() {
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs leading-5 text-gray-500">
-        Menções, notas e frequência são fictícias. O sistema não possui acesso
-        ao histórico acadêmico individual.
-      </p>
+      {!realRows && (
+        <p className="mt-3 text-xs leading-5 text-gray-500">
+          Menções, notas e frequência são fictícias. O sistema não possui acesso
+          ao histórico acadêmico individual; consulte o SIGAA para verificar seus
+          dados oficiais.
+        </p>
+      )}
     </div>
   );
 }
 
-function PerformanceSection() {
+function PerformanceSection({
+  importedData,
+}: {
+  importedData?: HistoricoImportacaoResponse | null;
+}) {
+  if (importedData) {
+    const { dados_academicos: dados, cursadas } = importedData;
+    const aprovadasSituacoes = new Set(["APR", "CUMP", "DISP"]);
+    const elegiveis = cursadas.filter((c) => c.situacao !== "DISP");
+    const totalAprovadas = elegiveis.filter((c) => aprovadasSituacoes.has(c.situacao)).length;
+    const taxaGeral =
+      elegiveis.length > 0 ? Math.round((totalAprovadas / elegiveis.length) * 100) : 0;
+
+    const porSemestre = new Map<string, { total: number; apr: number }>();
+    for (const item of elegiveis) {
+      const atual = porSemestre.get(item.semestre) ?? { total: 0, apr: 0 };
+      atual.total += 1;
+      if (aprovadasSituacoes.has(item.situacao)) atual.apr += 1;
+      porSemestre.set(item.semestre, atual);
+    }
+    const serieSemestres = [...porSemestre.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([semester, info]) => ({
+        semester,
+        approvals: Math.round((info.apr / info.total) * 100),
+      }));
+
+    return (
+      <div>
+        <SectionHeading
+          eyebrow="Desempenho"
+          title="Evolução acadêmica"
+          description="Índices oficiais (IRA e MP) e taxa de aprovação por semestre extraídos do seu histórico."
+        />
+        <dl className="grid gap-3 sm:grid-cols-3">
+          <Metric
+            label="IRA oficial"
+            value={dados.ira !== null ? dados.ira.toFixed(4).replace(".", ",") : "—"}
+            detail="Índice de Rendimento Acadêmico"
+          />
+          <Metric
+            label="MP oficial"
+            value={dados.mp !== null ? dados.mp.toFixed(4).replace(".", ",") : "—"}
+            detail="Média Ponderada"
+          />
+          <Metric
+            label="Taxa de aprovação"
+            value={`${taxaGeral}%`}
+            detail={`${totalAprovadas} de ${elegiveis.length} componentes`}
+          />
+        </dl>
+        <section className="mt-4 rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
+          <h3 className="font-bold text-[#202124]">Aprovações por semestre</h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Percentual de componentes aprovados em cada semestre cursado.
+          </p>
+          <ul className="mt-5 space-y-4">
+            {serieSemestres.map(({ semester, approvals }) => (
+              <li key={semester} className="grid grid-cols-[3.5rem_1fr_3rem] items-center gap-3">
+                <span className="text-xs font-medium text-gray-600">{semester}</span>
+                <div
+                  role="img"
+                  aria-label={`${semester}: ${approvals}% de aprovação`}
+                  className="h-2.5 overflow-hidden rounded-full bg-[#E8E6F8]"
+                >
+                  <div
+                    className="h-full rounded-full bg-[#5B4BDB]"
+                    style={{ width: `${approvals}%` }}
+                  />
+                </div>
+                <span className="text-right text-xs font-bold text-[#5142C5]">
+                  {approvals}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div>
       <SectionHeading
@@ -539,157 +839,23 @@ function PerformanceSection() {
   );
 }
 
-function ScheduleSection() {
-  return (
-    <div>
-      <SectionHeading
-        eyebrow="Horários"
-        title="Organização semanal"
-        description="Uma visão rápida de aulas e locais para apoiar o planejamento da semana."
-      />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {scheduleByDay.map(({ day, classes }) => (
-          <section
-            key={day}
-            aria-labelledby={`schedule-${day.toLowerCase()}`}
-            className="rounded-2xl border border-[#E8E6F8] bg-white p-4"
-          >
-            <h3
-              id={`schedule-${day.toLowerCase()}`}
-              className="font-bold text-[#202124]"
-            >
-              {day}
-            </h3>
-            <ul className="mt-3 space-y-2">
-              {classes.map((classItem) => (
-                <li
-                  key={`${classItem.time}-${classItem.name}`}
-                  className="rounded-xl bg-[#F7F7FA] p-3"
-                >
-                  <p className="text-xs font-bold text-[#5B4BDB]">
-                    {classItem.time}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-[#202124]">
-                    {classItem.name}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">{classItem.place}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-      </div>
-      <p className="mt-3 text-xs leading-5 text-gray-500">
-        Grade horária inteiramente fictícia. Horários e salas oficiais dependem
-        de uma fonte de dados futura.
-      </p>
-    </div>
-  );
+function renderSection(
+  sectionId: ProfileSectionId,
+  importedData?: HistoricoImportacaoResponse | null
+): ReactNode {
+  switch (sectionId) {
+    case "overview":
+      return <OverviewSection importedData={importedData} />;
+    case "degree":
+      return <MinhaGraduacaoSection importedData={importedData} />;
+    case "history":
+      return <HistorySection importedData={importedData} />;
+    case "performance":
+      return <PerformanceSection importedData={importedData} />;
+    case "security":
+      return <SecurityTabContent />;
+  }
 }
-
-function PlanningSection() {
-  return (
-    <div>
-      <SectionHeading
-        eyebrow="Planejamento"
-        title="Próximas datas"
-        description="Avaliações e entregas reunidas em uma agenda simples para ajudar na organização."
-      />
-      <ol className="space-y-3">
-        {planningItems.map((item, index) => (
-          <li
-            key={item.title}
-            className="flex gap-4 rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:items-center"
-          >
-            <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-[#F0EEFF] py-2">
-              <span className="text-lg font-extrabold leading-tight text-[#5142C5]">
-                {item.date.split(" ")[0]}
-              </span>
-              <span className="text-[10px] font-bold uppercase text-[#5142C5]">
-                {item.date.split(" ")[1]}
-              </span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-[#5B4BDB]">
-                {item.category} · {item.course}
-              </p>
-              <h3 className="mt-1 font-bold text-[#202124]">{item.title}</h3>
-            </div>
-            <span className="hidden text-xs text-gray-400 sm:block">
-              Item {index + 1}
-            </span>
-          </li>
-        ))}
-      </ol>
-      <div className="mt-4 rounded-xl border border-dashed border-[#D8D4F5] bg-white px-4 py-3 text-sm leading-6 text-gray-600">
-        Datas de exemplo. Calendário acadêmico e atividades pessoais ainda não
-        estão conectados.
-      </div>
-    </div>
-  );
-}
-
-function CommunitySection() {
-  const contributions = [
-    { label: "Disciplinas avaliadas", value: "12" },
-    { label: "Comentários publicados", value: "24" },
-    { label: "Materiais compartilhados", value: "8" },
-    { label: "Resumos publicados", value: "5" },
-  ];
-
-  return (
-    <div>
-      <SectionHeading
-        eyebrow="Comunidade Tamburetei"
-        title="Suas contribuições"
-        description="Acompanhe como sua participação ajuda outras pessoas a escolher e cursar disciplinas."
-      />
-      <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {contributions.map(({ label, value }) => (
-          <Metric key={label} label={label} value={value} />
-        ))}
-      </dl>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-          <h3 className="font-bold text-[#202124]">Disciplinas favoritas</h3>
-          <ul className="mt-3 space-y-2">
-            {["Requisitos de Software", "Banco de Dados", "Cálculo 1"].map(
-              (discipline) => (
-                <li
-                  key={discipline}
-                  className="rounded-xl bg-[#F7F7FA] px-3 py-2.5 text-sm font-medium text-gray-700"
-                >
-                  {discipline}
-                </li>
-              )
-            )}
-          </ul>
-        </section>
-        <section className="rounded-2xl border border-[#E8E6F8] bg-white p-4 sm:p-5">
-          <h3 className="font-bold text-[#202124]">Reputação na comunidade</h3>
-          <p className="mt-2 text-3xl font-extrabold text-[#5B4BDB]">180</p>
-          <p className="mt-1 text-sm leading-6 text-gray-600">
-            Pontos demonstrativos por avaliações e materiais compartilhados.
-          </p>
-        </section>
-      </div>
-      <p className="mt-3 text-xs text-gray-500">
-        Atividade ilustrativa, sem vínculo com uma conta real.
-      </p>
-    </div>
-  );
-}
-
-const sectionContent: Record<ProfileSectionId, () => ReactNode> = {
-  overview: OverviewSection,
-  degree: DegreeSection,
-  disciplines: DisciplinesSection,
-  history: HistorySection,
-  performance: PerformanceSection,
-  schedule: ScheduleSection,
-  planning: PlanningSection,
-  community: CommunitySection,
-};
 
 export function getAdjacentProfileSection(
   currentIndex: number,
@@ -708,14 +874,19 @@ export default function AcademicProfileDashboard({
   consented,
   onConsent,
   onRevokeConsent,
+  importedData = null,
+  initialSection = "overview",
 }: AcademicProfileDashboardProps) {
   const [activeSection, setActiveSection] =
-    useState<ProfileSectionId>("overview");
+    useState<ProfileSectionId>(initialSection);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeSectionIndex = profileSections.findIndex(
     (section) => section.id === activeSection
   );
-  const ActiveSection = sectionContent[activeSection];
+  const canShowContent =
+    consented ||
+    Boolean(importedData) ||
+    activeSection === "security";
 
   function handleTabKeyDown(
     event: KeyboardEvent<HTMLButtonElement>,
@@ -744,7 +915,7 @@ export default function AcademicProfileDashboard({
             Minha vida universitária
           </h2>
         </div>
-        {consented && (
+        {!importedData && consented && (
           <button
             type="button"
             onClick={onRevokeConsent}
@@ -758,7 +929,7 @@ export default function AcademicProfileDashboard({
       <div
         role="tablist"
         aria-label="Seções do perfil acadêmico"
-        className="-mx-1 mt-5 flex gap-1 overflow-x-auto px-1 pb-2"
+        className="mt-5 grid grid-cols-2 gap-1.5 sm:grid-cols-5"
       >
         {profileSections.map((section, index) => (
           <button
@@ -774,9 +945,9 @@ export default function AcademicProfileDashboard({
             tabIndex={activeSection === section.id ? 0 : -1}
             onClick={() => setActiveSection(section.id)}
             onKeyDown={(event) => handleTabKeyDown(event, index)}
-            className={`shrink-0 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5B4BDB] focus-visible:ring-offset-2 ${
+            className={`w-full rounded-xl px-3 py-2.5 text-center text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5B4BDB] focus-visible:ring-offset-2 ${
               activeSection === section.id
-                ? "bg-[#5B4BDB] text-white"
+                ? "bg-[#5B4BDB] text-white shadow-xs"
                 : "text-gray-600 hover:bg-[#F0EEFF] hover:text-[#5142C5]"
             }`}
           >
@@ -792,7 +963,7 @@ export default function AcademicProfileDashboard({
         tabIndex={0}
         className="mt-4 min-h-72 border-t border-gray-100 pt-5 focus:outline-none"
       >
-        {!consented ? (
+        {!canShowContent ? (
           <div className="mx-auto max-w-2xl rounded-2xl border border-dashed border-[#B8B1ED] bg-[#F8F7FF] p-5 sm:p-7">
             <h3 className="font-bold text-[#29234D]">
               Visualize o painel demonstrativo
@@ -811,12 +982,13 @@ export default function AcademicProfileDashboard({
             </button>
           </div>
         ) : (
-          <ActiveSection />
+          renderSection(activeSection, importedData)
         )}
       </div>
       <p className="mt-5 border-t border-gray-100 pt-3 text-xs leading-5 text-gray-500">
-        Protótipo: todos os dados acadêmicos são fictícios. Nenhuma integração
-        com o SIGAA está ativa.
+        {importedData
+          ? "Dados reais extraídos do seu Histórico Escolar do SIGAA/UnB e salvos localmente neste navegador."
+          : "Protótipo: todos os dados acadêmicos são fictícios. Nenhuma integração com o SIGAA está ativa."}
       </p>
       <span className="sr-only" aria-live="polite">
         Seção {profileSections[activeSectionIndex].label} selecionada

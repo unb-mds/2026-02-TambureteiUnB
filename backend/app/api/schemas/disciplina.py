@@ -2,27 +2,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 
 
-class DisciplinaResumo(BaseModel):
-    id: Optional[int] = None
-    codigo: str
-    nome: str
-    slug: str
-    departamento: Optional[str] = None
-    creditos: Optional[int] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class CursoDisciplinaInfo(BaseModel):
-    curso_nome: str
-    curso_slug: str
-    periodo_sugerido: Optional[int] = None
-    is_obrigatoria: bool = True
-    natureza: str = "Obrigatoria"
-
-    model_config = ConfigDict(from_attributes=True)
-
-
 class MetricaConsolidadaSchema(BaseModel):
     matriculados: int = 0
     aprovados: int = 0
@@ -49,6 +28,30 @@ class MetricaAcademicaSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class DisciplinaResumo(BaseModel):
+    id: Optional[int] = None
+    codigo: str
+    nome: str
+    slug: str
+    departamento: Optional[str] = None
+    creditos: Optional[int] = None
+    total_turmas: int = 0
+    metrica_consolidada: Optional[MetricaConsolidadaSchema] = None
+    metricas: List[MetricaAcademicaSchema] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CursoDisciplinaInfo(BaseModel):
+    curso_nome: str
+    curso_slug: str
+    periodo_sugerido: Optional[int] = None
+    is_obrigatoria: bool = True
+    natureza: str = "Obrigatoria"
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class DisciplinaResponse(DisciplinaResumo):
     carga_horaria: Optional[int] = None
     ementa: Optional[str] = None
@@ -58,8 +61,6 @@ class DisciplinaResponse(DisciplinaResumo):
     pre_requisitos_itens: List[DisciplinaResumo] = Field(default_factory=list)
     equivalencias_itens: List[DisciplinaResumo] = Field(default_factory=list)
     cursos: List[CursoDisciplinaInfo] = Field(default_factory=list)
-    metrica_consolidada: Optional[MetricaConsolidadaSchema] = None
-    metricas: List[MetricaAcademicaSchema] = Field(default_factory=list)
 
 
 class DisciplinaListaPaginada(BaseModel):

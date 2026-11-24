@@ -1,8 +1,17 @@
-import React from "react";
+"use client";
+
+import React, { useSyncExternalStore } from "react";
 import Link from "next/link";
+import { isAuthenticated, subscribeAuthChange } from "@/services/authService";
 import StoolIllustration from "./StoolIllustration";
 
 export default function Footer() {
+  const isLoggedIn = useSyncExternalStore(
+    subscribeAuthChange,
+    () => isAuthenticated(),
+    () => false
+  );
+
   return (
     <footer className="border-t border-[#EDE9FD] bg-white mt-auto">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 py-8 sm:px-6 md:flex-row lg:px-8">
@@ -35,12 +44,16 @@ export default function Footer() {
           <Link href="/disciplinas" className="transition-colors hover:text-[#5B4BDB]">
             Disciplinas
           </Link>
-          <Link href="/login" className="transition-colors hover:text-[#5B4BDB]">
-            Entrar
-          </Link>
-          <Link href="/cadastro" className="transition-colors hover:text-[#5B4BDB]">
-            Cadastrar
-          </Link>
+          {!isLoggedIn && (
+            <>
+              <Link href="/login" className="transition-colors hover:text-[#5B4BDB]">
+                Entrar
+              </Link>
+              <Link href="/cadastro" className="transition-colors hover:text-[#5B4BDB]">
+                Cadastrar
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </footer>

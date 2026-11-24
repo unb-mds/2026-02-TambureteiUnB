@@ -1,8 +1,8 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_optional_current_user
 from app.api.schemas.disciplina import DisciplinaResponse, DisciplinaResumo
 from app.core.database import get_db
 from app.models.usuario import Usuario
@@ -13,6 +13,7 @@ from app.api.schemas.comentario import (
     ComentarioResponse,
 )
 from app.services.comentario_service import comentario_service
+from app.services.moderacao_ia_service import processar_moderacao_comentario_bg
 
 router = APIRouter(prefix="/cadeiras", tags=["Cadeiras (Disciplinas)"])
 
@@ -22,6 +23,8 @@ def listar_disciplinas(
     q: Optional[str] = Query(None, description="Busca por nome da disciplina"),
     codigo: Optional[str] = Query(None, description="Busca por código da disciplina"),
     departamento: Optional[str] = Query(None, description="Filtro por departamento"),
+    apenas_com_turmas: bool = Query(False, description="Filtra apenas disciplinas com turmas"),
+    semestre: Optional[str] = Query(None, pattern=r"^\d{4}\.[1-4]$", description="Semestre das turmas ofertadas"),
     limit: Optional[int] = Query(None, description="Limite de itens a retornar (padrão: todos)"),
     db: Session = Depends(get_db),
 ):
@@ -34,6 +37,8 @@ def listar_disciplinas(
         nome=q,
         codigo=codigo,
         departamento=departamento,
+        apenas_com_turmas=apenas_com_turmas,
+        semestre=semestre,
         limit=limit,
     )
 
@@ -61,6 +66,7 @@ def listar_comentarios_cadeira(
     page: int = Query(1, ge=1, description="Número da página"),
     size: int = Query(20, ge=1, le=100, description="Itens por página"),
     db: Session = Depends(get_db),
+    current_user: Optional[Usuario] = Depends(get_optional_current_user),
 ):
     """Lista comentários e alertas de dificuldade ativos de uma cadeira, com paginação e filtros."""
     return comentario_service.listar_comentarios(
@@ -71,6 +77,7 @@ def listar_comentarios_cadeira(
         size,
         topico=topico,
         apenas_dificuldades=apenas_dificuldades,
+        current_user_id=current_user.id if current_user else None,
     )
 
 
@@ -82,10 +89,13 @@ def listar_comentarios_cadeira(
 def criar_comentario_cadeira(
     disciplina_id: str,
     dados: ComentarioCadeiraCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
     """Registra um novo comentário ou alerta de dificuldade em uma cadeira identificada por ID, slug ou código."""
-    return comentario_service.criar_comentario_por_cadeira(
+    comentario = comentario_service.criar_comentario_por_cadeira(
         db, disciplina_id, dados, current_user
     )
+    background_tasks.add_task(processar_moderacao_comentario_bg, comentario.id)
+    return comentario

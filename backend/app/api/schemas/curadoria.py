@@ -34,6 +34,33 @@ class DecisaoCuradoria(BaseModel):
         return self
 
 
+class DecisaoComentarioCuradoria(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["PUBLICADO", "OCULTO"]
+    justificativa: str | None = None
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def validar_status(cls, valor):
+        if valor not in ("PUBLICADO", "OCULTO"):
+            raise PydanticCustomError("status_invalido", "Escolha PUBLICADO ou OCULTO.")
+        return valor
+
+    @field_validator("justificativa")
+    @classmethod
+    def validar_justificativa(cls, valor: str | None) -> str | None:
+        valor = valor.strip() if valor is not None else None
+        if valor and len(valor) > 1000:
+            raise PydanticCustomError("justificativa_longa", "A justificativa deve ter no máximo 1000 caracteres.")
+        return valor or None
+
+    @model_validator(mode="after")
+    def exigir_motivo_ocultacao(self):
+        if self.status == "OCULTO" and not self.justificativa:
+            raise PydanticCustomError("recusa_sem_motivo", "Informe uma justificativa para ocultar o comentário.")
+        return self
+
+
 class DisciplinaCuradoria(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -42,11 +69,37 @@ class DisciplinaCuradoria(BaseModel):
 
 
 class MaterialPendente(MaterialResponse):
+    motivo_moderacao: str | None = None
+    confianca_ia: float | None = None
+    moderado_por: str | None = None
     disciplina: DisciplinaCuradoria
 
 
 class FilaCuradoria(BaseModel):
     items: list[MaterialPendente]
+    total: int
+    pagina: int
+    tamanho_pagina: int
+
+
+class ComentarioPendente(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    disciplina_id: int
+    turma_id: int | None = None
+    autor_alias: str
+    topico_dificuldade: str | None = None
+    conteudo: str
+    status_moderacao: str
+    motivo_moderacao: str | None = None
+    confianca_ia: float | None = None
+    moderado_por: str | None = None
+    created_at: datetime
+    disciplina: DisciplinaCuradoria
+
+
+class FilaComentariosCuradoria(BaseModel):
+    items: list[ComentarioPendente]
     total: int
     pagina: int
     tamanho_pagina: int

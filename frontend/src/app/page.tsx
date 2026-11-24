@@ -1,17 +1,28 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useSyncExternalStore, useState, useMemo } from "react";
 import Link from "next/link";
+import PasAdmissionCard from "@/components/PasAdmissionCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GuestBanner from "@/components/GuestBanner";
 import Button from "@/components/Button";
+import Pagination from "@/components/Pagination";
+import { authService } from "@/services/authService";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
+import CatalogYearFilter from "@/components/CatalogYearFilter";
 import { getCourses } from "@/services/courseService";
 import { exportCoursesOpenData } from "@/services/openDataService";
+import {
+  getAvailableCourseCatalogYears,
+  getCourseMetricsForYear,
+  type CatalogYearSelection,
+} from "@/utils/catalogYearFilter";
 import useAsyncList from "@/hooks/useAsyncList";
 import {
   filterCourses,
+  paginateCourses,
+  COURSES_PER_PAGE,
   getCampusBadgeClasses,
 } from "@/utils/courseCatalog";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
@@ -21,13 +32,47 @@ export default function HomePage() {
     getCourses,
     "Erro ao carregar cursos da API:"
   );
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
+  const [selectedYear, setSelectedYear] = useState<CatalogYearSelection>("all");
+  const isLoggedIn = useSyncExternalStore(
+    authService.subscribeAuthChange,
+    authService.isAuthenticated,
+    () => false,
+  );
+
+  const availableYears = useMemo(
+    () => getAvailableCourseCatalogYears(courses),
+    [courses]
+  );
+  const activeYear: CatalogYearSelection =
+    selectedYear === "all" || availableYears.includes(selectedYear)
+      ? selectedYear
+      : "all";
 
   // Filtro e busca em tempo real do catálogo na Landing Page
   const filteredCourses = useMemo(() => {
     return filterCourses(courses, searchQuery, selectedCampus);
   }, [courses, searchQuery, selectedCampus]);
+
+  const paginated = paginateCourses(filteredCourses, currentPage);
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+  const handleCampusChange = (value: CampusFilter) => {
+    setSelectedCampus(value);
+    setCurrentPage(1);
+  };
+  const handleYearChange = (year: CatalogYearSelection) => {
+    setSelectedYear(year);
+    setCurrentPage(1);
+  };
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="min-h-screen bg-[#F7F7FA] flex flex-col font-sans">
@@ -36,10 +81,10 @@ export default function HomePage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex flex-col gap-8">
         {/* Faixa de Aviso de Visitante */}
-        <GuestBanner />
+        {!isLoggedIn && <GuestBanner />}
 
         {/* Hero Section */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-white to-[#EDE9FD]/50 border border-[#E8E6F8] p-8 sm:p-12 shadow-xs">
+        <section className="home-hero relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-white to-[#EDE9FD]/50 border border-[#E8E6F8] p-8 sm:p-12 shadow-xs">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-[#5B4BDB]/10 px-3 py-1 text-xs font-bold text-[#5B4BDB] mb-4">
               <span>Universidade de Brasília • MDS 2026/2</span>
@@ -66,11 +111,13 @@ export default function HomePage() {
                   Explorar Disciplinas
                 </Button>
               </Link>
-              <Link href="/login">
-                <Button variant="ghost" size="lg">
-                  Entrar na Comunidade
-                </Button>
-              </Link>
+              {!isLoggedIn && (
+                <Link href="/login">
+                  <Button variant="ghost" size="lg">
+                    Entrar na Comunidade
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </section>
@@ -108,7 +155,7 @@ export default function HomePage() {
               <input
                 type="search"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Buscar curso por nome ou departamento..."
                 aria-label="Buscar curso por nome ou departamento"
                 className="w-full pl-10 pr-4 py-2.5 bg-[#F7F7FA] border border-[#E8E6F8] rounded-xl text-sm text-[#202124] placeholder-gray-400 focus:bg-white focus:border-[#5B4BDB] focus:ring-4 focus:ring-[#5B4BDB]/15 transition-all outline-none"
@@ -116,7 +163,7 @@ export default function HomePage() {
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => handleSearchChange("")}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                   aria-label="Limpar busca"
                 >
@@ -136,7 +183,7 @@ export default function HomePage() {
                     key={campus}
                     type="button"
                     aria-pressed={active}
-                    onClick={() => setSelectedCampus(campus)}
+                    onClick={() => handleCampusChange(campus)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                       active
                         ? "bg-[#5B4BDB] text-white shadow-xs"
@@ -161,12 +208,13 @@ export default function HomePage() {
               )}
             </p>
 
-            {(searchQuery || selectedCampus !== "Todos") && (
+            {(searchQuery || selectedCampus !== "Todos" || activeYear !== "all") && (
               <button
                 type="button"
                 onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCampus("Todos");
+                  handleSearchChange("");
+                  handleCampusChange("Todos");
+                  handleYearChange("all");
                 }}
                 className="text-xs text-[#5B4BDB] hover:text-[#4F3EC9] font-semibold hover:underline"
               >
@@ -175,15 +223,26 @@ export default function HomePage() {
             )}
           </div>
 
+          <CatalogYearFilter
+            years={availableYears}
+            selectedYear={activeYear}
+            onChange={handleYearChange}
+          />
+
           <div className="mb-6">
             <OpenDataExportBar
-              title="Exportar Catalogo de Cursos da UnB"
+              title={
+                activeYear === "all"
+                  ? "Exportar Catalogo de Cursos da UnB"
+                  : `Exportar Catalogo de Cursos da UnB (${activeYear})`
+              }
               recordCount={filteredCourses.length}
               recordLabel="cursos"
               disabled={loading}
               compact={true}
               onExport={(format) =>
                 exportCoursesOpenData(filteredCourses, format, {
+                  year: activeYear,
                   identifier: selectedCampus !== "Todos" ? selectedCampus : null,
                 })
               }
@@ -211,8 +270,9 @@ export default function HomePage() {
               ))}
             </div>
           ) : filteredCourses.length > 0 ? (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCourses.map((course: Course) => (
+              {paginated.items.map((course: Course) => (
                 <div
                   key={course.slug || course.id}
                   className="group bg-white rounded-2xl border border-[#E8E6F8] p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 transition-all flex flex-col justify-between"
@@ -220,22 +280,52 @@ export default function HomePage() {
                   <div>
                     {/* Badges superiores: Campus e Grau */}
                     <div className="flex items-center justify-between gap-2 mb-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getCampusBadgeClasses(
-                          course.campus
-                        )}`}
-                      >
-                        {course.campus}
-                      </span>
-                      <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
-                        {course.grau} • {course.turno}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getCampusBadgeClasses(
+                            course.campus
+                          )}`}
+                        >
+                          {course.campus}
+                        </span>
+                        {course.modalidade === "A Distância" && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            EaD
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {course.total_creditos && (
+                          <span className="text-[10px] font-bold text-[#5B4BDB] bg-[#EDE9FD] px-2 py-0.5 rounded-md">
+                            {course.total_creditos} cr
+                          </span>
+                        )}
+                        <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                          {course.grau} • {course.modalidade === "A Distância" ? "A Distância" : course.turno}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Nome do Curso */}
                     <h3 className="text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
                       {course.nome}
                     </h3>
+
+                    <PasAdmissionCard course={course} year={activeYear} />
+
+                    {/* Identificador de Estrutura Curricular / Matriz (Estilo NoFluxo) */}
+                    {course.matriz_curricular && (
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mt-1">
+                        <svg className="w-3.5 h-3.5 text-[#5B4BDB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span>
+                          Matriz <strong className="font-semibold text-gray-700">{course.matriz_curricular}</strong>
+                          {course.ano_vigencia ? ` • Vigência ${course.ano_vigencia}` : ""}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Departamento / Faculdade */}
                     {course.departamento && (
@@ -250,15 +340,96 @@ export default function HomePage() {
                         {course.descricao}
                       </p>
                     )}
+
+                    {/* Indicadores DPO reais do Curso */}
+                    {(() => {
+                      const m = getCourseMetricsForYear(course, activeYear);
+                      if (!m) {
+                        return (
+                          <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
+                            <div className="bg-[#FAF9FE] rounded-xl p-2.5 border border-[#EDE9FD]/70 flex flex-col justify-between min-h-[58px]">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
+                                  Métricas Institucionais
+                                </span>
+                                <span className="text-[10px] font-semibold text-[#5B4BDB] bg-[#5B4BDB]/10 px-2 py-0.5 rounded-md">
+                                  {activeYear === "all" ? "DPO" : `DPO ${activeYear}`}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-gray-500 mt-1">
+                                {activeYear === "all"
+                                  ? "Dados unificados no turno principal pelo anuário"
+                                  : `Sem registro individual para o ano de ${activeYear}`}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center text-[11px] text-gray-400 px-1 pt-2.5">
+                              <span className="flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+                                Contabilizado na modalidade geral do curso
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-[#F8F7FD] rounded-xl p-2.5 flex flex-col justify-between border border-[#EDE9FD]/70">
+                              <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
+                                Matriculados {m.ano ? `(${m.ano})` : ""}
+                              </span>
+                              <span className="text-sm font-extrabold text-[#202124] mt-0.5">
+                                {m.matriculados.toLocaleString("pt-BR")}{" "}
+                                <span className="text-[10px] font-normal text-gray-500">alunos</span>
+                              </span>
+                            </div>
+
+                            <div className="bg-[#EAF8EF] rounded-xl p-2.5 flex flex-col justify-between border border-[#D1F0DC]">
+                              <span className="text-[10px] uppercase font-bold tracking-wider text-[#287A45]">
+                                Concluintes
+                              </span>
+                              <span className="text-sm font-extrabold text-[#1B6634] mt-0.5">
+                                {m.concluintes.toLocaleString("pt-BR")}{" "}
+                                <span className="text-[10px] font-normal text-[#287A45]">formados/ano</span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-500 px-1 pt-2.5">
+                            <span className="flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#5B4BDB]" />
+                              Ingressantes: <strong className="font-semibold text-gray-700">{m.ingressantes}</strong>
+                              {m.vagas_totais > 0 && m.vagas_totais !== m.ingressantes ? ` / ${m.vagas_totais} vagas` : " vagas"}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                                {m.trancados.toLocaleString("pt-BR")} tranc.
+                              </span>
+                              {m.taxa_evasao !== null && m.taxa_evasao !== undefined && (
+                                <span className="font-semibold text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                                  {m.taxa_evasao}% evasão anual
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Rodapé do Card com Métricas e Botão */}
                   <div className="mt-5 pt-4 border-t border-[#F7F7FA] flex items-center justify-between gap-3">
                     <div className="text-[11px] text-gray-500 flex flex-col">
                       <span className="font-semibold text-gray-700">
-                        {course.semestres ? `${course.semestres} semestres` : "Fluxo padrão"}
+                        {course.semestres ? `${course.semestres} semestres` : "Fluxo sugerido"}
                       </span>
-                      <span>{course.total_disciplinas || 45} disciplinas</span>
+                      <span>
+                        {course.total_disciplinas !== undefined
+                          ? `${course.total_disciplinas} disciplinas na grade`
+                          : "Grade curricular"}
+                      </span>
                     </div>
 
                     <Link href={`/cursos/${course.slug}`}>
@@ -278,6 +449,15 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+            <Pagination
+              currentPage={paginated.currentPage}
+              totalPages={paginated.totalPages}
+              onPageChange={handlePageChange}
+              totalItems={filteredCourses.length}
+              itemsPerPage={COURSES_PER_PAGE}
+              itemName="cursos"
+            />
+            </>
           ) : (
             /* Estado Vazio */
             <div className="bg-white rounded-3xl border border-[#E8E6F8] p-12 text-center max-w-md mx-auto">
@@ -301,8 +481,8 @@ export default function HomePage() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCampus("Todos");
+                  handleSearchChange("");
+                  handleCampusChange("Todos");
                 }}
               >
                 Limpar filtros

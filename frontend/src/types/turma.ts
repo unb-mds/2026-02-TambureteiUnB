@@ -27,6 +27,14 @@ export interface OccupancyRate {
   level: OccupancyLevel;
 }
 
+export interface BackendEstatisticaTurma {
+  taxa_aprovacao: number;
+  taxa_reprovacao_nota: number;
+  taxa_reprovacao_falta: number;
+  taxa_trancamento: number;
+  status: string;
+}
+
 export interface Turma {
   id: string | number;
   codigoTurma: string;          // ex: "Turma 01", "Turma A"
@@ -42,6 +50,9 @@ export interface Turma {
   totalVagas: number | null;    // null quando não informado pela API
   turno: TurnoTurma;            // "Matutino" | "Diurno" | "Vespertino" | "Noturno"
   occupancy?: OccupancyRate | null; // Taxa calculada somente com dados conhecidos
+  estatistica?: BackendEstatisticaTurma | null;
+  amostrasComunidade?: number;
+  minimoAmostrasLgpd?: number;
 }
 
 export type Class = Turma;
@@ -62,6 +73,9 @@ export interface BackendTurmaResponse {
   capacidade?: number | null;
   matriculados?: number | null;
   professores: BackendProfessorResumo[];
+  estatistica?: BackendEstatisticaTurma | null;
+  amostras_comunidade?: number;
+  minimo_amostras_lgpd?: number;
 }
 
 const SIGAA_DAYS_MAP: Record<string, string> = {
@@ -73,7 +87,7 @@ const SIGAA_DAYS_MAP: Record<string, string> = {
   "7": "Sáb",
 };
 
-const SIGAA_TIME_SLOTS: Record<
+export const SIGAA_TIME_SLOTS: Record<
   "M" | "T" | "N",
   Record<string, { start: string; end: string }>
 > = {
@@ -306,6 +320,9 @@ export function adaptBackendTurma(
     totalVagas,
     turno: parsed.shift,
     occupancy: calculateOccupancyRate(vagasOcupadas, totalVagas),
+    estatistica: raw.estatistica ?? null,
+    amostrasComunidade: raw.amostras_comunidade ?? 0,
+    minimoAmostrasLgpd: raw.minimo_amostras_lgpd ?? 5,
   };
 }
 

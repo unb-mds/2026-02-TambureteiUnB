@@ -22,6 +22,7 @@ from app.domain.denuncias import (
 )
 from app.models.denuncia import Denuncia
 from app.models.usuario import Usuario
+from app.repositories.comentario_repo import comentario_repo
 from app.repositories.denuncia_repo import denuncia_repo
 
 logger = logging.getLogger(__name__)
@@ -206,6 +207,8 @@ class DenunciaService:
                 transicao = determinar_transicao_moderacao(dados.acao, tipo_alvo)
                 comentario.status_moderacao = transicao["status_moderacao"]
                 status_moderacao_alvo = comentario.status_moderacao
+                if comentario.status_moderacao == "OCULTO":
+                    comentario_repo.ocultar_descendentes(db, comentario.id, moderador.role)
             else:
                 if denuncia.conteudo_id is None:
                     raise HTTPException(status.HTTP_400_BAD_REQUEST, "Alvo da denúncia inválido.")

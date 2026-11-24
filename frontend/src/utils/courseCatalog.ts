@@ -1,23 +1,28 @@
 import type { CampusFilter, Course } from "@/types/curso";
+import { normalizeSearchTerm } from "./search";
 
 export function filterCourses(
   courses: Course[],
   searchQuery: string,
   selectedCampus: CampusFilter
 ): Course[] {
-  const query = searchQuery.trim().toLocaleLowerCase("pt-BR");
-  const normalizedCampus = selectedCampus.toLocaleLowerCase("pt-BR");
+  const query = normalizeSearchTerm(searchQuery);
+  const normalizedCampus = normalizeSearchTerm(selectedCampus);
 
   return courses.filter((course) => {
+    // Filtra cursos extintos / inativos do SIGAA com 0 disciplinas
+    const isAtivo = course.total_disciplinas === undefined || course.total_disciplinas > 0;
+    if (!isAtivo) return false;
+
     const matchesCampus =
       selectedCampus === "Todos" ||
-      course.campus?.toLocaleLowerCase("pt-BR").includes(normalizedCampus);
+      normalizeSearchTerm(course.campus).includes(normalizedCampus);
 
-    const matchesQuery =
-      !query ||
-      course.nome.toLocaleLowerCase("pt-BR").includes(query) ||
-      course.departamento?.toLocaleLowerCase("pt-BR").includes(query) ||
-      course.campus?.toLocaleLowerCase("pt-BR").includes(query);
+    const searchable = normalizeSearchTerm(
+      `${course.nome} ${course.departamento || ""} ${course.campus || ""} ${course.grau || ""} ${course.turno || ""} ${course.modalidade || ""} ${course.matriz_curricular || ""}`
+    );
+
+    const matchesQuery = !query || searchable.includes(query);
 
     return matchesCampus && matchesQuery;
   });
@@ -42,4 +47,57 @@ export function getCampusBadgeClasses(campus: string): string {
     return "bg-amber-50 text-amber-800 border-amber-200";
   }
   return "bg-gray-100 text-gray-700 border-gray-200";
+}
+
+/**
+ * Calcula a quantidade de semestres sugeridos de um curso com base no
+ * maior período sugerido entre suas disciplinas ou na propriedade explícita do curso.
+ */
+export function calculateCourseSemesters(
+  disciplines: { semester?: string }[],
+  courseSemesters?: number
+): number {
+  const maxPeriodoFromGrade = disciplines.reduce((max, d) => {
+    const num = parseInt(d.semester?.replace(/\D/g, "") || "0", 10);
+    return isNaN(num) ? max : Math.max(max, num);
+  }, 0);
+
+  if (maxPeriodoFromGrade > 0) {
+    return maxPeriodoFromGrade;
+  }
+
+  if (courseSemesters && courseSemesters > 0) {
+    return courseSemesters;
+  }
+
+  return 8;
+}
+
+/**
+ * Gera a lista de abas de períodos/semestres dinamicamente para o curso:
+ * ["Todos", "1º Semestre", ..., `${totalSemestres}º Semestre`, "Optativas" (se houver)]
+ */
+export function generateSemesterFilters(
+  totalSemestres: number,
+  hasOptativas: boolean = true
+): string[] {
+  const count = Math.max(1, totalSemestres);
+  const filters = ["Todos"];
+  for (let i = 1; i <= count; i++) {
+    filters.push(`${i}º Semestre`);
+  }
+  if (hasOptativas) {
+    filters.push("Optativas");
+  }
+  return filters;
+}
+
+
+export const COURSES_PER_PAGE = 25;
+
+export function paginateCourses(courses: readonly Course[], requestedPage: number) {
+  const totalPages = Math.max(1, Math.ceil(courses.length / COURSES_PER_PAGE));
+  const currentPage = Math.max(1, Math.min(requestedPage, totalPages));
+  const start = (currentPage - 1) * COURSES_PER_PAGE;
+  return { items: courses.slice(start, start + COURSES_PER_PAGE), currentPage, totalPages };
 }

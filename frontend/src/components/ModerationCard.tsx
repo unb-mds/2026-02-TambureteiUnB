@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState } from "react";
 import Button from "./Button";
 import { formatFileSize } from "@/utils/fileValidation";
@@ -18,17 +19,20 @@ export default function ModerationCard({ material, disabled, onDecision, onDownl
   const [exibirCampoMotivo, setExibirCampoMotivo] = useState(false);
 
   async function recusar() {
-    if (!motivo.trim()) {
-      setExibirCampoMotivo(true);
+    const texto = motivo.trim();
+    if (!texto) {
       setErro("Informe uma justificativa para recusar o material.");
       return;
     }
-    setErro("");
-    await onDecision(material, "RECUSADO", motivo);
+    if (texto.length > 1000) {
+      setErro("A justificativa deve ter no máximo 1000 caracteres.");
+      return;
+    }
+    await onDecision(material, "RECUSADO", texto);
   }
 
   return (
-    <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm" aria-labelledby={`titulo-${material.id}`}>
+    <article aria-labelledby={`titulo-${material.id}`} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-[#5B4BDB]">{material.disciplina.nome}</p>
@@ -46,6 +50,20 @@ export default function ModerationCard({ material, disabled, onDecision, onDownl
           Pendente
         </span>
       </div>
+
+      {(material.motivo_moderacao || typeof material.confianca_ia === "number") && (
+        <div className="mt-4 rounded-xl border border-[#EDE9FD] bg-[#FAF9FD] p-3 text-sm text-gray-700">
+          <p className="font-semibold text-[#5B4BDB]">
+            [PARECER DA TRIAGEM IA LOCAL]
+            {typeof material.confianca_ia === "number" && (
+              <span className="ml-2 text-xs font-medium text-gray-600">
+                (Confiança: {(material.confianca_ia * 100).toFixed(0)}%)
+              </span>
+            )}
+          </p>
+          {material.motivo_moderacao && <p className="mt-1 text-xs leading-relaxed">{material.motivo_moderacao}</p>}
+        </div>
+      )}
 
       <p className="mt-4 text-sm text-gray-600">
         Analise o arquivo antes de decidir. Verifique a pertinência e se o conteúdo respeita as regras de compartilhamento.

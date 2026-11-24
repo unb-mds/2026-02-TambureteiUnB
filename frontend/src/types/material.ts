@@ -15,9 +15,16 @@ export interface MaterialResponse {
   url?: string;
   arquivo_url?: string;
   upvotes?: number;
+  liked_by_me?: boolean;
   usuario?: { nome?: string };
   authorAlias?: string;
   professor?: string;
+}
+
+export interface MaterialVoteResponse {
+  material_id: number;
+  upvotes: number;
+  liked_by_me: boolean;
 }
 
 export interface MaterialItem {

@@ -1,4 +1,4 @@
-export const CLASSES_PER_PAGE = 8;
+export const CLASSES_PER_PAGE = 4;
 
 export function paginateClasses<T>(items: readonly T[], requestedPage: number) {
   const totalPages = Math.ceil(items.length / CLASSES_PER_PAGE);

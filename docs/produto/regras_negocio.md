@@ -1,0 +1,58 @@
+# Regras de Negócio e Governança
+
+O projeto obedece obrigatoriamente a diretrizes estritas de privacidade, conformidade legal com a LGPD e ética acadêmica na Universidade de Brasília (UnB).
+
+---
+
+## Regras de Negócio (RN)
+
+### [RN01] Privacidade por Padrão e Anonimato Discente
+* A plataforma **não** armazena nem processa número de matrícula, CPF ou histórico acadêmico nominal dos estudantes, sendo igualmente vedada a exposição de cabeçalhos identificados em provas e materiais.
+* Toda a inferência de triagem automática por IA ocorre localmente via **Ollama**, sem envio de textos ou arquivos acadêmicos para APIs comerciais de terceiros.
+* Relatos, dúvidas e comentários são exibidos publicamente de forma desvinculada do perfil nominal do aluno (sob pseudônimo ou *alias*).
+* Os votos de situação discente alimentam exclusivamente os contadores estatísticos agregados da disciplina, sem exposição pública do nome de quem votou.
+
+### [RN02] Unicidade da Situação Acadêmica por Disciplina
+* Cada estudante autenticado pode possuir apenas **um** status ativo por disciplina (`Aprovado`, `Reprovado por Nota`, `Reprovado por Falta` ou `Trancado`).
+* Se o estudante cursar novamente e registrar uma nova situação para a mesma matéria, o registro anterior é atualizado, impedindo a duplicação artificial das estatísticas.
+
+### [RN03] Unicidade de Voto Útil (Upvote)
+* Um usuário autenticado pode atribuir no máximo **1 voto útil** por material de apoio ou comentário.
+* Uma nova chamada de upvote no mesmo item cancela o voto anterior.
+
+### [RN04] Proteção a Docentes e Conduta Ética
+* É expressamente vedada a publicação de juízos de valor depreciativos, ataques de cunho pessoal ou conteúdo difamatório contra professores.
+* Relatos e avaliações devem focar exclusivamente na ementa, metodologia pedagógica, bibliografia e dificuldades técnicas da matéria.
+
+### [RN05] Vedação de Resoluções Ativas
+* É terminantemente proibida a disponibilização de respostas ou gabaritos de atividades avaliativas contínuas vigentes (como testes semanais ou relatórios laboratoriais recorrentes).
+* São aceitos apenas enunciados de provas públicas de semestres anteriores e materiais conceituais de estudo.
+
+### [RN06] Curadoria Híbrida de Submissões Externas e Comentários
+* Novos arquivos, links e resumos em `conteudos` e novos relatos ou edições em `comentarios` entram com `status_curadoria = PENDENTE` / `status_moderacao = PENDENTE` e disparam triagem assíncrona via `BackgroundTasks` no **Ollama local**.
+* Com confiança $\ge 0.80$, o item pode ser aprovado automaticamente (`APROVADO` / `PUBLICADO`) ou rejeitado/ocultado automaticamente (`RECUSADO` / `OCULTO`, inclusive por detecção determinística de dados pessoais de `RN01`), registrando `moderado_por = 'IA'` e auditoria em `curadorias`.
+* Em caso de dúvida (`REVISAO_HUMANA`, confiança $< 0.80$, PDF escaneado sem camada de texto ou Ollama indisponível), o item permanece `PENDENTE` na fila `/moderacao` com o parecer prévio (`motivo_moderacao` e `confianca_ia`) visível apenas para `MODERATOR` e `ADMIN`.
+* Somente arquivos aprovados (`APROVADO` e `ativo`) e comentários publicados (`PUBLICADO`) são listados publicamente. Recusas e ocultações exigem justificativa. Arquivos já aprovados permanecem publicados.
+* Comentários e materiais sinalizados pela comunidade são revisados na Central de Denúncias (`/moderacao`), com retenção preventiva ao atingir 3 denúncias pendentes e decisão administrativa para exclusão do conteúdo ou descarte de denúncia falsa.
+
+### [RN07] Tratamento de Dados Históricos com Baixa Amostragem (LGPD / DPO)
+* Agregações históricas oriundas de microdados públicos do DPO/INEP com **menos de 5 estudantes** em uma turma devem ser consolidadas no acumulado geral da matéria para inviabilizar qualquer identificação indireta de notas.
+
+### [RN08] Fórmula Oficial para Cálculo de Evasão
+* A taxa de evasão institucional deve ser computada seguindo a relação oficial:
+  $$\text{Taxa de Evasão (\%)} = \left( \frac{\text{Total de Desligamentos}}{\text{Total de Matriculados Ativos}} \right) \times 100$$
+
+---
+
+## Critérios de Qualidade da Disciplina (MDS 2026/2)
+
+1. **Cobertura de Código:** Mínimo de **70% de cobertura** de linhas no módulo de domínio (`app/domain/`).
+2. **Escore de Mutação:** Mínimo de **50% de mortes** de mutantes nas regras de negócio com Mutmut.
+3. **Testes de Sabotagem:** A suíte de testes deve falhar com 100% de eficácia quando falhas forem intencionalmente injetadas no domínio.
+4. **Análise Estática de Segurança (SAST):** Nenhuma vulnerabilidade crítica ou alta tolerada no pipeline (validação contínua com Bandit e SonarQube).
+5. **Reprodutibilidade:** Todo o ambiente deve subir integralmente via Docker Compose sem comandos manuais no sistema operacional hospedeiro.
+
+
+### Aplicação da moderação aos arquivos e relatos (Features 5.2 e 5.3)
+
+Os registros de links e uploads binários (`tipo = 'ARQUIVO'`) compartilham a entidade unificada `conteudos`, com download e listagem pública condicionados a `status_curadoria = 'APROVADO'` e `status_moderacao = 'ativo'`. Os endpoints administrativos da Feature 5.3 (`/moderacao/materiais`, `/moderacao/conteudos/{id}/curadoria` e `/moderacao/denuncias`) registram auditoria transacional em `curadorias` e `denuncias`.

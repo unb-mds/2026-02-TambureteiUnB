@@ -38,11 +38,15 @@ class CursoResponse(BaseModel):
     turno: str | None = None
     slug: str
     modalidade: str | None = None
+    matriz_curricular: str | None = None
+    ano_vigencia: str | None = None
+    total_creditos: int | None = None
     area_geral: str | None = None
     area_especifica: str | None = None
     total_disciplinas: int = 0
     metricas_2024: Optional[MetricasCurso] = None
     metricas_recentes: Optional[MetricasCurso] = None
+    metricas_historicas: list[MetricasCurso] = []
     disciplinas: list[CursoGradeDisciplina] = []
 
 class CursoResumo(BaseModel):
@@ -55,11 +59,15 @@ class CursoResumo(BaseModel):
     turno: str | None = None
     slug: str
     modalidade: str | None = None
+    matriz_curricular: str | None = None
+    ano_vigencia: str | None = None
+    total_creditos: int | None = None
     area_geral: str | None = None
     area_especifica: str | None = None
     total_disciplinas: int = 0
     metricas_2024: Optional[MetricasCurso] = None
     metricas_recentes: Optional[MetricasCurso] = None
+    metricas_historicas: list[MetricasCurso] = []
 
 
 class PeriodoGrade(BaseModel):

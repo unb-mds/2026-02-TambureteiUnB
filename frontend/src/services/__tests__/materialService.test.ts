@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { uploadMaterial, uploadMaterialsBatch } from "../materialService.ts";
+import {
+  listMaterials,
+  toggleMaterialVote,
+  uploadMaterial,
+  uploadMaterialsBatch,
+} from "../materialService.ts";
 import { setStoredToken, removeStoredToken } from "../httpClient.ts";
 
 if (typeof globalThis.FormData === "undefined") {
@@ -124,4 +129,49 @@ test("uploadMaterialsBatch retorna lista vazia quando nenhum arquivo for forneci
     items: [],
   });
   assert.deepEqual(result, []);
+});
+
+test("listMaterials consulta materiais com cache no-store", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedUrl = "";
+  let capturedInit: RequestInit | undefined;
+
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    capturedUrl = String(input);
+    capturedInit = init;
+    return new Response(
+      JSON.stringify({ items: [], total: 0, pagina: 1, tamanho_pagina: 20 }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  }) as typeof fetch;
+
+  const page = await listMaterials("matematica-discreta-1");
+
+  assert.match(capturedUrl, /\/cadeiras\/matematica-discreta-1\/materiais$/);
+  assert.equal(capturedInit?.cache, "no-store");
+  assert.equal(page.total, 0);
+
+  globalThis.fetch = originalFetch;
+});
+
+test("toggleMaterialVote chama POST /materiais/{id}/voto e retorna contagem atualizada", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedUrl = "";
+  let capturedMethod = "";
+
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    capturedUrl = String(input);
+    capturedMethod = init?.method || "GET";
+    return new Response(
+      JSON.stringify({ material_id: 42, upvotes: 3, liked_by_me: true }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  }) as typeof fetch;
+
+  const res = await toggleMaterialVote(42);
+  assert.match(capturedUrl, /\/materiais\/42\/voto$/);
+  assert.equal(capturedMethod, "POST");
+  assert.deepEqual(res, { material_id: 42, upvotes: 3, liked_by_me: true });
+
+  globalThis.fetch = originalFetch;
 });

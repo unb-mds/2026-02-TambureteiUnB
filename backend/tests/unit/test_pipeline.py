@@ -1051,6 +1051,93 @@ class TestDatabaseLoader:
         assert disciplinas_map["FGA0161"]["equivalencias"] == "( FGA0302 )"
         assert disciplinas_map["FGA0302"]["equivalencias"] == "( FGA0161 )"
 
+    def test_fetch_detalhes_componente_detecta_redirect_home_e_extract_renova_viewstate(self, tmp_path):
+        from unittest.mock import MagicMock, patch
+        import pytest
+        from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor, _SIGAAViewExpiredError
+
+        extractor = SIGAAExtractor()
+
+        mock_client = MagicMock()
+        expired_resp = MagicMock()
+        expired_resp.url = "https://sigaa.unb.br/sigaa/public/home.jsf"
+        expired_resp.text = "<html><body><form id='form'></form></body></html>"
+        expired_resp.raise_for_status = MagicMock()
+        mock_client.post.return_value = expired_resp
+
+        with pytest.raises(_SIGAAViewExpiredError):
+            extractor.fetch_detalhes_componente(
+                mock_client,
+                "vs_expirado",
+                {"btn": "detalhes"},
+                raise_on_expired=True,
+            )
+
+        depto_csv = tmp_path / "deptos.csv"
+        depto_csv.write_text("673\n", encoding="utf-8")
+        ext_live = SIGAAExtractor(departamentos_file=depto_csv)
+
+        turmas_fake = {
+            "departamento_id": 673,
+            "turmas": [
+                {
+                    "codigo_disciplina": "FGA0168",
+                    "nome_disciplina": "MDS",
+                    "codigo_turma": "01",
+                    "semestre": "2026.2",
+                    "docentes": ["Prof A"],
+                    "horario": "35T23",
+                    "local": "S9",
+                    "capacidade": 40,
+                    "matriculados": 30,
+                    "departamento_id": 673,
+                }
+            ],
+        }
+        catalogo_1 = (
+            {"FGA0168": {"nome": "MDS", "carga_horaria": 60, "creditos": 4, "detalhes_params": {"id": "1"}}},
+            "vs_velho",
+        )
+        catalogo_2 = (
+            {"FGA0168": {"nome": "MDS", "carga_horaria": 60, "creditos": 4, "detalhes_params": {"id": "1"}}},
+            "vs_novo",
+        )
+        detalhes_validos = {
+            "ementa": "Engenharia de Software.",
+            "pre_requisitos": "( ( CIC0004 ) )",
+            "co_requisitos": None,
+            "equivalencias": "( ( MAT0053 ) )",
+        }
+
+        with (
+            patch.object(ext_live, "fetch_departamentos_nomes", return_value={673: "FCTE - Gama"}),
+            patch.object(ext_live, "scrape_departamento", return_value=turmas_fake),
+            patch.object(
+                ext_live,
+                "fetch_componentes_departamento",
+                side_effect=[catalogo_1, catalogo_2],
+            ) as mock_cat,
+            patch.object(
+                ext_live,
+                "fetch_detalhes_componente",
+                side_effect=[_SIGAAViewExpiredError("expirado"), detalhes_validos],
+            ) as mock_det,
+        ):
+            data = ext_live.extract(
+                semestre="2026.2",
+                departamentos=[673],
+                delay_seconds=0,
+                fetch_ementas=True,
+                fetch_curriculos=False,
+            )
+
+        assert mock_cat.call_count == 2
+        assert mock_det.call_count == 2
+        disc = data["disciplinas"][0]
+        assert disc["pre_requisitos"] == "( ( CIC0004 ) )"
+        assert disc["equivalencias"] == "( ( MAT0053 ) )"
+        assert disc["ementa"] == "Engenharia de Software."
+
     def test_transform_disciplinas_preserva_requisitos_e_natureza(self):
         from app.pipeline.transformers.sigaa_transformer import SIGAATransformer
 

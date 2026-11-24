@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, func, UniqueConstraint, Table
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, func, UniqueConstraint, Table
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -17,8 +17,8 @@ class Turma(Base):
     disciplina_id = Column(Integer, ForeignKey("disciplinas.id", ondelete="CASCADE"), nullable=False, index=True)
     codigo_turma = Column(String(10), nullable=False)  # Ex: '01', '02', 'A'
     semestre = Column(String(10), nullable=False, index=True)  # Ex: '2026.1'
-    horario = Column(String(255), nullable=True)  # Ex: '35M12', '35T23' ou descritivo
-    local = Column(String(255), nullable=True)  # Ex: 'UED - Sala 102'
+    horario = Column(Text, nullable=True)  # Ex: '35M12', '35T23' ou descritivo longo do SIGAA
+    local = Column(Text, nullable=True)  # Ex: 'UED - Sala 102'
     capacidade = Column(Integer, nullable=True)
     matriculados = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -33,6 +33,16 @@ class Turma(Base):
     conteudos = relationship("Conteudo", back_populates="turma")
     comentarios = relationship("Comentario", back_populates="turma")
     doacoes = relationship("DoacaoEstatistica", back_populates="turma", cascade="all, delete-orphan")
+    # Estatística oficial do mesmo semestre da turma (US 4.1.2). Somente leitura.
+    estatistica = relationship(
+        "EstatisticaConsolidada",
+        primaryjoin=(
+            "and_(Turma.id == foreign(EstatisticaConsolidada.turma_id), "
+            "Turma.semestre == foreign(EstatisticaConsolidada.semestre_referencia))"
+        ),
+        uselist=False,
+        viewonly=True,
+    )
 
     def __repr__(self):
         return f"<Turma(id={self.id}, disc_id={self.disciplina_id}, codigo='{self.codigo_turma}', semestre='{self.semestre}')>"

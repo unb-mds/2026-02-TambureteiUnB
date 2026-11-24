@@ -12,6 +12,7 @@ export interface BackendComentarioItem {
   status_moderacao?: string;
   created_at: string;
   upvotes?: number;
+  liked_by_me?: boolean;
 }
 
 export interface BackendComentarioPage {
@@ -31,6 +32,7 @@ export interface DifficultyAlert {
   topic: string;
   severity: DifficultyLevel;
   content: string;
+  statusModeracao?: string;
   createdAt: string;
   rawCreatedAt: string;
   upvotes: number;
@@ -86,27 +88,27 @@ export const DIFFICULTY_LEVEL_CONFIG: Record<
   CRITICO: {
     label: "Crítico",
     tag: "[CRITICO]",
-    badgeBg: "#FFF0F0",
-    badgeText: "#C52C2C",
-    badgeBorder: "#FCA5A5",
+    badgeBg: "var(--status-danger-bg)",
+    badgeText: "var(--status-danger-text)",
+    badgeBorder: "var(--status-danger-border)",
     barColor: "#EF4444",
     weight: 3,
   },
   ALTO: {
     label: "Complexidade Alta",
     tag: "[ALTO]",
-    badgeBg: "#FFF7E8",
-    badgeText: "#9A5700",
-    badgeBorder: "#FCD34D",
+    badgeBg: "var(--status-warning-bg)",
+    badgeText: "var(--status-warning-text)",
+    badgeBorder: "var(--status-warning-border)",
     barColor: "#F59E0B",
     weight: 2,
   },
   MODERADO: {
     label: "Moderado",
     tag: "[MODERADO]",
-    badgeBg: "#EDE9FD",
-    badgeText: "#5B4BDB",
-    badgeBorder: "#D8D1FA",
+    badgeBg: "var(--primary-soft)",
+    badgeText: "var(--primary-text)",
+    badgeBorder: "var(--border-subtle)",
     barColor: "#7C6CF0",
     weight: 1,
   },
@@ -262,10 +264,11 @@ export function adaptBackendCommentToDifficultyAlert(
     topic,
     severity,
     content: raw.conteudo,
+    statusModeracao: raw.status_moderacao,
     createdAt: formatAlertDate(raw.created_at),
     rawCreatedAt: raw.created_at,
     upvotes: typeof raw.upvotes === "number" ? raw.upvotes : 0,
-    isLikedByMe: false,
+    isLikedByMe: Boolean(raw.liked_by_me),
   };
 }
 

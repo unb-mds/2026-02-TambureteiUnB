@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from app.pipeline.config import pipeline_settings
 from app.pipeline.extractors.sigaa_extractor import SIGAAExtractor
 from app.pipeline.extractors.dpo_inep_extractor import DPOINEPExtractor
+from app.pipeline.extractors.dpo_anuario_extractor import DPOAnuarioExtractor
 from app.pipeline.transformers.sigaa_transformer import SIGAATransformer
 from app.pipeline.transformers.metricas_transformer import MetricasTransformer
 from app.pipeline.transformers.sanitizer import LGPDSanitizer
@@ -29,6 +30,7 @@ class ETLRunner:
         self,
         sigaa_extractor: Optional[SIGAAExtractor] = None,
         dpo_extractor: Optional[DPOINEPExtractor] = None,
+        dpo_anuario_extractor: Optional[DPOAnuarioExtractor] = None,
         sigaa_transformer: Optional[SIGAATransformer] = None,
         metricas_transformer: Optional[MetricasTransformer] = None,
         sanitizer: Optional[LGPDSanitizer] = None,
@@ -37,6 +39,7 @@ class ETLRunner:
     ):
         self.sigaa_extractor = sigaa_extractor or SIGAAExtractor()
         self.dpo_extractor = dpo_extractor or DPOINEPExtractor()
+        self.dpo_anuario_extractor = dpo_anuario_extractor or DPOAnuarioExtractor()
         self.sigaa_transformer = sigaa_transformer or SIGAATransformer()
         self.metricas_transformer = metricas_transformer or MetricasTransformer()
         self.sanitizer = sanitizer or LGPDSanitizer()
@@ -108,6 +111,62 @@ class ETLRunner:
             "loaded": load_stats,
         }
 
+    def run_from_processed(self, dry_run: bool = False) -> Dict[str, Any]:
+        """
+        Carrega diretamente os dados sanitizados persistidos em app/pipeline/data/processed
+        no banco de dados, sem necessidade de reexecutar extração ou scraping do SIGAA.
+        """
+        import json
+        from pathlib import Path
+        from app.pipeline.schemas.sigaa import (
+            SIGAACursoClean,
+            SIGAADisciplinaClean,
+            SIGAADocenteClean,
+            SIGAATurmaClean,
+        )
+
+        proc_dir = Path(__file__).resolve().parent / "data" / "processed"
+        logger.info(f"=== Carregando dados a partir de {proc_dir} ===")
+
+        data = {}
+        cursos_file = proc_dir / "cursos.json"
+        if cursos_file.exists():
+            with open(cursos_file, "r", encoding="utf-8") as f:
+                data["cursos"] = [SIGAACursoClean.model_validate(c) for c in json.load(f)]
+
+        discs_file = proc_dir / "disciplinas.json"
+        if discs_file.exists():
+            with open(discs_file, "r", encoding="utf-8") as f:
+                data["disciplinas"] = [SIGAADisciplinaClean.model_validate(d) for d in json.load(f)]
+
+        docs_file = proc_dir / "docentes.json"
+        if docs_file.exists():
+            with open(docs_file, "r", encoding="utf-8") as f:
+                data["docentes"] = [SIGAADocenteClean.model_validate(d) for d in json.load(f)]
+
+        turmas_file = proc_dir / "turmas.json"
+        if turmas_file.exists():
+            with open(turmas_file, "r", encoding="utf-8") as f:
+                data["turmas"] = [SIGAATurmaClean.model_validate(t) for t in json.load(f)]
+
+        metricas_cursos_file = proc_dir / "metricas_cursos.json"
+        if metricas_cursos_file.exists():
+            with open(metricas_cursos_file, "r", encoding="utf-8") as f:
+                data["metricas_cursos"] = json.load(f)
+
+        load_stats = {}
+        if not dry_run:
+            self.db_loader.ensure_schema_up_to_date()
+            load_stats = self.db_loader.load(data)
+        else:
+            logger.info("Modo Dry-Run ativo: nenhuma alteração persistida.")
+
+        logger.info(f"=== Carga concluída com sucesso: {load_stats} ===")
+        return {
+            "status": "success",
+            "loaded": load_stats,
+        }
+
     def run_metricas_pipeline(
         self,
         ano_inicio: int = pipeline_settings.DEFAULT_ANO_INICIO,
@@ -169,38 +228,47 @@ class ETLRunner:
 
     def run_metricas_cursos_pipeline(
         self,
+        ano: Optional[int] = 2024,
+        anos: Optional[List[int]] = None,
         input_file: Optional[str] = None,
         dry_run: bool = False,
+        export: bool = True,
     ) -> Dict[str, Any]:
         """
         Executa o pipeline de métricas anuais e metadados dos cursos de graduação (DPO).
+        Extrai diretamente do Anuário Estatístico oficial da UnB (grad.html) ou consome input_file local.
+        Suporta múltiplos anos em lote (ex: anos=[2021, 2022, 2023, 2024]).
         """
-        import csv
-        from pathlib import Path
+        target_years = anos if anos else ([ano] if ano else [2024])
+        logger.info(f"=== Iniciando Pipeline de Métricas de Cursos DPO (Anos: {target_years}) ===")
 
-        logger.info("=== Iniciando Ingestão de Métricas de Cursos DPO ===")
-        default_file = Path(__file__).resolve().parent / "data" / "sample_metricas_cursos.csv"
-        file_path = Path(input_file) if input_file else default_file
+        all_records = []
+        for y in sorted(target_years):
+            logger.info(f"Processando métricas de cursos para o ano-base {y}...")
+            records = self.dpo_anuario_extractor.extract(
+                ano=y,
+                input_file=input_file,
+            )
+            logger.info(f"Ano {y}: {len(records)} cursos com métricas mapeadas.")
+            all_records.extend(records)
 
-        if not file_path.is_file():
-            raise FileNotFoundError(f"Arquivo de métricas de cursos não encontrado: {file_path}")
+        # 2. Exportação em arquivos se solicitado
+        if export and all_records:
+            self.export_loader.load({"metricas_cursos": all_records})
 
-        records = []
-        with open(file_path, mode="r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                records.append(dict(row))
-
-        payload = {"metricas_cursos": records}
+        # 3. Carga no banco de dados (se não for dry-run)
         load_stats = {}
-        if not dry_run:
+        if not dry_run and all_records:
             self.db_loader.ensure_schema_up_to_date()
-            load_stats = self.db_loader.load(payload)
+            load_stats = self.db_loader.load({"metricas_cursos": all_records})
+        else:
+            logger.info("Modo Dry-Run ativo ou nenhum registro: nenhuma persistência no banco.")
 
-        logger.info(f"=== Métricas de Cursos finalizadas: {len(records)} processadas ===")
+        logger.info(f"=== Métricas de Cursos finalizadas: {len(all_records)} registros em {len(target_years)} anos ===")
         return {
             "status": "success",
-            "metricas_cursos_processadas": len(records),
+            "metricas_cursos_processadas": len(all_records),
+            "anos_processados": target_years,
             "loaded": load_stats,
         }
 

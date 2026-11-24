@@ -13,6 +13,9 @@ class Curso(Base):
     turno = Column(String(50), default="Diurno", nullable=True)
     slug = Column(String(150), unique=True, index=True, nullable=False)
     modalidade = Column(String(50), nullable=True)
+    matriz_curricular = Column(String(50), nullable=True)
+    ano_vigencia = Column(String(20), nullable=True)
+    total_creditos = Column(Integer, nullable=True)
     area_geral = Column(String(100), nullable=True)
     area_especifica = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -38,6 +41,12 @@ class Curso(Base):
                 if m.ano == 2024:
                     return m
         return None
+
+    @property
+    def metricas_historicas(self):
+        if self.metricas:
+            return sorted(self.metricas, key=lambda m: m.ano, reverse=True)
+        return []
 
     @property
     def disciplinas(self):

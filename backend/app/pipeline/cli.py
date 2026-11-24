@@ -33,6 +33,16 @@ def main():
         help="Ano final para métricas do DPO/INEP (padrão: 2026)",
     )
     parser.add_argument(
+        "--ano",
+        type=int,
+        help="Ano-base específico para extração de métricas de cursos do DPO (ex: 2024, 2023, 2022, 2021, 2020)",
+    )
+    parser.add_argument(
+        "--todos-anos",
+        action="store_true",
+        help="Extrai métricas de cursos de todos os anos disponíveis no DPO (2020 a 2024)",
+    )
+    parser.add_argument(
         "--input-file",
         help="Caminho opcional para arquivo local bruto de turmas do SIGAA (CSV/JSON)",
     )
@@ -89,6 +99,11 @@ def main():
         action="store_true",
         help="Extrai a matriz curricular de todos os cursos descobertos",
     )
+    parser.add_argument(
+        "--from-processed",
+        action="store_true",
+        help="Carrega diretamente os dados salvos em app/pipeline/data/processed no banco sem reexecutar o scraping",
+    )
 
     args = parser.parse_args()
     runner = ETLRunner()
@@ -98,6 +113,10 @@ def main():
     cursos_ids = [args.curso] if args.curso else None
 
     try:
+        if args.from_processed:
+            runner.run_from_processed(dry_run=args.dry_run)
+            print("\nCarga dos dados processados concluída com sucesso.")
+            sys.exit(0)
         if args.source in ("sigaa", "all"):
             deptos = [args.departamento] if args.departamento else None
             runner.run_sigaa_pipeline(
@@ -133,9 +152,20 @@ def main():
             if not cursos_input and args.source == "metricas-cursos":
                 cursos_input = args.input_file
 
+            if args.todos_anos:
+                anos_alvo = [2020, 2021, 2022, 2023, 2024]
+            elif args.ano:
+                anos_alvo = [args.ano]
+            elif args.ano_inicio and args.ano_fim and (args.ano_fim - args.ano_inicio >= 1):
+                anos_alvo = list(range(args.ano_inicio, min(args.ano_fim, 2024) + 1))
+            else:
+                anos_alvo = [args.ano_fim if args.ano_fim and args.ano_fim <= 2024 else 2024]
+
             runner.run_metricas_cursos_pipeline(
+                anos=anos_alvo,
                 input_file=cursos_input,
                 dry_run=args.dry_run,
+                export=export,
             )
 
         print("\nPipeline executado com sucesso.")

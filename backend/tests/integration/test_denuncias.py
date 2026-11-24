@@ -259,3 +259,75 @@ def test_exclusao_de_comentario_e_material_denunciados(
     db.refresh(material_aprovado)
     assert material_aprovado.status_moderacao == "excluido"
     assert material_aprovado.status_curadoria == "RECUSADO"
+
+
+def test_excluir_comentario_denunciado_oculta_subcomentarios_em_cascata(
+    client, db, disciplina, student_user, headers, admin_headers
+):
+    pai = Comentario(
+        disciplina_id=disciplina.id,
+        usuario_id=student_user.id,
+        autor_alias="Autor Pai",
+        conteudo="Comentário pai que será excluído pela moderação.",
+        status_moderacao="PUBLICADO",
+    )
+    db.add(pai)
+    db.commit()
+    db.refresh(pai)
+
+    filho = Comentario(
+        disciplina_id=disciplina.id,
+        usuario_id=student_user.id,
+        autor_alias="Autor Filho",
+        conteudo="Subcomentário direto vinculado ao comentário pai.",
+        parent_id=pai.id,
+        status_moderacao="PUBLICADO",
+    )
+    db.add(filho)
+    db.commit()
+    db.refresh(filho)
+
+    neto = Comentario(
+        disciplina_id=disciplina.id,
+        usuario_id=student_user.id,
+        autor_alias="Autor Neto",
+        conteudo="Resposta aninhada ao subcomentário.",
+        parent_id=filho.id,
+        status_moderacao="PUBLICADO",
+    )
+    db.add(neto)
+    db.commit()
+    db.refresh(neto)
+
+    resp_denuncia = client.post(
+        "/comunidade/denuncias",
+        headers=headers,
+        json={
+            "comentario_id": pai.id,
+            "categoria": "SPAM",
+            "motivo": "Comentário pai com spam repetido.",
+        },
+    )
+    assert resp_denuncia.status_code == 201
+    denuncia_id = resp_denuncia.json()["id"]
+
+    decisao = client.patch(
+        f"/moderacao/denuncias/{denuncia_id}",
+        headers=admin_headers,
+        json={"acao": "EXCLUIR_CONTEUDO", "justificativa": "Spam confirmado."},
+    )
+    assert decisao.status_code == 200
+
+    db.refresh(pai)
+    db.refresh(filho)
+    db.refresh(neto)
+    assert pai.status_moderacao == "OCULTO"
+    assert filho.status_moderacao == "OCULTO"
+    assert neto.status_moderacao == "OCULTO"
+
+    lista = client.get(f"/cadeiras/{disciplina.id}/comentarios")
+    assert lista.status_code == 200
+    ids_publicos = {item["id"] for item in lista.json()["items"]}
+    assert pai.id not in ids_publicos
+    assert filho.id not in ids_publicos
+    assert neto.id not in ids_publicos

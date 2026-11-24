@@ -10,7 +10,11 @@
     "test": "node --no-warnings --import tsx --test 'src/**/__tests__/*.test.ts' 'src/**/__tests__/*.test.tsx'"
   },
   "dependencies": {
+    "@types/nodemailer": "^8.0.2",
+    "html-to-image": "1.11.13",
+    "jspdf": "4.2.1",
     "next": "16.3.4",
+    "nodemailer": "^10.6.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

@@ -1,26 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { hasApprovalData } from "@/utils/academicMetrics";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getDisciplineBySlug } from "@/services/disciplineService";
 import type { Discipline } from "@/types/disciplina";
 
-export default function useDisciplineApprovalMetrics(
+export interface DisciplineDetailedMetrics {
+  approval: number | null;
+  failedGrade?: number;
+  failedAttendance?: number;
+  withdrawn?: number;
+  matriculados?: number;
+}
+
+export function useDisciplineDetailedMetrics(
   disciplines: Discipline[]
-): Record<string, number | null> {
-  const [approvalMetrics, setApprovalMetrics] = useState<
-    Record<string, number | null>
+): Record<string, DisciplineDetailedMetrics> {
+  const [detailedMetrics, setDetailedMetrics] = useState<
+    Record<string, DisciplineDetailedMetrics>
   >({});
   const requestedSlugs = useRef(new Set<string>());
 
   useEffect(() => {
     for (const discipline of disciplines) {
-      const hasApprovalData =
-        typeof discipline.approval === "number" &&
-        Number.isFinite(discipline.approval) &&
-        discipline.approval > 0;
+      const hasApproval = hasApprovalData(discipline.approval);
 
       if (
-        hasApprovalData ||
+        hasApproval ||
         !discipline.slug ||
         requestedSlugs.current.has(discipline.slug)
       ) {
@@ -29,10 +36,16 @@ export default function useDisciplineApprovalMetrics(
 
       requestedSlugs.current.add(discipline.slug);
       void getDisciplineBySlug(discipline.slug)
-        .then(({ approval }) => {
-          setApprovalMetrics((current) => ({
+        .then((fetched) => {
+          setDetailedMetrics((current) => ({
             ...current,
-            [discipline.slug]: approval ?? null,
+            [discipline.slug]: {
+              approval: fetched.approval ?? null,
+              failedGrade: fetched.failedGrade,
+              failedAttendance: fetched.failedAttendance,
+              withdrawn: fetched.withdrawn,
+              matriculados: fetched.metrica_consolidada?.matriculados,
+            },
           }));
         })
         .catch((error: unknown) => {
@@ -45,5 +58,19 @@ export default function useDisciplineApprovalMetrics(
     }
   }, [disciplines]);
 
-  return approvalMetrics;
+  return detailedMetrics;
+}
+
+export default function useDisciplineApprovalMetrics(
+  disciplines: Discipline[]
+): Record<string, number | null> {
+  const detailedMetrics = useDisciplineDetailedMetrics(disciplines);
+
+  return useMemo(() => {
+    const map: Record<string, number | null> = {};
+    for (const [slug, metrics] of Object.entries(detailedMetrics)) {
+      map[slug] = metrics.approval;
+    }
+    return map;
+  }, [detailedMetrics]);
 }

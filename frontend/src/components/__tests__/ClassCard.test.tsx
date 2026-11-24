@@ -18,7 +18,8 @@ for (const [capacidade, matriculados, texto] of [
     assert.ok(html.includes(texto));
     assert.ok(html.includes("Docente de teste"));
     assert.ok(html.includes("Turma 01"));
-    for (const removido of ["Vagas abertas", "Últimas vagas", "Esgotada", "%", "progressbar"]) assert.ok(!html.includes(removido));
+    assert.ok(html.includes('role="img"'));
+    for (const removido of ["Vagas abertas", "Últimas vagas", "Esgotada", "progressbar"]) assert.ok(!html.includes(removido));
   });
 }
 
@@ -28,4 +29,31 @@ test("card mantém compatibilidade com a prop turma e não mostra mock quando n�
   assert.ok(html.includes("Ocupação: Não informada"));
   assert.ok(!html.includes("0/45"));
   assert.equal(renderToStaticMarkup(<ClassCard />), "");
+});
+
+test("card exibe progresso de coleta da comunidade abaixo do limiar LGPD e taxas quando liberado", () => {
+  const turmaColeta = adaptBackendTurma({
+    ...base,
+    amostras_comunidade: 2,
+    minimo_amostras_lgpd: 5,
+    estatistica: null,
+  });
+  const htmlColeta = renderToStaticMarkup(<ClassCard classData={turmaColeta} />);
+  assert.ok(htmlColeta.includes("Coleta comunidade: 2/5 históricos (RN07)"));
+
+  const turmaLiberada = adaptBackendTurma({
+    ...base,
+    amostras_comunidade: 6,
+    minimo_amostras_lgpd: 5,
+    estatistica: {
+      taxa_aprovacao: 83.33,
+      taxa_reprovacao_nota: 16.67,
+      taxa_reprovacao_falta: 0,
+      taxa_trancamento: 0,
+      status: "VALIDADO",
+    },
+  });
+  const htmlLiberada = renderToStaticMarkup(<ClassCard classData={turmaLiberada} />);
+  assert.ok(htmlLiberada.includes("Aprovação: 83%"));
+  assert.ok(htmlLiberada.includes("Baseado em 6 históricos"));
 });

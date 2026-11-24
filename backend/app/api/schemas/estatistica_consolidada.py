@@ -12,6 +12,14 @@ class EstatisticaConsolidadaResponse(BaseModel):
     taxa_reprovacao_falta: float
     taxa_trancamento: float
     status: str
+    total_amostras: int = 0
+    origem: str = "DOACAO_QUORUM"
+    qtd_ss: int = 0
+    qtd_ms: int = 0
+    qtd_mm: int = 0
+    qtd_mi: int = 0
+    qtd_ii: int = 0
+    qtd_sr: int = 0
     created_at: datetime
     updated_at: datetime
 

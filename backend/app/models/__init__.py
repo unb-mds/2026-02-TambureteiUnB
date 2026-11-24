@@ -13,6 +13,7 @@ from app.models.denuncia import Denuncia
 from app.models.voto import VotoUtil
 from app.models.doacao import DoacaoEstatistica
 from app.models.estatistica_consolidada import EstatisticaConsolidada
+from app.models.amostra_historico import AmostraHistorico
 
 
 
@@ -36,4 +37,5 @@ __all__ = [
     "VotoUtil",
     "DoacaoEstatistica",
     "EstatisticaConsolidada",
+    "AmostraHistorico",
 ]

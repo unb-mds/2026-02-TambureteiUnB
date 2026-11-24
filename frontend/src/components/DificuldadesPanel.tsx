@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import {
   DIFFICULTY_LEVEL_CONFIG,
   type DifficultyAlert,
@@ -15,9 +15,15 @@ import {
   DIFFICULTY_MIN_CHARS,
   listDifficultyAlerts,
   submitDifficultyAlert,
+  toggleDifficultyVote,
 } from "../services/difficultyService";
 import { getStoredToken } from "../services/httpClient";
-import { getStoredUser } from "../services/authService";
+import { getStoredUser, isAuthenticated, subscribeAuthChange } from "../services/authService";
+import {
+  getTriageBannerClasses,
+  iniciarPollingStatusComentario,
+  type AvisoTriagemComentario,
+} from "../services/moderacaoService";
 
 export interface DificuldadesPanelProps {
   disciplineId?: number;
@@ -39,6 +45,7 @@ interface DifficultyFormProps {
   content: string;
   onChangeContent: (val: string) => void;
   isAnonymous: boolean;
+  authorDisplayName: string;
   onChangeAnonymous: (val: boolean) => void;
   isSubmitting: boolean;
   formError: string | null;
@@ -57,6 +64,7 @@ function DifficultyForm({
   content,
   onChangeContent,
   isAnonymous,
+  authorDisplayName,
   onChangeAnonymous,
   isSubmitting,
   formError,
@@ -193,15 +201,20 @@ function DifficultyForm({
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        <label className="inline-flex items-center gap-2 text-sm text-[#5F6368] cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isAnonymous}
-            onChange={(e) => onChangeAnonymous(e.target.checked)}
-            className="h-4 w-4 rounded border-[#D8D1FA] text-[#5B4BDB] focus:ring-[#5B4BDB]"
-          />
-          Publicar como estudante anônimo
-        </label>
+        <div className="flex flex-col gap-1">
+          <label className="inline-flex items-center gap-2 text-sm text-[#5F6368] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(e) => onChangeAnonymous(e.target.checked)}
+              className="h-4 w-4 rounded border-[#D8D1FA] text-[#5B4BDB] focus:ring-[#5B4BDB]"
+            />
+            Publicar como estudante anônimo
+          </label>
+          <span className="text-xs text-[#5F6368]">
+            Autor exibido: <strong>{isAnonymous ? "Estudante Anônimo" : authorDisplayName}</strong>
+          </span>
+        </div>
 
         <button
           type="submit"
@@ -308,12 +321,14 @@ function SyllabusUnitsGrid({
 interface DifficultyAlertsListProps {
   isLoading: boolean;
   alerts: DifficultyAlert[];
+  authenticated: boolean;
   onToggleLike: (alertId: string) => void;
 }
 
 function DifficultyAlertsList({
   isLoading,
   alerts,
+  authenticated,
   onToggleLike,
 }: DifficultyAlertsListProps) {
   if (isLoading) {
@@ -377,11 +392,15 @@ function DifficultyAlertsList({
 
               <button
                 type="button"
+                disabled={!authenticated}
+                title={!authenticated ? "Faça login para concordar" : undefined}
                 onClick={() => onToggleLike(alert.id)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                  alert.isLikedByMe
-                    ? "bg-[#5B4BDB] text-white border-[#5B4BDB]"
-                    : "bg-[#F4F3FA] text-[#5B4BDB] border-[#E0DDF2] hover:bg-[#EDE9FD]"
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                  !authenticated
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70"
+                    : alert.isLikedByMe
+                    ? "bg-[#5B4BDB] text-white border-[#5B4BDB] cursor-pointer"
+                    : "bg-[#F4F3FA] text-[#5B4BDB] border-[#E0DDF2] hover:bg-[#EDE9FD] cursor-pointer"
                 }`}
               >
                 <span>Concordo ({alert.upvotes})</span>
@@ -402,7 +421,14 @@ export default function DificuldadesPanel({
   ementa,
   historicalFailureRate = 0,
 }: DificuldadesPanelProps) {
-  const router = useRouter();
+  const authenticated = useSyncExternalStore(
+    subscribeAuthChange,
+    isAuthenticated,
+    () => false
+  );
+  const storedUser = authenticated ? getStoredUser() : null;
+  const authorDisplayName = storedUser?.nome?.trim() || "Estudante UnB";
+
   const [alerts, setAlerts] = useState<DifficultyAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>("TODOS");
@@ -415,23 +441,44 @@ export default function DificuldadesPanel({
   const [isAnonymous, setIsAnonymous] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [triageNotice, setTriageNotice] = useState<AvisoTriagemComentario | null>(null);
+
+  const pollCancelRef = useRef<(() => void) | null>(null);
+  const isMountedRef = useRef(true);
 
   const syllabusUnits = useMemo(() => extractSyllabusUnits(ementa), [ementa]);
   const activeSelectedUnit = selectedUnit || syllabusUnits[0] || "";
 
+  const loadAlerts = useCallback(async () => {
+    const target = disciplineSlug || disciplineId || disciplineCode;
+    try {
+      const response = await listDifficultyAlerts(target, { size: 50 });
+      if (isMountedRef.current) {
+        setAlerts(response.items);
+        setIsLoading(false);
+      }
+    } catch {
+      if (isMountedRef.current) {
+        setAlerts([]);
+        setIsLoading(false);
+      }
+    }
+  }, [disciplineSlug, disciplineId, disciplineCode]);
+
   useEffect(() => {
+    isMountedRef.current = true;
     let active = true;
     const target = disciplineSlug || disciplineId || disciplineCode;
 
     listDifficultyAlerts(target, { size: 50 })
       .then((response) => {
-        if (active) {
+        if (active && isMountedRef.current) {
           setAlerts(response.items);
           setIsLoading(false);
         }
       })
       .catch(() => {
-        if (active) {
+        if (active && isMountedRef.current) {
           setAlerts([]);
           setIsLoading(false);
         }
@@ -439,8 +486,13 @@ export default function DificuldadesPanel({
 
     return () => {
       active = false;
+      isMountedRef.current = false;
+      if (pollCancelRef.current) {
+        pollCancelRef.current();
+        pollCancelRef.current = null;
+      }
     };
-  }, [disciplineSlug, disciplineId, disciplineCode]);
+  }, [disciplineSlug, disciplineId, disciplineCode, authenticated]);
 
   const summary = useMemo(
     () =>
@@ -461,7 +513,14 @@ export default function DificuldadesPanel({
     return [...filtered].sort((a, b) => b.upvotes - a.upvotes);
   }, [alerts, selectedUnitFilter]);
 
-  const handleToggleLike = (alertId: string) => {
+  const handleToggleLike = async (alertId: string) => {
+    if (!authenticated || !isAuthenticated()) {
+      return;
+    }
+
+    const previousItem = alerts.find((item) => item.id === alertId);
+    if (!previousItem) return;
+
     setAlerts((prev) =>
       prev.map((item) => {
         if (item.id !== alertId) return item;
@@ -473,9 +532,36 @@ export default function DificuldadesPanel({
         };
       })
     );
+
+    const numericId = Number(alertId);
+    if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+      return;
+    }
+
+    try {
+      const synced = await toggleDifficultyVote(numericId);
+      setAlerts((prev) =>
+        prev.map((item) =>
+          item.id === alertId
+            ? {
+                ...item,
+                upvotes: synced.upvotes,
+                isLikedByMe: synced.liked_by_me,
+              }
+            : item
+        )
+      );
+    } catch {
+      setAlerts((prev) =>
+        prev.map((item) => (item.id === alertId ? previousItem : item))
+      );
+    }
   };
 
   const handleOpenForm = (preselectUnit?: string) => {
+    if (!authenticated || !isAuthenticated()) {
+      return;
+    }
     setFormError(null);
     if (preselectUnit) {
       setSelectedUnit(preselectUnit);
@@ -492,9 +578,9 @@ export default function DificuldadesPanel({
     const token = getStoredToken();
     const currentUser = getStoredUser();
 
-    if (!token && !currentUser) {
-      router.push(
-        `/login?redirect=${encodeURIComponent(`/disciplinas/${disciplineSlug}`)}`
+    if (!authenticated || (!token && !currentUser)) {
+      setFormError(
+        "Faça login com sua conta de estudante para registrar dificuldades na ementa."
       );
       return;
     }
@@ -518,6 +604,7 @@ export default function DificuldadesPanel({
     }
 
     setIsSubmitting(true);
+    setTriageNotice(null);
     try {
       const authorAlias = isAnonymous
         ? "Estudante Anônimo"
@@ -533,10 +620,39 @@ export default function DificuldadesPanel({
         content: cleanContent,
       });
 
-      setAlerts((prev) => [created, ...prev]);
       setContent("");
       setCustomTopic("");
       setIsFormOpen(false);
+
+      const numericId = Number(created.id);
+      if (created.statusModeracao === "PENDENTE" && Number.isSafeInteger(numericId) && numericId > 0) {
+        setTriageNotice({
+          kind: "pending",
+          text: "[TRIAGEM AUTOMATICA] Seu relato de dificuldade foi recebido e submetido a moderacao automatica. Aguardando resultado...",
+        });
+
+        if (pollCancelRef.current) {
+          pollCancelRef.current();
+        }
+        pollCancelRef.current = iniciarPollingStatusComentario({
+          commentId: numericId,
+          contexto: "dificuldade",
+          onApproved: async () => {
+            await loadAlerts();
+          },
+          onStatus: (aviso) => {
+            if (!isMountedRef.current) return;
+            setTriageNotice(aviso);
+            pollCancelRef.current = null;
+          },
+        });
+      } else {
+        setAlerts((prev) => [created, ...prev]);
+        setTriageNotice({
+          kind: "approved",
+          text: "[PUBLICADO] Seu relato de dificuldade foi publicado com sucesso.",
+        });
+      }
     } catch (err: unknown) {
       const msg =
         err instanceof Error
@@ -570,16 +686,52 @@ export default function DificuldadesPanel({
 
         <button
           type="button"
+          disabled={!authenticated}
+          title={!authenticated ? "Faça login para registrar dificuldades" : undefined}
           onClick={() =>
             isFormOpen ? setIsFormOpen(false) : handleOpenForm()
           }
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#5B4BDB] text-white text-sm font-semibold hover:bg-[#4938C4] transition-colors shrink-0 cursor-pointer"
+          className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors shrink-0 ${
+            authenticated
+              ? "bg-[#5B4BDB] hover:bg-[#4938C4] cursor-pointer"
+              : "bg-gray-300 cursor-not-allowed opacity-60"
+          }`}
         >
-          {isFormOpen ? "Fechar formulário" : "+ Registrar Dificuldade"}
+          {authenticated
+            ? isFormOpen
+              ? "Fechar formulário"
+              : "+ Registrar Dificuldade"
+            : "Faça login para relatar"}
         </button>
       </div>
 
-      {isFormOpen && (
+      {!authenticated && (
+        <div
+          role="status"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD] px-4 py-3 text-xs sm:text-sm text-[#5B4BDB]"
+        >
+          <span>
+            Apenas estudantes autenticados podem registrar dificuldades na ementa.
+          </span>
+          <Link
+            href="/login"
+            className="rounded-lg bg-[#5B4BDB] px-3 py-1.5 text-xs font-bold text-white hover:brightness-110 transition-all"
+          >
+            Fazer login
+          </Link>
+        </div>
+      )}
+
+      {triageNotice && (
+        <div
+          role={triageNotice.kind === "rejected" || triageNotice.kind === "error" ? "alert" : "status"}
+          className={`mt-4 rounded-xl border px-4 py-3 text-xs font-medium ${getTriageBannerClasses(triageNotice.kind)}`}
+        >
+          {triageNotice.text}
+        </div>
+      )}
+
+      {authenticated && isFormOpen && (
         <DifficultyForm
           syllabusUnits={syllabusUnits}
           activeSelectedUnit={activeSelectedUnit}
@@ -591,6 +743,7 @@ export default function DificuldadesPanel({
           content={content}
           onChangeContent={setContent}
           isAnonymous={isAnonymous}
+          authorDisplayName={authorDisplayName}
           onChangeAnonymous={setIsAnonymous}
           isSubmitting={isSubmitting}
           formError={formError}
@@ -610,6 +763,7 @@ export default function DificuldadesPanel({
         <DifficultyAlertsList
           isLoading={isLoading}
           alerts={filteredAlerts}
+          authenticated={authenticated}
           onToggleLike={handleToggleLike}
         />
       </div>

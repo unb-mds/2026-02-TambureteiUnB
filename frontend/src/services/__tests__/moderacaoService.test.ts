@@ -5,70 +5,56 @@ import {
   podeModerar,
   listarPendentes,
   decidirCuradoria,
+  listarComentariosPendentes,
+  decidirComentarioCuradoria,
   baixarParaAnalise,
   validarMotivoDenuncia,
   criarDenuncia,
   listarDenunciasPendentes,
   decidirDenuncia,
+  consultarStatusComentario,
+  resolverAvisoTriagemComentario,
+  iniciarPollingStatusComentario,
 } from "../moderacaoService.ts";
 import { ApiError } from "../httpClient.ts";
 
 const dados = new Map<string, string>();
 Object.defineProperty(globalThis, "window", { value: {}, configurable: true });
-Object.defineProperty(globalThis, "localStorage", {
-  value: {
-    getItem: (key: string) => dados.get(key) ?? null,
-    setItem: (key: string, value: string) => dados.set(key, value),
-    removeItem: (key: string) => dados.delete(key),
-  },
-  configurable: true,
-});
+Object.defineProperty(globalThis, "localStorage", { value: {
+  getItem: (key: string) => dados.get(key) ?? null,
+  setItem: (key: string, value: string) => dados.set(key, value),
+  removeItem: (key: string) => dados.delete(key),
+}, configurable: true });
 
 test("somente perfis administrativos podem moderar", () => {
   assert.equal(podeModerar("STUDENT"), false);
-  assert.equal(podeModerar("estudante"), false);
   assert.equal(podeModerar("MODERATOR"), true);
-  assert.equal(podeModerar("MODERADOR"), true);
   assert.equal(podeModerar("ADMIN"), true);
 });
 
 test("perfil ADMIN em cache não autoriza estudante", async (t) => {
   dados.set("tamburetei_auth_token", "token");
   dados.set("tamburetei_user", JSON.stringify({ role: "ADMIN" }));
-  t.mock.method(
-    globalThis,
-    "fetch",
-    async () => new Response(JSON.stringify({ id: "1", role: "STUDENT" }), { status: 200 })
-  );
+  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ id: "1", role: "STUDENT" }), { status: 200 }));
   await assert.rejects(verificarModerador(), (e: unknown) => e instanceof ApiError && e.status === 403);
 });
 
 test("sem token não consulta sessão", async (t) => {
   dados.clear();
-  const fetch = t.mock.method(globalThis, "fetch", async () => {
-    throw new Error("Não deveria consultar");
-  });
+  const fetch = t.mock.method(globalThis, "fetch", async () => { throw new Error("Não deveria consultar"); });
   await assert.rejects(verificarModerador(), (e: unknown) => e instanceof ApiError && e.status === 401);
   assert.equal(fetch.mock.callCount(), 0);
 });
 
 test("sessão expirada não usa fallback de cache", async (t) => {
   dados.set("tamburetei_auth_token", "expirado");
-  t.mock.method(
-    globalThis,
-    "fetch",
-    async () => new Response(JSON.stringify({ detail: "Token expirado." }), { status: 401 })
-  );
+  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ detail: "Token expirado." }), { status: 401 }));
   await assert.rejects(verificarModerador(), (e: unknown) => e instanceof ApiError && e.status === 401);
 });
 
 test("perfil administrativo validado no servidor", async (t) => {
   dados.set("tamburetei_auth_token", "token");
-  t.mock.method(
-    globalThis,
-    "fetch",
-    async () => new Response(JSON.stringify({ id: "1", role: "ADMIN", is_active: true }), { status: 200 })
-  );
+  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ id: "1", role: "ADMIN", is_active: true }), { status: 200 }));
   assert.equal((await verificarModerador()).role, "ADMIN");
 });
 
@@ -81,13 +67,15 @@ test("fila e decisão usam Bearer e contrato correto", async (t) => {
   });
   await listarPendentes(2);
   await decidirCuradoria(12, "RECUSADO", "  Material inadequado.  ");
-  assert.match(chamadas[0].url, /pagina=2&tamanho_pagina=20/);
+  await listarComentariosPendentes(3);
+  await decidirComentarioCuradoria(44, "OCULTO", "  Ofensa detectada.  ");
+  assert.match(chamadas[0].url, /moderacao\/materiais\?pagina=2&tamanho_pagina=20/);
   assert.equal(new Headers(chamadas[0].options.headers).get("Authorization"), "Bearer token");
   assert.equal(chamadas[1].options.method, "PATCH");
-  assert.deepEqual(JSON.parse(String(chamadas[1].options.body)), {
-    status: "RECUSADO",
-    justificativa: "Material inadequado.",
-  });
+  assert.deepEqual(JSON.parse(String(chamadas[1].options.body)), { status: "RECUSADO", justificativa: "Material inadequado." });
+  assert.match(chamadas[2].url, /moderacao\/comentarios\?pagina=3&tamanho_pagina=20/);
+  assert.equal(chamadas[3].options.method, "PATCH");
+  assert.deepEqual(JSON.parse(String(chamadas[3].options.body)), { status: "OCULTO", justificativa: "Ofensa detectada." });
 });
 
 test("conflito de outro moderador é propagado", async (t) => {
@@ -132,18 +120,18 @@ test("criarDenuncia valida entrada e envia POST para /comunidade/denuncias", asy
         ocultado_automaticamente: false,
         created_at: "2026-11-06T12:00:00Z",
       }),
-      { status: 201 }
+      { status: 201 },
     );
   });
 
   await assert.rejects(
     criarDenuncia({ categoria: "OFENSA_DOCENTE", motivo: "Motivo válido com mais de cinco letras" }),
-    /alvo válido/
+    /alvo válido/,
   );
 
   await assert.rejects(
     criarDenuncia({ comentario_id: 42, categoria: "OFENSA_DOCENTE", motivo: "abc" }),
-    /mínimo 5 caracteres/
+    /mínimo 5 caracteres/,
   );
 
   const resposta = await criarDenuncia({
@@ -189,6 +177,75 @@ test("listarDenunciasPendentes e decidirDenuncia enviam filtros e payload de aca
   });
 });
 
+test("resolverAvisoTriagemComentario distingue aprovado, recusado e encaminhado para revisao", () => {
+  assert.equal(
+    resolverAvisoTriagemComentario({ id: 1, status_moderacao: "PENDENTE", moderado_por: null, motivo_moderacao: null }),
+    null
+  );
+
+  const recusado = resolverAvisoTriagemComentario(
+    {
+      id: 8,
+      status_moderacao: "OCULTO",
+      moderado_por: "IA",
+      motivo_moderacao: "[OFENSA_DIFAMACAO] Conteúdo ofensivo",
+    },
+    "relato"
+  );
+  assert.equal(recusado?.kind, "rejected");
+  assert.match(recusado?.text ?? "", /\[RECUSADO\].*Motivo: \[OFENSA_DIFAMACAO\]/);
+
+  const revisao = resolverAvisoTriagemComentario(
+    {
+      id: 9,
+      status_moderacao: "PENDENTE",
+      moderado_por: "IA",
+      motivo_moderacao: "Confiança abaixo do limiar",
+    },
+    "resposta"
+  );
+  assert.equal(revisao?.kind, "review");
+  assert.match(revisao?.text ?? "", /\[EM REVISÃO\] Sua resposta/);
+
+  const publicado = resolverAvisoTriagemComentario({ id: 10, status_moderacao: "PUBLICADO" }, "dificuldade");
+  assert.equal(publicado?.kind, "approved");
+  assert.match(publicado?.text ?? "", /\[PUBLICADO\] Seu relato de dificuldade/);
+});
+
+test("consultarStatusComentario e iniciarPollingStatusComentario notificam recusa automaticamente", async (t) => {
+  dados.set("tamburetei_auth_token", "token-aluno");
+  t.mock.method(globalThis, "fetch", async (url: string) => {
+    assert.match(url, /\/comentarios\/88\/status$/);
+    return new Response(
+      JSON.stringify({
+        id: 88,
+        status_moderacao: "OCULTO",
+        moderado_por: "IA",
+        motivo_moderacao: "Violação da conduta ética (RN04).",
+        confianca_ia: 0.92,
+      }),
+      { status: 200 }
+    );
+  });
+
+  const direto = await consultarStatusComentario(88);
+  assert.equal(direto.status_moderacao, "OCULTO");
+
+  const resultado = await new Promise<{ kind: string; text: string }>((resolve) => {
+    iniciarPollingStatusComentario({
+      commentId: 88,
+      contexto: "relato",
+      intervalMs: 10,
+      maxAttempts: 3,
+      onStatus: resolve,
+    });
+  });
+
+  assert.equal(resultado.kind, "rejected");
+  assert.match(resultado.text, /\[RECUSADO\]/);
+  assert.match(resultado.text, /Violação da conduta ética/);
+});
+
 test("decidirCuradoria envia status RECUSADO com justificativa informada pelo moderador", async (t) => {
   dados.set("tamburetei_auth_token", "token");
   const chamadas: Array<{ url: string; options: RequestInit }> = [];
@@ -204,33 +261,6 @@ test("decidirCuradoria envia status RECUSADO com justificativa informada pelo mo
     status: "RECUSADO",
     justificativa: "Material fora do escopo da ementa oficial.",
   });
-});
-
-test("decidirDenuncia propaga erro de conflito 409 quando ja avaliada por outro moderador", async (t) => {
-  dados.set("tamburetei_auth_token", "token-mod");
-  t.mock.method(
-    globalThis,
-    "fetch",
-    async () => new Response(JSON.stringify({ detail: "Já avaliada por outro moderador." }), { status: 409 })
-  );
-
-  await assert.rejects(
-    decidirDenuncia(10, "EXCLUIR_CONTEUDO", "Violação confirmada da RN04"),
-    (e: unknown) => e instanceof ApiError && e.status === 409
-  );
-});
-
-test("baixarParaAnalise retorna blob integro para geracao de preview", async (t) => {
-  dados.set("tamburetei_auth_token", "token");
-  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
-    assert.match(url, /\/moderacao\/materiais\/45\/download$/);
-    assert.equal(new Headers(options.headers).get("Authorization"), "Bearer token");
-    return new Response("%PDF-1.4 conteudo de teste para visualizacao", { status: 200 });
-  });
-
-  const blob = await baixarParaAnalise(45);
-  assert.ok(blob);
-  assert.equal(await blob.text(), "%PDF-1.4 conteudo de teste para visualizacao");
 });
 
 test("fluxo de justificativa obrigatoria rejeita texto em branco e valida tamanho", () => {

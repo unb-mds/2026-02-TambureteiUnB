@@ -50,7 +50,7 @@ def test_criar_comentario_disciplina_com_sucesso(client: TestClient, student_hea
     assert response.status_code == 201
     data = response.json()
     assert data["conteudo"] == "Gostei da disciplina"
-    assert data["status_moderacao"] == "PUBLICADO"
+    assert data["status_moderacao"] == "PENDENTE"
     assert data["disciplina_id"] == disciplina.id
 
 
@@ -87,6 +87,7 @@ def test_listar_comentarios_ativos(client: TestClient, disciplina, comentario_do
     data = response.json()
     assert data["total"] == 1
     assert data["items"][0]["id"] == comentario_do_aluno.id
+    assert "usuario_id" not in data["items"][0]
 
 
 def test_comentario_oculto_nao_aparece(client: TestClient, db: Session, disciplina, comentario_do_aluno):
@@ -127,6 +128,7 @@ def test_editar_proprio_comentario(client: TestClient, student_headers, comentar
     response = client.patch(f"/comentarios/{comentario_do_aluno.id}", json={"conteudo": "Editado"}, headers=student_headers)
     assert response.status_code == 200
     assert response.json()["conteudo"] == "Editado"
+    assert response.json()["status_moderacao"] == "PENDENTE"
 
 
 def test_editar_comentario_de_outro_retorna_403(client: TestClient, student_headers, comentario_de_outro):
@@ -162,7 +164,7 @@ def test_excluir_sem_autenticacao_retorna_401(client: TestClient, comentario_do_
 
 # --- DIFICULDADES E TÓPICOS CRÍTICOS (SPRINT 8) ---
 
-def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, student_headers, disciplina):
+def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, db: Session, student_headers, disciplina):
     payload = {
         "autor_alias": "Estudante Anônimo",
         "topico_dificuldade": "[CRITICO] Integrais Múltiplas",
@@ -177,6 +179,12 @@ def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, student
     created = post_resp.json()
     assert created["topico_dificuldade"] == "[CRITICO] Integrais Múltiplas"
     assert created["disciplina_id"] == disciplina.id
+    assert created["status_moderacao"] == "PENDENTE"
+
+    comentario = db.get(Comentario, created["id"])
+    assert comentario is not None
+    comentario.status_moderacao = "PUBLICADO"
+    db.commit()
 
     list_resp = client.get(
         f"/cadeiras/{disciplina.slug}/comentarios?apenas_dificuldades=true&topico=Integrais"
@@ -185,4 +193,93 @@ def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, student
     data = list_resp.json()
     assert data["total"] == 1
     assert data["items"][0]["topico_dificuldade"] == "[CRITICO] Integrais Múltiplas"
+
+
+def test_alternar_voto_comentario_persiste_e_desfaz_rn03(
+    client: TestClient, student_headers, disciplina, comentario_do_aluno
+):
+    sem_login = client.post(f"/comentarios/{comentario_do_aluno.id}/voto")
+    assert sem_login.status_code == 401
+
+    voto_on = client.post(
+        f"/comentarios/{comentario_do_aluno.id}/voto", headers=student_headers
+    )
+    assert voto_on.status_code == 200
+    assert voto_on.json() == {
+        "comentario_id": comentario_do_aluno.id,
+        "upvotes": 1,
+        "liked_by_me": True,
+    }
+
+    listagem = client.get(
+        f"/cadeiras/{disciplina.id}/comentarios", headers=student_headers
+    )
+    assert listagem.status_code == 200
+    assert listagem.json()["items"][0]["upvotes"] == 1
+    assert listagem.json()["items"][0]["liked_by_me"] is True
+
+    voto_off = client.post(
+        f"/comentarios/{comentario_do_aluno.id}/voto", headers=student_headers
+    )
+    assert voto_off.status_code == 200
+    assert voto_off.json() == {
+        "comentario_id": comentario_do_aluno.id,
+        "upvotes": 0,
+        "liked_by_me": False,
+    }
+
+
+def test_criar_comentario_forca_nome_usuario_real_em_vez_de_alias_falso(
+    client: TestClient, student_headers, student_user, disciplina
+):
+    payload = {
+        "disciplina_id": disciplina.id,
+        "autor_alias": "@estudante_fcte",
+        "conteudo": "Tentativa de enviar alias falso pelo payload.",
+    }
+    response = client.post("/comentarios", json=payload, headers=student_headers)
+    assert response.status_code == 201
+    assert response.json()["autor_alias"] == student_user.nome
+
+
+def test_criar_comentario_cadeira_sem_autenticacao_retorna_401(client: TestClient, disciplina):
+    payload = {
+        "autor_alias": "Hacker",
+        "conteudo": "Tentativa de comentar sem estar autenticado.",
+    }
+    response = client.post(f"/cadeiras/{disciplina.slug}/comentarios", json=payload)
+    assert response.status_code == 401
+
+
+def test_consultar_status_comentario_exibe_recusa_ao_autor_e_bloqueia_terceiros(
+    client: TestClient, db: Session, student_headers, admin_headers, comentario_do_aluno, comentario_de_outro
+):
+    comentario_do_aluno.status_moderacao = "OCULTO"
+    comentario_do_aluno.motivo_moderacao = "[OFENSA_DIFAMACAO] Conteúdo ofensivo."
+    comentario_do_aluno.moderado_por = "IA"
+    comentario_do_aluno.confianca_ia = 0.95
+    db.commit()
+
+    resp_autor = client.get(f"/comentarios/{comentario_do_aluno.id}/status", headers=student_headers)
+    assert resp_autor.status_code == 200
+    assert resp_autor.json() == {
+        "id": comentario_do_aluno.id,
+        "status_moderacao": "OCULTO",
+        "motivo_moderacao": "[OFENSA_DIFAMACAO] Conteúdo ofensivo.",
+        "moderado_por": "IA",
+        "confianca_ia": 0.95,
+    }
+
+    resp_terceiro = client.get(f"/comentarios/{comentario_de_outro.id}/status", headers=student_headers)
+    assert resp_terceiro.status_code == 403
+
+    resp_admin = client.get(f"/comentarios/{comentario_do_aluno.id}/status", headers=admin_headers)
+    assert resp_admin.status_code == 200
+
+    resp_anon = client.get(f"/comentarios/{comentario_do_aluno.id}/status")
+    assert resp_anon.status_code == 401
+
+    resp_inexistente = client.get("/comentarios/99999/status", headers=student_headers)
+    assert resp_inexistente.status_code == 404
+
 

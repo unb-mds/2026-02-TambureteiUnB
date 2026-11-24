@@ -40,6 +40,11 @@ def listar_turmas_da_disciplina(
     )
 
 
+@router.get("/semestres", response_model=List[str])
+def listar_semestres_ofertados(db: Session = Depends(get_db)):
+    return turma_service.listar_semestres(db)
+
+
 @router.get("/{turma_id}", response_model=TurmaResponse)
 def obter_turma(turma_id: int, db: Session = Depends(get_db)):
     return turma_service.obter_por_id(db, turma_id)

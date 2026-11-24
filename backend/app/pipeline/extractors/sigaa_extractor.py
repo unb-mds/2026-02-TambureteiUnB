@@ -18,6 +18,10 @@ from app.pipeline.transformers.sigaa_transformer import slugify
 logger = logging.getLogger(__name__)
 
 
+class _SIGAAViewExpiredError(RuntimeError):
+    """Sinaliza expiração do ViewState/sessão JSF ao consultar detalhes no SIGAA."""
+
+
 class SIGAAExtractor(BaseExtractor):
     """
     Extrator robusto de dados do SIGAA e do Portal de Dados Abertos da UnB.
@@ -249,13 +253,6 @@ class SIGAAExtractor(BaseExtractor):
                             if doc:
                                 docentes_deptos_map[doc].add(depto_nome)
 
-                    # Obter catálogo oficial de componentes do departamento
-                    self.logger.info(f"Consultando catálogo oficial de componentes do departamento {depto_id}...")
-                    comps_map, vs_comps = self.fetch_componentes_departamento(client, depto_id)
-                    if comps_map:
-                        self.logger.info(f"Depto {depto_id}: {len(comps_map)} componentes curriculares encontrados no catálogo.")
-                        deptos_catalogos_map[depto_id] = (comps_map, vs_comps, depto_nome)
-
                     successful_deptos += 1
                     self.logger.info(f"Depto {depto_id}: {len(turmas_depto)} turmas encontradas.")
                 except Exception as e:
@@ -348,9 +345,19 @@ class SIGAAExtractor(BaseExtractor):
                     })
 
             # 3. Enriquecimento consolidado com catálogo oficial de componentes (Turmas + Matrizes)
+            # Consulta o catálogo de cada departamento imediatamente antes de buscar seus detalhes
+            # para garantir ViewState JSF ativo e renova a sessão automaticamente caso expire.
             self.logger.info(f"Iniciando enriquecimento consolidado de {len(disciplinas_map)} disciplinas com catálogos departamentais...")
             enriched_cods: Set[str] = set()
-            for depto_id, (comps_map, vs_comps, depto_nome) in deptos_catalogos_map.items():
+            for depto_id in deptos_ids:
+                depto_nome = deptos_nomes_map.get(depto_id) or str(depto_id)
+                self.logger.info(f"Consultando catálogo oficial de componentes do departamento {depto_id}...")
+                comps_map, vs_comps = self.fetch_componentes_departamento(client, depto_id)
+                if not comps_map:
+                    continue
+                self.logger.info(f"Depto {depto_id}: {len(comps_map)} componentes curriculares encontrados no catálogo.")
+                deptos_catalogos_map[depto_id] = (comps_map, vs_comps, depto_nome)
+
                 for cod, d in disciplinas_map.items():
                     if cod in comps_map and cod not in enriched_cods:
                         enriched_cods.add(cod)
@@ -365,11 +372,34 @@ class SIGAAExtractor(BaseExtractor):
                         if fetch_ementas and comp_info.get("detalhes_params") and vs_comps:
                             try:
                                 time.sleep(0.15)
-                                detalhes = self.fetch_detalhes_componente(
-                                    client,
-                                    vs_comps,
-                                    comp_info["detalhes_params"],
-                                )
+                                try:
+                                    detalhes = self.fetch_detalhes_componente(
+                                        client,
+                                        vs_comps,
+                                        comp_info["detalhes_params"],
+                                        raise_on_expired=True,
+                                    )
+                                except _SIGAAViewExpiredError:
+                                    self.logger.info(
+                                        f"ViewState/sessão expirada no depto {depto_id} ao consultar {cod}; renovando catálogo..."
+                                    )
+                                    try:
+                                        client.get(self.home_url)
+                                    except Exception:
+                                        pass
+                                    fresh_comps, fresh_vs = self.fetch_componentes_departamento(client, depto_id)
+                                    if fresh_comps and fresh_vs:
+                                        comps_map = fresh_comps
+                                        vs_comps = fresh_vs
+                                        comp_info = comps_map.get(cod, comp_info)
+                                        detalhes = self.fetch_detalhes_componente(
+                                            client,
+                                            vs_comps,
+                                            comp_info.get("detalhes_params") or {},
+                                        )
+                                    else:
+                                        detalhes = {"ementa": None, "pre_requisitos": None, "co_requisitos": None, "equivalencias": None}
+
                                 if detalhes.get("ementa"):
                                     d["ementa"] = detalhes["ementa"]
                                 if detalhes.get("pre_requisitos"):
@@ -716,6 +746,7 @@ class SIGAAExtractor(BaseExtractor):
         client: httpx.Client,
         view_state: str,
         params: Dict[str, str],
+        raise_on_expired: bool = False,
     ) -> Dict[str, Optional[str]]:
         """
         Dispara requisição JSF para obter os detalhes do componente e extrai:
@@ -747,10 +778,18 @@ class SIGAAExtractor(BaseExtractor):
 
             resp = client.post(self.componentes_url, data=post_data)
             resp.raise_for_status()
+            final_url = str(resp.url) if isinstance(getattr(resp, "url", None), (str, httpx.URL)) else ""
             soup = BeautifulSoup(resp.text, "html.parser")
 
             vis_table = soup.find("table", class_="visualizacao")
             if not vis_table:
+                sessao_expirada = (
+                    "home.jsf" in final_url.lower()
+                    or soup.find("form", {"id": "form"}) is not None
+                    or "expirad" in resp.text.lower()
+                )
+                if sessao_expirada and raise_on_expired:
+                    raise _SIGAAViewExpiredError("Sessão ou ViewState JSF expirado no SIGAA.")
                 vis_table = soup.find("table")
 
             if vis_table:
@@ -790,6 +829,8 @@ class SIGAAExtractor(BaseExtractor):
                             break
 
             return resultado
+        except _SIGAAViewExpiredError:
+            raise
         except Exception as e:
             self.logger.debug(f"Erro ao extrair detalhes do componente: {e}")
             return resultado
