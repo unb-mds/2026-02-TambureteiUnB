@@ -4,9 +4,36 @@ Todas as mudanças notáveis documentadas por release do projeto **Tamburetei Un
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o versionamento adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [Não Lançado] — Fechamento R2 e Deploy em Produção
+
+### Adicionado
+- Implantação em produção em **[tambureteiunb.com.br](https://tambureteiunb.com.br/)** e `https://api.tambureteiunb.com.br` com `docker-compose.prod.yml`, proxy reverso `Caddy`, borda `Cloudflare` e *hardening* HTTP (`docs/engenharia/deploy.md`).
+- Documentação consolidada de fechamento em `docs/produto/relatorio_final.md` e relatório de qualidade com medições reais em `docs/qualidade/relatorio_qualidade.md`.
+- Templates de Issue (`.github/ISSUE_TEMPLATE/bug_report.md` e `user_story.md`) e política de segurança (`SECURITY.md`).
+
+### Quebras de Compatibilidade
+- Nenhuma quebra de compatibilidade nos contratos públicos da API REST até a `v0.11.0`. Em produção (`ENVIRONMENT=production`), a documentação interativa (`/docs`, `/redoc` e `/openapi.json`) é desativada intencionalmente e exige `SECRET_KEY` com ao menos 32 caracteres.
+
+---
+
+## [0.11.0] (Sprint 11)
+
+Detalhes completos em [docs/releases/v0.11.0.md](docs/releases/v0.11.0.md).
+
+### Adicionado
+- Seção **Minha Graduação** em `/perfil` com grade curricular em 10 períodos, status visual, equivalências da FCTE e cálculo de integralização.
+- Planejador semanal de horários (`/minha-grade`) com resolução de choques, gerador automático sem conflitos, rascunhos locais e exportação em PDF.
+- Fluxo de recuperação de senha (`POST /auth/esqueci-senha`, `/esqueci-senha`, `/redefinir-senha`) via e-mail SMTP institucional (`tambureteiunb@gmail.com`) e troca de senha no perfil.
+- Isolamento e restauração do histórico SIGAA importado vinculado ao usuário autenticado.
+
+### Alterado / Corrigido
+- Suporte a múltiplos formatos de notas e menções no parser de Histórico Escolar do SIGAA, ordenação aprimorada do catálogo de disciplinas e prevenção de vazamento de tokens de recuperação no payload público.
+
+---
+
 ## [0.10.0] - 2026-11-20
 
-Detalhes completos na [Release v0.10.0 no GitHub](https://github.com/unb-mds/2026-02-TambureteiUnB/releases/tag/v0.10.0).
+Detalhes completos em [docs/releases/v0.10.0.md](docs/releases/v0.10.0.md).
 
 ### Adicionado
 - Consulta de estatísticas históricas de turmas filtradas por intervalo de anos e consolidação no fluxo de detalhe das disciplinas.
