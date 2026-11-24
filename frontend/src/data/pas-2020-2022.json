@@ -4,6 +4,53 @@
   "sistema": "Sistema Universal",
   "url": "https://cdn.cebraspe.org.br/wp-content/uploads/2023/02/2023_PAS_Boletim-Informativo_2020-2022_v1.pdf",
   "sha256": "2b65e8111ed54c2878a32c9a0f2885066d63b94b5a7db7c1f22935679dc2ea06",
+  "modalidades": [
+    {
+      "id": "ep_baixa_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda ≤ 1,5 salário mínimo · PPI"
+    },
+    {
+      "id": "ep_baixa_pcd_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda ≤ 1,5 salário mínimo · PCD e PPI"
+    },
+    {
+      "id": "ep_baixa_nao_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda ≤ 1,5 salário mínimo · Não PPI"
+    },
+    {
+      "id": "ep_baixa_pcd_nao_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda ≤ 1,5 salário mínimo · PCD e Não PPI"
+    },
+    {
+      "id": "ep_alta_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda > 1,5 salário mínimo · PPI"
+    },
+    {
+      "id": "ep_alta_pcd_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda > 1,5 salário mínimo · PCD e PPI"
+    },
+    {
+      "id": "ep_alta_nao_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda > 1,5 salário mínimo · Não PPI"
+    },
+    {
+      "id": "ep_alta_pcd_nao_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda > 1,5 salário mínimo · PCD e Não PPI"
+    },
+    {
+      "id": "negros",
+      "sistema": "Sistema de Cotas para Negros",
+      "descricao": "Sistema de Cotas para Negros"
+    }
+  ],
   "registros": [
     {
       "nome": "Enfermagem",
@@ -17,7 +64,45 @@
       "minimo": "30.010",
       "maximo": "77.432",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-39.237",
+          "maximo": "25.484"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-8.713",
+          "maximo": "27.763"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-16.177",
+          "maximo": "3.184"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-2.391",
+          "maximo": "4.712"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "20.513",
+          "maximo": "20.513"
+        }
+      }
     },
     {
       "nome": "Farmácia",
@@ -31,7 +116,45 @@
       "minimo": "17.577",
       "maximo": "66.477",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-28.606",
+          "maximo": "10.433"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-18.323",
+          "maximo": "13.031"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-50.438",
+          "maximo": "-14.608"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-6.499",
+          "maximo": "38.946"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "37.120",
+          "maximo": "37.120"
+        }
+      }
     },
     {
       "nome": "Fisioterapia",
@@ -45,7 +168,45 @@
       "minimo": "33.173",
       "maximo": "91.814",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-56.290",
+          "maximo": "16.447"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-19.321",
+          "maximo": "61.010"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-1.257",
+          "maximo": "11.757"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "43.008",
+          "maximo": "45.269"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "3.695",
+          "maximo": "3.695"
+        }
+      }
     },
     {
       "nome": "Fonoaudiologia",
@@ -59,7 +220,45 @@
       "minimo": "8.094",
       "maximo": "46.991",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-37.971",
+          "maximo": "-37.971"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-37.896",
+          "maximo": "-4.698"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-50.578",
+          "maximo": "-6.146"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-12.187",
+          "maximo": "-10.565"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "2.749",
+          "maximo": "2.749"
+        }
+      }
     },
     {
       "nome": "Saúde Coletiva",
@@ -73,7 +272,45 @@
       "minimo": "-84.455",
       "maximo": "-10.106",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-34.476",
+          "maximo": "-34.476"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-76.202",
+          "maximo": "-9.790"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-67.831",
+          "maximo": "-31.801"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-18.853",
+          "maximo": "-18.853"
+        }
+      }
     },
     {
       "nome": "Terapia Ocupacional",
@@ -87,7 +324,45 @@
       "minimo": "-28.652",
       "maximo": "51.395",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-76.773",
+          "maximo": "55.294"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-38.795",
+          "maximo": "-38.795"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-59.047",
+          "maximo": "-19.929"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-31.006",
+          "maximo": "-31.006"
+        }
+      }
     },
     {
       "nome": "Administração",
@@ -101,7 +376,45 @@
       "minimo": "45.565",
       "maximo": "98.219",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-46.661",
+          "maximo": "16.258"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-41.769",
+          "maximo": "16.153"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-14.213",
+          "maximo": "17.044"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "0.373",
+          "maximo": "53.503"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-49.856",
+          "maximo": "-49.856"
+        }
+      }
     },
     {
       "nome": "Administração",
@@ -115,7 +428,45 @@
       "minimo": "-15.266",
       "maximo": "50.144",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-46.477",
+          "maximo": "-16.586"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-34.780",
+          "maximo": "-34.780"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-84.174",
+          "maximo": "-84.174"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-12.505",
+          "maximo": "3.601"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-48.922",
+          "maximo": "19.031"
+        }
+      }
     },
     {
       "nome": "Agronomia",
@@ -129,7 +480,45 @@
       "minimo": "-6.614",
       "maximo": "104.416",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-82.722",
+          "maximo": "-82.722"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-81.527",
+          "maximo": "-28.783"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-94.126",
+          "maximo": "25.397"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-74.847",
+          "maximo": "-66.324"
+        }
+      }
     },
     {
       "nome": "Arquitetura e Urbanismo",
@@ -143,7 +532,45 @@
       "minimo": "84.147",
       "maximo": "121.990",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-16.413",
+          "maximo": "47.826"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "36.319",
+          "maximo": "57.664"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "14.502",
+          "maximo": "52.696"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "74.542",
+          "maximo": "108.759"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "27.497",
+          "maximo": "27.497"
+        }
+      }
     },
     {
       "nome": "Arquitetura e Urbanismo",
@@ -157,7 +584,45 @@
       "minimo": "53.202",
       "maximo": "67.911",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-6.545",
+          "maximo": "-6.545"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-19.787",
+          "maximo": "-19.787"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-81.638",
+          "maximo": "-5.822"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-29.219",
+          "maximo": "-7.500"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-56.427",
+          "maximo": "-56.427"
+        }
+      }
     },
     {
       "nome": "Arquivologia",
@@ -171,7 +636,45 @@
       "minimo": "-82.039",
       "maximo": "32.901",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-47.977",
+          "maximo": "-47.977"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-66.410",
+          "maximo": "-66.410"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "10.221",
+          "maximo": "10.221"
+        }
+      }
     },
     {
       "nome": "Artes Cênicas - Interpretação Teatral ",
@@ -185,7 +688,45 @@
       "minimo": "-35.525",
       "maximo": "88.886",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Artes Visuais",
@@ -199,7 +740,45 @@
       "minimo": "29.410",
       "maximo": "58.914",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "21.489",
+          "maximo": "21.489"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Artes Visuais",
@@ -213,7 +792,45 @@
       "minimo": "-90.010",
       "maximo": "54.376",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-22.141",
+          "maximo": "-22.141"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-21.695",
+          "maximo": "34.369"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Biblioteconomia",
@@ -227,7 +844,45 @@
       "minimo": "-69.572",
       "maximo": "28.392",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-59.315",
+          "maximo": "-59.315"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-72.447",
+          "maximo": "-34.556"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-45.036",
+          "maximo": "-45.036"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-57.030",
+          "maximo": "46.357"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-17.598",
+          "maximo": "-17.598"
+        }
+      }
     },
     {
       "nome": "Biotecnologia",
@@ -241,7 +896,45 @@
       "minimo": "57.009",
       "maximo": "150.391",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-25.889",
+          "maximo": "42.794"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-50.648",
+          "maximo": "-50.648"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-10.399",
+          "maximo": "104.025"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "50.506",
+          "maximo": "130.314"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "72.345",
+          "maximo": "72.345"
+        }
+      }
     },
     {
       "nome": "Ciência da Computação",
@@ -255,7 +948,45 @@
       "minimo": "139.434",
       "maximo": "168.535",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "11.400",
+          "maximo": "28.373"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "19.695",
+          "maximo": "86.756"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "37.394",
+          "maximo": "56.750"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "131.855",
+          "maximo": "181.985"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "91.881",
+          "maximo": "91.881"
+        }
+      }
     },
     {
       "nome": "Ciência Política",
@@ -269,7 +1000,45 @@
       "minimo": "53.088",
       "maximo": "111.048",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-30.870",
+          "maximo": "-18.086"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-44.500",
+          "maximo": "-22.087"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-47.386",
+          "maximo": "-5.052"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-21.410",
+          "maximo": "20.572"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "23.841",
+          "maximo": "23.841"
+        }
+      }
     },
     {
       "nome": "Ciências Ambientais",
@@ -283,7 +1052,45 @@
       "minimo": "-88.634",
       "maximo": "18.579",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-27.184",
+          "maximo": "-25.474"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "46.048",
+          "maximo": "46.048"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-37.945",
+          "maximo": "-37.945"
+        }
+      }
     },
     {
       "nome": "Ciências Biológicas",
@@ -297,7 +1104,45 @@
       "minimo": "70.253",
       "maximo": "174.618",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-2.765",
+          "maximo": "89.849"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "72.752",
+          "maximo": "72.752"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": "6.759",
+          "maximo": "6.759"
+        },
+        "ep_alta_ppi": {
+          "minimo": "20.011",
+          "maximo": "28.207"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "25.539",
+          "maximo": "29.452"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "23.621",
+          "maximo": "23.621"
+        }
+      }
     },
     {
       "nome": "Ciências Contábeis",
@@ -311,7 +1156,45 @@
       "minimo": "4.883",
       "maximo": "84.034",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-45.199",
+          "maximo": "-45.199"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-35.936",
+          "maximo": "29.827"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-37.765",
+          "maximo": "38.821"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-30.058",
+          "maximo": "37.264"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "25.609",
+          "maximo": "25.609"
+        }
+      }
     },
     {
       "nome": "Ciências Contábeis",
@@ -325,7 +1208,45 @@
       "minimo": "-62.176",
       "maximo": "42.671",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "1.491",
+          "maximo": "1.491"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-53.936",
+          "maximo": "-4.601"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-76.035",
+          "maximo": "9.581"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Ciências Econômicas",
@@ -339,7 +1260,45 @@
       "minimo": "90.763",
       "maximo": "149.640",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-10.898",
+          "maximo": "67.950"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "1.518",
+          "maximo": "35.529"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-23.990",
+          "maximo": "7.712"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "74.425",
+          "maximo": "116.541"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "64.336",
+          "maximo": "64.336"
+        }
+      }
     },
     {
       "nome": "Ciências Sociais – Antropologia / Sociologia",
@@ -354,7 +1313,45 @@
       "minimo": "-7.672",
       "maximo": "71.472",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-45.824",
+          "maximo": "-26.627"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-64.940",
+          "maximo": "10.205"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-80.884",
+          "maximo": "-1.376"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-28.663",
+          "maximo": "62.948"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-40.831",
+          "maximo": "8.448"
+        }
+      }
     },
     {
       "nome": "Computação",
@@ -368,7 +1365,45 @@
       "minimo": "-2.433",
       "maximo": "74.983",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-49.349",
+          "maximo": "-32.293"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-65.745",
+          "maximo": "-51.109"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-85.346",
+          "maximo": "-10.124"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-20.342",
+          "maximo": "-8.206"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-63.586",
+          "maximo": "-63.586"
+        }
+      }
     },
     {
       "nome": "Comunicação Organizacional",
@@ -382,7 +1417,45 @@
       "minimo": "-22.175",
       "maximo": "42.588",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-46.610",
+          "maximo": "-14.593"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-36.846",
+          "maximo": "-36.846"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "23.426",
+          "maximo": "23.426"
+        }
+      }
     },
     {
       "nome": "Comunicação Social – Audiovisual",
@@ -396,7 +1469,45 @@
       "minimo": "86.509",
       "maximo": "175.444",
       "pagina": 7,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-17.004",
+          "maximo": "-14.344"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "7.659",
+          "maximo": "7.659"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-63.885",
+          "maximo": "-63.885"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "5.234",
+          "maximo": "7.439"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "0.681",
+          "maximo": "0.681"
+        }
+      }
     },
     {
       "nome": "Comunicação Social - Publicidade e Propaganda",
@@ -410,7 +1521,45 @@
       "minimo": "62.484",
       "maximo": "120.186",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-11.505",
+          "maximo": "-0.422"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-26.988",
+          "maximo": "-26.988"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "2.976",
+          "maximo": "41.968"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "73.446",
+          "maximo": "73.446"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "64.041",
+          "maximo": "64.041"
+        }
+      }
     },
     {
       "nome": "Design – Programação Visual/ Projeto do Produto",
@@ -424,7 +1573,45 @@
       "minimo": "77.866",
       "maximo": "108.078",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-24.693",
+          "maximo": "-12.160"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "38.427",
+          "maximo": "38.427"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-12.903",
+          "maximo": "16.702"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "35.281",
+          "maximo": "35.281"
+        }
+      }
     },
     {
       "nome": "Direito",
@@ -438,7 +1625,45 @@
       "minimo": "129.903",
       "maximo": "176.907",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "6.044",
+          "maximo": "66.651"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "44.672",
+          "maximo": "55.688"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": "-22.954",
+          "maximo": "-22.954"
+        },
+        "ep_alta_ppi": {
+          "minimo": "44.407",
+          "maximo": "72.089"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "94.622",
+          "maximo": "113.210"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "101.124",
+          "maximo": "130.856"
+        }
+      }
     },
     {
       "nome": "Direito",
@@ -452,7 +1677,45 @@
       "minimo": "86.540",
       "maximo": "128.710",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-16.116",
+          "maximo": "19.571"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "23.633",
+          "maximo": "54.154"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "30.892",
+          "maximo": "77.986"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "59.961",
+          "maximo": "87.150"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "34.080",
+          "maximo": "91.279"
+        }
+      }
     },
     {
       "nome": "Educação Física",
@@ -466,7 +1729,45 @@
       "minimo": "11.455",
       "maximo": "53.752",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-54.130",
+          "maximo": "-26.608"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-28.061",
+          "maximo": "11.714"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-40.481",
+          "maximo": "-3.232"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-29.762",
+          "maximo": "44.154"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "16.093",
+          "maximo": "16.093"
+        }
+      }
     },
     {
       "nome": "Educação Física",
@@ -480,7 +1781,45 @@
       "minimo": "-10.111",
       "maximo": "20.985",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-55.945",
+          "maximo": "-28.090"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-92.355",
+          "maximo": "-73.207"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-70.465",
+          "maximo": "-42.643"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-14.459",
+          "maximo": "13.100"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-2.820",
+          "maximo": "-2.820"
+        }
+      }
     },
     {
       "nome": "Enfermagem",
@@ -494,7 +1833,45 @@
       "minimo": "48.594",
       "maximo": "73.121",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "17.032",
+          "maximo": "48.519"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "9.678",
+          "maximo": "12.691"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "9.318",
+          "maximo": "19.495"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "61.872",
+          "maximo": "75.478"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "49.514",
+          "maximo": "49.514"
+        }
+      }
     },
     {
       "nome": "Engenharia Ambiental",
@@ -508,7 +1885,45 @@
       "minimo": "-7.834",
       "maximo": "139.431",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "65.209",
+          "maximo": "65.209"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-56.495",
+          "maximo": "68.610"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "7.046",
+          "maximo": "7.046"
+        }
+      }
     },
     {
       "nome": "Engenharia Civil",
@@ -522,7 +1937,45 @@
       "minimo": "-14.958",
       "maximo": "126.978",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-39.011",
+          "maximo": "-21.766"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-43.065",
+          "maximo": "-7.167"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-16.627",
+          "maximo": "82.763"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-48.610",
+          "maximo": "-48.610"
+        }
+      }
     },
     {
       "nome": "Engenharia de Computação",
@@ -536,7 +1989,45 @@
       "minimo": "120.321",
       "maximo": "160.318",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-0.447",
+          "maximo": "35.476"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-52.218",
+          "maximo": "-10.159"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "12.403",
+          "maximo": "47.079"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "132.082",
+          "maximo": "142.531"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "44.324",
+          "maximo": "44.324"
+        }
+      }
     },
     {
       "nome": "Engenharia de Produção",
@@ -550,7 +2041,45 @@
       "minimo": "38.913",
       "maximo": "159.558",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "11.401",
+          "maximo": "11.401"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "27.336",
+          "maximo": "27.336"
+        }
+      }
     },
     {
       "nome": "Engenharia de Redes de Comunicação",
@@ -564,7 +2093,45 @@
       "minimo": "-37.069",
       "maximo": "84.551",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-49.000",
+          "maximo": "-49.000"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "67.472",
+          "maximo": "67.472"
+        }
+      }
     },
     {
       "nome": "Engenharia Elétrica",
@@ -578,7 +2145,45 @@
       "minimo": "41.135",
       "maximo": "163.248",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "0.067",
+          "maximo": "0.067"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-9.239",
+          "maximo": "33.900"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-20.364",
+          "maximo": "135.211"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "77.957",
+          "maximo": "77.957"
+        }
+      }
     },
     {
       "nome": "Engenharia Florestal",
@@ -592,7 +2197,45 @@
       "minimo": "-50.298",
       "maximo": "54.606",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-15.457",
+          "maximo": "9.613"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-50.840",
+          "maximo": "-13.077"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-52.846",
+          "maximo": "-50.215"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-21.139",
+          "maximo": "-21.139"
+        }
+      }
     },
     {
       "nome": "Engenharia Mecânica",
@@ -606,7 +2249,45 @@
       "minimo": "58.439",
       "maximo": "154.863",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-34.593",
+          "maximo": "-30.996"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-84.626",
+          "maximo": "-77.546"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-12.021",
+          "maximo": "70.474"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "12.814",
+          "maximo": "12.814"
+        }
+      }
     },
     {
       "nome": "Engenharia Mecatrônica – Controle e Automação",
@@ -620,7 +2301,45 @@
       "minimo": "116.231",
       "maximo": "162.860",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-24.504",
+          "maximo": "59.809"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-42.409",
+          "maximo": "-41.277"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "1.944",
+          "maximo": "1.944"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-41.875",
+          "maximo": "43.548"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "53.035",
+          "maximo": "53.035"
+        }
+      }
     },
     {
       "nome": "Engenharia Química",
@@ -634,7 +2353,45 @@
       "minimo": "59.512",
       "maximo": "108.454",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "5.172",
+          "maximo": "46.146"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-43.682",
+          "maximo": "-43.682"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "30.811",
+          "maximo": "59.008"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "51.700",
+          "maximo": "79.292"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Estatística",
@@ -648,7 +2405,45 @@
       "minimo": "10.445",
       "maximo": "122.669",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-32.737",
+          "maximo": "-32.737"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-49.618",
+          "maximo": "5.697"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Farmácia",
@@ -662,7 +2457,45 @@
       "minimo": "57.242",
       "maximo": "101.253",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-4.013",
+          "maximo": "-0.120"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-14.318",
+          "maximo": "-8.040"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-18.290",
+          "maximo": "26.718"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "72.441",
+          "maximo": "79.533"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-29.349",
+          "maximo": "-29.349"
+        }
+      }
     },
     {
       "nome": "Farmácia",
@@ -676,7 +2509,45 @@
       "minimo": "1.833",
       "maximo": "15.434",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-12.460",
+          "maximo": "40.572"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-23.033",
+          "maximo": "12.840"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-48.920",
+          "maximo": "-1.440"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "13.926",
+          "maximo": "13.926"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "27.978",
+          "maximo": "27.978"
+        }
+      }
     },
     {
       "nome": "Filosofia",
@@ -691,7 +2562,45 @@
       "minimo": "-65.778",
       "maximo": "92.933",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-55.356",
+          "maximo": "-55.356"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-24.861",
+          "maximo": "-18.079"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-36.860",
+          "maximo": "29.673"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Filosofia",
@@ -705,7 +2614,45 @@
       "minimo": "-30.212",
       "maximo": "2.725",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-20.759",
+          "maximo": "-20.759"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Física",
@@ -719,7 +2666,45 @@
       "minimo": "18.948",
       "maximo": "130.469",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "72.767",
+          "maximo": "72.767"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-20.071",
+          "maximo": "43.762"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-19.355",
+          "maximo": "-19.355"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-72.920",
+          "maximo": "99.501"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "60.143",
+          "maximo": "60.143"
+        }
+      }
     },
     {
       "nome": "Geofísica",
@@ -733,7 +2718,45 @@
       "minimo": "-30.090",
       "maximo": "113.042",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-16.259",
+          "maximo": "-16.259"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-40.118",
+          "maximo": "-40.118"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Geografia",
@@ -748,7 +2771,45 @@
       "minimo": "-23.824",
       "maximo": "96.723",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-35.349",
+          "maximo": "-13.749"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-16.626",
+          "maximo": "-16.626"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Geologia",
@@ -762,7 +2823,45 @@
       "minimo": "-54.123",
       "maximo": "77.924",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-14.615",
+          "maximo": "-14.615"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-34.358",
+          "maximo": "-10.741"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-36.670",
+          "maximo": "-36.670"
+        }
+      }
     },
     {
       "nome": "Gestão de Agronegócio",
@@ -776,7 +2875,45 @@
       "minimo": "-60.214",
       "maximo": "-19.741",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Gestão de Políticas Públicas",
@@ -790,7 +2927,45 @@
       "minimo": "-65.744",
       "maximo": "40.755",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-45.045",
+          "maximo": "-45.045"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-40.811",
+          "maximo": "-40.811"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-26.029",
+          "maximo": "-6.666"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-18.676",
+          "maximo": "-18.676"
+        }
+      }
     },
     {
       "nome": "História",
@@ -805,7 +2980,45 @@
       "minimo": "41.891",
       "maximo": "79.295",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-7.038",
+          "maximo": "38.180"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-9.575",
+          "maximo": "-2.267"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-35.056",
+          "maximo": "-16.391"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "19.641",
+          "maximo": "34.497"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-36.358",
+          "maximo": "-36.358"
+        }
+      }
     },
     {
       "nome": "História",
@@ -819,7 +3032,45 @@
       "minimo": "-67.087",
       "maximo": "59.169",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-43.023",
+          "maximo": "-43.023"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "9.290",
+          "maximo": "9.290"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-24.296",
+          "maximo": "-9.636"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Jornalismo",
@@ -833,7 +3084,45 @@
       "minimo": "81.218",
       "maximo": "107.228",
       "pagina": 8,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-36.033",
+          "maximo": "-15.391"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "1.728",
+          "maximo": "1.728"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-13.155",
+          "maximo": "4.752"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "66.914",
+          "maximo": "66.914"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "29.956",
+          "maximo": "29.956"
+        }
+      }
     },
     {
       "nome": "Letras – Português do Brasil como Segunda Língua",
@@ -847,7 +3136,45 @@
       "minimo": "-30.519",
       "maximo": "48.382",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-55.760",
+          "maximo": "-55.760"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "3.895",
+          "maximo": "3.895"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-4.691",
+          "maximo": "-4.691"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-27.202",
+          "maximo": "-27.202"
+        }
+      }
     },
     {
       "nome": "Letras – Tradução – Francês",
@@ -861,7 +3188,45 @@
       "minimo": "-75.823",
       "maximo": "8.992",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Letras – Tradução – Inglês",
@@ -875,7 +3240,45 @@
       "minimo": "13.430",
       "maximo": "119.299",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-61.692",
+          "maximo": "-35.869"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "21.242",
+          "maximo": "21.242"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-62.082",
+          "maximo": "1.315"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "2.713",
+          "maximo": "2.713"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-3.039",
+          "maximo": "-3.039"
+        }
+      }
     },
     {
       "nome": "Letras – Tradução Espanhol",
@@ -889,7 +3292,45 @@
       "minimo": "-80.944",
       "maximo": "-52.043",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Licenciatura em Artes Cênicas",
@@ -903,7 +3344,45 @@
       "minimo": "-49.270",
       "maximo": "96.437",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "14.969",
+          "maximo": "14.969"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-21.566",
+          "maximo": "-21.566"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Licenciatura em Ciências Biológicas",
@@ -917,7 +3396,45 @@
       "minimo": "-34.711",
       "maximo": "141.546",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-45.443",
+          "maximo": "-25.456"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-43.355",
+          "maximo": "11.906"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-44.203",
+          "maximo": "-44.203"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Licenciatura em Física",
@@ -931,7 +3448,45 @@
       "minimo": "-76.547",
       "maximo": "52.384",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-59.910",
+          "maximo": "26.842"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-46.226",
+          "maximo": "-46.226"
+        }
+      }
     },
     {
       "nome": "Licenciatura em Matemática",
@@ -945,7 +3500,45 @@
       "minimo": "-50.656",
       "maximo": "42.289",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "23.101",
+          "maximo": "23.101"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-33.505",
+          "maximo": "-15.931"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Licenciatura em Química",
@@ -959,7 +3552,45 @@
       "minimo": "0.306",
       "maximo": "40.600",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-35.787",
+          "maximo": "12.099"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-30.664",
+          "maximo": "-30.664"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Língua e Literatura Japonesa",
@@ -973,7 +3604,45 @@
       "minimo": "-53.013",
       "maximo": "-0.264",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-19.674",
+          "maximo": "-19.674"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-59.483",
+          "maximo": "-59.483"
+        }
+      }
     },
     {
       "nome": "Língua Espanhola e Literatura Espanhola e Hispano-Americana",
@@ -987,7 +3656,45 @@
       "minimo": "-71.142",
       "maximo": "-27.428",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-38.583",
+          "maximo": "-38.583"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-47.192",
+          "maximo": "21.384"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Língua Estrangeira Aplicada – Multilinguismo e Sociedade da Informação",
@@ -1001,7 +3708,45 @@
       "minimo": "-32.749",
       "maximo": "50.344",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-76.629",
+          "maximo": "5.904"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-2.629",
+          "maximo": "16.552"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "44.585",
+          "maximo": "44.585"
+        }
+      }
     },
     {
       "nome": "Língua Francesa e Respectiva Literatura",
@@ -1016,7 +3761,45 @@
       "minimo": "-62.811",
       "maximo": "-4.072",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-80.307",
+          "maximo": "-20.312"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Língua Inglesa e Respectiva Literatura",
@@ -1031,7 +3814,45 @@
       "minimo": "22.431",
       "maximo": "60.504",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-30.613",
+          "maximo": "2.775"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-12.715",
+          "maximo": "-12.715"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "4.915",
+          "maximo": "43.669"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "30.669",
+          "maximo": "30.669"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "26.727",
+          "maximo": "26.727"
+        }
+      }
     },
     {
       "nome": "Língua Portuguesa e Respectiva Literatura",
@@ -1046,7 +3867,45 @@
       "minimo": "33.307",
       "maximo": "56.705",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-3.737",
+          "maximo": "-3.737"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-16.142",
+          "maximo": "30.504"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-75.985",
+          "maximo": "-51.065"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "20.613",
+          "maximo": "20.613"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "5.699",
+          "maximo": "5.699"
+        }
+      }
     },
     {
       "nome": "Língua Portuguesa e Respectiva Literatura",
@@ -1060,7 +3919,45 @@
       "minimo": "-79.901",
       "maximo": "72.722",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-39.823",
+          "maximo": "-20.991"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-55.127",
+          "maximo": "-54.044"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-13.532",
+          "maximo": "-13.532"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-21.451",
+          "maximo": "5.240"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Matemática",
@@ -1075,7 +3972,45 @@
       "minimo": "31.531",
       "maximo": "86.792",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-64.581",
+          "maximo": "-22.149"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-48.661",
+          "maximo": "16.087"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-52.443",
+          "maximo": "31.477"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "14.603",
+          "maximo": "14.603"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "3.005",
+          "maximo": "3.005"
+        }
+      }
     },
     {
       "nome": "Medicina",
@@ -1089,7 +4024,45 @@
       "minimo": "183.500",
       "maximo": "209.070",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "78.064",
+          "maximo": "138.392"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "95.903",
+          "maximo": "145.179"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "101.507",
+          "maximo": "113.527"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "152.542",
+          "maximo": "173.160"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "94.772",
+          "maximo": "94.772"
+        }
+      }
     },
     {
       "nome": "Medicina Veterinária",
@@ -1103,7 +4076,45 @@
       "minimo": "68.525",
       "maximo": "134.950",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-40.671",
+          "maximo": "36.125"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-58.651",
+          "maximo": "18.192"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "35.451",
+          "maximo": "48.048"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "60.933",
+          "maximo": "67.731"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "10.471",
+          "maximo": "10.471"
+        }
+      }
     },
     {
       "nome": "Museologia",
@@ -1117,7 +4128,45 @@
       "minimo": "-45.669",
       "maximo": "38.698",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-75.472",
+          "maximo": "-75.472"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Música",
@@ -1131,7 +4180,45 @@
       "minimo": "7.205",
       "maximo": "35.375",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Música",
@@ -1145,7 +4232,45 @@
       "minimo": "-65.044",
       "maximo": "-27.390",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-0.727",
+          "maximo": "-0.727"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Nutrição",
@@ -1159,7 +4284,45 @@
       "minimo": "59.022",
       "maximo": "91.433",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-31.108",
+          "maximo": "1.452"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "15.010",
+          "maximo": "15.010"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-5.548",
+          "maximo": "45.193"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "79.990",
+          "maximo": "79.990"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "12.194",
+          "maximo": "12.194"
+        }
+      }
     },
     {
       "nome": "Odontologia",
@@ -1173,7 +4336,45 @@
       "minimo": "97.520",
       "maximo": "129.466",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-50.524",
+          "maximo": "21.783"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "69.514",
+          "maximo": "69.514"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "50.089",
+          "maximo": "81.807"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "78.645",
+          "maximo": "78.645"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "25.114",
+          "maximo": "25.114"
+        }
+      }
     },
     {
       "nome": "Pedagogia",
@@ -1187,7 +4388,45 @@
       "minimo": "-9.961",
       "maximo": "56.526",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-51.346",
+          "maximo": "5.818"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-65.977",
+          "maximo": "-55.588"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-66.478",
+          "maximo": "-2.570"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-13.682",
+          "maximo": "-13.596"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-41.983",
+          "maximo": "17.019"
+        }
+      }
     },
     {
       "nome": "Pedagogia",
@@ -1201,7 +4440,45 @@
       "minimo": "-82.573",
       "maximo": "9.451",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-92.488",
+          "maximo": "-19.335"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-14.474",
+          "maximo": "-14.474"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-37.977",
+          "maximo": "-7.157"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-8.815",
+          "maximo": "-8.815"
+        }
+      }
     },
     {
       "nome": "Psicologia",
@@ -1217,7 +4494,45 @@
       "minimo": "105.646",
       "maximo": "146.501",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "32.086",
+          "maximo": "61.601"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "42.404",
+          "maximo": "44.348"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "20.600",
+          "maximo": "35.048"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "112.073",
+          "maximo": "117.010"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "56.866",
+          "maximo": "56.866"
+        }
+      }
     },
     {
       "nome": "Química",
@@ -1231,7 +4546,45 @@
       "minimo": "40.202",
       "maximo": "126.092",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "22.563",
+          "maximo": "26.649"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "28.834",
+          "maximo": "28.834"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-43.672",
+          "maximo": "-43.672"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-27.675",
+          "maximo": "-6.451"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Química Tecnológica",
@@ -1245,7 +4598,45 @@
       "minimo": "-56.414",
       "maximo": "35.844",
       "pagina": 9,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-30.902",
+          "maximo": "31.362"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-20.386",
+          "maximo": "-3.274"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Relações Internacionais",
@@ -1259,7 +4650,45 @@
       "minimo": "95.161",
       "maximo": "150.831",
       "pagina": 10,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-27.007",
+          "maximo": "-3.597"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "18.254",
+          "maximo": "52.210"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "3.855",
+          "maximo": "54.101"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "51.189",
+          "maximo": "51.189"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": "22.690",
+          "maximo": "22.690"
+        },
+        "negros": {
+          "minimo": "74.993",
+          "maximo": "74.993"
+        }
+      }
     },
     {
       "nome": "Saúde Coletiva",
@@ -1273,7 +4702,45 @@
       "minimo": "-73.319",
       "maximo": "-1.649",
       "pagina": 10,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-105.487",
+          "maximo": "-105.487"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Serviço Social",
@@ -1287,7 +4754,45 @@
       "minimo": "-37.204",
       "maximo": "18.722",
       "pagina": 10,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-46.944",
+          "maximo": "-3.065"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-56.018",
+          "maximo": "-2.724"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "16.930",
+          "maximo": "16.930"
+        }
+      }
     },
     {
       "nome": "Serviço Social",
@@ -1301,7 +4806,45 @@
       "minimo": "-51.405",
       "maximo": "9.757",
       "pagina": 10,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-53.956",
+          "maximo": "-53.956"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-61.615",
+          "maximo": "-61.615"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-41.755",
+          "maximo": "-41.755"
+        }
+      }
     },
     {
       "nome": "Teoria, Crítica e História da Arte",
@@ -1315,7 +4858,45 @@
       "minimo": "-64.852",
       "maximo": "-7.391",
       "pagina": 10,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-51.341",
+          "maximo": "-51.341"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Turismo",
@@ -1329,7 +4910,45 @@
       "minimo": "-83.422",
       "maximo": "20.419",
       "pagina": 10,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-20.793",
+          "maximo": "-20.793"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-22.832",
+          "maximo": "-22.832"
+        }
+      }
     },
     {
       "nome": "Engenharias – Aeroespacial / Automotiva / Eletrônica / Energia / Software",
@@ -1343,7 +4962,45 @@
       "minimo": "50.773",
       "maximo": "178.331",
       "pagina": 10,
-      "ingressoConjunto": true
+      "ingressoConjunto": true,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-53.959",
+          "maximo": "47.686"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-35.606",
+          "maximo": "44.820"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-64.219",
+          "maximo": "70.524"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "11.743",
+          "maximo": "81.398"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "24.066",
+          "maximo": "129.802"
+        }
+      }
     },
     {
       "nome": "Ciências Naturais",
@@ -1357,7 +5014,45 @@
       "minimo": "-71.509",
       "maximo": "21.657",
       "pagina": 10,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-19.534",
+          "maximo": "-19.534"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-36.562",
+          "maximo": "-36.562"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Ciências Naturais",
@@ -1371,7 +5066,45 @@
       "minimo": "-62.526",
       "maximo": "-39.709",
       "pagina": 10,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-37.156",
+          "maximo": "-37.156"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Gestão Ambiental",
@@ -1385,7 +5118,45 @@
       "minimo": "-46.760",
       "maximo": "31.975",
       "pagina": 10,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-10.728",
+          "maximo": "-10.728"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
     },
     {
       "nome": "Gestão do Agronegócio",
@@ -1399,7 +5170,45 @@
       "minimo": "-96.675",
       "maximo": "4.580",
       "pagina": 10,
-      "ingressoConjunto": false
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-45.106",
+          "maximo": "-45.106"
+        }
+      }
     }
   ]
 }
