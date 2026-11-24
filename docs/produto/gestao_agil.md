@@ -7,9 +7,9 @@ Esta página centraliza os artefatos de planejamento ágil, rituais das sprints,
 ## 1. Story Map, Backlog e Quadro Ágil
 
 * **Story Map e Protótipo (Figma):** [Template MDS — Grupo 9](https://www.figma.com/board/coZ3FgGpd5amxJxaanwaTr/Template-MDS---Grupo-9?node-id=2128-1592)
-* **Changelog e Releases:** [Histórico de Versões (CHANGELOG)](https://github.com/unb-mds/2026-02-TambureteiUnB/blob/develop/CHANGELOG.md) · [Release v0.10.0 (GitHub)](https://github.com/unb-mds/2026-02-TambureteiUnB/releases/tag/v0.10.0)
+* **Changelog e Releases:** [Histórico de Versões (CHANGELOG)](https://github.com/unb-mds/2026-02-TambureteiUnB/blob/develop/CHANGELOG.md) · [Release v0.10.0](../releases/v0.10.0.md) · [Release v0.11.0](../releases/v0.11.0.md)
 * **Milestones e Sprints (GitHub):** [Milestones do Repositório](https://github.com/unb-mds/2026-02-TambureteiUnB/milestones)
-* **Rastreabilidade de Requisitos e Histórias:** [Requisitos do Sistema](requisitos.md) · Histórias ([Backend](historias_usuario_backend.md) · [Frontend](historias_usuario_frontend.md) · [Banco de Dados](historias_usuario_database.md))
+* **Rastreabilidade de Requisitos e Histórias:** [Requisitos do Sistema](requisitos.md) · Histórias ([Backend](historias_usuario_backend.md) · [Frontend](historias_usuario_frontend.md) · [Banco de Dados](historias_usuario_database.md)) · [Relatório Final (R2)](relatorio_final.md)
 
 ---
 
@@ -43,11 +43,11 @@ A cada fechamento de sprint, o time revisou gargalos técnicos e de processo par
 ## 4. Métricas de Fluxo, Velocity e Commits
 
 * **Fluxo de rastreabilidade:** `Épico -> Feature -> História de Usuário (com critérios de aceitação) -> Issue / Milestone -> Pull Request revisado -> Release`.
-* **Cadência de entregas:** após a Release 1 (`v0.1.0` em 28/09/2026), o time manteve ritmo semanal de releases às sextas-feiras (`v0.6.0` em 23/10, `v0.7.0` em 30/10, `v0.8.0` em 06/11, `v0.9.0` em 13/11 e `v0.10.0` em 20/11).
+* **Cadência de entregas:** após a Release 1 (`v0.1.0` em 28/09/2026), o time manteve ritmo contínuo de releases de sprint (`v0.6.0` em 23/10, `v0.7.0` em 30/10, `v0.8.0` em 06/11, `v0.9.0` em 13/11, `v0.10.0` em 20/11 e `v0.11.0` na Sprint 11) até a implantação em produção na semana da Release 2 (`#267`).
 * **Análise de variação de velocity entre sprints:**
     * **Sprints 6 e 7 (maior volume de PRs paralelos):** concentraram entregas estruturais independentes (turmas reais, doações, quórum, upload de materiais, grade curricular e pipeline de CI/CD).
     * **Sprints 8 e 9 (menos PRs, maior densidade técnica por entrega):** entregas verticais completas envolvendo banco, domínio puro, auditoria e telas administrativas (dificuldades na ementa, curadoria com auditoria e Central de Denúncias `RN04`).
-    * **Sprints 10 a 12 (estabilização e acabamento R2):** foco em acessibilidade, exportação de dados abertos, planejamento semanal (`/minha-grade`), triagem por IA local (Ollama), correção de bugs de integração e consolidação da documentação.
+    * **Sprints 10 a 12 (consolidação de produto, estabilização e deploy):** foco em dados abertos (`v0.10.0`), acessibilidade, planejador `/minha-grade`, recuperação de senha (`v0.11.0`), triagem por IA local (Ollama), correção de bugs de integração, deploy em produção e documentação final.
 * **Curva de Commits e Frequência de Código:** [Insights -> Commits](https://github.com/unb-mds/2026-02-TambureteiUnB/graphs/commit-activity)
 * **Contribuições por Integrante:** [Insights -> Contributors](https://github.com/unb-mds/2026-02-TambureteiUnB/graphs/contributors)
-* **Histórico de Entregas por Sprint:** [Release v0.6.0](../releases/v0.6.0.md), [Release v0.7.0](../releases/v0.7.0.md), [Release v0.8.0](../releases/v0.8.0.md), [Release v0.9.0](../releases/v0.9.0.md) e [Release v0.10.0 (GitHub)](https://github.com/unb-mds/2026-02-TambureteiUnB/releases/tag/v0.10.0).
+* **Histórico de Entregas por Sprint:** [Release v0.6.0](../releases/v0.6.0.md), [Release v0.7.0](../releases/v0.7.0.md), [Release v0.8.0](../releases/v0.8.0.md), [Release v0.9.0](../releases/v0.9.0.md), [Release v0.10.0](../releases/v0.10.0.md) e [Release v0.11.0](../releases/v0.11.0.md).

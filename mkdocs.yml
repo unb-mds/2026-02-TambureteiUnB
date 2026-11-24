@@ -62,6 +62,9 @@ extra_javascript:
 extra:
   generator: false
 
+exclude_docs: |
+  identidade_email_smtp.md
+
 copyright: >
   <div class="tmb-footer">
     <div class="tmb-footer__top">
@@ -110,6 +113,7 @@ nav:
   - Engenharia & Back-end:
       - Arquitetura & Banco:
           - Arquitetura & ADRs: engenharia/arquitetura.md
+          - Estratégia de Deploy: engenharia/deploy.md
           - Arquitetura da Interface: engenharia/arquitetura_ui.md
           - Cores dos Indicadores: engenharia/cores_indicadores.md
           - Dicionário de Dados: engenharia/banco_de_dados.md
@@ -127,6 +131,7 @@ nav:
           - Requisitos do Sistema: produto/requisitos.md
           - Regras de Negócio: produto/regras_negocio.md
           - Gestão Ágil e Sprints: produto/gestao_agil.md
+          - Relatório Final (R2): produto/relatorio_final.md
       - Histórias de Usuário:
           - Backend: produto/historias_usuario_backend.md
           - Frontend: produto/historias_usuario_frontend.md
