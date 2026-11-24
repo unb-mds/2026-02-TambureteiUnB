@@ -53,7 +53,10 @@ export interface Discipline {
   objectives?: string[];
   historicalPerformance?: HistoricalPerformance[];
   preRequisitos?: string[];
+  preRequisitosItens?: BackendDisciplinaResumo[];
   equivalencias?: string[];
+  equivalenciasItens?: BackendDisciplinaResumo[];
+  coRequisitos?: string | null;
   courses?: CourseReference[];
   metrica_consolidada?: BackendMetricaConsolidada | null;
   referenceYear?: number | null;
@@ -288,7 +291,10 @@ export function adaptBackendDisciplina(
     ementa: full?.ementa || undefined,
     historicalPerformance: historicalPerf,
     preRequisitos: preReqs,
+    preRequisitosItens: full?.pre_requisitos_itens || [],
     equivalencias: equivs,
+    equivalenciasItens: full?.equivalencias_itens || [],
+    coRequisitos: full?.co_requisitos || null,
     courses,
     metrica_consolidada: metricaConsolidada,
     withdrawnCount: metricaConsolidada ? metricaConsolidada.trancamentos : null,
