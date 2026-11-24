@@ -4,11 +4,11 @@
   </a>
 </p>
 
-[![CI](https://github.com/unb-mds/2026-02-TambureteiUnB/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/unb-mds/2026-02-TambureteiUnB/actions/workflows/ci.yml) [![Docs](https://img.shields.io/badge/Docs-Portal_MkDocs-6C5CE7?style=flat&logo=materialformkdocs&logoColor=white)](https://unb-mds.github.io/2026-02-TambureteiUnB/) [![Licença MIT](https://img.shields.io/badge/Licen%C3%A7a-MIT-9385F7?style=flat)](LICENSE) ![FastAPI](https://img.shields.io/badge/FastAPI-Python_3.12-009688?style=flat&logo=fastapi&logoColor=white) ![Next.js](https://img.shields.io/badge/Next.js_16-React_19-111827?style=flat&logo=nextdotjs&logoColor=white) ![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat&logo=postgresql&logoColor=white)
+[![CI](https://github.com/unb-mds/2026-02-TambureteiUnB/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/unb-mds/2026-02-TambureteiUnB/actions/workflows/ci.yml) [![Deploy](https://img.shields.io/badge/Deploy-tambureteiunb.com.br-2ECC71?style=flat&logo=vercel&logoColor=white)](https://tambureteiunb.com.br/disciplinas) [![Docs](https://img.shields.io/badge/Docs-Portal_MkDocs-6C5CE7?style=flat&logo=materialformkdocs&logoColor=white)](https://unb-mds.github.io/2026-02-TambureteiUnB/) [![Licença MIT](https://img.shields.io/badge/Licen%C3%A7a-MIT-9385F7?style=flat)](LICENSE) ![FastAPI](https://img.shields.io/badge/FastAPI-Python_3.12-009688?style=flat&logo=fastapi&logoColor=white) ![Next.js](https://img.shields.io/badge/Next.js_16-React_19-111827?style=flat&logo=nextdotjs&logoColor=white) ![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat&logo=postgresql&logoColor=white)
 
 O **Tamburetei UnB** é uma plataforma aberta para explorar indicadores de aprovação, evasão, matrizes curriculares e relatos colaborativos das disciplinas da Universidade de Brasília (UnB), com conformidade **LGPD (*Privacy by Design*)**.
 
-[Sobre](#sobre-o-projeto) · [Documentação](https://unb-mds.github.io/2026-02-TambureteiUnB/) · [Como Executar](#como-executar-o-projeto-localmente) · [Testes](#como-rodar-os-testes) · [Como Contribuir](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
+[Aplicação em Produção](https://tambureteiunb.com.br/disciplinas) · [Sobre](#sobre-o-projeto) · [Documentação](https://unb-mds.github.io/2026-02-TambureteiUnB/) · [Como Executar](#como-executar-o-projeto-localmente) · [Testes](#como-rodar-os-testes) · [Como Contribuir](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -47,6 +47,7 @@ O projeto é inspirado no **Tamburetei**, desenvolvido pela OpenDevUFCG, que uti
 </p>
 
 ### Links Oficiais do Projeto:
+* **Ambiente em Produção:** [tambureteiunb.com.br](https://tambureteiunb.com.br/disciplinas)
 * **Portal de Documentação Oficial (MkDocs):** [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/)
 * **Protótipo de Interface (Figma):** [Template MDS — Grupo 9](https://www.figma.com/board/coZ3FgGpd5amxJxaanwaTr/Template-MDS---Grupo-9?node-id=2128-1592)
 * **Referência Conceitual:** [Tamburetei — OpenDevUFCG](https://github.com/OpenDevUFCG/Tamburetei)
@@ -159,7 +160,18 @@ Assim que a inicialização for concluída, acesse no navegador:
 
 ---
 
-### 5. Migrações de Banco de Dados com Alembic
+### 5. Execução em Produção via Docker Compose
+
+Para provisionar a stack completa em ambiente de produção ou homologação utilizando os contêineres otimizados:
+
+```bash
+# Subir backend, frontend e banco com a configuração de produção
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+---
+
+### 6. Migrações de Banco de Dados com Alembic
 
 O esquema inicial de tabelas é provisionado automaticamente via `init.sql`. Caso necessite gerenciar ou aplicar migrações manuais com o Alembic:
 

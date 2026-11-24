@@ -4,6 +4,9 @@
 
 Guias de arquitetura, dados, APIs REST e fluxos colaborativos da plataforma acadêmica da **FCTE/UnB**.
 
+* **Aplicação em Produção:** [tambureteiunb.com.br](https://tambureteiunb.com.br/disciplinas)
+* **Repositório Oficial:** [unb-mds/2026-02-TambureteiUnB](https://github.com/unb-mds/2026-02-TambureteiUnB)
+
 </div>
 
 <div class="grid cards" markdown>
