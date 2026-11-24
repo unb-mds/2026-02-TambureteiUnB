@@ -1,19 +1,21 @@
 import Link from "next/link";
 import { normalizeSearchTerm } from "@/utils/search";
 import type { Course } from "@/types/curso";
-import { findPasAdmission, formatPasScore, getPasHistory, pasSource } from "@/utils/pasAdmission";
+import { findPasAdmission, formatPasScore, getPasHistory, getPasSourceForYear } from "@/utils/pasAdmission";
 
-export default function PasAdmissionCard({ course, expanded = false }: {
-  course: Course; expanded?: boolean;
+export default function PasAdmissionCard({ course, expanded = false, year = "all" }: {
+  course: Course; expanded?: boolean; year?: number | "all";
 }) {
-  const admission = findPasAdmission(course);
+  const selectedSource = getPasSourceForYear(year);
+  const source = selectedSource ?? { ciclo: String(year), sistema: "Sistema Universal", url: "" };
+  const admission = selectedSource ? findPasAdmission(course, selectedSource) : undefined;
   const history = getPasHistory(course);
-  const sourceUrl = `${pasSource.url}${admission ? `#page=${admission.pagina}` : ""}`;
+  const sourceUrl = `${source.url}${admission ? `#page=${admission.pagina}` : ""}`;
   const overview = <div className="min-w-0 flex-1">
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
       <div>
-        <p className="text-xs font-bold text-[var(--primary-text)]">Nota PAS · {pasSource.ciclo}</p>
-        <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{pasSource.sistema} · Mais recente</p>
+        <p className="text-xs font-bold text-[var(--primary-text)]">Nota PAS · {source.ciclo}</p>
+        <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{source.sistema} · {year === "all" ? "Mais recente" : `Ciclo encerrado em ${year}`}</p>
       </div>
       <strong className="text-2xl font-extrabold tracking-tight text-[var(--primary-text)]">
         {admission ? formatPasScore(admission.minimo) : "Não disponível"}
@@ -21,7 +23,7 @@ export default function PasAdmissionCard({ course, expanded = false }: {
     </div>
     {admission?.ingressoConjunto && <p className="mt-1 text-[10px] text-[var(--text-muted)]">Ingresso conjunto das Engenharias do Gama</p>}
     {admission && !admission.ingressoConjunto && admission.ofertaOriginal && (admission.graus.length > 1 || normalizeSearchTerm(admission.nome) !== normalizeSearchTerm(course.nome)) && <p className="mt-1 text-[10px] text-[var(--text-muted)]">Oferta no boletim: {admission.ofertaOriginal}</p>}
-    {!admission && <p className="mt-1 text-[10px] text-[var(--text-muted)]">Sem correspondência validada no último boletim.</p>}
+    {!admission && <p className="mt-1 text-[10px] text-[var(--text-muted)]">{selectedSource ? "Sem correspondência validada no boletim deste ciclo." : "Nenhum boletim PAS disponível para o ano selecionado."}</p>}
   </div>;
 
   return (
@@ -29,7 +31,7 @@ export default function PasAdmissionCard({ course, expanded = false }: {
       {!expanded ? <div className="p-3">
         {overview}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] font-semibold text-[var(--primary-text)]">
-          <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">Fonte Cebraspe</a>
+          {selectedSource && <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">Fonte Cebraspe</a>}
           <Link href={`/cursos/${course.slug}#notas-pas`} className="underline underline-offset-2">Ver histórico e detalhes</Link>
         </div>
       </div> : <details className="group">
@@ -42,7 +44,7 @@ export default function PasAdmissionCard({ course, expanded = false }: {
         </summary>
         <div className="border-t border-[var(--border-subtle)] bg-[var(--surface)] p-4">
           <p className="text-xs leading-relaxed text-[var(--text-muted)]">O valor é o menor argumento final dos candidatos selecionados no boletim, não a nota do último matriculado nem uma garantia de ingresso.{admission?.ingressoConjunto ? " Neste ciclo, a nota é da entrada conjunta das Engenharias, não exclusivamente de Software. Cada edição mantém sua própria oferta." : ""}</p>
-          <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-semibold text-[var(--primary-text)] underline underline-offset-2">Boletim mais recente{admission ? ` · p. ${admission.pagina}` : ""}</a>
+          <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-semibold text-[var(--primary-text)] underline underline-offset-2">Boletim {year === "all" ? "mais recente" : `do ciclo ${source.ciclo}`}{admission ? ` · p. ${admission.pagina}` : ""}</a>
           <section aria-label="Histórico de notas PAS" className="mt-5">
             <h2 className="text-sm font-bold">Histórico por ciclo</h2>
             <p className="mt-1 text-[11px] text-[var(--text-muted)]">Sistema Universal · {history.length} ciclos disponíveis</p>

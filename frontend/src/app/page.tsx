@@ -312,7 +312,7 @@ export default function HomePage() {
                       {course.nome}
                     </h3>
 
-                    <PasAdmissionCard course={course} />
+                    <PasAdmissionCard course={course} year={activeYear} />
 
                     {/* Identificador de Estrutura Curricular / Matriz (Estilo NoFluxo) */}
                     {course.matriz_curricular && (

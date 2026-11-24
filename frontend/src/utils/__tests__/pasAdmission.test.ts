@@ -5,6 +5,7 @@ import {
   formatPasScore,
   getPasHistory,
   pasSources,
+  getPasSourceForYear,
 } from "../pasAdmission.ts";
 const software = {
   nome: "Engenharia de Software",
@@ -211,4 +212,11 @@ test("nomes equivalentes preservam a oferta oficial e não absorvem habilitaçõ
     }),
     undefined,
   );
+});
+
+test("ano dos indicadores seleciona o ciclo PAS encerrado naquele ano", () => {
+ for(const year of [2020,2021,2022,2023,2024,2025]) assert.equal(getPasSourceForYear(year)?.ciclo,`${year-2}–${year}`);
+ assert.equal(getPasSourceForYear("all"),pasSources[0]);
+ assert.equal(getPasSourceForYear(2019),undefined);
+ assert.equal(getPasSourceForYear(2026),undefined);
 });

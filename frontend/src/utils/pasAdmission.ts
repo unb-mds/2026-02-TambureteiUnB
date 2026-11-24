@@ -16,6 +16,10 @@ export const pasSources = [
   anterior2020,
 ];
 export const pasSource = pasSources[0];
+export function getPasSourceForYear(year: number | "all" = "all") {
+  return year === "all" ? pasSource : pasSources.find(source => Number(source.ciclo.split(/[–-]/).at(-1)) === year);
+}
+
 type PasSource = (typeof pasSources)[number];
 const campusAliases = new Map([
   ["fcte", "FCTE"],
