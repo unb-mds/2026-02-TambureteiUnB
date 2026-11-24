@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GuestBanner from "@/components/GuestBanner";
 import CourseCard from "@/components/CourseCard";
+import DataCollectionBanner from "@/components/DataCollectionBanner";
 import Button from "@/components/Button";
 import Pagination from "@/components/Pagination";
 import { authService } from "@/services/authService";
@@ -80,6 +81,9 @@ export default function HomePage() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex flex-col gap-8">
         {/* Faixa de Aviso de Visitante */}
         {!isLoggedIn && <GuestBanner />}
+
+        {/* Faixa de Aviso sobre Coleta Colaborativa de Dados */}
+        <DataCollectionBanner />
 
         {/* Hero Section */}
         <section className="home-hero relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-white to-[#EDE9FD]/50 border border-[#E8E6F8] p-8 sm:p-12 shadow-xs">
