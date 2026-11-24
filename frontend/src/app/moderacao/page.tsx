@@ -269,12 +269,14 @@ export default function ModeracaoPage() {
     setAviso("");
     try {
       const resultado = await decidirDenuncia(denuncia.id, acao, justificativa);
+            setDenunciaSelecionada(null);
+      setAcaoSelecionada(null);
       setAviso(
-        resultado.acao === "EXCLUIR_CONTEUDO"
-          ? "Conteúdo denunciado excluído e denúncias encerradas com sucesso."
-          : "Denúncia descartada e visibilidade mantida com sucesso."
+        acao === "EXCLUIR_CONTEUDO"
+          ? `Conteúdo denunciado ocultado com sucesso (${resultado.denuncias_atualizadas} sinalização(ões) encerrada(s)).`
+          : `Denúncia descartada como improcedente (${resultado.denuncias_atualizadas} sinalização(ões) encerrada(s)). Conteúdo restituído.`,
       );
-      fecharModalDenuncia();
+
       await carregar();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
@@ -500,6 +502,16 @@ export default function ModeracaoPage() {
 
         {acesso === "allowed" && aba === "denuncias" && filaDenuncias && (
           <>
+        
+                    <div className="mt-5 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD]/60 p-4 text-sm text-[#202124]">
+              <p className="font-semibold text-[#5B4BDB]">
+                Diretriz RN04 — Proteção a Docentes e Conduta Ética
+              </p>
+              <p className="mt-1 text-xs sm:text-sm text-gray-700">
+                Relatos com ataques pessoais, juízos depreciativos contra professores ou gabaritos de atividades vigentes devem ser excluídos. Denúncias improcedentes sobre relatos estritamente pedagógicos devem ser descartadas para preservar a colaboração discente.
+              </p>
+            </div>
+            
             <div className="my-5 flex flex-wrap items-center justify-between gap-4">
               <p className="text-sm text-gray-600">{filaDenuncias.total} denúncia(s) pendente(s) de revisão</p>
 
