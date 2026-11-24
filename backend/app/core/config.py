@@ -1,9 +1,16 @@
+import json
 import os
 from pathlib import Path
 from typing import List
 from pydantic_settings import BaseSettings
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
+
+_DEFAULT_INSECURE_SECRET_KEYS = {
+    "",
+    "supersecretkey_unb_tamburetei_2026_mds",
+    "sua_chave_secreta_super_segura_unb_2026",
+}
 
 
 def _erro_quorum(valor) -> PydanticCustomError:
@@ -18,7 +25,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Tamburetei UnB API"
     VERSION: str = "0.9.0"
     API_V1_STR: str = "/api/v1"
-    
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+
     MATERIALS_DIR: Path = Path("storage/materiais")
     MATERIAL_MAX_BYTES: int = Field(default=5 * 1024 * 1024, gt=0)
 
@@ -28,20 +36,41 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "tamburetei_db")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
-    
+
     # JWT & Segurança
     SECRET_KEY: str = os.getenv("SECRET_KEY", "supersecretkey_unb_tamburetei_2026_mds")
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 dias
-    
-    # CORS
-    BACKEND_CORS_ORIGINS: List[str] = [
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 dias
+
+    # CORS (aceita JSON list ou string separada por virgulas no .env; nunca usa '*')
+    BACKEND_CORS_ORIGINS: List[str] | str = [
+        "https://tambureteiunb.com.br",
+        "https://www.tambureteiunb.com.br",
         "http://localhost:3000",
-        "http://localhost:8000",
         "http://127.0.0.1:3000",
-        "http://127.0.0.1:8000",
-        "*"
     ]
+
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v) -> List[str]:
+        if isinstance(v, str):
+            bruto = v.strip()
+            if not bruto:
+                return []
+            if bruto.startswith("["):
+                parsed = json.loads(bruto)
+                return [str(item).strip().rstrip("/") for item in parsed if str(item).strip() and str(item).strip() != "*"]
+            return [item.strip().rstrip("/") for item in bruto.split(",") if item.strip() and item.strip() != "*"]
+        if isinstance(v, list):
+            return [str(item).strip().rstrip("/") for item in v if str(item).strip() and str(item).strip() != "*"]
+        return []
+
+    @model_validator(mode="after")
+    def validar_segredos_producao(self):
+        if (self.ENVIRONMENT or "").strip().lower() == "production":
+            if (self.SECRET_KEY or "").strip() in _DEFAULT_INSECURE_SECRET_KEYS or len((self.SECRET_KEY or "").strip()) < 32:
+                raise ValueError("SECRET_KEY forte (>= 32 caracteres) e obrigatoria em ENVIRONMENT=production.")
+        return self
     
     # Limiar para baixa amostragem LGPD / DPO (< 5 alunos)
     AMOSTRAGEM_MINIMA_LGPD: int = 5
@@ -49,6 +78,7 @@ class Settings(BaseSettings):
     # Importação de Histórico Escolar SIGAA (PDF)
     HISTORICO_MAX_BYTES: int = Field(default=10 * 1024 * 1024, gt=0)
     HISTORICO_MIN_AMOSTRAS: int = Field(default=int(os.getenv("HISTORICO_MIN_AMOSTRAS", "5")), ge=1)
+    HISTORICO_DEDUP_SECRET: str = os.getenv("HISTORICO_DEDUP_SECRET", "")
 
     # Quórum mínimo de doações idênticas para consolidar uma turma (US 3.2.1)
     QUORUM_MINIMO_DOACOES: int = 3

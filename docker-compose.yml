@@ -16,6 +16,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: always
     ports:
       - "8000:8000"
@@ -26,6 +27,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PORT: 5432
       SECRET_KEY: ${SECRET_KEY}
+      HISTORICO_DEDUP_SECRET: ${HISTORICO_DEDUP_SECRET:-}
       MATERIALS_DIR: /app/storage/materiais
       MATERIAL_MAX_BYTES: ${MATERIAL_MAX_BYTES:-5242880}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}

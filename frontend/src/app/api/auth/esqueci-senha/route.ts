@@ -56,7 +56,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const apiUrl =
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:8000";
     const backendRes = await fetch(`${apiUrl}/auth/esqueci-senha`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
