@@ -30,7 +30,7 @@ test("CourseCard renderiza link overlay cobrindo todo o retangulo do card com ac
 
   // Verifica que o Link com cobertura total (.absolute.inset-0) está presente
   assert.match(markup, /href="\/cursos\/engenharia-de-software"/);
-  assert.match(markup, /class="[^"]*absolute inset-0 z-30[^"]*"/);
+  assert.match(markup, /class="[^"]*absolute inset-0 z-10[^"]*"/);
   assert.match(markup, /aria-label="Ver curso Engenharia de Software"/);
   assert.match(markup, /Ver disciplinas/);
 });

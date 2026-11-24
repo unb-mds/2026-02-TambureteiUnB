@@ -173,13 +173,48 @@ export default function DisciplineCard({ discipline, detailedMetrics }: Discipli
             </div>
           </div>
         ) : (
-          <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
-            <div className="bg-[#FAF9FE] rounded-xl p-2.5 border border-[#EDE9FD]/70 flex flex-col justify-between min-h-[58px]">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
-                Métricas Consolidadas
+          <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]">
+            <div
+              className="rounded-xl p-2.5 border flex flex-col justify-between min-h-[58px]"
+              style={{
+                backgroundColor: "var(--surface-soft)",
+                borderColor: "var(--border-subtle)",
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <span
+                  className="text-[10px] uppercase font-bold tracking-wider"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Métricas Consolidadas
+                </span>
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
+                  style={{
+                    backgroundColor: "var(--primary-soft)",
+                    color: "var(--primary-text)",
+                  }}
+                >
+                  DPO / LAI
+                </span>
+              </div>
+              <span
+                className="text-[11px] mt-1"
+                style={{ color: "var(--text-muted)" }}
+              >
+                Sem registro de dados históricos para esta disciplina
               </span>
-              <span className="text-[11px] text-gray-500 mt-1">
-                Sem registro de dados históricos para este período
+            </div>
+
+            <div
+              className="flex items-center text-[11px] px-1 pt-2"
+              style={{ color: "var(--text-muted)" }}
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+                {hasClasses
+                  ? `${discipline.total_turmas} ${discipline.total_turmas === 1 ? "turma ofertada" : "turmas ofertadas"}`
+                  : "Aguardando consolidação de dados pela comunidade"}
               </span>
             </div>
           </div>

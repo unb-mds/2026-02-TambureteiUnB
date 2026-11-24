@@ -38,7 +38,7 @@ export default function CourseCard({ course, activeYear = "all" }: CourseCardPro
       {/* Link overlay cobrindo todo o retangulo do card */}
       <Link
         href={`/cursos/${course.slug}`}
-        className="absolute inset-0 z-30 rounded-2xl focus:outline-hidden"
+        className="absolute inset-0 z-10 rounded-2xl focus:outline-hidden"
         aria-label={`Ver curso ${course.nome}`}
       >
         <span className="sr-only">Ver curso {course.nome}</span>
@@ -79,7 +79,8 @@ export default function CourseCard({ course, activeYear = "all" }: CourseCardPro
           {course.nome}
         </h3>
 
-        <div>
+        {/* Card do PAS com ponteiro de eventos liberado e z-index acima do overlay */}
+        <div className="pointer-events-auto relative z-20">
           <PasAdmissionCard course={course} year={activeYear} />
         </div>
 
