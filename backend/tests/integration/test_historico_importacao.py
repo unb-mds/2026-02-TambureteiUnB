@@ -203,3 +203,72 @@ def test_importar_historico_com_disciplina_repetida_no_mesmo_pdf_nao_quebra(clie
     assert resp.status_code == 200, resp.text
     assert resp.json()["contribuicao"]["novas_contribuicoes"] == 1
     assert resp.json()["contribuicao"]["duplicadas_ignoradas"] == 1
+
+
+def test_dedup_hash_preserva_identidade_quando_historico_dedup_secret_esta_fixo(monkeypatch):
+    from app.core.config import settings
+    from app.services.historico_importacao_service import _gerar_dedup_hash
+
+    monkeypatch.setattr(settings, "HISTORICO_DEDUP_SECRET", "chave-dedup-estavel")
+    monkeypatch.setattr(settings, "SECRET_KEY", "jwt-chave-1")
+    h1 = _gerar_dedup_hash("251012345", "MAT0025", "2025.2")
+
+    monkeypatch.setattr(settings, "SECRET_KEY", "jwt-chave-rotacionada-2")
+    h2 = _gerar_dedup_hash("251012345", "MAT0025", "2025.2")
+
+    assert h1 == h2
+
+
+def test_importar_historico_preserva_nomes_limpos_com_titulo_orfao_vizinho(client, db, headers):
+    disc_alg = Disciplina(
+        codigo="MAT0031",
+        nome="INTRODUCAO A ALGEBRA LINEAR",
+        slug="introducao-a-algebra-linear",
+        departamento="MAT",
+        carga_horaria=90,
+    )
+    disc_vig = Disciplina(
+        codigo="DSC0172",
+        nome="VIGILÂNCIA EPIDEMIOLÓGICA PARTICIPATIVA",
+        slug="vigilancia-epidemiologica-participativa",
+        departamento="DSC",
+        carga_horaria=30,
+    )
+    db.add_all([disc_alg, disc_vig])
+    db.commit()
+
+    texto = """
+SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas
+UnB - Universidade de Brasília
+Histórico Escolar - Emitido em: 21/11/2026 às 21:23
+Nome: DISCENTE ANONIMIZADO
+Matrícula: 251088888
+Curso: ENGENHARIA DE SOFTWARE/FCTE - BACHARELADO - DIURNO
+Status: ATIVO    IRA: 4.1000    MP: 4.2000
+Componentes Curriculares Cursados/Cursando
+2025.2  MAT0031  INTRODUCAO A ALGEBRA LINEAR  90  01  78,0  MS  APR
+Dr. FULANO DE TAL (90h)
+VIGILÂNCIA EPIDEMIOLÓGICA PARTICIPATIVA
+2026.1  #  DSC0172  30  01  100,0  SS  APR
+Dra. LIGIA MARIA CANTARINO DA COSTA (30h)
+Legenda
+Carga Horária Integralizada/Pendente
+Exigido 2985 h 540 h 0 h 3525 h
+Integralizado 90 h 30 h 0 h 120 h
+Para verificar a autenticidade deste documento entre em https://sig.unb.br/sigaa/documentos/ informando a matrícula, data de emissão
+e o código de verificação: 30330eba4c
+"""
+    with patch(
+        "app.services.historico_parser_service.PdfReader",
+        return_value=_FakeReader(texto),
+    ):
+        resp = client.post(
+            "/perfil/importar-historico",
+            headers=headers,
+            files={"arquivo": ("historico.pdf", b"%PDF-1.4 ok", "application/pdf")},
+        )
+
+    assert resp.status_code == 200, resp.text
+    itens = {c["codigo"]: c for c in resp.json()["cursadas"]}
+    assert itens["MAT0031"]["nome"] == "INTRODUCAO A ALGEBRA LINEAR"
+    assert itens["DSC0172"]["nome"] == "VIGILÂNCIA EPIDEMIOLÓGICA PARTICIPATIVA"

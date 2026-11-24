@@ -51,9 +51,29 @@ RE_LINHA_COLUNAS_FIM = re.compile(
     r"(SS|MS|MM|MI|II|SR|-{1,3})\s+"
     r"(APR|REP|REPF|REPMF|TRANC|MATR|CANC|DISP|CUMP|--)\s*$"
 )
-RE_DOCENTE_PARTE = re.compile(
-    r"(?:(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+)?[A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s.'-]{2,}?\(\d+h\)",
-    re.UNICODE,
+RE_DOCENTE_CH = re.compile(r"\(\d+h\)")
+RE_DOCENTE_CH_FIM = re.compile(r"\(\d+h\)\s*$")
+RE_DOCENTE_CH_CONTINUA = re.compile(r"\(\d+h\)\s*,\s*$")
+RE_DOCENTE_SEGMENTO = re.compile(r"(.+?)\s*\(\d+h\)")
+RE_METRICAS_FIM_GENERICA = re.compile(
+    r"(?:^|\s)(\d{1,3})\s+"
+    r"([A-Z0-9-]+)\s+"
+    r"([\d.,]+|--)\s+"
+    r"(SS|MS|MM|MI|II|SR|-{1,3})\s+"
+    r"(APR|REP|REPF|REPMF|TRANC|MATR|CANC|DISP|CUMP|--)\s*$"
+)
+RE_COMPONENTE_INLINE_SEM_NOME = re.compile(
+    r"^\s*(\d{4}\.\d)\s+"
+    r"(?:([*#e&@§%])\s+)?"
+    r"(?:([A-Z]{2,5}\d{3,5})\s+)?"
+    r"(\d{1,3})\s+"
+    r"([A-Z0-9-]+)\s+"
+    r"([\d.,]+|--)\s+"
+    r"(SS|MS|MM|MI|II|SR|-{1,3})\s+"
+    r"(APR|REP|REPF|REPMF|TRANC|MATR|CANC|DISP|CUMP|--)\s*$"
+)
+RE_CODIGO_PREFIXO_LINHA = re.compile(
+    r"^\s*(?:([*#e&@§%])\s+)?([A-Z]{2,5}\d{3,5})\b"
 )
 RE_PENDENTE = re.compile(
     r"^\s*([A-Z]{2,5}\d{3,5})\s+(.+?)\s+(?:(Matriculado)\s+)?(\d{1,3})\s*h\s*$",
@@ -69,8 +89,12 @@ RE_DATA_EMISSAO = re.compile(
     re.IGNORECASE,
 )
 RE_CABECALHO_PAGINA = re.compile(
-    r"^(SIGAA\s*-|UnB\s*-|DEG\s*-|SAA\s*-|Campus Darcy|Credenciada conforme|na se[çc][ãa]o 01|"
-    r"Hist[óo]rico Escolar\s*-|Nome:\s|Ano/Per[íi]odo|Letivo\s+Componente|"
+    r"^(SIGAA\s*-|UnB\s*-|Universidade de Bras[íi]lia\s*$|DEG\s*-|SAA\s*-|"
+    r"Decanato de Ensino|Secretaria de Administra[çc][ãa]o|"
+    r"Campus Darcy|Credenciada conforme|na se[çc][ãa]o 01|"
+    r"Hist[óo]rico Escolar\s*-|Nome:\s|Matr[íi]cula:\s*\d|Curso:\s|Curr[íi]culo:\s|"
+    r"Status:\s|Ano\s*/\s*Per[íi]odo Letivo Inicial:\s|Per[íi]odo Letivo Atual:\s|"
+    r"Prazo para Conclus[ãa]o|Ano/Per[íi]odo|Letivo\s+Componente|"
     r"Para verificar a autenticidade|e o c[óo]digo de verifica[çc][ãa]o:|P[áa]gina\s+\d+\s+de\s+\d+)",
     re.IGNORECASE,
 )
@@ -303,39 +327,92 @@ RE_TITULO_DOCENTE = re.compile(
 )
 
 
+def _linha_tem_docente_ch(txt: str) -> bool:
+    return bool(RE_DOCENTE_CH.search(txt))
+
+
+def _linha_termina_docente_completo(txt: str) -> bool:
+    return bool(RE_DOCENTE_CH_FIM.search(txt))
+
+
+def _linha_continua_docente(txt: str) -> bool:
+    return bool(RE_DOCENTE_CH_CONTINUA.search(txt))
+
+
+def _linha_inicia_com_titulo_docente(txt: str) -> bool:
+    return bool(RE_TITULO_DOCENTE.match(txt))
+
+
+def _linha_tem_codigo_disciplina(txt: str) -> bool:
+    return bool(RE_CODIGO_PREFIXO_LINHA.match(txt))
+
+
 def _extrair_professores_e_nome(
     linhas_texto: List[str],
 ) -> Tuple[str, List[str]]:
-    """Separa nome da disciplina e lista de docentes a partir das linhas internas do bloco."""
-    texto_unido = " ".join(l.strip() for l in linhas_texto if l.strip())
+    """Separa nome da disciplina e lista de docentes preservando a ordem das linhas."""
+    partes_nome: List[str] = []
+    linhas_docentes: List[str] = []
+    aguardando_fim_docente = False
+
+    for raw in linhas_texto:
+        linha = " ".join(raw.split()).strip()
+        if not linha:
+            continue
+
+        tem_ch = _linha_tem_docente_ch(linha)
+        match_titulo = RE_TITULO_DOCENTE.search(linha)
+
+        if aguardando_fim_docente:
+            linhas_docentes.append(linha)
+            aguardando_fim_docente = not _linha_termina_docente_completo(
+                linha
+            ) or _linha_continua_docente(linha)
+            continue
+
+        if tem_ch:
+            if match_titulo and match_titulo.start() > 0:
+                prefixo_nome = linha[: match_titulo.start()].strip(" ,")
+                if prefixo_nome:
+                    partes_nome.append(prefixo_nome)
+                linhas_docentes.append(linha[match_titulo.start() :].strip())
+            else:
+                linhas_docentes.append(linha)
+            aguardando_fim_docente = _linha_continua_docente(linha)
+            continue
+
+        if match_titulo and match_titulo.start() == 0:
+            linhas_docentes.append(linha)
+            aguardando_fim_docente = True
+            continue
+
+        partes_nome.append(linha)
+
     professores: List[str] = []
-    partes_nome_preservadas: List[str] = []
+    if linhas_docentes:
+        texto_docentes = " ".join(linhas_docentes)
+        for match in RE_DOCENTE_SEGMENTO.finditer(texto_docentes):
+            docente = " ".join(match.group(1).split()).strip(" ,;-")
+            if docente and docente not in professores:
+                professores.append(docente)
 
-    for match in RE_DOCENTE_PARTE.finditer(texto_unido):
-        docente_raw = " ".join(match.group(0).split()).strip(" ,")
-        docente_sem_ch = re.sub(r"\s*\(\d+h\)\s*$", "", docente_raw).strip()
-        titulo_match = RE_TITULO_DOCENTE.search(docente_sem_ch)
-        if titulo_match and titulo_match.start() > 0:
-            prefixo = docente_sem_ch[: titulo_match.start()].strip()
-            if prefixo:
-                partes_nome_preservadas.append(prefixo)
-            docente_sem_ch = docente_sem_ch[titulo_match.start() :].strip()
-        if docente_sem_ch and docente_sem_ch not in professores:
-            professores.append(docente_sem_ch)
-
-    nome_limpo = RE_DOCENTE_PARTE.sub("", texto_unido)
-    nome_limpo = re.sub(r"\(\d+h\)", "", nome_limpo)
-    if partes_nome_preservadas:
-        nome_limpo = " ".join([nome_limpo, *partes_nome_preservadas])
-    nome_limpo = " ".join(nome_limpo.replace(",", " ").split()).strip()
+    nome_limpo = " ".join(" ".join(partes_nome).split()).strip(" ,")
     return nome_limpo, professores
 
 
 def _parse_bloco_componente(
-    semestre: str, linhas_bloco: List[str]
+    semestre: str,
+    linhas_bloco: List[str],
+    prefixo_orfao: Optional[List[str]] = None,
 ) -> Optional[HistoricoComponenteItem]:
     if not linhas_bloco:
         return None
+
+    prefixos_limpos = [
+        l.strip()
+        for l in (prefixo_orfao or [])
+        if l.strip() and not RE_CABECALHO_PAGINA.match(l.strip())
+    ]
 
     texto_bloco = "\n".join(linhas_bloco)
     if "ENADE" in texto_bloco and not RE_CODIGO_DISCIPLINA.search(
@@ -356,7 +433,7 @@ def _parse_bloco_componente(
         mencao = m_inline.group(8).strip()
         situacao = m_inline.group(9).strip()
 
-        linhas_extras = [parte_nome] + [
+        linhas_extras = prefixos_limpos + [parte_nome] + [
             l.strip()
             for l in linhas_bloco[1:]
             if l.strip() and not RE_CABECALHO_PAGINA.match(l.strip())
@@ -376,7 +453,7 @@ def _parse_bloco_componente(
         )
 
     # Caso 2: Formato empilhado (código + métricas ao final do bloco ou no meio)
-    linhas_limpas: List[str] = []
+    linhas_limpas: List[str] = list(prefixos_limpos)
     for idx, linha in enumerate(linhas_bloco):
         txt = linha.strip()
         if not txt or RE_CABECALHO_PAGINA.match(txt):
@@ -395,23 +472,67 @@ def _parse_bloco_componente(
             m_fim = m
             break
 
-    if m_fim is None or linha_metrica_idx is None:
-        return None
+    if m_fim is not None and linha_metrica_idx is not None:
+        simbolo = m_fim.group(1)
+        codigo = m_fim.group(2)
+        ch = int(m_fim.group(3))
+        turma = m_fim.group(4).strip()
+        freq = _parse_float_ptbr(m_fim.group(5))
+        mencao = m_fim.group(6).strip()
+        situacao = m_fim.group(7).strip()
 
-    simbolo = m_fim.group(1)
-    codigo = m_fim.group(2)
-    ch = int(m_fim.group(3))
-    turma = m_fim.group(4).strip()
-    freq = _parse_float_ptbr(m_fim.group(5))
-    mencao = m_fim.group(6).strip()
-    situacao = m_fim.group(7).strip()
+        prefixo_metrica = RE_LINHA_COLUNAS_FIM.sub("", linhas_limpas[linha_metrica_idx]).strip()
+        linhas_desc = (
+            linhas_limpas[:linha_metrica_idx]
+            + ([prefixo_metrica] if prefixo_metrica else [])
+            + linhas_limpas[linha_metrica_idx + 1 :]
+        )
+    else:
+        # Fallback: métricas sem código na mesma linha (código ficou em linha separada)
+        m_gen = None
+        for idx, txt in enumerate(linhas_limpas):
+            m = RE_METRICAS_FIM_GENERICA.search(txt)
+            if m:
+                linha_metrica_idx = idx
+                m_gen = m
+                break
+        if m_gen is None or linha_metrica_idx is None:
+            return None
 
-    prefixo_metrica = RE_LINHA_COLUNAS_FIM.sub("", linhas_limpas[linha_metrica_idx]).strip()
-    linhas_desc = (
-        linhas_limpas[:linha_metrica_idx]
-        + ([prefixo_metrica] if prefixo_metrica else [])
-        + linhas_limpas[linha_metrica_idx + 1 :]
-    )
+        simbolo = None
+        codigo = None
+        ch = int(m_gen.group(1))
+        turma = m_gen.group(2).strip()
+        freq = _parse_float_ptbr(m_gen.group(3))
+        mencao = m_gen.group(4).strip()
+        situacao = m_gen.group(5).strip()
+
+        prefixo_metrica = RE_METRICAS_FIM_GENERICA.sub("", linhas_limpas[linha_metrica_idx]).strip()
+        linhas_candidatas = (
+            linhas_limpas[:linha_metrica_idx]
+            + ([prefixo_metrica] if prefixo_metrica else [])
+            + linhas_limpas[linha_metrica_idx + 1 :]
+        )
+        linhas_desc = []
+        for cand in linhas_candidatas:
+            if codigo is None:
+                m_cod = RE_CODIGO_PREFIXO_LINHA.match(cand) or RE_CODIGO_DISCIPLINA.search(cand)
+                if m_cod:
+                    if m_cod.lastindex == 2:
+                        simbolo = simbolo or m_cod.group(1)
+                        codigo = m_cod.group(2)
+                        restante = RE_CODIGO_PREFIXO_LINHA.sub("", cand, count=1).strip()
+                    else:
+                        codigo = m_cod.group(1)
+                        restante = RE_CODIGO_DISCIPLINA.sub("", cand, count=1).strip()
+                    if restante:
+                        linhas_desc.append(restante)
+                    continue
+            linhas_desc.append(cand)
+
+        if not codigo:
+            return None
+
     nome, professores = _extrair_professores_e_nome(linhas_desc)
 
     if not nome or codigo == "ENADE":
@@ -436,15 +557,27 @@ def _extrair_componentes_de_texto(texto: str) -> List[HistoricoComponenteItem]:
     em_secao = False
     semestre_atual: Optional[str] = None
     bloco_atual: List[str] = []
+    prefixo_bloco_atual: List[str] = []
+    linhas_pendentes_proximo: List[str] = []
+    bloco_tem_codigo = False
+    bloco_tem_metricas = False
+    bloco_pos_docente = False
+    aguardando_fim_docente = False
 
     def _fechar_bloco():
-        nonlocal semestre_atual, bloco_atual
+        nonlocal semestre_atual, bloco_atual, prefixo_bloco_atual
+        nonlocal bloco_tem_codigo, bloco_tem_metricas, bloco_pos_docente, aguardando_fim_docente
         if semestre_atual and bloco_atual:
-            item = _parse_bloco_componente(semestre_atual, bloco_atual)
+            item = _parse_bloco_componente(semestre_atual, bloco_atual, prefixo_bloco_atual)
             if item is not None:
                 itens.append(item)
         semestre_atual = None
         bloco_atual = []
+        prefixo_bloco_atual = []
+        bloco_tem_codigo = False
+        bloco_tem_metricas = False
+        bloco_pos_docente = False
+        aguardando_fim_docente = False
 
     for linha in texto.splitlines():
         txt = linha.strip()
@@ -460,6 +593,7 @@ def _extrair_componentes_de_texto(texto: str) -> List[HistoricoComponenteItem]:
             or "componentes curriculares obrigatorios pendentes" in norm
         ):
             _fechar_bloco()
+            linhas_pendentes_proximo = []
             em_secao = False
             continue
 
@@ -468,11 +602,79 @@ def _extrair_componentes_de_texto(texto: str) -> List[HistoricoComponenteItem]:
 
         m_periodo = RE_PERIODO_INICIO.match(txt)
         if m_periodo:
+            # Se a nova linha abriu com código/métricas mas sem nome inline,
+            # resgata eventuais linhas órfãs não-docentes no fim do bloco anterior.
+            if (
+                RE_COMPONENTE_INLINE_SEM_NOME.match(txt)
+                and bloco_tem_metricas
+                and len(bloco_atual) > 1
+                and not linhas_pendentes_proximo
+            ):
+                while len(bloco_atual) > 1:
+                    ultima = bloco_atual[-1]
+                    if (
+                        _linha_tem_docente_ch(ultima)
+                        or _linha_inicia_com_titulo_docente(ultima)
+                        or RE_COMPONENTE_INLINE.match(ultima)
+                        or RE_LINHA_COLUNAS_FIM.search(ultima)
+                    ):
+                        break
+                    linhas_pendentes_proximo.insert(0, bloco_atual.pop())
+
             _fechar_bloco()
             semestre_atual = m_periodo.group(1)
+            prefixo_bloco_atual = list(linhas_pendentes_proximo)
+            linhas_pendentes_proximo = []
             bloco_atual = [txt]
-        elif semestre_atual is not None:
+            sem_periodo = RE_PERIODO_INICIO.sub("", txt).strip()
+            bloco_tem_codigo = bool(
+                RE_CODIGO_DISCIPLINA.search(sem_periodo)
+                or any(RE_CODIGO_DISCIPLINA.search(p) for p in prefixo_bloco_atual)
+            )
+            bloco_tem_metricas = bool(
+                RE_COMPONENTE_INLINE.match(txt)
+                or RE_COMPONENTE_INLINE_SEM_NOME.match(txt)
+                or RE_LINHA_COLUNAS_FIM.search(txt)
+            )
+            continue
+
+        if semestre_atual is None:
+            linhas_pendentes_proximo.append(txt)
+            continue
+
+        if linhas_pendentes_proximo:
+            linhas_pendentes_proximo.append(txt)
+            continue
+
+        eh_docente = (
+            aguardando_fim_docente
+            or _linha_tem_docente_ch(txt)
+            or _linha_inicia_com_titulo_docente(txt)
+        )
+        if eh_docente:
             bloco_atual.append(txt)
+            if _linha_termina_docente_completo(txt):
+                bloco_pos_docente = True
+                aguardando_fim_docente = False
+            elif _linha_continua_docente(txt) or _linha_inicia_com_titulo_docente(txt):
+                aguardando_fim_docente = True
+            else:
+                aguardando_fim_docente = True
+            continue
+
+        if bloco_pos_docente:
+            linhas_pendentes_proximo.append(txt)
+            continue
+
+        if bloco_tem_codigo and _linha_tem_codigo_disciplina(txt):
+            linhas_pendentes_proximo.append(txt)
+            continue
+
+        bloco_atual.append(txt)
+        if RE_CODIGO_DISCIPLINA.search(txt):
+            bloco_tem_codigo = True
+        if RE_LINHA_COLUNAS_FIM.search(txt) or RE_METRICAS_FIM_GENERICA.search(txt):
+            bloco_tem_metricas = True
 
     _fechar_bloco()
     return itens

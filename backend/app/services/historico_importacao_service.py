@@ -20,6 +20,7 @@ from app.models.professor import Professor
 from app.models.turma import Turma
 from app.services.historico_parser_service import (
     HistoricoExtraido,
+    _normalizar_para_busca,
     parse_historico_pdf,
 )
 
@@ -40,6 +41,23 @@ def _limpar_nome_professor(nome_bruto: str) -> str:
     return " ".join(nome.split()).strip()[:150]
 
 
+def _sanear_nome_disciplina_por_catalogo(
+    nome_extraido: str, nome_catalogo: Optional[str]
+) -> str:
+    """Remove ruído de outra disciplina caso o nome oficial do catálogo apareça englobado."""
+    if not nome_catalogo:
+        return nome_extraido
+    norm_ext = _normalizar_para_busca(nome_extraido)
+    norm_cat = _normalizar_para_busca(nome_catalogo)
+    if not norm_cat or norm_ext == norm_cat:
+        return nome_extraido
+    if len(norm_ext) > len(norm_cat) and re.search(
+        rf"(?<!\w){re.escape(norm_cat)}(?!\w)", norm_ext
+    ):
+        return " ".join(nome_catalogo.split()).strip().upper()
+    return nome_extraido
+
+
 def _normalizar_codigo_turma(turma_bruta: Optional[str]) -> Optional[str]:
     if not turma_bruta:
         return None
@@ -52,7 +70,8 @@ def _normalizar_codigo_turma(turma_bruta: Optional[str]) -> Optional[str]:
 
 
 def _gerar_dedup_hash(matricula: str, codigo: str, semestre: str) -> str:
-    payload = f"{settings.SECRET_KEY}:{matricula.strip()}:{codigo.strip().upper()}:{semestre.strip()}"
+    chave_dedup = settings.HISTORICO_DEDUP_SECRET or settings.SECRET_KEY
+    payload = f"{chave_dedup}:{matricula.strip()}:{codigo.strip().upper()}:{semestre.strip()}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -314,6 +333,25 @@ class HistoricoImportacaoService:
         e consolida as estatísticas de turmas e disciplinas afetadas.
         """
         extraido: HistoricoExtraido = parse_historico_pdf(pdf_bytes)
+
+        codigos_unicos = sorted(
+            {c.codigo.upper() for c in (extraido.cursadas + extraido.cursando) if c.codigo}
+        )
+        disciplinas_por_codigo: Dict[str, Disciplina] = {}
+        if codigos_unicos:
+            disciplinas_encontradas = (
+                db.query(Disciplina)
+                .filter(func.upper(Disciplina.codigo).in_(codigos_unicos))
+                .all()
+            )
+            disciplinas_por_codigo = {
+                d.codigo.upper(): d for d in disciplinas_encontradas if d.codigo
+            }
+
+        for item in extraido.cursadas + extraido.cursando:
+            disc_cat = disciplinas_por_codigo.get(item.codigo.upper())
+            if disc_cat is not None:
+                item.nome = _sanear_nome_disciplina_por_catalogo(item.nome, disc_cat.nome)
 
         elegiveis: List[HistoricoComponenteItem] = [
             c for c in extraido.cursadas if c.situacao in MAPA_DESFECHO
