@@ -80,21 +80,53 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
       return;
     }
 
+    const apr = parseFloat(taxaAprovacao);
+    const rep = parseFloat(taxaReprovacao);
+    const repFalta = parseFloat(taxaReprovacaoFalta);
+    const tranc = parseFloat(taxaTrancamento);
+
+    if (isNaN(apr) || isNaN(rep) || isNaN(repFalta) || isNaN(tranc)) {
+      setFeedbackError("Informe todos os 4 percentuais registrados no gráfico do SIGAA (Aprovação, Reprovação, Falta e Trancamento).");
+      return;
+    }
+
+    const soma = Math.round((apr + rep + repFalta + tranc) * 100) / 100;
+    if (soma !== 100) {
+      setFeedbackError(`A soma dos 4 percentuais informados deve ser exatamente 100% (soma atual: ${soma}%).`);
+      return;
+    }
+
     setSubmitting(true);
 
-    const payload = {
-      semestre_referencia: turmaSelecionada.semestre,
-      taxa_aprovacao: parseFloat(taxaAprovacao) || 0,
-      taxa_reprovacao_nota: parseFloat(taxaReprovacao) || 0,
-      taxa_reprovacao_falta: parseFloat(taxaReprovacaoFalta) || 0,
-      taxa_trancamento: parseFloat(taxaTrancamento) || 0,
-    };
+    // 1. Busca a turma na API pelo codigo da disciplina e semestre para obter o ID real
+    request<Array<{ id: number; codigo_turma: string; semestre: string }>>(`/turmas?semestre=${encodeURIComponent(turmaSelecionada.semestre)}`)
+      .then(async (turmasApi) => {
+        const turmaEncontrada = turmasApi.find(
+          (t) => t.codigo_turma.toUpperCase() === turmaSelecionada.turma.toUpperCase()
+        );
 
-    // Submissão real ao endpoint /turmas/{turma_id}/doacoes
-    request(`/turmas/${turmaSelecionada.turma_id || 1}/doacoes`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    })
+        const turmaIdReal = turmaEncontrada?.id || turmaSelecionada.turma_id;
+
+        if (!turmaIdReal) {
+          throw new ApiError(
+            `A turma ${turmaSelecionada.turma} do semestre ${turmaSelecionada.semestre} ainda não possui registro cadastrado na base de turmas do Tamburetei para receber estatísticas consolidadas.`,
+            404
+          );
+        }
+
+        const payload = {
+          semestre_referencia: turmaSelecionada.semestre,
+          taxa_aprovacao: apr,
+          taxa_reprovacao_nota: rep,
+          taxa_reprovacao_falta: repFalta,
+          taxa_trancamento: tranc,
+        };
+
+        return request(`/turmas/${turmaIdReal}/doacoes`, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      })
       .then(() => {
         setSubmitting(false);
         setFeedbackSuccess("Estatísticas da turma enviadas com sucesso para moderação e validação!");
@@ -104,19 +136,17 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
       })
       .catch((err) => {
         setSubmitting(false);
-        // Se a turma específica ainda não foi cadastrada na base de turmas, registra localmente com sucesso preventivo
-        if (err instanceof ApiError && err.status === 404) {
-          setFeedbackSuccess("Estatísticas da turma enviadas com sucesso para moderação e validação!");
-          if (onSuccess) {
-            onSuccess("Estatísticas da turma enviadas para moderação com sucesso!");
+        if (err instanceof ApiError) {
+          if (err.status === 401) {
+            setFeedbackError("Você precisa estar autenticado como estudante para enviar estatísticas.");
+            return;
           }
-          return;
+          if (err.status === 404) {
+            setFeedbackError(err.message || "Turma não encontrada para o semestre indicado.");
+            return;
+          }
         }
-        setFeedbackError(
-          err instanceof ApiError && err.status === 401
-            ? "Você precisa estar autenticado como estudante para enviar estatísticas."
-            : "Erro ao enviar dados. Tente novamente mais tarde."
-        );
+        setFeedbackError("Erro ao enviar dados. Verifique os valores informados e tente novamente.");
       });
   };
 
@@ -230,11 +260,16 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
               </div>
             )}
 
-            {/* Campos opcionais de percentuais lidos */}
+            {/* Campos de percentuais lidos */}
             <div className="border-t border-gray-100 pt-3">
-              <p className="text-xs font-bold text-gray-700 uppercase mb-2">
-                3. Valores Registrados no Gráfico (Opcional se legível na imagem)
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-gray-700 uppercase">
+                  3. Valores Registrados no Gráfico (Obrigatório, soma 100%)
+                </p>
+                <span className="text-[10px] text-gray-500 font-medium">
+                  Extraia os 4 valores do gráfico de pizza
+                </span>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div>
                   <label htmlFor="taxa-apr" className="block text-[11px] font-medium text-gray-600 mb-1">
