@@ -20,9 +20,11 @@ test("getOfficialCurriculumUrl resolve link mapeado pelo slug do curso", () => {
   const softwareUrl = getOfficialCurriculumUrl({ slug: "engenharia-de-software" });
   assert.equal(softwareUrl, OFFICIAL_CURRICULUM_LINKS["engenharia-de-software"]);
   assert.match(softwareUrl, /sigaa\.unb\.br/);
+  assert.match(softwareUrl, /id=414924/);
 
-  const computacaoUrl = getOfficialCurriculumUrl({ slug: "ciencia-da-computacao" });
-  assert.equal(computacaoUrl, OFFICIAL_CURRICULUM_LINKS["ciencia-da-computacao"]);
+  const aeroUrl = getOfficialCurriculumUrl({ slug: "engenharia-aeroespacial" });
+  assert.equal(aeroUrl, OFFICIAL_CURRICULUM_LINKS["engenharia-aeroespacial"]);
+  assert.match(aeroUrl, /id=414921/);
 });
 
 test("getOfficialCurriculumUrl retorna fallback oficial do SIGAA quando slug nao possui link especifico", () => {
