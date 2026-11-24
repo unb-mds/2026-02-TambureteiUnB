@@ -26,7 +26,8 @@ export const ROTULOS_CATEGORIA_DENUNCIA: Record<CategoriaDenuncia, string> = {
 };
 
 export function podeModerar(role: string): boolean {
-  return role === "MODERATOR" || role === "ADMIN";
+  const r = role.toUpperCase();
+  return r === "MODERATOR" || r === "ADMIN" || r === "MODERADOR";
 }
 
 export function validarMotivoDenuncia(motivo: string): { valido: boolean; erro?: string } {
