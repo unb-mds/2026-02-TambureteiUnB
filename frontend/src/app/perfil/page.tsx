@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import AcademicProfileDashboard from "@/components/AcademicProfileDashboard";
+import HistoricoTipoAviso from "@/components/HistoricoTipoAviso";
+import TurmaEstatisticaModal from "@/components/TurmaEstatisticaModal";
+import { extrairTurmasCursadasDoHistorico } from "@/services/turmaEstatisticaService";
 import {
   getStoredUser,
   isAuthenticated,
@@ -111,6 +114,7 @@ function ProfilePageContent() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [isTurmaModalOpen, setIsTurmaModalOpen] = useState(false);
 
   useEffect(() => {
     if (authenticated === false) {
@@ -255,15 +259,29 @@ function ProfilePageContent() {
                 {uploading ? "Processando PDF..." : "Selecionar Histórico (PDF)"}
               </label>
               {isRealProfile && (
-                <button
-                  type="button"
-                  onClick={handleClearHistorico}
-                  className="rounded-xl border border-[#D8D4F5] px-3 py-2.5 text-sm font-semibold text-[#5B4BDB] transition-colors hover:bg-[#F7F7FA]"
-                >
-                  Limpar dados locais
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsTurmaModalOpen(true)}
+                    className="rounded-xl bg-[#EDE9FD] border border-[#5B4BDB]/30 px-3.5 py-2.5 text-sm font-semibold text-[#5B4BDB] transition-colors hover:bg-[#E0DAFC]"
+                  >
+                    Enviar Gráfico de Pizza da Turma
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearHistorico}
+                    className="rounded-xl border border-[#D8D4F5] px-3 py-2.5 text-sm font-semibold text-[#5B4BDB] transition-colors hover:bg-[#F7F7FA]"
+                  >
+                    Limpar dados locais
+                  </button>
+                </>
               )}
             </div>
+          </div>
+
+          {/* Aviso sobre o formato correto do historico (Issue #283) */}
+          <div className="mt-4">
+            <HistoricoTipoAviso />
           </div>
 
           {uploadError && (
@@ -401,6 +419,17 @@ function ProfilePageContent() {
           onRevokeConsent={() => setHasAcademicConsent(false)}
           importedData={importedHistorico}
           initialSection={initialSection}
+        />
+
+        {/* Modal de envio de graficos e estatisticas da turma (Issue #284) */}
+        <TurmaEstatisticaModal
+          isOpen={isTurmaModalOpen}
+          turmasCursadas={extrairTurmasCursadasDoHistorico(importedHistorico)}
+          onClose={() => setIsTurmaModalOpen(false)}
+          onSuccess={(msg) => {
+            setIsTurmaModalOpen(false);
+            setUploadSuccess(msg);
+          }}
         />
       </main>
       <Footer />
