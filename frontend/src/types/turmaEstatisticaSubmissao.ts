@@ -13,6 +13,7 @@ export interface TurmaEstatisticaSubmissaoPayload {
 }
 
 export interface TurmaCursadaVerificada {
+  turma_id?: number;
   codigo: string;
   nome: string;
   turma: string;
