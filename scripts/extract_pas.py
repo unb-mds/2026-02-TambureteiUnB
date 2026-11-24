@@ -1,4 +1,4 @@
-"""Extrai somente dados agregados do Sistema Universal dos boletins oficiais.
+"""Extrai dados agregados do Sistema Universal e cotas dos boletins oficiais.
 Requer pdfplumber. PDFs são guardados no diretório temporário, fora do Git.
 """
 
@@ -86,6 +86,37 @@ def record(name, campus, shift, minimum, maximum, page):
     }
 
 
+QUOTA_IDS = [
+    "ep_baixa_ppi", "ep_baixa_pcd_ppi", "ep_baixa_nao_ppi", "ep_baixa_pcd_nao_ppi",
+    "ep_alta_ppi", "ep_alta_pcd_ppi", "ep_alta_nao_ppi", "ep_alta_pcd_nao_ppi", "negros",
+]
+
+
+def quota_modalities(cycle):
+    threshold = "1,0" if cycle == "2023-2025" else "1,5"
+    identity = "PPIQ" if cycle == "2023-2025" else "PPI"
+    modalities = []
+    for group in ("baixa", "alta"):
+        for category in (identity, "PCD e " + identity, "Não " + identity, "PCD e Não " + identity):
+            identifier = QUOTA_IDS[len(modalities)]
+            income = "≤" if group == "baixa" else ">"
+            modalities.append({"id": identifier, "sistema": "Sistema de Cotas para Escolas Públicas", "descricao": f"Renda {income} {threshold} salário mínimo · {category}"})
+    modalities.append({"id": "negros", "sistema": "Sistema de Cotas para Negros", "descricao": "Sistema de Cotas para Negros"})
+    return modalities
+
+
+def quota_scores(values):
+    if len(values) != 18:
+        raise ValueError(f"Esperadas 18 colunas de notas de cotas; recebidas {len(values)}")
+    result = {}
+    for index, identifier in enumerate(QUOTA_IDS):
+        lower, upper = score(values[index * 2]), score(values[index * 2 + 1])
+        if lower is not None and upper is not None and Decimal(lower) > Decimal(upper):
+            raise ValueError(f"Mínimo de cota superior ao máximo: {identifier}")
+        result[identifier] = {"minimo": lower, "maximo": upper}
+    return result
+
+
 def extract(cycle, url):
     path = Path(tempfile.gettempdir()) / f"pas-history-{cycle}.pdf"
     if not path.exists():
@@ -122,6 +153,13 @@ def extract(cycle, url):
                             page + 1,
                         )
                     )
+                    value_start = 5 if len(table[0]) == 25 else 7
+                    values = [value for value in table[start][value_start:] if value is not None and value.strip()]
+                    if len(values) != 20:
+                        raise ValueError(f"Colunas de notas inesperadas em {cycle}, página {page + 1}")
+                    # Em 2019–2021, Negros vem antes das oito modalidades de escola pública.
+                    records[-1]["cotas"] = quota_scores(values[2:18] + values[:2])
+
         else:
             campus = None
             for page_no, page in enumerate(pdf.pages, 1):
@@ -132,6 +170,17 @@ def extract(cycle, url):
                         raise ValueError(
                             f"Coluna Universal não confirmada: {cycle}, página {page_no}"
                         )
+                    expected_identity = "PPIQ" if cycle == "2023-2025" else "PPI"
+                    expected_income = "1,0" if cycle == "2023-2025" else "1,5"
+                    if not (
+                        "EscolasPúblicas" in compact(table[0][2])
+                        and "Negros" in compact(table[0][18])
+                        and expected_income in compact(table[1][2])
+                        and expected_income in compact(table[1][10])
+                        and compact(table[2][2]) == expected_identity
+                        and compact(table[2][4]) == "PCDe" + expected_identity
+                    ):
+                        raise ValueError(f"Cabeçalhos de cotas não confirmados: {cycle}, página {page_no}")
                     for row in table:
                         name = " ".join((row[0] or "").split())
                         if name.startswith("Campus UnB"):
@@ -143,6 +192,21 @@ def extract(cycle, url):
                         records.append(
                             record(name, campus, row[1], row[-2], row[-1], page_no)
                         )
+                        quota_values = row[2:20]
+                        invalid_printed_cell = (
+                            cycle == "2021-2023" and page_no == 7
+                            and "Arquitetura e Urbanismo" in name and row[1] == "Diurno"
+                            and quota_values[11] == "h"
+                        )
+                        if invalid_printed_cell:
+                            # A própria tabela oficial imprime uma letra, sem valor numérico.
+                            quota_values[11] = "-"
+                        records[-1]["cotas"] = quota_scores(quota_values)
+                        if invalid_printed_cell:
+                            records[-1]["cotas"]["ep_alta_pcd_ppi"].update({
+                                "maximoOriginal": "h",
+                                "observacao": "O boletim imprime ‘h’ no máximo desta modalidade; não há valor numérico válido.",
+                            })
     if not records or sum(r["ingressoConjunto"] for r in records) != 1:
         raise ValueError(f"Oferta conjunta ausente ou duplicada: {cycle}")
     if cycle == "2018-2020":
@@ -215,6 +279,7 @@ def extract(cycle, url):
         "sistema": "Sistema Universal",
         "url": url,
         "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "modalidades": quota_modalities(cycle),
         "registros": records,
     }
     target = ROOT / f"frontend/src/data/pas-{cycle}.json"
