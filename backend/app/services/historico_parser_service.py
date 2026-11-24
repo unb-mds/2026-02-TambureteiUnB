@@ -328,7 +328,7 @@ def _extrair_carga_horaria(texto_layout: str, texto_padrao: str) -> HistoricoCar
 
 RE_TITULO_DOCENTE = re.compile(
     r"\b(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+",
-    re.UNICODE,
+    re.UNICODE | re.IGNORECASE,
 )
 
 

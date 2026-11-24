@@ -6,6 +6,7 @@ import pytest
 
 from app.services.historico_importacao_service import (
     _calcular_taxas_cem_porcento,
+    _limpar_nome_professor,
     _sanear_nome_disciplina_por_catalogo,
 )
 from app.services.historico_parser_service import (
@@ -340,4 +341,41 @@ e o código de verificação: abcd1234ef
     assert monitoria.professores == ["Dr. RICARDO RAMOS FRAGELLI"]
 
     assert [p.codigo for p in res.pendentes] == ["FGA0148"]
+
+
+def test_limpar_nome_professor_remove_prefixo_disciplina_e_titulo():
+    assert (
+        _limpar_nome_professor(
+            "ORIENTAÇÃO A OBJETOS Dr. ANDRE LUIZ PERON MARTINS LANNA",
+            "Orientação a Objetos",
+        )
+        == "Andre Luiz Peron Martins Lanna"
+    )
+    assert (
+        _limpar_nome_professor(
+            "ORIENTAÇÃO A OBJETOS LUCAS URSULINO BOAVENTURA",
+            "Orientação a Objetos",
+        )
+        == "Lucas Ursulino Boaventura"
+    )
+    assert (
+        _limpar_nome_professor(
+            "OBJETOS DR. ANDRE LUIZ PERON MARTINS LANNA",
+            "Orientação a Objetos",
+        )
+        == "Andre Luiz Peron Martins Lanna"
+    )
+    assert (
+        _limpar_nome_professor("Prof. Dra. CARLA SILVA ROCHA AGUIAR")
+        == "Carla Silva Rocha Aguiar"
+    )
+
+
+def test_extrair_professores_reconhece_titulo_em_maiusculas():
+    nome, profs = _extrair_professores_e_nome(
+        ["ORIENTAÇÃO A OBJETOS DR. ANDRE LUIZ PERON MARTINS LANNA (60h)"]
+    )
+    assert nome == "ORIENTAÇÃO A OBJETOS"
+    assert profs == ["DR. ANDRE LUIZ PERON MARTINS LANNA"]
+
 
