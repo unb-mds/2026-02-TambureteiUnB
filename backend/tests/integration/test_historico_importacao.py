@@ -331,3 +331,47 @@ e o código de verificação: abcd1234ef
     assert db.query(AmostraHistorico).count() == 1
     assert db.query(Turma).filter(Turma.semestre == "--").count() == 0
 
+
+def test_importar_historico_substitui_vinculo_poluido_de_professor(client, db, headers):
+    from app.models.professor import Professor
+
+    disc = Disciplina(
+        codigo="FGA0158",
+        nome="Orientação a Objetos",
+        slug="orientacao-a-objetos-limpeza",
+        departamento="FCTE",
+        carga_horaria=60,
+    )
+    db.add(disc)
+    db.flush()
+
+    prof_poluido = Professor(
+        nome="Orientação A Objetos Lucas Ursulino Boaventura",
+        departamento="FCTE",
+    )
+    turma_existente = Turma(
+        disciplina_id=disc.id,
+        codigo_turma="02",
+        semestre="2025.2",
+        professores=[prof_poluido],
+    )
+    db.add_all([prof_poluido, turma_existente])
+    db.commit()
+
+    with patch(
+        "app.services.historico_parser_service.PdfReader",
+        return_value=_FakeReader(_gerar_texto_historico("251077777", "APR", "SS")),
+    ):
+        resp = client.post(
+            "/perfil/importar-historico",
+            headers=headers,
+            files={"arquivo": ("historico.pdf", b"%PDF-1.4 ok", "application/pdf")},
+        )
+
+    assert resp.status_code == 200, resp.text
+    db.expire_all()
+    turma_atualizada = db.query(Turma).filter_by(id=turma_existente.id).one()
+    nomes = [p.nome for p in turma_atualizada.professores]
+    assert nomes == ["Lucas Ursulino Boaventura"]
+
+

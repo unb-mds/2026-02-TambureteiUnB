@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ClassCard from "../ClassCard.tsx";
+import ClassFilters from "../ClassFilters.tsx";
 import { adaptBackendTurma } from "../../types/turma.ts";
 
 const base = { id: 1, disciplina_id: 2, codigo_turma: "01", semestre: "2026.1", professores: [{ id: 1, nome: "Docente de teste" }] };
@@ -56,4 +57,30 @@ test("card exibe progresso de coleta da comunidade abaixo do limiar LGPD e taxas
   const htmlLiberada = renderToStaticMarkup(<ClassCard classData={turmaLiberada} />);
   assert.ok(htmlLiberada.includes("Aprovação: 83%"));
   assert.ok(htmlLiberada.includes("Baseado em 6 históricos"));
+});
+
+test("card preserva badge de turma sem quebra de linha e ClassFilters exibe seletor de período", () => {
+  const turma = adaptBackendTurma({ ...base, horario: "24T23", semestre: "2026.2" });
+  const htmlCard = renderToStaticMarkup(<ClassCard classData={turma} />);
+  assert.ok(htmlCard.includes("whitespace-nowrap"));
+  assert.ok(htmlCard.includes("Vespertino"));
+
+  const htmlFilters = renderToStaticMarkup(
+    <ClassFilters
+      selectedShift="Todos"
+      onShiftChange={() => {}}
+      sortBy="code_asc"
+      onSortChange={() => {}}
+      totalCount={4}
+      filteredCount={2}
+      periodosDisponiveis={["2026.2", "2026.1", "2025.2"]}
+      periodoSelecionado="2026.2"
+      aoAlterarPeriodo={() => {}}
+    />
+  );
+  assert.ok(htmlFilters.includes("Filtrar turmas por período"));
+  assert.ok(htmlFilters.includes("Todos os períodos"));
+  assert.ok(htmlFilters.includes("2026.2"));
+  assert.ok(htmlFilters.includes("2026.1"));
+  assert.ok(htmlFilters.includes("2025.2"));
 });

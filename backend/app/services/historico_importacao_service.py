@@ -33,12 +33,49 @@ MAPA_DESFECHO = {
 }
 
 MENCOES_VALIDAS = {"SS", "MS", "MM", "MI", "II", "SR"}
-RE_TITULO_DOCENTE = re.compile(r"^(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+", re.IGNORECASE)
+RE_TITULO_DOCENTE = re.compile(
+    r"^(?:(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+)+",
+    re.IGNORECASE,
+)
+RE_TITULO_DOCENTE_MEIO = re.compile(
+    r"\b(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+",
+    re.IGNORECASE,
+)
 
 
-def _limpar_nome_professor(nome_bruto: str) -> str:
-    nome = RE_TITULO_DOCENTE.sub("", (nome_bruto or "").strip())
-    return " ".join(nome.split()).strip()[:150]
+def _remover_prefixo_disciplina(texto: str, nome_disciplina: Optional[str]) -> str:
+    """Remove o nome da disciplina caso tenha vindo colado no início do nome do docente."""
+    if not texto or not nome_disciplina:
+        return texto
+    tokens_disc = _normalizar_para_busca(nome_disciplina).split()
+    tokens_orig = texto.split()
+    if not tokens_disc or len(tokens_orig) <= len(tokens_disc):
+        return texto
+    tokens_norm = [_normalizar_para_busca(t) for t in tokens_orig]
+    if tokens_norm[: len(tokens_disc)] == tokens_disc:
+        return " ".join(tokens_orig[len(tokens_disc) :]).strip(" ,;-:")
+    return texto
+
+
+def _limpar_nome_professor(
+    nome_bruto: str, nome_disciplina: Optional[str] = None
+) -> str:
+    nome = " ".join((nome_bruto or "").split()).strip(" ,;-:")
+    if not nome:
+        return ""
+
+    nome = _remover_prefixo_disciplina(nome, nome_disciplina)
+
+    # Caso ainda haja prefixo residual seguido de título acadêmico (ex: "OBJETOS Dr. FULANO")
+    match_meio = RE_TITULO_DOCENTE_MEIO.search(nome)
+    if match_meio and match_meio.start() > 0:
+        nome = nome[match_meio.start() :].strip()
+
+    nome = RE_TITULO_DOCENTE.sub("", nome).strip(" ,;-:")
+    nome = " ".join(nome.split()).strip()[:150]
+    if nome.isupper():
+        nome = nome.title()
+    return nome
 
 
 def _sanear_nome_disciplina_por_catalogo(
@@ -142,9 +179,10 @@ class HistoricoImportacaoService:
             db.flush()
 
         for nome_raw in nomes_professores:
-            nome_limpo = _limpar_nome_professor(nome_raw)
+            nome_limpo = _limpar_nome_professor(nome_raw, disciplina.nome)
             if not nome_limpo:
                 continue
+            chave_limpa = _normalizar_para_busca(nome_limpo)
             prof = (
                 db.query(Professor)
                 .filter(func.lower(Professor.nome) == nome_limpo.lower())
@@ -152,11 +190,25 @@ class HistoricoImportacaoService:
             )
             if prof is None:
                 prof = Professor(
-                    nome=nome_limpo.title() if nome_limpo.isupper() else nome_limpo,
+                    nome=nome_limpo,
                     departamento=disciplina.departamento,
                 )
                 db.add(prof)
                 db.flush()
+
+            # Remove eventuais vínculos antigos poluídos correspondentes ao mesmo docente
+            for prof_existente in list(turma.professores):
+                if prof_existente.id == prof.id:
+                    continue
+                existente_limpo = _limpar_nome_professor(
+                    prof_existente.nome, disciplina.nome
+                )
+                if (
+                    existente_limpo != prof_existente.nome
+                    and _normalizar_para_busca(existente_limpo) == chave_limpa
+                ):
+                    turma.professores.remove(prof_existente)
+
             if prof not in turma.professores:
                 turma.professores.append(prof)
 
