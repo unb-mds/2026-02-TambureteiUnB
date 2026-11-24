@@ -25,3 +25,7 @@ backend/app/pipeline/data/processed/*
 # Arquivos privados e relatorios locais de materiais
 backend/storage/
 backend/mutants/
+
+# Dumps locais de banco (mantendo init.sql rastreado)
+tamburetei_dump.sql
+*.dump.sql

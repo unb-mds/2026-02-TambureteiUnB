@@ -22,8 +22,10 @@ export interface CourseOpenDataRow {
   turno: string | null;
   semestres: number | null;
   total_disciplinas: number | null;
+  ano: number | null;
   matriculados_recentes: number | null;
   concluintes_recentes: number | null;
+  trancamentos: number | null;
   taxa_sucesso_pct: number | null;
   taxa_evasao_pct: number | null;
 }
@@ -38,6 +40,9 @@ export interface DisciplineOpenDataRow {
   grande_area: string;
   creditos_descricao: string;
   carga_horaria_h: number;
+  ano: number | null;
+  matriculados: number | null;
+  trancamentos: number | null;
   taxa_aprovacao_pct: number | null;
   taxa_reprovacao_nota_pct: number;
   taxa_reprovacao_falta_pct: number;

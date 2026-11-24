@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   DIFFICULTY_LEVEL_CONFIG,
@@ -19,6 +19,11 @@ import {
 } from "../services/difficultyService";
 import { getStoredToken } from "../services/httpClient";
 import { getStoredUser, isAuthenticated, subscribeAuthChange } from "../services/authService";
+import {
+  getTriageBannerClasses,
+  iniciarPollingStatusComentario,
+  type AvisoTriagemComentario,
+} from "../services/moderacaoService";
 
 export interface DificuldadesPanelProps {
   disciplineId?: number;
@@ -436,23 +441,44 @@ export default function DificuldadesPanel({
   const [isAnonymous, setIsAnonymous] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [triageNotice, setTriageNotice] = useState<AvisoTriagemComentario | null>(null);
+
+  const pollCancelRef = useRef<(() => void) | null>(null);
+  const isMountedRef = useRef(true);
 
   const syllabusUnits = useMemo(() => extractSyllabusUnits(ementa), [ementa]);
   const activeSelectedUnit = selectedUnit || syllabusUnits[0] || "";
 
+  const loadAlerts = useCallback(async () => {
+    const target = disciplineSlug || disciplineId || disciplineCode;
+    try {
+      const response = await listDifficultyAlerts(target, { size: 50 });
+      if (isMountedRef.current) {
+        setAlerts(response.items);
+        setIsLoading(false);
+      }
+    } catch {
+      if (isMountedRef.current) {
+        setAlerts([]);
+        setIsLoading(false);
+      }
+    }
+  }, [disciplineSlug, disciplineId, disciplineCode]);
+
   useEffect(() => {
+    isMountedRef.current = true;
     let active = true;
     const target = disciplineSlug || disciplineId || disciplineCode;
 
     listDifficultyAlerts(target, { size: 50 })
       .then((response) => {
-        if (active) {
+        if (active && isMountedRef.current) {
           setAlerts(response.items);
           setIsLoading(false);
         }
       })
       .catch(() => {
-        if (active) {
+        if (active && isMountedRef.current) {
           setAlerts([]);
           setIsLoading(false);
         }
@@ -460,6 +486,11 @@ export default function DificuldadesPanel({
 
     return () => {
       active = false;
+      isMountedRef.current = false;
+      if (pollCancelRef.current) {
+        pollCancelRef.current();
+        pollCancelRef.current = null;
+      }
     };
   }, [disciplineSlug, disciplineId, disciplineCode, authenticated]);
 
@@ -573,6 +604,7 @@ export default function DificuldadesPanel({
     }
 
     setIsSubmitting(true);
+    setTriageNotice(null);
     try {
       const authorAlias = isAnonymous
         ? "Estudante Anônimo"
@@ -588,10 +620,39 @@ export default function DificuldadesPanel({
         content: cleanContent,
       });
 
-      setAlerts((prev) => [created, ...prev]);
       setContent("");
       setCustomTopic("");
       setIsFormOpen(false);
+
+      const numericId = Number(created.id);
+      if (created.statusModeracao === "PENDENTE" && Number.isSafeInteger(numericId) && numericId > 0) {
+        setTriageNotice({
+          kind: "pending",
+          text: "[TRIAGEM AUTOMATICA] Seu relato de dificuldade foi recebido e submetido a moderacao automatica. Aguardando resultado...",
+        });
+
+        if (pollCancelRef.current) {
+          pollCancelRef.current();
+        }
+        pollCancelRef.current = iniciarPollingStatusComentario({
+          commentId: numericId,
+          contexto: "dificuldade",
+          onApproved: async () => {
+            await loadAlerts();
+          },
+          onStatus: (aviso) => {
+            if (!isMountedRef.current) return;
+            setTriageNotice(aviso);
+            pollCancelRef.current = null;
+          },
+        });
+      } else {
+        setAlerts((prev) => [created, ...prev]);
+        setTriageNotice({
+          kind: "approved",
+          text: "[PUBLICADO] Seu relato de dificuldade foi publicado com sucesso.",
+        });
+      }
     } catch (err: unknown) {
       const msg =
         err instanceof Error
@@ -658,6 +719,15 @@ export default function DificuldadesPanel({
           >
             Fazer login
           </Link>
+        </div>
+      )}
+
+      {triageNotice && (
+        <div
+          role={triageNotice.kind === "rejected" || triageNotice.kind === "error" ? "alert" : "status"}
+          className={`mt-4 rounded-xl border px-4 py-3 text-xs font-medium ${getTriageBannerClasses(triageNotice.kind)}`}
+        >
+          {triageNotice.text}
         </div>
       )}
 

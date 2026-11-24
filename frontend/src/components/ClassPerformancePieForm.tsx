@@ -227,12 +227,41 @@ export function ClassOccupancyPie({
 export default function ClassPerformancePieForm({
   classes,
 }: ClassPerformancePieFormProps) {
+  const sortedClasses = useMemo(() => {
+    return [...classes].sort((a, b) => {
+      const semCompare = (b.semestre || "").localeCompare(a.semestre || "", "pt-BR", {
+        numeric: true,
+        sensitivity: "base",
+      });
+      if (semCompare !== 0) return semCompare;
+      return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
+        numeric: true,
+        sensitivity: "base",
+      });
+    });
+  }, [classes]);
+
+  const hasMultipleSemesters = useMemo(() => {
+    const semesters = new Set(
+      sortedClasses.map((item) => item.semestre?.trim()).filter(Boolean)
+    );
+    return semesters.size > 1;
+  }, [sortedClasses]);
+
   const [selectedClassId, setSelectedClassId] = useState(
-    classes[0] ? String(classes[0].id) : ""
+    sortedClasses[0] ? String(sortedClasses[0].id) : ""
   );
 
-  const selectedClass = classes.find(
+  const effectiveClassId = sortedClasses.some(
     (item) => String(item.id) === selectedClassId
+  )
+    ? selectedClassId
+    : sortedClasses[0]
+    ? String(sortedClasses[0].id)
+    : "";
+
+  const selectedClass = sortedClasses.find(
+    (item) => String(item.id) === effectiveClassId
   );
 
   return (
@@ -246,16 +275,18 @@ export default function ClassPerformancePieForm({
             Passe o cursor sobre o gráfico para ver os detalhes.
           </p>
         </div>
-        {classes.length > 1 && (
+        {sortedClasses.length > 1 && (
           <select
             aria-label="Selecionar turma para ver ocupação"
-            value={selectedClassId}
+            value={effectiveClassId}
             onChange={(event) => setSelectedClassId(event.target.value)}
             className="w-full max-w-xs rounded-xl border border-[#DDD9F1] bg-white px-4 py-2.5 text-sm font-semibold text-[#202124] outline-none focus:border-[#5B4BDB]"
           >
-            {classes.map((item) => (
+            {sortedClasses.map((item) => (
               <option key={item.id} value={String(item.id)}>
-                {item.codigoTurma}
+                {item.semestre && (hasMultipleSemesters || sortedClasses.length > 0)
+                  ? `${item.codigoTurma} (${item.semestre})`
+                  : item.codigoTurma}
               </option>
             ))}
           </select>

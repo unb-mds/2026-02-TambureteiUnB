@@ -2,6 +2,7 @@ import type {
   MaterialPageResponse,
   MaterialResponse,
   MaterialType,
+  MaterialVoteResponse,
   UploadProgressInfo,
 } from "../types/material.ts";
 import { ApiError, request, requestBlob } from "./httpClient.ts";
@@ -28,7 +29,7 @@ export interface BatchUploadOptions {
 
 const UPLOAD_ERROR_MESSAGES_BY_STATUS: Record<number, string> = {
   401: "Sessao expirada ou nao autenticada. Faca login novamente.",
-  403: "Apenas usuarios com perfil de estudante (STUDENT) podem enviar materiais.",
+  403: "Voce nao possui permissao para enviar materiais com esta conta.",
   404: "Disciplina nao encontrada no sistema.",
   413: "O arquivo excede o limite maximo de 5 MiB permitido pelo servidor.",
   415: "Formato de arquivo nao aceito. Envie apenas PDF, PNG ou JPG.",
@@ -192,11 +193,19 @@ export async function downloadMaterial(id: number): Promise<Blob> {
   return blob;
 }
 
+export async function toggleMaterialVote(id: number): Promise<MaterialVoteResponse> {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ApiError("Material inválido.", 422);
+  return request<MaterialVoteResponse>(`/materiais/${id}/voto`, {
+    method: "POST",
+  });
+}
+
 export const materialService = {
   downloadMaterial,
   uploadMaterial,
   uploadMaterialsBatch,
   listMaterials,
+  toggleMaterialVote,
 };
 
 export default materialService;

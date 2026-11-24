@@ -213,5 +213,26 @@ class ComentarioService:
 
         comentario_repo.delete(db, comentario)
 
+    def consultar_status_moderacao(
+        self,
+        db: Session,
+        comentario_id: int,
+        current_user: Usuario,
+    ) -> Comentario:
+        """Retorna o status da triagem de moderação ao próprio autor ou moderadores."""
+        comentario = comentario_repo.get_by_id(db, comentario_id)
+        if not comentario:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Comentário não encontrado.")
+
+        eh_autor = comentario.usuario_id == current_user.id
+        eh_moderador = (current_user.role or "").upper() in {"ADMIN", "MODERATOR"}
+        if not (eh_autor or eh_moderador):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail="Você só pode consultar o status dos seus próprios comentários.",
+            )
+
+        return comentario
+
 
 comentario_service = ComentarioService()

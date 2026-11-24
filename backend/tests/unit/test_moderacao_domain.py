@@ -245,15 +245,17 @@ def test_resolver_moderacao_material_tres_estados_e_fronteiras():
     assert fallback.registrar_curadoria_ia is False
     assert fallback.motivo_moderacao == "Timeout no Ollama."
 
-    # 2. Aprovacao automatica de arquivo (confianca >= 0.80)
-    aprovado = resolver_moderacao_material(
+    # 2. Pre-aprovacao pela IA encaminha para confirmacao humana na fila sem publicar sozinha
+    pre_aprovado = resolver_moderacao_material(
         VereditoModIA(decisao="APROVAR", confianca=0.85, categoria_violacao="NENHUMA", motivo="Lista de exercicios valida."),
         limiar_confianca=0.80,
     )
-    assert aprovado.status_final == "APROVADO"
-    assert aprovado.status_moderacao_arquivo == "ativo"
-    assert aprovado.moderado_por == "IA"
-    assert aprovado.registrar_curadoria_ia is True
+    assert pre_aprovado.status_final == "PENDENTE"
+    assert pre_aprovado.status_moderacao_arquivo == "em_analise"
+    assert pre_aprovado.confianca_ia == 0.85
+    assert pre_aprovado.moderado_por is None
+    assert pre_aprovado.registrar_curadoria_ia is False
+    assert "[Pré-aprovado na triagem IA]" in pre_aprovado.motivo_moderacao
 
     # 3. Retencao automatica de arquivo com dados pessoais (LGPD - RN01/RN06)
     recusado = resolver_moderacao_material(

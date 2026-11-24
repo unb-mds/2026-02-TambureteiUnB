@@ -87,6 +87,7 @@ def test_listar_comentarios_ativos(client: TestClient, disciplina, comentario_do
     data = response.json()
     assert data["total"] == 1
     assert data["items"][0]["id"] == comentario_do_aluno.id
+    assert "usuario_id" not in data["items"][0]
 
 
 def test_comentario_oculto_nao_aparece(client: TestClient, db: Session, disciplina, comentario_do_aluno):
@@ -248,5 +249,37 @@ def test_criar_comentario_cadeira_sem_autenticacao_retorna_401(client: TestClien
     }
     response = client.post(f"/cadeiras/{disciplina.slug}/comentarios", json=payload)
     assert response.status_code == 401
+
+
+def test_consultar_status_comentario_exibe_recusa_ao_autor_e_bloqueia_terceiros(
+    client: TestClient, db: Session, student_headers, admin_headers, comentario_do_aluno, comentario_de_outro
+):
+    comentario_do_aluno.status_moderacao = "OCULTO"
+    comentario_do_aluno.motivo_moderacao = "[OFENSA_DIFAMACAO] Conteúdo ofensivo."
+    comentario_do_aluno.moderado_por = "IA"
+    comentario_do_aluno.confianca_ia = 0.95
+    db.commit()
+
+    resp_autor = client.get(f"/comentarios/{comentario_do_aluno.id}/status", headers=student_headers)
+    assert resp_autor.status_code == 200
+    assert resp_autor.json() == {
+        "id": comentario_do_aluno.id,
+        "status_moderacao": "OCULTO",
+        "motivo_moderacao": "[OFENSA_DIFAMACAO] Conteúdo ofensivo.",
+        "moderado_por": "IA",
+        "confianca_ia": 0.95,
+    }
+
+    resp_terceiro = client.get(f"/comentarios/{comentario_de_outro.id}/status", headers=student_headers)
+    assert resp_terceiro.status_code == 403
+
+    resp_admin = client.get(f"/comentarios/{comentario_do_aluno.id}/status", headers=admin_headers)
+    assert resp_admin.status_code == 200
+
+    resp_anon = client.get(f"/comentarios/{comentario_do_aluno.id}/status")
+    assert resp_anon.status_code == 401
+
+    resp_inexistente = client.get("/comentarios/99999/status", headers=student_headers)
+    assert resp_inexistente.status_code == 404
 
 

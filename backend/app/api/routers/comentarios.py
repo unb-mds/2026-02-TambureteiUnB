@@ -5,6 +5,7 @@ from app.api.deps import get_current_user
 from app.api.schemas.comentario import (
     ComentarioCreate,
     ComentarioResponse,
+    ComentarioStatusResponse,
     ComentarioUpdate,
     ComentarioVotoResponse,
 )
@@ -42,6 +43,19 @@ def criar_comentario(
     comentario = comentario_service.criar_comentario(db, dados, current_user)
     background_tasks.add_task(processar_moderacao_comentario_bg, comentario.id)
     return comentario
+
+
+@router.get(
+    "/{comentario_id}/status",
+    response_model=ComentarioStatusResponse,
+)
+def consultar_status_comentario(
+    comentario_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    """Consulta o status da triagem de moderação de um comentário do próprio autor."""
+    return comentario_service.consultar_status_moderacao(db, comentario_id, current_user)
 
 
 @router.patch(

@@ -32,6 +32,7 @@ export interface DifficultyAlert {
   topic: string;
   severity: DifficultyLevel;
   content: string;
+  statusModeracao?: string;
   createdAt: string;
   rawCreatedAt: string;
   upvotes: number;
@@ -263,6 +264,7 @@ export function adaptBackendCommentToDifficultyAlert(
     topic,
     severity,
     content: raw.conteudo,
+    statusModeracao: raw.status_moderacao,
     createdAt: formatAlertDate(raw.created_at),
     rawCreatedAt: raw.created_at,
     upvotes: typeof raw.upvotes === "number" ? raw.upvotes : 0,

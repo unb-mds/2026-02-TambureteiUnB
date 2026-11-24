@@ -15,6 +15,7 @@ from app.api.schemas.curadoria import (
 from app.models.curadoria import Curadoria
 from app.models.conteudo import Conteudo
 from app.models.usuario import Usuario
+from app.repositories.comentario_repo import comentario_repo
 from app.repositories.curadoria_repo import curadoria_repo
 from app.services.armazenamento_material import ArmazenamentoMaterial
 
@@ -82,6 +83,8 @@ class CuradoriaService:
             comentario.moderado_por = moderador.role
             if dados.justificativa:
                 comentario.motivo_moderacao = dados.justificativa
+            if dados.status == "OCULTO":
+                comentario_repo.ocultar_descendentes(db, comentario.id, moderador.role)
             db.flush()
             resposta = ComentarioPendente.model_validate(comentario)
             db.commit()

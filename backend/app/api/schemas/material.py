@@ -17,6 +17,14 @@ class MaterialResponse(BaseModel):
     status_curadoria: Literal["PENDENTE", "APROVADO", "RECUSADO"]
     status_moderacao: str
     created_at: datetime
+    upvotes: int = 0
+    liked_by_me: bool = False
+
+
+class MaterialVotoResponse(BaseModel):
+    material_id: int
+    upvotes: int
+    liked_by_me: bool
 
 
 class MaterialPage(BaseModel):

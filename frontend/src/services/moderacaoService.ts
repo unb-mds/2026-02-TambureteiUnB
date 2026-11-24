@@ -166,3 +166,164 @@ export function decidirDenuncia(
     body: JSON.stringify({ acao, justificativa: limpa }),
   });
 }
+
+export type TipoAvisoTriagem = "pending" | "approved" | "rejected" | "review" | "error";
+
+export interface AvisoTriagemComentario {
+  kind: TipoAvisoTriagem;
+  text: string;
+}
+
+export interface BackendComentarioStatus {
+  id: number;
+  status_moderacao: string;
+  motivo_moderacao?: string | null;
+  moderado_por?: string | null;
+  confianca_ia?: number | null;
+}
+
+export function consultarStatusComentario(comentarioId: number): Promise<BackendComentarioStatus> {
+  return request<BackendComentarioStatus>(`/comentarios/${comentarioId}/status`, {
+    cache: "no-store",
+  });
+}
+
+export function resolverAvisoTriagemComentario(
+  statusResp: BackendComentarioStatus,
+  contexto: "relato" | "resposta" | "dificuldade" = "relato",
+): AvisoTriagemComentario | null {
+  const status = (statusResp.status_moderacao || "").toUpperCase();
+  const motivo = statusResp.motivo_moderacao?.trim();
+  const artigo = contexto === "resposta" ? "Sua resposta" : contexto === "dificuldade" ? "Seu relato de dificuldade" : "Seu comentário";
+
+  if (status === "PUBLICADO") {
+    return {
+      kind: "approved",
+      text: `[PUBLICADO] ${artigo} foi aprovado pela moderação automática e já está visível abaixo.`,
+    };
+  }
+
+  if (status === "OCULTO") {
+    return {
+      kind: "rejected",
+      text: motivo
+        ? `[RECUSADO] ${artigo} foi recusado pela moderação e não será publicado. Motivo: ${motivo}`
+        : `[RECUSADO] ${artigo} foi recusado pela moderação e não será publicado.`,
+    };
+  }
+
+  if (status === "PENDENTE" && (Boolean(statusResp.moderado_por) || Boolean(motivo))) {
+    return {
+      kind: "review",
+      text: motivo
+        ? `[EM REVISÃO] ${artigo} foi encaminhado para análise da moderação antes de ser publicado. Detalhe: ${motivo}`
+        : `[EM REVISÃO] ${artigo} foi encaminhado para análise da moderação antes de ser publicado.`,
+    };
+  }
+
+  return null;
+}
+
+export function getTriageBannerClasses(kind: TipoAvisoTriagem): string {
+  switch (kind) {
+    case "approved":
+      return "border-emerald-300 bg-emerald-50 text-emerald-800";
+    case "rejected":
+    case "error":
+      return "border-red-300 bg-red-50 text-red-800";
+    case "review":
+      return "border-amber-300 bg-amber-50 text-amber-900";
+    default:
+      return "border-[#EDE9FD] bg-[#FAF9FD] text-[#5B4BDB]";
+  }
+}
+
+export function iniciarPollingStatusComentario(options: {
+  commentId: number;
+  contexto: "relato" | "resposta" | "dificuldade";
+  onStatus: (aviso: AvisoTriagemComentario) => void;
+  onApproved?: () => Promise<void> | void;
+  onFallbackCheckPublished?: () => Promise<boolean>;
+  maxAttempts?: number;
+  intervalMs?: number;
+}): () => void {
+  const {
+    commentId,
+    contexto,
+    onStatus,
+    onApproved,
+    onFallbackCheckPublished,
+    maxAttempts = 20,
+    intervalMs = 1500,
+  } = options;
+
+  let cancelled = false;
+  let attempts = 0;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleNext = () => {
+    if (cancelled) return;
+    timer = setTimeout(() => {
+      void tick();
+    }, intervalMs);
+  };
+
+  const tick = async () => {
+    if (cancelled) return;
+    attempts += 1;
+
+    try {
+      const statusResp = await consultarStatusComentario(commentId);
+      if (cancelled) return;
+      const aviso = resolverAvisoTriagemComentario(statusResp, contexto);
+      if (aviso) {
+        if (aviso.kind === "approved" && onApproved) {
+          await onApproved();
+          if (cancelled) return;
+        }
+        onStatus(aviso);
+        return;
+      }
+    } catch {
+      if (onFallbackCheckPublished) {
+        const published = await onFallbackCheckPublished();
+        if (cancelled) return;
+        if (published) {
+          onStatus({
+            kind: "approved",
+            text:
+              contexto === "resposta"
+                ? "[PUBLICADO] Sua resposta foi aprovada pela moderação automática e já está visível abaixo."
+                : "[PUBLICADO] Seu relato foi aprovado pela moderação automática e já está visível abaixo.",
+          });
+          return;
+        }
+      }
+    }
+
+    if (attempts < maxAttempts) {
+      scheduleNext();
+    } else {
+      const label =
+        contexto === "resposta"
+          ? "Sua resposta"
+          : contexto === "dificuldade"
+          ? "Seu relato de dificuldade"
+          : "Seu comentário";
+      onStatus({
+        kind: "review",
+        text: `[EM REVISÃO] ${label} segue em análise pela equipe de moderação.`,
+      });
+    }
+  };
+
+  scheduleNext();
+
+  return () => {
+    cancelled = true;
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+}

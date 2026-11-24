@@ -77,12 +77,13 @@ def test_upload_exige_token_valido_e_download_e_publico(client, disciplina, usua
     assert upload(client, disciplina.id, headers).status_code == 401
 
 
-@pytest.mark.parametrize("role", ["ADMIN", "MODERATOR"])
-def test_apenas_perfil_aluno_pode_enviar(client, db, disciplina, usuario, headers, role):
-    # Mesmo que o token contenha STUDENT, usa o perfil atual persistido no banco.
+@pytest.mark.parametrize("role", ["STUDENT", "ADMIN", "MODERATOR"])
+def test_todos_os_perfis_autenticados_enviam_para_triagem(client, db, disciplina, usuario, headers, role):
     usuario.role = role
     db.commit()
-    assert upload(client, disciplina.id, headers).status_code == 403
+    response = upload(client, disciplina.id, headers)
+    assert response.status_code == 201, response.text
+    assert response.json()["status_curadoria"] == "PENDENTE"
 
 
 def test_conta_desativada_preserva_material_e_permite_download_publico(client, db, disciplina, usuario, headers, admin_headers):
@@ -289,3 +290,39 @@ def test_upload_com_tipo_invalido(client, disciplina, headers):
 def test_listagem_com_tipo_invalido(client, disciplina):
     resp = client.get(f"/cadeiras/{disciplina.id}/materiais?tipo=TIPO_INEXISTENTE")
     assert resp.status_code == 422
+
+
+def test_voto_em_material_exige_login_e_persiste_contagem(client, disciplina, headers, admin_headers):
+    enviado = upload(client, disciplina.id, headers, titulo="Lista Resolvida")
+    assert enviado.status_code == 201
+    material_id = enviado.json()["id"]
+
+    # Sem login rejeita com 401
+    assert client.post(f"/materiais/{material_id}/voto").status_code == 401
+    # Material ainda pendente não aceita voto
+    assert client.post(f"/materiais/{material_id}/voto", headers=headers).status_code == 404
+
+    assert (
+        client.patch(
+            f"/moderacao/conteudos/{material_id}/curadoria",
+            headers=admin_headers,
+            json={"status": "APROVADO"},
+        ).status_code
+        == 200
+    )
+
+    curtir = client.post(f"/materiais/{material_id}/voto", headers=headers)
+    assert curtir.status_code == 200
+    assert curtir.json() == {"material_id": material_id, "upvotes": 1, "liked_by_me": True}
+
+    lista_logado = client.get(f"/cadeiras/{disciplina.id}/materiais", headers=headers).json()
+    assert lista_logado["items"][0]["upvotes"] == 1
+    assert lista_logado["items"][0]["liked_by_me"] is True
+
+    lista_visitante = client.get(f"/cadeiras/{disciplina.id}/materiais").json()
+    assert lista_visitante["items"][0]["upvotes"] == 1
+    assert lista_visitante["items"][0]["liked_by_me"] is False
+
+    descurtir = client.post(f"/materiais/{material_id}/voto", headers=headers)
+    assert descurtir.status_code == 200
+    assert descurtir.json() == {"material_id": material_id, "upvotes": 0, "liked_by_me": False}

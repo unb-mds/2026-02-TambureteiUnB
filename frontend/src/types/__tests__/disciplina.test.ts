@@ -22,3 +22,29 @@ test("mantém nomes completos de departamentos retornados pela API", () => {
     department,
   );
 });
+
+test("adapta metrica_consolidada no resumo retornado por GET /cadeiras", () => {
+  const result = adaptBackendDisciplina({
+    codigo: "FGA0158",
+    nome: "Orientação a Objetos",
+    slug: "orientacao-a-objetos",
+    departamento: "FCTE",
+    creditos: 4,
+    total_turmas: 3,
+    metrica_consolidada: {
+      matriculados: 40,
+      aprovados: 32,
+      reprovados_nota: 4,
+      reprovados_falta: 2,
+      trancamentos: 2,
+      taxa_aprovacao_acumulada: 80,
+      total_turmas_suprimidas: 0,
+    },
+  });
+
+  assert.equal(result.approval, 80);
+  assert.equal(result.failedGrade, 10);
+  assert.equal(result.failedAttendance, 5);
+  assert.equal(result.withdrawn, 5);
+  assert.equal(result.metrica_consolidada?.matriculados, 40);
+});

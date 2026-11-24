@@ -6,7 +6,7 @@ import { isAuthenticated, subscribeAuthChange } from "@/services/authService";
 import Pagination from "@/components/Pagination";
 import { ApiError } from "@/services/httpClient";
 import type { MaterialType } from "@/types/material";
-import { listMaterials, downloadMaterial } from "@/services/materialService";
+import { listMaterials, downloadMaterial, toggleMaterialVote } from "@/services/materialService";
 
 export interface MaterialItem {
   id: string;
@@ -32,6 +32,7 @@ interface BackendMaterialItem {
   url?: string;
   arquivo_url?: string;
   upvotes?: number;
+  liked_by_me?: boolean;
   usuario?: { nome?: string };
   authorAlias?: string;
   professor?: string;
@@ -108,7 +109,7 @@ export default function MateriaisApoio({
           ? new Date(item.created_at).toLocaleDateString("pt-BR")
           : "Recente",
         upvotes: item.upvotes || 0,
-        isLikedByMe: false,
+        isLikedByMe: Boolean(item.liked_by_me),
         authorAlias: item.usuario?.nome || item.authorAlias || "Estudante",
         professor: item.professor || undefined,
       }));
@@ -150,7 +151,7 @@ export default function MateriaisApoio({
         pollTimerRef.current = null;
       }
     };
-  }, [fetchMaterials, retryCount]);
+  }, [fetchMaterials, retryCount, authenticated]);
 
   useEffect(() => {
     if (refreshTrigger <= 0 || !disciplineIdOrSlug) {
@@ -237,7 +238,14 @@ export default function MateriaisApoio({
     }
   };
 
-  const handleToggleUpvote = (materialId: string) => {
+  const handleToggleUpvote = async (materialId: string) => {
+    if (!authenticated || !isAuthenticated()) {
+      return;
+    }
+
+    const previousItem = materials.find((item) => item.id === materialId);
+    if (!previousItem) return;
+
     setMaterials((prev) =>
       prev.map((item) => {
         if (item.id === materialId) {
@@ -245,12 +253,38 @@ export default function MateriaisApoio({
           return {
             ...item,
             isLikedByMe: willLike,
-            upvotes: willLike ? item.upvotes + 1 : item.upvotes - 1,
+            upvotes: Math.max(0, willLike ? item.upvotes + 1 : item.upvotes - 1),
           };
         }
         return item;
       })
     );
+
+    const numericId = Number(materialId);
+    if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+      return;
+    }
+
+    try {
+      const synced = await toggleMaterialVote(numericId);
+      if (!isMountedRef.current) return;
+      setMaterials((prev) =>
+        prev.map((item) =>
+          item.id === materialId
+            ? {
+                ...item,
+                upvotes: synced.upvotes,
+                isLikedByMe: synced.liked_by_me,
+              }
+            : item
+        )
+      );
+    } catch {
+      if (!isMountedRef.current) return;
+      setMaterials((prev) =>
+        prev.map((item) => (item.id === materialId ? previousItem : item))
+      );
+    }
   };
 
   const filteredMaterials = materials;
@@ -471,12 +505,16 @@ export default function MateriaisApoio({
 
                 <button
                   type="button"
-                  onClick={() => handleToggleUpvote(material.id)}
+                  disabled={!authenticated}
+                  title={!authenticated ? "Faça login para curtir materiais" : undefined}
+                  onClick={() => void handleToggleUpvote(material.id)}
                   aria-label={`Curtir material ${material.titulo}`}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-                    material.isLikedByMe
-                      ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5]"
-                      : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100"
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                    !authenticated
+                      ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60"
+                      : material.isLikedByMe
+                      ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5] active:scale-95 cursor-pointer"
+                      : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100 active:scale-95 cursor-pointer"
                   }`}
                 >
                   {material.isLikedByMe ? (

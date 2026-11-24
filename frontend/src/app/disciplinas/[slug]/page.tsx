@@ -43,9 +43,12 @@ import {
 } from "@/services/disciplineService";
 import {
   exportDisciplineHistoryOpenData,
-  filterPublicHistoricalPerformance,
   mapHistoricalPerformanceToOpenData,
 } from "@/services/openDataService";
+import {
+  buildDisciplinePeriodOptions,
+  computePeriodMetricsSummary,
+} from "@/utils/disciplinePeriodMetrics";
 import {
   Discipline,
 } from "@/types/disciplina";
@@ -104,7 +107,8 @@ function DisciplineDetailContent() {
     parseInitialSort(searchParams.get("ordem"))
   );
 
-  const [period, setPeriod] = useState("Todos os semestres (2020 a 2025)");
+  const [period, setPeriod] = useState("ALL");
+  const [showSemesterEvolution, setShowSemesterEvolution] = useState(true);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [materialsReloadTrigger, setMaterialsReloadTrigger] = useState(0);
   const [pendingMaterialIds, setPendingMaterialIds] = useState<string[]>([]);
@@ -424,24 +428,32 @@ function DisciplineDetailContent() {
 
   const realHistoricalPerformance =
     discipline.historicalPerformance ?? [];
-  const publicRealPerformance = filterPublicHistoricalPerformance(
-    realHistoricalPerformance
-  );
+  const periodOptions = buildDisciplinePeriodOptions(realHistoricalPerformance);
+  const activePeriod = periodOptions.some((opt) => opt.value === period)
+    ? period
+    : "ALL";
+  const periodSummary = computePeriodMetricsSummary({
+    history: realHistoricalPerformance,
+    consolidatedMetric: discipline.metrica_consolidada,
+    period: activePeriod,
+  });
+
   const exportableHistoryRows = mapHistoricalPerformanceToOpenData(
     discipline.code,
     discipline.name,
-    realHistoricalPerformance,
-    discipline.metrica_consolidada
+    periodSummary.selectedHistory,
+    periodSummary.filteredConsolidatedMetric
   );
   const hasRealExportableHistory = exportableHistoryRows.length > 0;
 
-  const performanceList = publicRealPerformance;
+  const performanceList = periodSummary.publicHistory;
 
-  // Extração dos dados consolidados reais da disciplina
-  const metrica = discipline.metrica_consolidada;
-  const totalMatriculados = metrica?.matriculados ?? 0;
+  // Extração dos dados consolidados reais da disciplina para o período selecionado
+  const totalDadosFornecidos = discipline.metrica_consolidada?.matriculados ?? 0;
+  const totalMatriculados = periodSummary.matriculados;
   const hasConsolidatedMetrics =
-    hasApprovalData(discipline.approval) || totalMatriculados > 0;
+    !periodSummary.suppressedByLgpd &&
+    (hasApprovalData(periodSummary.approval) || totalMatriculados > 0);
 
   // Formatação segura de quantidades de alunos
   const formatAlunos = (qtd: number | undefined) => {
@@ -451,15 +463,17 @@ function DisciplineDetailContent() {
     return `${qtd} ${qtd === 1 ? "aluno" : "alunos"}`;
   };
 
-  // Cards de métricas consumindo as taxas centralizadas no adaptador
+  // Cards de métricas consumindo o período selecionado
   const metrics = [
     {
       label: "Taxa de Aprovação",
       value:
-        hasApprovalData(discipline.approval) && (discipline.approval ?? 0) > 0
-          ? `${discipline.approval}%`
+        hasConsolidatedMetrics &&
+        hasApprovalData(periodSummary.approval) &&
+        (periodSummary.approval ?? 0) > 0
+          ? `${periodSummary.approval}%`
           : "Sem dados",
-      count: formatAlunos(metrica?.aprovados),
+      count: formatAlunos(periodSummary.aprovados),
       color: "var(--status-success-text)",
       iconColor: "var(--status-success-text)",
       background: "var(--status-success-bg)",
@@ -477,10 +491,10 @@ function DisciplineDetailContent() {
     {
       label: "Reprovação por Nota",
       value:
-        hasConsolidatedMetrics && (discipline.failedGrade ?? 0) > 0
-          ? `${discipline.failedGrade}%`
+        hasConsolidatedMetrics && periodSummary.failedGrade > 0
+          ? `${periodSummary.failedGrade}%`
           : "Sem dados",
-      count: formatAlunos(metrica?.reprovados_nota),
+      count: formatAlunos(periodSummary.reprovadosNota),
       color: "var(--status-danger-text)",
       iconColor: "var(--status-danger-text)",
       background: "var(--status-danger-bg)",
@@ -498,10 +512,10 @@ function DisciplineDetailContent() {
     {
       label: "Reprovação por Falta",
       value:
-        hasConsolidatedMetrics && (discipline.failedAttendance ?? 0) > 0
-          ? `${discipline.failedAttendance}%`
+        hasConsolidatedMetrics && periodSummary.failedAttendance > 0
+          ? `${periodSummary.failedAttendance}%`
           : "Sem dados",
-      count: formatAlunos(metrica?.reprovados_falta),
+      count: formatAlunos(periodSummary.reprovadosFalta),
       color: "var(--status-warning-text)",
       iconColor: "var(--status-warning-text)",
       background: "var(--status-warning-bg)",
@@ -527,10 +541,10 @@ function DisciplineDetailContent() {
     {
       label: "Trancamentos",
       value:
-        hasConsolidatedMetrics && (discipline.withdrawn ?? 0) > 0
-          ? `${discipline.withdrawn}%`
+        hasConsolidatedMetrics && periodSummary.withdrawn > 0
+          ? `${periodSummary.withdrawn}%`
           : "Sem dados",
-      count: formatAlunos(metrica?.trancamentos),
+      count: formatAlunos(periodSummary.trancamentos),
       color: "var(--status-neutral-text)",
       iconColor: "var(--status-neutral-text)",
       background: "var(--status-neutral-bg)",
@@ -638,7 +652,7 @@ function DisciplineDetailContent() {
                   </svg>
                   <span>Dados fornecidos</span>
                   <span className="ml-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
-                    {discipline.metrica_consolidada?.aprovados || 0}
+                    {totalDadosFornecidos}
                   </span>
                 </div>
 
@@ -1002,13 +1016,15 @@ function DisciplineDetailContent() {
                 </span>
                 <div className="relative">
                   <select
-                    value={period}
+                    value={activePeriod}
                     onChange={(event) => setPeriod(event.target.value)}
                     className="w-full appearance-none rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-2.5 pr-10 text-xs font-medium text-[var(--foreground)] outline-none focus:border-[var(--primary)] sm:text-sm"
                   >
-                    <option>Todos os semestres (2020 a 2025)</option>
-                    <option>Últimos 2 anos</option>
-                    <option>2025/2</option>
+                    {periodOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                   <svg
                     className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
@@ -1032,7 +1048,21 @@ function DisciplineDetailContent() {
 
             <ClassPerformancePieForm classes={classes} />
 
-          
+            {periodSummary.suppressedByLgpd && (
+              <div
+                role="status"
+                className="mb-5 flex items-start gap-2.5 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD] px-4 py-3 text-xs sm:text-sm text-[#5B4BDB]"
+              >
+                <span>
+                  <strong>Dados individuais suprimidos pela LGPD (RN07):</strong>{" "}
+                  o período selecionado possui {periodSummary.matriculados}{" "}
+                  {periodSummary.matriculados === 1 ? "matrícula" : "matrículas"}{" "}
+                  (mínimo de 5 para exibição individual). Selecione{" "}
+                  <strong>Todos os semestres</strong> para ver o acumulado consolidado.
+                </span>
+              </div>
+            )}
+
             <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {metrics.map((metric) => (
                 <div
@@ -1083,7 +1113,11 @@ function DisciplineDetailContent() {
 
             
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5 sm:p-6">
-              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                  showSemesterEvolution ? "mb-6" : "mb-0"
+                }`}
+              >
                 <div>
                   <h3 className="text-base font-bold text-[var(--foreground)] sm:text-lg">
                     Evolução semestral
@@ -1092,16 +1126,52 @@ function DisciplineDetailContent() {
                     Distribuição percentual dos resultados por semestre
                   </p>
                 </div>
-                
-                <span className="self-start rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--primary-text)] sm:self-auto">
-                  Base acumulada:{" "}
-                  {totalMatriculados > 0
-                    ? `${totalMatriculados} ${totalMatriculados === 1 ? "matrícula" : "matrículas"}`
-                    : "Sem dados"}
-                </span>
+
+                <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                  <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--primary-text)]">
+                    Base acumulada:{" "}
+                    {totalMatriculados > 0
+                      ? `${totalMatriculados} ${totalMatriculados === 1 ? "matrícula" : "matrículas"}`
+                      : "Sem dados"}
+                  </span>
+
+                  <button
+                    type="button"
+                    aria-expanded={showSemesterEvolution}
+                    aria-controls="evolucao-semestral-conteudo"
+                    aria-label={
+                      showSemesterEvolution
+                        ? "Ocultar evolução semestral"
+                        : "Mostrar evolução semestral"
+                    }
+                    onClick={() => setShowSemesterEvolution((prev) => !prev)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-xs font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary-text)] cursor-pointer"
+                  >
+                    <span>{showSemesterEvolution ? "Ocultar" : "Mostrar"}</span>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden="true"
+                      className={`transition-transform duration-200 ${
+                        showSemesterEvolution ? "rotate-180" : "rotate-0"
+                      }`}
+                    >
+                      <path
+                        d="M4 6l4 4 4-4"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
-              
+              {showSemesterEvolution && (
+                <div id="evolucao-semestral-conteudo">
               {performanceList.length === 0 ? (
                 <p role="status" className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]">
                   Não há histórico semestral público disponível para esta disciplina. Registros com baixa amostragem são preservados conforme a LGPD.
@@ -1297,6 +1367,8 @@ function DisciplineDetailContent() {
               </div>
                 </>
               )}
+                </div>
+              )}
             </div>
 
             
@@ -1312,9 +1384,9 @@ function DisciplineDetailContent() {
                   exportDisciplineHistoryOpenData(
                     discipline.code,
                     discipline.name,
-                    realHistoricalPerformance,
+                    periodSummary.selectedHistory,
                     format,
-                    { consolidatedMetric: discipline.metrica_consolidada }
+                    { consolidatedMetric: periodSummary.filteredConsolidatedMetric }
                   )
                 }
               />

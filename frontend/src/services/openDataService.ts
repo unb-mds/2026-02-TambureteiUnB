@@ -5,6 +5,11 @@ import {
   type Discipline,
   type HistoricalPerformance,
 } from "../types/disciplina.ts";
+import {
+  applyDisciplineYearFilter,
+  getCourseMetricsForYear,
+  type CatalogYearSelection,
+} from "../utils/catalogYearFilter.ts";
 import type { Class } from "../types/turma.ts";
 import type {
   ClassOpenDataRow,
@@ -36,8 +41,10 @@ export const COURSE_OPEN_DATA_COLUMNS: OpenDataColumnDefinition<CourseOpenDataRo
   { key: "turno", header: "turno" },
   { key: "semestres", header: "semestres" },
   { key: "total_disciplinas", header: "total_disciplinas" },
+  { key: "ano", header: "ano" },
   { key: "matriculados_recentes", header: "matriculados_recentes" },
   { key: "concluintes_recentes", header: "concluintes_recentes" },
+  { key: "trancamentos", header: "trancamentos" },
   { key: "taxa_sucesso_pct", header: "taxa_sucesso_pct" },
   { key: "taxa_evasao_pct", header: "taxa_evasao_pct" },
 ];
@@ -52,6 +59,9 @@ export const DISCIPLINE_OPEN_DATA_COLUMNS: OpenDataColumnDefinition<DisciplineOp
   { key: "grande_area", header: "grande_area" },
   { key: "creditos_descricao", header: "creditos_descricao" },
   { key: "carga_horaria_h", header: "carga_horaria_h" },
+  { key: "ano", header: "ano" },
+  { key: "matriculados", header: "matriculados" },
+  { key: "trancamentos", header: "trancamentos" },
   { key: "taxa_aprovacao_pct", header: "taxa_aprovacao_pct" },
   { key: "taxa_reprovacao_nota_pct", header: "taxa_reprovacao_nota_pct" },
   { key: "taxa_reprovacao_falta_pct", header: "taxa_reprovacao_falta_pct" },
@@ -202,14 +212,18 @@ export function buildOpenDataFilename(
  * preservando campos ausentes como null (JSON) ou vazio (CSV), sem
  * preencher valores ficticios nem usar o ID interno como codigo MEC.
  */
-export function mapCoursesToOpenData(courses: Course[]): CourseOpenDataRow[] {
+export function mapCoursesToOpenData(
+  courses: Course[],
+  options?: { year?: CatalogYearSelection }
+): CourseOpenDataRow[] {
   const normalizeText = (value?: string | null): string | null =>
     typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
   const normalizeNumber = (value?: number | null): number | null =>
     typeof value === "number" && Number.isFinite(value) ? value : null;
+  const selectedYear = options?.year ?? "all";
 
   return courses.map((course) => {
-    const metrics = course.metricas_recentes ?? course.metricas_2024 ?? null;
+    const metrics = getCourseMetricsForYear(course, selectedYear);
     const rawId =
       course.id !== undefined && course.id !== null && String(course.id).trim().length > 0
         ? String(course.id).trim()
@@ -226,8 +240,13 @@ export function mapCoursesToOpenData(courses: Course[]): CourseOpenDataRow[] {
       turno: normalizeText(course.turno),
       semestres: normalizeNumber(course.semestres),
       total_disciplinas: normalizeNumber(course.total_disciplinas),
+      ano:
+        typeof selectedYear === "number"
+          ? selectedYear
+          : normalizeNumber(metrics?.ano),
       matriculados_recentes: normalizeNumber(metrics?.matriculados),
       concluintes_recentes: normalizeNumber(metrics?.concluintes),
+      trancamentos: normalizeNumber(metrics?.trancados),
       taxa_sucesso_pct: normalizeNumber(metrics?.taxa_sucesso),
       taxa_evasao_pct: normalizeNumber(metrics?.taxa_evasao),
     };
@@ -238,25 +257,52 @@ export function mapCoursesToOpenData(courses: Course[]): CourseOpenDataRow[] {
  * Mapeia disciplinas do catalogo para linhas tabulares de Dados Abertos.
  */
 export function mapDisciplinesToOpenData(
-  disciplines: Discipline[]
+  disciplines: Discipline[],
+  options?: { year?: CatalogYearSelection }
 ): DisciplineOpenDataRow[] {
-  return disciplines.map((d) => ({
-    codigo: d.code,
-    nome: d.name,
-    slug: d.slug,
-    departamento: d.department,
-    nome_departamento: d.departmentName,
-    campus: d.campus,
-    grande_area: d.area,
-    creditos_descricao: d.credits,
-    carga_horaria_h: d.hours,
-    taxa_aprovacao_pct:
-      d.approval == null ? null : Number(d.approval.toFixed(1)),
-    taxa_reprovacao_nota_pct: Number((d.failedGrade ?? 0).toFixed(1)),
-    taxa_reprovacao_falta_pct: Number((d.failedAttendance ?? 0).toFixed(1)),
-    taxa_trancamento_pct: Number((d.withdrawn ?? 0).toFixed(1)),
-    total_materiais_relatos: d.resources ?? 0,
-  }));
+  const selectedYear = options?.year ?? "all";
+
+  return disciplines.map((raw) => {
+    const d = applyDisciplineYearFilter(raw, selectedYear);
+    const mc = d.metrica_consolidada;
+    const isProtected =
+      mc != null &&
+      mc.matriculados > 0 &&
+      mc.matriculados < MIN_PUBLIC_SAMPLE_SIZE &&
+      d.approval == null;
+
+    const matriculados =
+      mc && !isProtected && Number.isFinite(mc.matriculados)
+        ? mc.matriculados
+        : null;
+    const trancamentos =
+      typeof d.withdrawnCount === "number" && Number.isFinite(d.withdrawnCount) && !isProtected
+        ? d.withdrawnCount
+        : mc && !isProtected && Number.isFinite(mc.trancamentos)
+        ? mc.trancamentos
+        : null;
+
+    return {
+      codigo: d.code,
+      nome: d.name,
+      slug: d.slug,
+      departamento: d.department,
+      nome_departamento: d.departmentName,
+      campus: d.campus,
+      grande_area: d.area,
+      creditos_descricao: d.credits,
+      carga_horaria_h: d.hours,
+      ano: typeof selectedYear === "number" ? selectedYear : d.referenceYear ?? null,
+      matriculados,
+      trancamentos,
+      taxa_aprovacao_pct:
+        d.approval == null ? null : Number(d.approval.toFixed(1)),
+      taxa_reprovacao_nota_pct: Number((d.failedGrade ?? 0).toFixed(1)),
+      taxa_reprovacao_falta_pct: Number((d.failedAttendance ?? 0).toFixed(1)),
+      taxa_trancamento_pct: Number((d.withdrawn ?? 0).toFixed(1)),
+      total_materiais_relatos: d.resources ?? 0,
+    };
+  });
 }
 
 /**
@@ -551,18 +597,21 @@ export function exportCoursesOpenData(
   courses: Course[],
   format: OpenDataFormat,
   options?: {
+    year?: CatalogYearSelection;
     identifier?: string | null;
     referenceDate?: Date;
     downloadHandler?: BrowserDownloadHandler | null;
   }
 ): OpenDataExportResult {
-  const rows = mapCoursesToOpenData(courses);
+  const rows = mapCoursesToOpenData(courses, { year: options?.year });
+  const yearSuffix = typeof options?.year === "number" ? String(options.year) : null;
+  const combinedIdentifier = [options?.identifier, yearSuffix].filter(Boolean).join("-") || null;
   return createOpenDataExport({
     scope: "cursos",
     format,
     columns: COURSE_OPEN_DATA_COLUMNS,
     rows,
-    identifier: options?.identifier,
+    identifier: combinedIdentifier,
     referenceDate: options?.referenceDate,
     downloadHandler: options?.downloadHandler,
   });
@@ -572,18 +621,21 @@ export function exportDisciplinesOpenData(
   disciplines: Discipline[],
   format: OpenDataFormat,
   options?: {
+    year?: CatalogYearSelection;
     identifier?: string | null;
     referenceDate?: Date;
     downloadHandler?: BrowserDownloadHandler | null;
   }
 ): OpenDataExportResult {
-  const rows = mapDisciplinesToOpenData(disciplines);
+  const rows = mapDisciplinesToOpenData(disciplines, { year: options?.year });
+  const yearSuffix = typeof options?.year === "number" ? String(options.year) : null;
+  const combinedIdentifier = [options?.identifier, yearSuffix].filter(Boolean).join("-") || null;
   return createOpenDataExport({
     scope: "disciplinas",
     format,
     columns: DISCIPLINE_OPEN_DATA_COLUMNS,
     rows,
-    identifier: options?.identifier,
+    identifier: combinedIdentifier,
     referenceDate: options?.referenceDate,
     downloadHandler: options?.downloadHandler,
   });

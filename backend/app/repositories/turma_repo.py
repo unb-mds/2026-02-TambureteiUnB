@@ -1,4 +1,4 @@
-﻿from typing import Optional, List
+from typing import Optional, List
 from sqlalchemy.orm import Session, selectinload
 from app.models.turma import Turma
 from app.repositories.base import BaseRepository
@@ -14,7 +14,7 @@ class TurmaRepository(BaseRepository[Turma]):
         query = db.query(Turma).options(selectinload(Turma.professores), selectinload(Turma.estatistica)).filter(Turma.disciplina_id == disciplina_id)
         if semestre:
             query = query.filter(Turma.semestre == semestre)
-        return query.all()
+        return query.order_by(Turma.semestre.desc(), Turma.codigo_turma.asc()).all()
 
     def get_turma_com_professores(self, db: Session, turma_id: int) -> Optional[Turma]:
         return db.query(Turma).options(selectinload(Turma.professores), selectinload(Turma.estatistica)).filter(Turma.id == turma_id).first()

@@ -12,6 +12,9 @@ import {
   criarDenuncia,
   listarDenunciasPendentes,
   decidirDenuncia,
+  consultarStatusComentario,
+  resolverAvisoTriagemComentario,
+  iniciarPollingStatusComentario,
 } from "../moderacaoService.ts";
 import { ApiError } from "../httpClient.ts";
 
@@ -172,4 +175,73 @@ test("listarDenunciasPendentes e decidirDenuncia enviam filtros e payload de aca
     acao: "DESCARTAR_DENUNCIA",
     justificativa: null,
   });
+});
+
+test("resolverAvisoTriagemComentario distingue aprovado, recusado e encaminhado para revisao", () => {
+  assert.equal(
+    resolverAvisoTriagemComentario({ id: 1, status_moderacao: "PENDENTE", moderado_por: null, motivo_moderacao: null }),
+    null
+  );
+
+  const recusado = resolverAvisoTriagemComentario(
+    {
+      id: 8,
+      status_moderacao: "OCULTO",
+      moderado_por: "IA",
+      motivo_moderacao: "[OFENSA_DIFAMACAO] Conteúdo ofensivo",
+    },
+    "relato"
+  );
+  assert.equal(recusado?.kind, "rejected");
+  assert.match(recusado?.text ?? "", /\[RECUSADO\].*Motivo: \[OFENSA_DIFAMACAO\]/);
+
+  const revisao = resolverAvisoTriagemComentario(
+    {
+      id: 9,
+      status_moderacao: "PENDENTE",
+      moderado_por: "IA",
+      motivo_moderacao: "Confiança abaixo do limiar",
+    },
+    "resposta"
+  );
+  assert.equal(revisao?.kind, "review");
+  assert.match(revisao?.text ?? "", /\[EM REVISÃO\] Sua resposta/);
+
+  const publicado = resolverAvisoTriagemComentario({ id: 10, status_moderacao: "PUBLICADO" }, "dificuldade");
+  assert.equal(publicado?.kind, "approved");
+  assert.match(publicado?.text ?? "", /\[PUBLICADO\] Seu relato de dificuldade/);
+});
+
+test("consultarStatusComentario e iniciarPollingStatusComentario notificam recusa automaticamente", async (t) => {
+  dados.set("tamburetei_auth_token", "token-aluno");
+  t.mock.method(globalThis, "fetch", async (url: string) => {
+    assert.match(url, /\/comentarios\/88\/status$/);
+    return new Response(
+      JSON.stringify({
+        id: 88,
+        status_moderacao: "OCULTO",
+        moderado_por: "IA",
+        motivo_moderacao: "Violação da conduta ética (RN04).",
+        confianca_ia: 0.92,
+      }),
+      { status: 200 }
+    );
+  });
+
+  const direto = await consultarStatusComentario(88);
+  assert.equal(direto.status_moderacao, "OCULTO");
+
+  const resultado = await new Promise<{ kind: string; text: string }>((resolve) => {
+    iniciarPollingStatusComentario({
+      commentId: 88,
+      contexto: "relato",
+      intervalMs: 10,
+      maxAttempts: 3,
+      onStatus: resolve,
+    });
+  });
+
+  assert.equal(resultado.kind, "rejected");
+  assert.match(resultado.text, /\[RECUSADO\]/);
+  assert.match(resultado.text, /Violação da conduta ética/);
 });

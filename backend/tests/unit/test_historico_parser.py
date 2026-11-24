@@ -4,9 +4,13 @@ from unittest.mock import patch
 
 import pytest
 
-from app.services.historico_importacao_service import _calcular_taxas_cem_porcento
+from app.services.historico_importacao_service import (
+    _calcular_taxas_cem_porcento,
+    _sanear_nome_disciplina_por_catalogo,
+)
 from app.services.historico_parser_service import (
     HistoricoParserError,
+    _extrair_professores_e_nome,
     parse_historico_pdf,
 )
 
@@ -116,3 +120,128 @@ def test_calcular_taxas_soma_exatamente_cem():
     t1, t2, t3, t4 = _calcular_taxas_cem_porcento(1, 1, 1, 0)
     assert (t1 + t2 + t3 + t4) == Decimal("100.00")
     assert t4 == Decimal("0.00")
+
+
+def test_extrair_professores_nao_contamina_sem_titulo_nem_reordena():
+    nome_oo, profs_oo = _extrair_professores_e_nome(
+        ["ORIENTAÇÃO A OBJETOS", "LUCAS URSULINO BOAVENTURA (60h)"]
+    )
+    assert nome_oo == "ORIENTAÇÃO A OBJETOS"
+    assert profs_oo == ["LUCAS URSULINO BOAVENTURA"]
+
+    nome_alg, profs_alg = _extrair_professores_e_nome(
+        [
+            "INTRODUCAO A ALGEBRA LINEAR",
+            "Dr. FULANO DE TAL (90h)",
+        ]
+    )
+    assert nome_alg == "INTRODUCAO A ALGEBRA LINEAR"
+    assert profs_alg == ["Dr. FULANO DE TAL"]
+
+
+def test_parse_historico_nao_mistura_titulo_orfao_de_outro_semestre():
+    texto_quebra_vertical = """
+SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas
+UnB - Universidade de Brasília
+Histórico Escolar - Emitido em: 21/11/2026 às 21:23
+Nome: ESTUDANTE TESTE
+Matrícula: 251037401
+Curso: ENGENHARIA DE SOFTWARE/FCTE - BACHARELADO - DIURNO
+Status: ATIVO    IRA: 4.1000    MP: 4.2000
+Currículo: 6360/2 - 2024.2
+Componentes Curriculares Cursados/Cursando
+Ano/Período Letivo Componente Curricular CH Turma Freq % Nota Situação
+2025.2  FGA0158  ORIENTAÇÃO A OBJETOS  60  02  100,0  SS  APR
+LUCAS URSULINO BOAVENTURA (60h)
+2025.2  MAT0031  INTRODUCAO A ALGEBRA LINEAR  90  01  78,0  MS  APR
+Dr. WESLEY FERREIRA LOPES (90h)
+VIGILÂNCIA EPIDEMIOLÓGICA PARTICIPATIVA
+2026.1  #  DSC0172  30  01  100,0  SS  APR
+Dra. LIGIA MARIA CANTARINO DA COSTA (30h), Dr. JONAS LOTUFO BRANT DE CARVALHO (30h)
+Página 2 de 2
+Matrícula: 251037401
+Nome: ESTUDANTE TESTE
+2026.2  FGA0160  MÉTODOS NUMÉRICOS PARA  60  03  --  -  TRANC
+ENGENHARIA
+Dr. MANUEL NASCIMENTO DIAS BARCELOS JUNIOR (60h)
+2026.2  #  CIC0099  ATIVIDADE EM PROJETO  30  01  100,0  SS  APR
+Prof. CARLOS EDUARDO (30h)
+Legenda
+Carga Horária Integralizada/Pendente
+Exigido 2985 h 540 h 0 h 3525 h
+Integralizado 180 h 30 h 0 h 210 h
+Pendente 2805 h 510 h 0 h 3315 h
+Para verificar a autenticidade deste documento entre em https://sig.unb.br/sigaa/documentos/ informando a matrícula, data de emissão
+e o código de verificação: 30330eba4c
+"""
+    with patch(
+        "app.services.historico_parser_service.PdfReader",
+        return_value=_FakeReader(texto_quebra_vertical),
+    ):
+        res = parse_historico_pdf(b"%PDF-1.4 sigaa-vertical")
+
+    por_codigo = {c.codigo: c for c in res.cursadas}
+    assert por_codigo["MAT0031"].nome == "INTRODUCAO A ALGEBRA LINEAR"
+    assert por_codigo["MAT0031"].semestre == "2025.2"
+    assert por_codigo["FGA0158"].professores == ["LUCAS URSULINO BOAVENTURA"]
+    assert por_codigo["DSC0172"].nome == "VIGILÂNCIA EPIDEMIOLÓGICA PARTICIPATIVA"
+    assert por_codigo["DSC0172"].semestre == "2026.1"
+    assert por_codigo["DSC0172"].professores == [
+        "Dra. LIGIA MARIA CANTARINO DA COSTA",
+        "Dr. JONAS LOTUFO BRANT DE CARVALHO",
+    ]
+    assert por_codigo["FGA0160"].nome == "MÉTODOS NUMÉRICOS PARA ENGENHARIA"
+    assert por_codigo["CIC0099"].nome == "ATIVIDADE EM PROJETO"
+
+
+def test_parse_historico_codigo_acima_do_periodo_e_trancamento_sem_docente():
+    texto_codigo_acima = """
+SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas
+UnB - Universidade de Brasília
+Histórico Escolar - Emitido em: 21/11/2026 às 21:23
+Nome: ESTUDANTE TESTE
+Matrícula: 251037401
+Componentes Curriculares Cursados/Cursando
+2025.2  FGA0160  MÉTODOS NUMÉRICOS PARA ENGENHARIA  60  03  --  -  TRANC
+VIGILÂNCIA EPIDEMIOLÓGICA PARTICIPATIVA
+2026.1  #  DSC0172  30  01  100,0  SS  APR
+Dra. LIGIA MARIA CANTARINO DA COSTA (30h)
+#  MAT0031  INTRODUCAO A ALGEBRA LINEAR
+2026.2  90  01  78,0  MS  APR
+Dr. FULANO DE TAL (90h)
+Legenda
+Carga Horária Integralizada/Pendente
+Exigido 2985 h 540 h 0 h 3525 h
+Integralizado 90 h 30 h 0 h 120 h
+Para verificar a autenticidade deste documento entre em https://sig.unb.br/sigaa/documentos/ informando a matrícula, data de emissão
+e o código de verificação: 30330eba4c
+"""
+    with patch(
+        "app.services.historico_parser_service.PdfReader",
+        return_value=_FakeReader(texto_codigo_acima),
+    ):
+        res = parse_historico_pdf(b"%PDF-1.4 sigaa-codigo-acima")
+
+    por_codigo = {c.codigo: c for c in res.cursadas}
+    assert por_codigo["FGA0160"].nome == "MÉTODOS NUMÉRICOS PARA ENGENHARIA"
+    assert por_codigo["DSC0172"].nome == "VIGILÂNCIA EPIDEMIOLÓGICA PARTICIPATIVA"
+    assert por_codigo["MAT0031"].nome == "INTRODUCAO A ALGEBRA LINEAR"
+    assert por_codigo["MAT0031"].semestre == "2026.2"
+    assert por_codigo["MAT0031"].natureza_simbolo == "#"
+
+
+def test_sanear_nome_disciplina_por_catalogo():
+    assert (
+        _sanear_nome_disciplina_por_catalogo(
+            "VIGILÂNCIA EPIDEMIOLÓGICA PARTICIPATIVA INTRODUCAO A ALGEBRA LINEAR",
+            "INTRODUCAO A ALGEBRA LINEAR",
+        )
+        == "INTRODUCAO A ALGEBRA LINEAR"
+    )
+    assert (
+        _sanear_nome_disciplina_por_catalogo(
+            "ORIENTAÇÃO A OBJETOS",
+            "Orientação a Objetos",
+        )
+        == "ORIENTAÇÃO A OBJETOS"
+    )
