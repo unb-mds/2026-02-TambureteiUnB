@@ -60,13 +60,13 @@ export const DataCollectionBanner: React.FC<DataCollectionBannerProps> = ({
     <aside
       role="region"
       aria-label="Aviso sobre coleta colaborativa de dados"
-      className={`relative w-full rounded-2xl border border-[#5B4BDB]/20 bg-gradient-to-r from-[#F5F3FF] via-[#EDE9FD]/70 to-[#F5F3FF] p-4 sm:p-5 shadow-xs transition-all duration-300 ${className}`}
+      className={`data-collection-banner relative w-full rounded-2xl border border-[#5B4BDB]/20 bg-gradient-to-r from-[#F5F3FF] via-[#EDE9FD]/70 to-[#F5F3FF] p-4 sm:p-5 shadow-xs transition-all duration-300 ${className}`}
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* Ícone e Texto Informativo */}
         <div className="flex items-start gap-3.5 max-w-3xl">
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#5B4BDB]/15 text-[#5B4BDB] shadow-inner"
+            className="data-collection-banner__icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#5B4BDB]/15 text-[#5B4BDB] shadow-inner"
             aria-hidden="true"
           >
             {/* Ícone de Gráfico / Dados Colaborativos */}
@@ -92,16 +92,16 @@ export const DataCollectionBanner: React.FC<DataCollectionBannerProps> = ({
 
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-md bg-[#5B4BDB]/20 px-2 py-0.5 text-xs font-bold text-[#5B4BDB] tracking-wider uppercase">
+              <span className="data-collection-banner__badge inline-flex items-center rounded-md bg-[#5B4BDB]/20 px-2 py-0.5 text-xs font-bold text-[#5B4BDB] tracking-wider uppercase">
                 Fase de Coleta Colaborativa
               </span>
-              <span className="text-xs text-[#5B4BDB]/90 font-medium hidden sm:inline">
+              <span className="data-collection-banner__subtitle text-xs text-[#5B4BDB]/90 font-medium hidden sm:inline">
                 • Dados em construcao pela comunidade UnB
               </span>
             </div>
 
-            <p className="text-sm font-medium text-[#202124] leading-snug">
-              Ainda estamos coletando e consolidando as estatisticas das disciplinas. Voce pode colaborar importando seu <strong className="text-[#5B4BDB]">historico escolar do SIGAA</strong> no seu perfil e compartilhando os graficos de aprovacao das turmas que ja cursou.
+            <p className="data-collection-banner__text text-sm font-medium text-[#202124] leading-snug">
+              Ainda estamos coletando e consolidando as estatisticas das disciplinas. Voce pode colaborar importando seu <strong className="data-collection-banner__strong text-[#5B4BDB]">historico escolar do SIGAA</strong> no seu perfil e compartilhando os graficos de aprovacao das turmas que ja cursou.
             </p>
           </div>
         </div>
@@ -120,7 +120,7 @@ export const DataCollectionBanner: React.FC<DataCollectionBannerProps> = ({
             type="button"
             onClick={handleClose}
             aria-label="Fechar aviso de coleta de dados"
-            className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-[#5B4BDB]/15 hover:text-gray-800 transition-colors"
+            className="data-collection-banner__dismiss ml-1 inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-[#5B4BDB]/15 hover:text-gray-800 transition-colors"
           >
             <svg
               className="h-4 w-4"
