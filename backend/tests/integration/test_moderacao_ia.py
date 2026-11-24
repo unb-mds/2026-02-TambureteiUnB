@@ -127,7 +127,7 @@ def test_triagem_ia_escalona_comentario_quando_ollama_offline_e_permite_curadori
 def test_triagem_ia_material_aprova_e_recusa_com_auditoria(client, db, disciplina, headers, admin_headers, monkeypatch):
     monkeypatch.setattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
 
-    # 1. Material aprovado pela IA
+    # 1. Material pre-aprovado pela IA aguarda confirmacao humana antes de publicar
     r1 = client.post(
         f"/cadeiras/{disciplina.id}/materiais",
         headers=headers,
@@ -147,13 +147,27 @@ def test_triagem_ia_material_aprova_e_recusa_com_auditoria(client, db, disciplin
         assert aplicar_triagem_material(db, id_aprovado) is True
 
     mat_aprovado = db.get(Conteudo, id_aprovado)
-    assert mat_aprovado.status_curadoria == "APROVADO"
-    assert mat_aprovado.status_moderacao == "ativo"
-    assert mat_aprovado.moderado_por == "IA"
+    assert mat_aprovado.status_curadoria == "PENDENTE"
+    assert mat_aprovado.status_moderacao == "em_analise"
+    assert mat_aprovado.moderado_por is None
+    assert mat_aprovado.confianca_ia == pytest.approx(0.96)
+    assert "[Pré-aprovado na triagem IA]" in mat_aprovado.motivo_moderacao
+    assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["total"] == 0
+
+    fila = client.get("/moderacao/materiais", headers=admin_headers).json()
+    assert fila["total"] == 1
+    assert fila["items"][0]["id"] == id_aprovado
+
+    decisao_humana = client.patch(
+        f"/moderacao/conteudos/{id_aprovado}/curadoria",
+        headers=admin_headers,
+        json={"status": "APROVADO"},
+    )
+    assert decisao_humana.status_code == 200
+    assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["total"] == 1
     historico = client.get(f"/moderacao/conteudos/{id_aprovado}/historico", headers=admin_headers).json()
     assert len(historico) == 1
-    assert historico[0]["perfil_moderador"] == "IA"
-    assert historico[0]["moderador_id"] is None
+    assert historico[0]["perfil_moderador"] == "ADMIN"
 
     # 2. Material recusado pela IA por conter cabecalho identificado (RN01/RN06)
     r2 = client.post(

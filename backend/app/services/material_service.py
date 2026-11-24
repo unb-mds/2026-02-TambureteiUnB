@@ -8,12 +8,23 @@ from pydantic_core import PydanticCustomError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.api.schemas.material import MaterialPage, MaterialResponse, validar_titulo
+from app.api.schemas.material import (
+    MaterialPage,
+    MaterialResponse,
+    MaterialVotoResponse,
+    validar_titulo,
+)
 from app.domain.materiais import ArquivoMuitoGrande, ArquivoVazio, FormatoNaoSuportado
 from app.models.conteudo import Conteudo
 from app.models.disciplina import Disciplina
+from app.models.usuario import Usuario
 from app.repositories.disciplina_repo import disciplina_repo
 from app.repositories.material_repo import material_repo
+from app.repositories.voto_repo import (
+    alternar_voto_target,
+    contar_votos_por_target,
+    listar_votos_usuario_por_target,
+)
 from app.services.armazenamento_material import ArmazenamentoMaterial
 
 logger = logging.getLogger(__name__)
@@ -95,6 +106,7 @@ class MaterialService:
         tamanho_pagina: int,
         tipo: str | None = None,
         tipos: list[str] | None = None,
+        current_user_id: UUID | None = None,
     ) -> MaterialPage:
         disciplina = self.resolver_disciplina(db, id_ou_slug)
         tipo_filtro = tipo.strip().upper() if tipo else None
@@ -113,7 +125,41 @@ class MaterialService:
             tipo=tipo_filtro,
             tipos=tipos_filtro,
         )
-        return MaterialPage(items=materiais, total=total, pagina=pagina, tamanho_pagina=tamanho_pagina)
+        material_ids = [item.id for item in materiais]
+        votos_por_id = contar_votos_por_target(db, "CONTEUDO", material_ids)
+        votados_usuario = (
+            listar_votos_usuario_por_target(db, "CONTEUDO", material_ids, current_user_id)
+            if current_user_id is not None
+            else set()
+        )
+        items_resposta = [
+            MaterialResponse.model_validate(item).model_copy(
+                update={
+                    "upvotes": votos_por_id.get(item.id, 0),
+                    "liked_by_me": item.id in votados_usuario,
+                }
+            )
+            for item in materiais
+        ]
+        return MaterialPage(items=items_resposta, total=total, pagina=pagina, tamanho_pagina=tamanho_pagina)
+
+    def alternar_voto(
+        self, db: Session, material_id: int, usuario: Usuario
+    ) -> MaterialVotoResponse:
+        """Alterna o voto útil (curtida) de um usuário autenticado em um material publicado."""
+        material = material_repo.get_by_id(db, material_id)
+        if (
+            material is None
+            or material.status_moderacao != "ativo"
+            or material.status_curadoria != "APROVADO"
+        ):
+            raise HTTPException(404, "Material não encontrado ou ainda não publicado.")
+        upvotes, liked_by_me = alternar_voto_target(db, "CONTEUDO", material_id, usuario.id)
+        return MaterialVotoResponse(
+            material_id=material_id,
+            upvotes=upvotes,
+            liked_by_me=liked_by_me,
+        )
 
     def baixar(self, db: Session, material_id: int) -> tuple[Conteudo, Path]:
         material = material_repo.get_by_id(db, material_id)

@@ -22,6 +22,8 @@ test("MateriaisApoio bloqueia compartilhamento e exibe aviso de login sem alert(
   const sourcePath = path.resolve(process.cwd(), "components/MateriaisApoio.tsx");
   const source = fs.readFileSync(sourcePath, "utf-8");
   assert.doesNotMatch(source, /\balert\s*\(/);
+  assert.match(source, /toggleMaterialVote/);
+  assert.match(source, /Faça login para curtir materiais/);
 });
 
 test("DificuldadesPanel bloqueia abertura do formulario e exibe aviso de login quando visitante nao esta logado", () => {

@@ -27,4 +27,8 @@ test("ComentariosFrontend bloqueia formulario e exibe aviso sem usar alert quand
   const source = fs.readFileSync(sourcePath, "utf-8");
   assert.doesNotMatch(source, /@estudante_fcte/);
   assert.doesNotMatch(source, /\balert\s*\(/);
+  assert.match(source, /disabled=\{!authenticated\}[\s\S]*?Denunciar/);
+  assert.match(source, /\/comentarios\/\$\{numericId\}\/voto/);
+  assert.match(source, /iniciarPollingStatusComentario/);
+  assert.match(source, /getTriageBannerClasses/);
 });

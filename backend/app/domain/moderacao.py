@@ -274,13 +274,15 @@ def resolver_moderacao_material(
         )
 
     if veredito.decisao == "APROVAR" and veredito.categoria_violacao == "NENHUMA":
+        # Arquivos (PDF/imagem) nunca sao auto-publicados pela LLM local:
+        # seguem para aprovacao humana com o parecer de pre-triagem anexado.
         return TransicaoModeracao(
-            status_final="APROVADO",
-            status_moderacao_arquivo="ativo",
-            motivo_moderacao=motivo_limpo,  # pragma: no mutate
+            status_final="PENDENTE",
+            status_moderacao_arquivo="em_analise",
+            motivo_moderacao=f"[Pré-aprovado na triagem IA]: {motivo_limpo}"[:1000],  # pragma: no mutate
             confianca_ia=veredito.confianca,
-            moderado_por="IA",
-            registrar_curadoria_ia=True,
+            moderado_por=None,
+            registrar_curadoria_ia=False,
         )
 
     if veredito.decisao == "REJEITAR":

@@ -1,5 +1,5 @@
-from typing import Optional
-from fastapi import Depends, HTTPException, status
+from typing import Annotated, Optional
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
@@ -32,6 +32,19 @@ def get_optional_current_user(
     if user is None or not user.is_active:
         return None
     return user
+
+
+def get_optional_current_user_from_header(
+    authorization: Annotated[Optional[str], Header(include_in_schema=False)] = None,
+    db: Session = Depends(get_db),
+) -> Optional[Usuario]:
+    """Lê token Bearer opcionalmente sem registrar requisito de segurança no schema OpenAPI."""
+    if not authorization:
+        return None
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        return None
+    return get_optional_current_user(token=token.strip(), db=db)
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Usuario:
