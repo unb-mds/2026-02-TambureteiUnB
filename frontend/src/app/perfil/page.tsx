@@ -258,23 +258,29 @@ function ProfilePageContent() {
               >
                 {uploading ? "Processando PDF..." : "Selecionar Histórico (PDF)"}
               </label>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isRealProfile) {
+                    setUploadError("Para enviar o gráfico de pizza de uma turma, você precisa primeiro importar seu Histórico Escolar (PDF) para comprovar a matrícula na turma.");
+                    return;
+                  }
+                  setIsTurmaModalOpen(true);
+                }}
+                className="rounded-xl bg-[#EDE9FD] border border-[#5B4BDB]/30 px-3.5 py-2.5 text-sm font-semibold text-[#5B4BDB] transition-colors hover:bg-[#E0DAFC]"
+              >
+                Enviar Gráfico de Pizza da Turma
+              </button>
+
               {isRealProfile && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setIsTurmaModalOpen(true)}
-                    className="rounded-xl bg-[#EDE9FD] border border-[#5B4BDB]/30 px-3.5 py-2.5 text-sm font-semibold text-[#5B4BDB] transition-colors hover:bg-[#E0DAFC]"
-                  >
-                    Enviar Gráfico de Pizza da Turma
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleClearHistorico}
-                    className="rounded-xl border border-[#D8D4F5] px-3 py-2.5 text-sm font-semibold text-[#5B4BDB] transition-colors hover:bg-[#F7F7FA]"
-                  >
-                    Limpar dados locais
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={handleClearHistorico}
+                  className="rounded-xl border border-[#D8D4F5] px-3 py-2.5 text-sm font-semibold text-[#5B4BDB] transition-colors hover:bg-[#F7F7FA]"
+                >
+                  Limpar dados locais
+                </button>
               )}
             </div>
           </div>
