@@ -272,3 +272,62 @@ e o código de verificação: 30330eba4c
     itens = {c["codigo"]: c for c in resp.json()["cursadas"]}
     assert itens["MAT0031"]["nome"] == "INTRODUCAO A ALGEBRA LINEAR"
     assert itens["DSC0172"]["nome"] == "VIGILÂNCIA EPIDEMIOLÓGICA PARTICIPATIVA"
+
+
+def test_importar_historico_com_aproveitamentos_cump_nao_cria_amostra_sem_semestre(
+    client, db, headers
+):
+    disc_pi = Disciplina(
+        codigo="FGA0150",
+        nome="Projeto Integrador de Engenharia 1",
+        slug="projeto-integrador-de-engenharia-1",
+        departamento="FCTE",
+        carga_horaria=60,
+    )
+    disc_oo = Disciplina(
+        codigo="FGA0158",
+        nome="Orientação a Objetos",
+        slug="orientacao-a-objetos",
+        departamento="FCTE",
+        carga_horaria=60,
+    )
+    db.add_all([disc_pi, disc_oo])
+    db.commit()
+
+    texto = """
+SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas
+UnB - Universidade de Brasília
+Histórico Escolar - Emitido em: 24/11/2026 às 11:11
+Nome: ESTUDANTE TESTE
+Matrícula: 259000002
+Curso: ENGENHARIA/FCTE - BACHARELADO - DIURNO
+Status: ATIVO    IRA: 4.5000    MP: 4.5000
+Componentes Curriculares Cursados/Cursando
+-- * FGA0150 PROJETO INTEGRADOR DE ENGENHARIA 1 60 -- -- - CUMP
+2026.1 ORIENTAÇÃO A OBJETOS
+Dr. ANDRE LUIZ PERON MARTINS LANNA (60h) * FGA0158 60 01 90,0 SS APR
+Legenda
+Carga Horária Integralizada/Pendente
+Exigido 2985 h 540 h 0 h 3525 h
+Integralizado 120 h 0 h 0 h 120 h
+Para verificar a autenticidade deste documento entre em https://sig.unb.br/sigaa/documentos/ informando a matrícula, data de emissão
+e o código de verificação: abcd1234ef
+"""
+    with patch(
+        "app.services.historico_parser_service.PdfReader",
+        return_value=_FakeReader(texto),
+    ):
+        resp = client.post(
+            "/perfil/importar-historico",
+            headers=headers,
+            files={"arquivo": ("historico.pdf", b"%PDF-1.4 ok", "application/pdf")},
+        )
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert len(body["cursadas"]) == 2
+    assert body["contribuicao"]["total_elegiveis"] == 1
+    assert body["contribuicao"]["novas_contribuicoes"] == 1
+    assert db.query(AmostraHistorico).count() == 1
+    assert db.query(Turma).filter(Turma.semestre == "--").count() == 0
+

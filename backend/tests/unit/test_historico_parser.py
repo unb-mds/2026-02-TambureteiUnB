@@ -245,3 +245,99 @@ def test_sanear_nome_disciplina_por_catalogo():
         )
         == "ORIENTAÇÃO A OBJETOS"
     )
+
+
+def test_parse_historico_componentes_aproveitados_cump_sem_periodo():
+    texto_aproveitamento = """
+SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas
+UnB - Universidade de Brasília
+Histórico Escolar - Emitido em: 24/11/2026 às 11:11
+Nome: ESTUDANTE TESTE
+Matrícula: 259000001
+Curso: ENGENHARIA/FCTE - BACHARELADO - DIURNO
+Status: ATIVO    IRA: 4.5417    MP: 4.6111
+Currículo: 6009/1 - 2018.2
+Ano / Período Letivo Inicial: 2025.2
+Período Letivo Atual: 3
+Componentes Curriculares Cursados/Cursando
+Ano/Período Letivo Componente Curricular CH Turma Freq % Nota Situação
+-- * FGA0150 PROJETO INTEGRADOR DE ENGENHARIA 1 60 -- -- - CUMP
+-- FGA0157 PROBABILIDADE E ESTATÍSTICA APLICADO A ENGENHARIA 60 -- -- - CUMP
+-- * FGA0159 ESTRUTURAS MATEMÁTICAS PARA COMPUTAÇÃO 60 -- -- - CUMP
+-- FGA0160 MÉTODOS NUMÉRICOS PARA ENGENHARIA 60 -- -- - CUMP
+-- FGA0164 HUMANIDADES E CIDADANIA 60 -- -- - CUMP
+-- IFD0173 FISICA 1 EXPERIMENTAL 30 -- -- - CUMP
+-- * IQD0125 QUIMICA GERAL TEORICA 60 -- -- - CUMP
+-- * IQD0126 QUIMICA GERAL EXPERIMENTAL 30 -- -- - CUMP
+-- MAT0026 CÁLCULO 2 90 -- -- - CUMP
+-- MAT0031 INTRODUCAO A ALGEBRA LINEAR
+60 -- -- - CUMP
+2025.2 ENADE > INGRESSANTE REGULAR NO ENADE 0 -- -- --- --
+2025.2 ALGORITMOS E PROGRAMAÇÃO DE COMPUTADORES
+Dr. FABRICIO ATAIDES BRAZ (45h), Dr. NILTON CORREIA DA SILVA (45h) * CIC0004 90 10 77,0 SS APR
+2025.2 INTRODUÇÃO À ENGENHARIA
+Dr. RICARDO RAMOS FRAGELLI (30h) FGA0163 30 03 100,0 SS APR
+2025.2 DESENHO INDUSTRIAL ASSISTIDO POR COMPUTADOR
+Dr. ANDRE LUIS RODRIGUES ARAUJO (90h) FGA0168 90 02 89,0 MS APR
+2025.2 ENGENHARIA E AMBIENTE
+Dra. JULIANA DALBONI ROCHA (60h) e FGA0302 60 03 100,0 SS APR
+2025.2 CÁLCULO 1
+Dr. RICARDO RAMOS FRAGELLI (90h) MAT0025 90 24 100,0 SS APR
+2026.1 ESTRUTURAS DE DADOS 1
+MSc. FILIPE EMIDIO TORRES (60h) * FGA0146 60 04 80,0 SS APR
+2026.1 PROBABILIDADE E ESTATÍSTICA APLICADO A ENGENHARIA
+Dra. MARILIA MIRANDA FORTE GOMES (60h) FGA0157 60 01 -- - TRANC
+2026.1 ORIENTAÇÃO A OBJETOS
+Dr. ANDRE LUIZ PERON MARTINS LANNA (60h) * FGA0158 60 01 90,0 SS APR
+2026.1 FISICA 1
+Dr. LINDOMAR BOMFIM DE CARVALHO DE JESUS (60h) IFD0171 60 13 100,0 MM APR
+2026.1 FISICA 1 EXPERIMENTAL
+Dr. WYTLER CORDEIRO DOS SANTOS (30h) IFD0173 30 04 -- - TRANC
+2026.1 INTRODUCAO A ALGEBRA LINEAR
+Dra. TAIS CALLIERO TOGNETTI (60h) MAT0031 60 14 -- - TRANC
+2026.1 MONITORIA EM CÁLCULO 1
+Dr. RICARDO RAMOS FRAGELLI (0h) # MAT0373 30 -- -- -- APR
+2026.2 MÉTODOS DE DESENVOLVIMENTO DE SOFTWARE
+Dra. CARLA SILVA ROCHA AGUIAR (60h) & FGA0312 60 01 100,0 - MATR
+2026.2 MONITORIA EM ORIENTAÇÃO A OBJETOS
+Dr. ANDRE LUIZ PERON MARTINS LANNA (0h) # FGA0413 30 -- -- -- MATR
+Legenda
+Carga Horária Integralizada/Pendente
+Exigido 1230 h 2520 h 0 h 3750 h
+Integralizado 690 h 450 h 0 h 1140 h
+Pendente 540 h 2070 h 0 h 2610 h
+Componentes Curriculares Obrigatórios Pendentes:2
+FGA0148 ENGENHARIA DE SEGURANÇA DO TRABALHO 30 h
+- CADEIA DE SELETIVIDADE - 6009/1 - CADEIA 3 (CH Mínima: 60 h) 60 h
+ENADE ENADE CONCLUINTE PENDENTE 0 h
+Equivalências:
+Cumpriu FGA0161 - ENGENHARIA E AMBIENTE (60h) através de FGA0302 - ENGENHARIA E AMBIENTE (60h)
+Para verificar a autenticidade deste documento entre em https://sig.unb.br/sigaa/documentos/ informando a matrícula, data de emissão
+e o código de verificação: abcd1234ef
+"""
+    with patch(
+        "app.services.historico_parser_service.PdfReader",
+        return_value=_FakeReader(texto_aproveitamento),
+    ):
+        res = parse_historico_pdf(b"%PDF-1.4 sigaa-cump")
+
+    assert res.carga_horaria.integralizado.total == 1140
+    assert len(res.cursadas) == 22
+    assert len(res.cursando) == 2
+
+    cump_itens = [c for c in res.cursadas if c.situacao == "CUMP"]
+    assert len(cump_itens) == 10
+    assert sum(c.ch for c in cump_itens) == 570
+    assert all(c.semestre == "--" for c in cump_itens)
+
+    mat0031_cump = next(c for c in cump_itens if c.codigo == "MAT0031")
+    assert mat0031_cump.nome == "INTRODUCAO A ALGEBRA LINEAR"
+    assert mat0031_cump.ch == 60
+
+    monitoria = next(c for c in res.cursadas if c.codigo == "MAT0373")
+    assert monitoria.situacao == "APR"
+    assert monitoria.ch == 30
+    assert monitoria.professores == ["Dr. RICARDO RAMOS FRAGELLI"]
+
+    assert [p.codigo for p in res.pendentes] == ["FGA0148"]
+

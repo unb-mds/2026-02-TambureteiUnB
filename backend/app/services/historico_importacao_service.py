@@ -354,7 +354,9 @@ class HistoricoImportacaoService:
                 item.nome = _sanear_nome_disciplina_por_catalogo(item.nome, disc_cat.nome)
 
         elegiveis: List[HistoricoComponenteItem] = [
-            c for c in extraido.cursadas if c.situacao in MAPA_DESFECHO
+            c
+            for c in extraido.cursadas
+            if c.situacao in MAPA_DESFECHO and _parse_ano_semestre(c.semestre) is not None
         ]
 
         novas = 0

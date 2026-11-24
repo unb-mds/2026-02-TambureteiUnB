@@ -30,9 +30,14 @@ SIMBOLOS_NATUREZA = {"*", "#", "e", "&", "@", "§", "%"}
 SITUACOES_CONTABILIZAVEIS_APROVADAS = {"APR", "CUMP", "DISP"}
 
 RE_PERIODO_INICIO = re.compile(r"^\s*(\d{4}\.\d)\b")
+RE_SEM_PERIODO_COMPONENTE_INICIO = re.compile(
+    r"^\s*(--)\s+"
+    r"(?:(?:[*#e&@§%]\s+)?[A-Z]{2,5}\d{3,5}\b|(?:[*#e&@§%]\s+)?[A-ZÀ-Ú]{3,})"
+)
+RE_PREFIXO_PERIODO = re.compile(r"^\s*(?:\d{4}\.\d|--)\s+")
 RE_CODIGO_DISCIPLINA = re.compile(r"\b([A-Z]{2,5}\d{3,5})\b")
 RE_COMPONENTE_INLINE = re.compile(
-    r"^\s*(\d{4}\.\d)\s+"
+    r"^\s*(\d{4}\.\d|--)\s+"
     r"(?:([*#e&@§%])\s+)?"
     r"([A-Z]{2,5}\d{3,5})\s+"
     r"(.+?)\s+"
@@ -63,7 +68,7 @@ RE_METRICAS_FIM_GENERICA = re.compile(
     r"(APR|REP|REPF|REPMF|TRANC|MATR|CANC|DISP|CUMP|--)\s*$"
 )
 RE_COMPONENTE_INLINE_SEM_NOME = re.compile(
-    r"^\s*(\d{4}\.\d)\s+"
+    r"^\s*(\d{4}\.\d|--)\s+"
     r"(?:([*#e&@§%])\s+)?"
     r"(?:([A-Z]{2,5}\d{3,5})\s+)?"
     r"(\d{1,3})\s+"
@@ -459,7 +464,7 @@ def _parse_bloco_componente(
         if not txt or RE_CABECALHO_PAGINA.match(txt):
             continue
         if idx == 0:
-            txt = RE_PERIODO_INICIO.sub("", txt).strip()
+            txt = RE_PREFIXO_PERIODO.sub("", txt).strip()
         if txt:
             linhas_limpas.append(txt)
 
@@ -600,7 +605,7 @@ def _extrair_componentes_de_texto(texto: str) -> List[HistoricoComponenteItem]:
         if not em_secao or not txt or RE_CABECALHO_PAGINA.match(txt):
             continue
 
-        m_periodo = RE_PERIODO_INICIO.match(txt)
+        m_periodo = RE_PERIODO_INICIO.match(txt) or RE_SEM_PERIODO_COMPONENTE_INICIO.match(txt)
         if m_periodo:
             # Se a nova linha abriu com código/métricas mas sem nome inline,
             # resgata eventuais linhas órfãs não-docentes no fim do bloco anterior.
@@ -626,7 +631,7 @@ def _extrair_componentes_de_texto(texto: str) -> List[HistoricoComponenteItem]:
             prefixo_bloco_atual = list(linhas_pendentes_proximo)
             linhas_pendentes_proximo = []
             bloco_atual = [txt]
-            sem_periodo = RE_PERIODO_INICIO.sub("", txt).strip()
+            sem_periodo = RE_PREFIXO_PERIODO.sub("", txt).strip()
             bloco_tem_codigo = bool(
                 RE_CODIGO_DISCIPLINA.search(sem_periodo)
                 or any(RE_CODIGO_DISCIPLINA.search(p) for p in prefixo_bloco_atual)
@@ -696,6 +701,7 @@ def _extrair_pendentes(texto_layout: str, texto_padrao: str) -> List[HistoricoPe
 
             if em_secao and (
                 norm.startswith("observacoes")
+                or norm.startswith("equivalencias")
                 or norm.startswith("atencao, agora o historico")
                 or "carga horaria" in norm
             ):
