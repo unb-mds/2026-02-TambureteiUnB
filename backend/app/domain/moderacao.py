@@ -38,7 +38,7 @@ PROMPT_SISTEMA_MODERACAO = (  # pragma: no mutate
     "4. DIREITOS_AUTORAIS: proibido reproduzir livros inteiros protegidos por copyright. "  # pragma: no mutate
     "5. SPAM_IRRELEVANTE: proibido propaganda comercial, links maliciosos ou texto sem relacao academica. "  # pragma: no mutate
     "REGRA PADRAO: apenas escolha 'REJEITAR' se houver violacao explicita de uma das 5 regras acima. "  # pragma: no mutate
-    "Se for um comentario respeitoso (elogio, relato de experiencia, dica de estudo ou critica construtiva sem xingamentos nem dados pessoais) "  # pragma: no mutate
+    "Se for um comentario respeitoso (elogio, relato de experiencia, dica de estudo, opiniao breve sobre a dificuldade da materia ou critica construtiva sem xingamentos nem dados pessoais) "  # pragma: no mutate
     "ou um material academico legitimo (enunciado de prova antiga, lista de exercicios, resumo autoral ou dica da disciplina sem dados pessoais de alunos nem gabarito vigente), "  # pragma: no mutate
     "escolha 'APROVAR' com categoria_violacao 'NENHUMA'. "  # pragma: no mutate
     "Responda estritamente em JSON valido conforme o schema solicitado, preenchendo todos os campos: "  # pragma: no mutate
@@ -222,7 +222,7 @@ def resolver_moderacao_comentario(
             registrar_curadoria_ia=False,
         )
 
-    if veredito.decisao == "REJEITAR":
+    if veredito.decisao == "REJEITAR" and veredito.categoria_violacao != "NENHUMA":
         return TransicaoModeracao(
             status_final="OCULTO",
             status_moderacao_arquivo=None,
@@ -285,7 +285,7 @@ def resolver_moderacao_material(
             registrar_curadoria_ia=False,
         )
 
-    if veredito.decisao == "REJEITAR":
+    if veredito.decisao == "REJEITAR" and veredito.categoria_violacao != "NENHUMA":
         return TransicaoModeracao(
             status_final="RECUSADO",
             status_moderacao_arquivo="bloqueado",
