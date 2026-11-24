@@ -230,10 +230,50 @@ body,
     transition: width 0.2s ease;
   }
 
-  .md-search__inner:hover,
+  .md-search__inner:hover {
+    width: 12rem;
+  }
+
   .md-search__inner:focus-within,
   [data-md-toggle="search"]:checked ~ .md-header .md-search__inner {
-    width: 12rem;
+    width: 17rem;
+  }
+
+  .md-search__output {
+    width: 28rem !important;
+    max-width: calc(100vw - 2rem);
+    top: 2.25rem;
+    right: 0;
+    left: auto;
+    border-radius: 0.75rem;
+    border: 0;
+  }
+
+  [data-md-toggle="search"]:checked ~ .md-header .md-search__output {
+    border: 1px solid var(--tmb-border-card);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+  }
+
+  [data-md-color-scheme="slate"] [data-md-toggle="search"]:checked ~ .md-header .md-search__output {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  }
+
+  .md-search__scrollwrap {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .md-search-result,
+  .md-search-result__meta,
+  .md-search-result__list,
+  .md-search-result__item,
+  .md-search-result__article {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .md-search-result__article {
+    overflow-wrap: anywhere;
   }
 
   .md-search__form {
@@ -241,7 +281,7 @@ body,
     height: 1.9rem;
     background-color: transparent !important;
     border: 1px solid transparent;
-    border-radius: 999px;
+    border-radius: 999px !important;
     box-shadow: none !important;
     transition: background-color 0.2s ease, border-color 0.2s ease;
   }
@@ -573,12 +613,21 @@ body,
   padding: 0.02em 0.24em;
   margin: 0 -0.04em;
   box-shadow: inset 0 0 0 1px rgba(91, 75, 219, 0.22);
+  transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, padding 0.25s ease, margin 0.25s ease;
 }
 
 [data-md-color-scheme="slate"] .md-typeset mark {
   background-color: rgba(147, 133, 247, 0.16);
   color: #e2dcfe;
   box-shadow: inset 0 0 0 1px rgba(147, 133, 247, 0.28);
+}
+
+.md-typeset mark.tmb-mark--clearing {
+  background-color: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  padding: 0;
+  margin: 0;
 }
 
 .md-typeset hr {

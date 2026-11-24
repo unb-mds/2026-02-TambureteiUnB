@@ -91,6 +91,16 @@ npm run build
 mkdocs build --strict
 ```
 
+### Pipeline Automatizado (CI/CD e Qualidade)
+
+| Workflow / Job | Ferramentas e Critérios | Disparo |
+| :--- | :--- | :--- |
+| `Backend — Lint & SAST` | `Ruff` (lint/estilo) e `Bandit` (`-ll`, SAST) | Push e PR (`ci.yml`) |
+| `Backend — Testes, Cobertura & Mutação` | PostgreSQL 17, `alembic upgrade head`, `Pytest` (`>= 70%` cobertura) e `Mutmut` (`>= 50%` mutantes mortos) | Push e PR (`ci.yml`) |
+| `Frontend — Lint, Typecheck & Build` | Node 22, `ESLint`, `tsc --noEmit` e `npm run build` (Next.js) | Push e PR (`ci.yml`) |
+| `Infra — Docker Compose Build & Healthcheck` | Sobe stack via `docker compose` e valida `GET /health` | Push e PR (`ci.yml`) |
+| `Deploy MkDocs to GitHub Pages` | Valida com `mkdocs build --strict` e publica o portal estático | Push na `main` em `docs/**` ou `mkdocs.yml` (`deploy-docs.yml`) |
+
 ---
 
 ## 5. Revisão de Código (Code Review)
