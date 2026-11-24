@@ -311,7 +311,7 @@ export default function RegisterPage() {
                 setPassword(e.target.value);
                 if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
               }}
-              placeholder="Crie uma senha segura (mín. 6 dígitos)"
+              placeholder="Crie uma senha segura (mín. 8 caracteres)"
               error={errors.password}
               leftIcon={
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

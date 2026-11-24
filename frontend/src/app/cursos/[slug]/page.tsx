@@ -681,9 +681,18 @@ export default function CourseDisciplinesPage() {
                 {paginatedDisciplines.map((discipline) => (
                   <article
                     key={discipline.code}
-                    className="group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#EDE9FD] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all"
+                    className="relative group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#EDE9FD] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all cursor-pointer focus-within:ring-2 focus-within:ring-[#5B4BDB] focus-within:ring-offset-2"
                   >
-                    <div>
+                    {/* Link overlay cobrindo todo o retangulo da disciplina */}
+                    <Link
+                      href={`/disciplinas/${discipline.slug}`}
+                      className="absolute inset-0 z-30 rounded-2xl focus:outline-hidden"
+                      aria-label={`Ver disciplina ${discipline.name}`}
+                    >
+                      <span className="sr-only">Ver disciplina {discipline.name}</span>
+                    </Link>
+
+                    <div className="pointer-events-none">
                       {/* Código e Taxa de Aprovação */}
                       <div className="mb-4 flex items-start justify-between gap-2">
                         <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold tracking-wide text-[#5B4BDB]">
@@ -728,14 +737,11 @@ export default function CourseDisciplinesPage() {
                     </div>
 
                     {/* Ação: Ver Disciplina */}
-                    <div className="mt-5 border-t border-[#EDE9FD] pt-4">
-                      <Link
-                        href={`/disciplinas/${discipline.slug}`}
-                        className="flex w-full items-center justify-between text-xs sm:text-sm font-bold text-[#5B4BDB] group-hover:translate-x-0.5 transition-all"
-                      >
+                    <div className="mt-5 border-t border-[#EDE9FD] pt-4 pointer-events-none">
+                      <div className="flex w-full items-center justify-between text-xs sm:text-sm font-bold text-[#5B4BDB] group-hover:translate-x-0.5 transition-all">
                         <span>Ver disciplina</span>
                         <span aria-hidden="true">→</span>
-                      </Link>
+                      </div>
                     </div>
                   </article>
                 ))}
