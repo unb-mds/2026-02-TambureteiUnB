@@ -25,6 +25,8 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
   const [taxaReprovacao, setTaxaReprovacao] = useState<string>("");
   const [taxaReprovacaoFalta, setTaxaReprovacaoFalta] = useState<string>("");
   const [taxaTrancamento, setTaxaTrancamento] = useState<string>("");
+  const [professorDigitado, setProfessorDigitado] = useState<string>("");
+  const [turmaDigitada, setTurmaDigitada] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
@@ -75,8 +77,8 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
       return;
     }
 
-    if (!imagePreview) {
-      setFeedbackError("É obrigatório anexar a imagem ou captura do gráfico de pizza gerado pelo SIGAA da turma.");
+    if (!imagePreview && (!professorDigitado.trim() || !turmaDigitada.trim())) {
+      setFeedbackError("Anexe a imagem/print do gráfico do SIGAA ou informe o nome do professor e o número da turma comprovada.");
       return;
     }
 
@@ -123,9 +125,10 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
           )}`
         );
 
+        const codigoTurmaFinal = turmaDigitada.trim() || turmaSelecionada.turma;
         const turmaEncontrada = turmasApi.find(
           (t) =>
-            t.codigo_turma.toUpperCase() === turmaSelecionada.turma.toUpperCase()
+            t.codigo_turma.toUpperCase() === codigoTurmaFinal.toUpperCase()
         );
 
         const turmaIdReal = turmaEncontrada?.id || turmaSelecionada.turma_id;
@@ -245,43 +248,79 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
               </select>
             </div>
 
-            {/* Informacoes de Docente */}
+            {/* Informacoes de Docente e Complemento Escrito */}
             {turmaSelecionada && (
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
-                <span className="font-semibold text-gray-800">Docente(s) registrado(s): </span>
+                <span className="font-semibold text-gray-800">Docente(s) no histórico: </span>
                 {turmaSelecionada.professores.length > 0
                   ? turmaSelecionada.professores.join(", ")
                   : "Docente não informado no histórico"}
               </div>
             )}
 
-            {/* Upload do Grafico (Imagem) */}
-            <div>
-              <label htmlFor={fileInputId} className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
-                2. Imagem / Captura do Gráfico de Pizza (SIGAA)
-              </label>
-              <input
-                id={fileInputId}
-                type="file"
-                accept="image/png,image/jpeg,image/jpg"
-                onChange={handleImageChange}
-                className="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#5B4BDB]/10 file:text-[#5B4BDB] hover:file:bg-[#5B4BDB]/20 cursor-pointer"
-              />
-            </div>
-
-            {/* Pre-visualizacao da imagem do grafico */}
-            {imagePreview && (
-              <div className="mt-2 rounded-2xl border border-gray-200 p-2 bg-[#FAFAFC] flex flex-col items-center">
-                <p className="text-[11px] font-semibold text-gray-500 mb-2">Pré-visualização do Gráfico do SIGAA</p>
-                {/* Imagem de preview */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imagePreview}
-                  alt="Pré-visualização do gráfico de pizza do SIGAA"
-                  className="max-h-48 rounded-xl object-contain shadow-xs"
+            {/* Opção de Envio: Print do Gráfico ou Dados Escritos (Professor e Turma) */}
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3.5 space-y-3">
+              <div>
+                <label htmlFor={fileInputId} className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  2. Anexe o Print do Gráfico do SIGAA (ou preencha os dados abaixo)
+                </label>
+                <input
+                  id={fileInputId}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={handleImageChange}
+                  className="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#5B4BDB]/10 file:text-[#5B4BDB] hover:file:bg-[#5B4BDB]/20 cursor-pointer"
                 />
               </div>
-            )}
+
+              {/* Pre-visualizacao da imagem do grafico */}
+              {imagePreview && (
+                <div className="rounded-xl border border-gray-200 p-2 bg-white flex flex-col items-center">
+                  <p className="text-[11px] font-semibold text-gray-500 mb-1.5">Print do Gráfico do SIGAA Anexado</p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imagePreview}
+                    alt="Pré-visualização do gráfico de pizza do SIGAA"
+                    className="max-h-40 rounded-lg object-contain shadow-xs"
+                  />
+                </div>
+              )}
+
+              {/* Identificação escrita do Professor e Turma */}
+              <div className="border-t border-indigo-100/80 pt-2.5">
+                <p className="text-xs font-bold text-gray-700 uppercase mb-1.5">
+                  Ou confirme/escreva os dados da turma:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label htmlFor="input-prof" className="block text-[11px] font-medium text-gray-600 mb-0.5">
+                      Nome do Professor / Docente
+                    </label>
+                    <input
+                      id="input-prof"
+                      type="text"
+                      placeholder={turmaSelecionada?.professores.join(", ") || "Ex: Prof. João da Silva"}
+                      value={professorDigitado}
+                      onChange={(e) => setProfessorDigitado(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="input-turma-num" className="block text-[11px] font-medium text-gray-600 mb-0.5">
+                      Número / Código da Turma
+                    </label>
+                    <input
+                      id="input-turma-num"
+                      type="text"
+                      placeholder={`Turma ${turmaSelecionada?.turma || "01"}`}
+                      value={turmaDigitada}
+                      onChange={(e) => setTurmaDigitada(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Campos de percentuais lidos */}
             <div className="border-t border-gray-100 pt-3">
