@@ -36,6 +36,7 @@ class DisciplinaResumo(BaseModel):
     departamento: Optional[str] = None
     creditos: Optional[int] = None
     total_turmas: int = 0
+    locais_oferta: List[str] = Field(default_factory=list)
     metrica_consolidada: Optional[MetricaConsolidadaSchema] = None
     metricas: List[MetricaAcademicaSchema] = Field(default_factory=list)
 

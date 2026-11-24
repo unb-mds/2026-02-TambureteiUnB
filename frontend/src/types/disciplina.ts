@@ -1,3 +1,5 @@
+import { getDisciplineArea } from "../utils/disciplineAreas.ts";
+import { getOfferingCampuses } from "../utils/disciplineCampuses.ts";
 import { hasApprovalData } from "../utils/academicMetrics.ts";
 
 export interface HistoricalPerformance {
@@ -35,6 +37,7 @@ export interface Discipline {
   departmentName: string;
   campus: string;
   campusFilter: string;
+  offeringCampuses?: string[];
   area: "Exatas" | "Tecnologia" | "Saúde" | "Humanas";
   credits: string;
   hours: number;
@@ -67,6 +70,7 @@ export interface BackendDisciplinaResumo {
   departamento?: string | null;
   creditos?: number | null;
   total_turmas?: number;
+  locais_oferta?: string[];
   metrica_consolidada?: BackendMetricaConsolidada | null;
   metricas?: BackendMetricaAcademica[];
 }
@@ -196,28 +200,23 @@ export function adaptBackendDisciplina(
   const dep = (raw.departamento || "Geral").toUpperCase();
   let campus = "Darcy Ribeiro";
   let campusFilter = "Darcy Ribeiro";
-  let area: "Exatas" | "Tecnologia" | "Saúde" | "Humanas" = "Exatas";
+  const area = getDisciplineArea(raw);
 
   if (dep.includes("FGA") || dep.includes("FCTE")) {
     campus = "FCTE";
     campusFilter = "FCTE (Gama)";
-    area = "Tecnologia";
   } else if (dep.includes("FCE")) {
     campus = "FCE";
     campusFilter = "FCE (Ceilândia)";
-    area = "Saúde";
   } else if (dep.includes("FUP")) {
     campus = "FUP";
     campusFilter = "FUP (Planaltina)";
-    area = "Humanas";
   } else if (dep.includes("CIC")) {
     campus = "Darcy Ribeiro";
     campusFilter = "Darcy Ribeiro";
-    area = "Tecnologia";
   } else if (dep.includes("MAT") || dep.includes("EST") || dep.includes("FIS") || dep.includes("IQ")) {
     campus = "Darcy Ribeiro";
     campusFilter = "Darcy Ribeiro";
-    area = "Exatas";
   }
 
   const creditosNum = raw.creditos || 4;
@@ -276,6 +275,7 @@ export function adaptBackendDisciplina(
     departmentName: getDepartmentName(department),
     campus,
     campusFilter,
+    offeringCampuses: raw.locais_oferta ? getOfferingCampuses(raw.locais_oferta) : undefined,
     area,
     credits: `${creditosNum} créditos • ${cargaHoraria}h`,
     hours: cargaHoraria,

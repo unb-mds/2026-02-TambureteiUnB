@@ -15,6 +15,12 @@ from app.pipeline.transformers.sigaa_transformer import slugify
 
 
 class DisciplinaService:
+    @staticmethod
+    def _incluir_locais_oferta(db: Session, items: List[Disciplina], semestre: Optional[str] = None) -> None:
+        locais = disciplina_repo.listar_locais_oferta(db, [item.id for item in items], semestre)
+        for item in items:
+            item.locais_oferta = locais.get(item.id, [])
+
     def listar_catalogo(
         self,
         db: Session,
@@ -32,6 +38,7 @@ class DisciplinaService:
             skip=(page - 1) * size,
             limit=size,
         )
+        self._incluir_locais_oferta(db, items)
         return {
             "items": items,
             "total": total,
@@ -60,6 +67,7 @@ class DisciplinaService:
             skip=0,
             limit=limit,
         )
+        self._incluir_locais_oferta(db, items, semestre)
         return items
 
     @staticmethod

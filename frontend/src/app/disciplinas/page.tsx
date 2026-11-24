@@ -29,6 +29,7 @@ import {
 } from "@/types/disciplina";
 import { normalizeSearchTerm } from "@/utils/search";
 import { getDepartmentOptions } from "@/utils/disciplineDepartments";
+import { matchesDisciplineCampus } from "@/utils/disciplineCampuses";
 import ApprovalBadge from "@/components/ApprovalBadge";
 import { useDisciplineDetailedMetrics } from "@/hooks/useDisciplineApprovalMetrics";
 import {
@@ -88,10 +89,7 @@ function DisciplinasContent() {
         `${discipline.name} ${discipline.code} ${discipline.departmentName} ${discipline.department}`
       );
       const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
-      const matchesCampus =
-        campus === "Todos os Campi" ||
-        discipline.campusFilter === campus ||
-        discipline.campus === campus;
+      const matchesCampus = matchesDisciplineCampus(discipline, campus);
       const matchesDepartment =
         department === "Todos os Departamentos" ||
         discipline.departmentName === department;
@@ -527,7 +525,7 @@ function DisciplinasContent() {
                       </h2>
 
                       <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-                        {discipline.departmentName} <span className="mx-1 text-[#C4C1D8]">•</span> {discipline.campus}
+                        {discipline.departmentName} <span className="mx-1 text-[#C4C1D8]">•</span> {discipline.offeringCampuses?.length ? discipline.offeringCampuses.join(" / ") : discipline.campus}
                       </p>
 
                       {/* Painel de métricas adaptado automaticamente ao tema claro/escuro */}

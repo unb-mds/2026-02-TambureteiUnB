@@ -45,3 +45,19 @@ def test_name_search_ignores_accents_spacing_and_word_order(client, db):
         assert wanted.id in [item["id"] for item in response.json()]
     response = client.get("/cadeiras", params={"q": "%", "semestre": "2027.1"})
     assert response.json() == []
+
+
+def test_catalog_returns_offering_locations_independently_from_department(client, db):
+    subject = add_subject(db, "CAMP001", "Cálculo de teste", ["2026.2", "2025.1"])
+    subject.departamento = "Departamento de Matemática"
+    classes = db.query(Turma).filter(Turma.disciplina_id == subject.id).order_by(Turma.id).all()
+    classes[0].local = "FCTE - I9"
+    classes[1].local = "ICC - AT 10"
+    db.commit()
+    response = client.get("/cadeiras", params={"codigo":"CAMP001", "semestre":"2026.2"})
+    assert response.status_code == 200
+    assert response.json()[0]["locais_oferta"] == ["FCTE - I9"]
+    assert response.json()[0]["departamento"] == "Departamento de Matemática"
+    response = client.get("/catalogo/cadeiras", params={"codigo":"CAMP001"})
+    assert response.status_code == 200
+    assert set(response.json()["items"][0]["locais_oferta"]) == {"FCTE - I9", "ICC - AT 10"}
