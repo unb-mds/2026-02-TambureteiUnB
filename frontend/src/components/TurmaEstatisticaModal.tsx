@@ -98,18 +98,41 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
 
     setSubmitting(true);
 
-    // 1. Busca a turma na API pelo codigo da disciplina e semestre para obter o ID real
-    request<Array<{ id: number; codigo_turma: string; semestre: string }>>(`/turmas?semestre=${encodeURIComponent(turmaSelecionada.semestre)}`)
-      .then(async (turmasApi) => {
+    // 1. Busca a disciplina pelo código exato via /cadeiras?codigo=...
+    request<Array<{ id: number; slug: string; codigo: string }>>(
+      `/cadeiras?codigo=${encodeURIComponent(turmaSelecionada.codigo)}`
+    )
+      .then(async (disciplinas) => {
+        const discEncontrada = disciplinas.find(
+          (d) => d.codigo.toUpperCase() === turmaSelecionada.codigo.toUpperCase()
+        );
+
+        if (!discEncontrada) {
+          throw new ApiError(
+            `A disciplina ${turmaSelecionada.codigo} não foi encontrada no catálogo da plataforma.`,
+            404
+          );
+        }
+
+        // 2. Consulta as turmas da disciplina pelo ID e semestre
+        const turmasApi = await request<
+          Array<{ id: number; codigo_turma: string; semestre: string }>
+        >(
+          `/turmas?disciplina_id=${discEncontrada.id}&semestre=${encodeURIComponent(
+            turmaSelecionada.semestre
+          )}`
+        );
+
         const turmaEncontrada = turmasApi.find(
-          (t) => t.codigo_turma.toUpperCase() === turmaSelecionada.turma.toUpperCase()
+          (t) =>
+            t.codigo_turma.toUpperCase() === turmaSelecionada.turma.toUpperCase()
         );
 
         const turmaIdReal = turmaEncontrada?.id || turmaSelecionada.turma_id;
 
         if (!turmaIdReal) {
           throw new ApiError(
-            `A turma ${turmaSelecionada.turma} do semestre ${turmaSelecionada.semestre} ainda não possui registro cadastrado na base de turmas do Tamburetei para receber estatísticas consolidadas.`,
+            `A turma ${turmaSelecionada.turma} da disciplina ${turmaSelecionada.codigo} no semestre ${turmaSelecionada.semestre} ainda não possui registro cadastrado na base de turmas do Tamburetei para receber estatísticas consolidadas.`,
             404
           );
         }
