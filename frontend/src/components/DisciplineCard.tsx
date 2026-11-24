@@ -40,13 +40,13 @@ export default function DisciplineCard({ discipline, detailedMetrics }: Discipli
       {/* Link overlay cobrindo todo o retangulo do card da disciplina */}
       <Link
         href={`/disciplinas/${discipline.slug}`}
-        className="absolute inset-0 z-10 rounded-2xl focus:outline-hidden"
+        className="absolute inset-0 z-30 rounded-2xl focus:outline-hidden"
         aria-label={`Acessar disciplina ${discipline.name}`}
       >
         <span className="sr-only">Acessar disciplina {discipline.name}</span>
       </Link>
 
-      <div>
+      <div className="pointer-events-none">
         <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
@@ -71,7 +71,7 @@ export default function DisciplineCard({ discipline, detailedMetrics }: Discipli
                 : "Sem dados"}
             </span>
           </div>
-          <div className="relative z-20">
+          <div>
             <ApprovalBadge approval={resolvedApproval} />
           </div>
         </div>
@@ -210,7 +210,7 @@ export default function DisciplineCard({ discipline, detailedMetrics }: Discipli
         </div>
       </div>
 
-      <div className="mt-6 border-t border-[#EDE9FD] pt-4">
+      <div className="mt-6 border-t border-[#EDE9FD] pt-4 pointer-events-none">
         <div className="flex w-full items-center justify-between text-xs sm:text-sm font-bold text-[#5B4BDB] group-hover:translate-x-0.5 transition-all">
           <span>Acessar disciplina</span>
           <span aria-hidden="true">→</span>

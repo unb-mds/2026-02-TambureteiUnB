@@ -38,13 +38,13 @@ export default function CourseCard({ course, activeYear = "all" }: CourseCardPro
       {/* Link overlay cobrindo todo o retangulo do card */}
       <Link
         href={`/cursos/${course.slug}`}
-        className="absolute inset-0 z-10 rounded-2xl focus:outline-hidden"
+        className="absolute inset-0 z-30 rounded-2xl focus:outline-hidden"
         aria-label={`Ver curso ${course.nome}`}
       >
         <span className="sr-only">Ver curso {course.nome}</span>
       </Link>
 
-      <div>
+      <div className="pointer-events-none">
         {/* Badges superiores: Campus e Grau */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -79,7 +79,7 @@ export default function CourseCard({ course, activeYear = "all" }: CourseCardPro
           {course.nome}
         </h3>
 
-        <div className="relative z-20">
+        <div>
           <PasAdmissionCard course={course} year={activeYear} />
         </div>
 
@@ -182,7 +182,7 @@ export default function CourseCard({ course, activeYear = "all" }: CourseCardPro
       </div>
 
       {/* Rodapé do Card com Métricas e Botão */}
-      <div className="mt-5 pt-4 border-t border-[#F7F7FA] flex items-center justify-between gap-3">
+      <div className="mt-5 pt-4 border-t border-[#F7F7FA] flex items-center justify-between gap-3 pointer-events-none">
         <div className="text-[11px] text-gray-500 flex flex-col">
           <span className="font-semibold text-gray-700">
             {course.semestres ? `${course.semestres} semestres` : "Fluxo sugerido"}
