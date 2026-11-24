@@ -205,3 +205,56 @@ class TestCatalogoCadeiras:
         codigos_filtered = [item["codigo"] for item in resp_filtered.json()]
         assert "TURMA001" in codigos_filtered
         assert "TURMA002" not in codigos_filtered
+
+    def test_listar_cadeiras_inclui_metrica_consolidada(self, client, db):
+        from app.models.metrica import MetricaConsolidada
+
+        d_com_metrica = _criar_disciplina(db, "METR0001", "disc-com-metrica", "Disciplina Com Metrica", "METRTEST")
+        _criar_disciplina(db, "METR0002", "disc-sem-metrica", "Disciplina Sem Metrica", "METRTEST")
+
+        mc = MetricaConsolidada(
+            disciplina_id=d_com_metrica.id,
+            matriculados=20,
+            aprovados=15,
+            reprovados_nota=3,
+            reprovados_falta=1,
+            trancamentos=1,
+            taxa_aprovacao_acumulada=75.0,
+            total_turmas_suprimidas=0,
+        )
+        db.add(mc)
+        db.commit()
+
+        resp = client.get("/cadeiras?departamento=METRTEST")
+        assert resp.status_code == 200
+        by_codigo = {item["codigo"]: item for item in resp.json()}
+
+        assert by_codigo["METR0001"]["metrica_consolidada"] is not None
+        assert by_codigo["METR0001"]["metrica_consolidada"]["taxa_aprovacao_acumulada"] == 75.0
+        assert by_codigo["METR0002"]["metrica_consolidada"] is None
+
+    def test_listar_cadeiras_inclui_metricas_anuais(self, client, db):
+        from app.models.metrica import MetricaAcademica
+
+        disc = _criar_disciplina(db, "ANUAL01", "disc-anual-teste", "Disciplina Anual Teste", "ANUALTEST")
+        ma = MetricaAcademica(
+            disciplina_id=disc.id,
+            ano=2023,
+            semestre=2,
+            matriculados=40,
+            aprovados=30,
+            reprovados_nota=5,
+            reprovados_falta=2,
+            trancamentos=3,
+            taxa_aprovacao=75.0,
+            amostragem_suprimida_lgpd=False,
+        )
+        db.add(ma)
+        db.commit()
+
+        resp = client.get("/cadeiras?departamento=ANUALTEST")
+        assert resp.status_code == 200
+        item = next(d for d in resp.json() if d["codigo"] == "ANUAL01")
+        assert len(item["metricas"]) == 1
+        assert item["metricas"][0]["ano"] == 2023
+        assert item["metricas"][0]["trancamentos"] == 3

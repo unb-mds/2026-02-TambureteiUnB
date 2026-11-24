@@ -8,8 +8,14 @@ import Footer from "@/components/Footer";
 import Button from "@/components/Button";
 import Pagination from "@/components/Pagination";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
+import CatalogYearFilter from "@/components/CatalogYearFilter";
 import { getCourses } from "@/services/courseService";
 import { exportCoursesOpenData } from "@/services/openDataService";
+import {
+  getAvailableCourseCatalogYears,
+  getCourseMetricsForYear,
+  type CatalogYearSelection,
+} from "@/utils/catalogYearFilter";
 import useAsyncList from "@/hooks/useAsyncList";
 import {
   filterCourses,
@@ -28,7 +34,17 @@ export default function CursosPage() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
+  const [selectedYear, setSelectedYear] = useState<CatalogYearSelection>("all");
   const [currentPage, setCurrentPage] = useState(1);
+
+  const availableYears = useMemo(
+    () => getAvailableCourseCatalogYears(courses),
+    [courses]
+  );
+  const activeYear: CatalogYearSelection =
+    selectedYear === "all" || availableYears.includes(selectedYear)
+      ? selectedYear
+      : "all";
 
   // Filtro e busca em tempo real
   const filteredCourses = useMemo(() => {
@@ -42,6 +58,11 @@ export default function CursosPage() {
 
   const handleCampusChange = (campus: CampusFilter) => {
     setSelectedCampus(campus);
+    setCurrentPage(1);
+  };
+
+  const handleYearChange = (year: CatalogYearSelection) => {
+    setSelectedYear(year);
     setCurrentPage(1);
   };
 
@@ -149,12 +170,13 @@ export default function CursosPage() {
             )}
           </p>
 
-          {(searchQuery || selectedCampus !== "Todos") && (
+          {(searchQuery || selectedCampus !== "Todos" || activeYear !== "all") && (
             <button
               type="button"
               onClick={() => {
                 handleSearchChange("");
                 handleCampusChange("Todos");
+                handleYearChange("all");
               }}
               className="text-xs text-[#5B4BDB] hover:text-[#4F3EC9] font-semibold hover:underline"
             >
@@ -163,15 +185,26 @@ export default function CursosPage() {
           )}
         </div>
 
+        <CatalogYearFilter
+          years={availableYears}
+          selectedYear={activeYear}
+          onChange={handleYearChange}
+        />
+
         <div className="mb-6">
           <OpenDataExportBar
-            title="Exportar Dados Abertos de Cursos"
+            title={
+              activeYear === "all"
+                ? "Exportar Dados Abertos de Cursos"
+                : `Exportar Dados Abertos de Cursos (${activeYear})`
+            }
             recordCount={filteredCourses.length}
             recordLabel="cursos"
             disabled={loading}
             compact={true}
             onExport={(format) =>
               exportCoursesOpenData(filteredCourses, format, {
+                year: activeYear,
                 identifier: selectedCampus !== "Todos" ? selectedCampus : null,
               })
             }
@@ -272,7 +305,7 @@ export default function CursosPage() {
 
                     {/* Indicadores DPO reais do Curso */}
                     {(() => {
-                      const m = course.metricas_recentes || course.metricas_2024;
+                      const m = getCourseMetricsForYear(course, activeYear);
                       if (!m) {
                         return (
                           <div className="mt-4 pt-3 border-t border-[#EDE9FD]/60">
@@ -282,11 +315,13 @@ export default function CursosPage() {
                                   Métricas Institucionais
                                 </span>
                                 <span className="text-[10px] font-semibold text-[#5B4BDB] bg-[#5B4BDB]/10 px-2 py-0.5 rounded-md">
-                                  DPO
+                                  {activeYear === "all" ? "DPO" : `DPO ${activeYear}`}
                                 </span>
                               </div>
                               <span className="text-[11px] text-gray-500 mt-1">
-                                Dados unificados no turno principal pelo anuário
+                                {activeYear === "all"
+                                  ? "Dados unificados no turno principal pelo anuário"
+                                  : `Sem registro individual para o ano de ${activeYear}`}
                               </span>
                             </div>
 
@@ -305,7 +340,7 @@ export default function CursosPage() {
                           <div className="grid grid-cols-2 gap-2">
                             <div className="bg-[#F8F7FD] rounded-xl p-2.5 flex flex-col justify-between border border-[#EDE9FD]/70">
                               <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
-                                Matriculados
+                                Matriculados {m.ano ? `(${m.ano})` : ""}
                               </span>
                               <span className="text-sm font-extrabold text-[#202124] mt-0.5">
                                 {m.matriculados.toLocaleString("pt-BR")}{" "}
@@ -324,17 +359,22 @@ export default function CursosPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between text-[11px] text-gray-500 px-1 pt-2.5">
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-500 px-1 pt-2.5">
                             <span className="flex items-center gap-1.5">
                               <span className="h-1.5 w-1.5 rounded-full bg-[#5B4BDB]" />
                               Ingressantes: <strong className="font-semibold text-gray-700">{m.ingressantes}</strong>
                               {m.vagas_totais > 0 && m.vagas_totais !== m.ingressantes ? ` / ${m.vagas_totais} vagas` : " vagas"}
                             </span>
-                            {m.taxa_evasao !== null && m.taxa_evasao !== undefined && (
+                            <div className="flex items-center gap-1.5">
                               <span className="font-semibold text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
-                                {m.taxa_evasao}% evasão anual
+                                {m.trancados.toLocaleString("pt-BR")} tranc.
                               </span>
-                            )}
+                              {m.taxa_evasao !== null && m.taxa_evasao !== undefined && (
+                                <span className="font-semibold text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                                  {m.taxa_evasao}% evasão anual
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );

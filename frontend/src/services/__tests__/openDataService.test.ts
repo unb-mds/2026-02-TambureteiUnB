@@ -405,10 +405,100 @@ test("mapCoursesToOpenData preserva metadados ausentes como null no JSON e vazio
   const csvLines = csvExport.content.slice(UTF8_BOM.length).split("\r\n");
   assert.equal(
     csvLines[0],
-    "id,codigo_mec,nome,slug,campus,departamento,grau,turno,semestres,total_disciplinas,matriculados_recentes,concluintes_recentes,taxa_sucesso_pct,taxa_evasao_pct"
+    "id,codigo_mec,nome,slug,campus,departamento,grau,turno,semestres,total_disciplinas,ano,matriculados_recentes,concluintes_recentes,trancamentos,taxa_sucesso_pct,taxa_evasao_pct"
   );
   assert.equal(
     csvLines[1],
-    "curso-interno-99,,Engenharia Aeroespacial,engenharia-aeroespacial,FCTE,,,,,,,,,"
+    "curso-interno-99,,Engenharia Aeroespacial,engenharia-aeroespacial,FCTE,,,,,,,,,,,"
   );
+});
+
+test("exportCoursesOpenData e exportDisciplinesOpenData filtram por ano e exportam trancamentos", () => {
+  const course: Course = {
+    id: "1",
+    codigo_mec: "114628",
+    nome: "Engenharia de Software",
+    slug: "engenharia-de-software",
+    campus: "FCTE",
+    metricas_recentes: {
+      ano: 2024,
+      vagas_totais: 120,
+      inscritos_total: 600,
+      ingressantes: 115,
+      matriculados: 540,
+      concluintes: 62,
+      trancados: 18,
+      desvinculados: 20,
+      taxa_sucesso: 84.2,
+      taxa_evasao: 3.7,
+    },
+    metricas_historicas: [
+      {
+        ano: 2022,
+        vagas_totais: 110,
+        inscritos_total: 520,
+        ingressantes: 108,
+        matriculados: 490,
+        concluintes: 50,
+        trancados: 27,
+        desvinculados: 15,
+        taxa_sucesso: 80.5,
+        taxa_evasao: 3.1,
+      },
+    ],
+  };
+
+  const course2022 = exportCoursesOpenData([course], "json", {
+    year: 2022,
+    identifier: "FCTE",
+    downloadHandler: null,
+  });
+  const parsedCourse = JSON.parse(course2022.content);
+  assert.equal(course2022.filename.includes("fcte-2022"), true);
+  assert.equal(parsedCourse.dados[0].ano, 2022);
+  assert.equal(parsedCourse.dados[0].matriculados_recentes, 490);
+  assert.equal(parsedCourse.dados[0].trancamentos, 27);
+
+  const discipline: Discipline = {
+    id: 1,
+    code: "MAT0025",
+    name: "Cálculo 1",
+    slug: "calculo-1",
+    department: "MAT",
+    departmentName: "Departamento de Matemática",
+    campus: "Darcy Ribeiro",
+    campusFilter: "Darcy Ribeiro",
+    area: "Exatas",
+    credits: "6 créditos • 90h",
+    hours: 90,
+    approval: 75,
+    failedGrade: 15,
+    failedAttendance: 5,
+    withdrawn: 5,
+    resources: 0,
+    popularity: 90,
+    metrica_consolidada: {
+      matriculados: 200,
+      aprovados: 150,
+      reprovados_nota: 30,
+      reprovados_falta: 10,
+      trancamentos: 10,
+      taxa_aprovacao_acumulada: 75,
+      total_turmas_suprimidas: 0,
+    },
+    historicalPerformance: [
+      { semester: "2023/1", matriculados: 100, approved: 70, failed: 20, absent: 4, withdrawn: 6, amostragem_suprimida_lgpd: false },
+      { semester: "2023/2", matriculados: 100, approved: 80, failed: 10, absent: 6, withdrawn: 4, amostragem_suprimida_lgpd: false },
+    ],
+  };
+
+  const disc2023 = exportDisciplinesOpenData([discipline], "json", {
+    year: 2023,
+    downloadHandler: null,
+  });
+  const parsedDisc = JSON.parse(disc2023.content);
+  assert.equal(disc2023.filename.includes("2023"), true);
+  assert.equal(parsedDisc.dados[0].ano, 2023);
+  assert.equal(parsedDisc.dados[0].matriculados, 200);
+  assert.equal(parsedDisc.dados[0].trancamentos, 10);
 });

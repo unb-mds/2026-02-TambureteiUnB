@@ -13,8 +13,14 @@ import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
 import Pagination from "@/components/Pagination";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
+import CatalogYearFilter from "@/components/CatalogYearFilter";
 import { getDisciplines } from "@/services/disciplineService";
 import { exportDisciplinesOpenData } from "@/services/openDataService";
+import {
+  applyDisciplineYearFilter,
+  getAvailableDisciplineCatalogYears,
+  type CatalogYearSelection,
+} from "@/utils/catalogYearFilter";
 import useAsyncList from "@/hooks/useAsyncList";
 import {
   GLOBAL_CAMPUSES,
@@ -50,9 +56,19 @@ function DisciplinasContent() {
     [disciplines],
   );
   const [area, setArea] = useState("Todas");
-  const [sort, setSort] = useState<DisciplineSortOption>("approval_desc");
+  const [selectedYear, setSelectedYear] = useState<CatalogYearSelection>("all");
+  const [sort, setSort] = useState<DisciplineSortOption>("name_asc");
   const [onlyWithClasses, setOnlyWithClasses] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const availableYears = useMemo(
+    () => getAvailableDisciplineCatalogYears(disciplines),
+    [disciplines]
+  );
+  const activeYear: CatalogYearSelection =
+    selectedYear === "all" || availableYears.includes(selectedYear)
+      ? selectedYear
+      : "all";
 
   const handleQueryChange = (newQuery: string) => {
     setQuery(newQuery);
@@ -83,8 +99,14 @@ function DisciplinasContent() {
 
       return matchesQuery && matchesCampus && matchesDepartment && matchesArea;
     });
-    return sortDisciplines(filtered, sort);
-  }, [disciplines, query, campus, department, area, sort, onlyWithClasses]);
+
+    const yearAdjusted =
+      activeYear === "all"
+        ? filtered.map((d) => applyDisciplineYearFilter(d, "all"))
+        : filtered.map((d) => applyDisciplineYearFilter(d, activeYear));
+
+    return sortDisciplines(yearAdjusted, sort);
+  }, [disciplines, query, campus, department, area, sort, onlyWithClasses, activeYear]);
 
   const totalPages = Math.max(1, Math.ceil(filteredResults.length / ITEMS_PER_PAGE));
   const activePage = Math.min(currentPage, totalPages);
@@ -122,6 +144,11 @@ function DisciplinasContent() {
     setCurrentPage(1);
   };
 
+  const handleYearChange = (year: CatalogYearSelection) => {
+    setSelectedYear(year);
+    setCurrentPage(1);
+  };
+
   const executeSearch = () => {
     setCurrentPage(1);
   };
@@ -131,7 +158,8 @@ function DisciplinasContent() {
     setCampus("Todos os Campi");
     setDepartment("Todos os Departamentos");
     setArea("Todas");
-    setSort("approval_desc");
+    setSelectedYear("all");
+    setSort("name_asc");
     setOnlyWithClasses(true);
     setCurrentPage(1);
   };
@@ -385,15 +413,28 @@ function DisciplinasContent() {
             </label>
           </div>
 
+          <CatalogYearFilter
+            years={availableYears}
+            selectedYear={activeYear}
+            onChange={handleYearChange}
+            allLabel="Todos os anos"
+            description="Exibindo acumulado consolidado de todos os anos disponíveis"
+          />
+
           <div className="mb-6">
             <OpenDataExportBar
-              title="Exportar Catalogo Analitico de Disciplinas"
+              title={
+                activeYear === "all"
+                  ? "Exportar Catalogo Analitico de Disciplinas"
+                  : `Exportar Catalogo Analitico de Disciplinas (${activeYear})`
+              }
               recordCount={filteredResults.length}
               recordLabel="disciplinas"
               disabled={loading}
               compact={true}
               onExport={(format) =>
                 exportDisciplinesOpenData(filteredResults, format, {
+                  year: activeYear,
                   identifier: department !== "Todos os Departamentos" ? department : null,
                 })
               }
@@ -424,7 +465,8 @@ function DisciplinasContent() {
             <>
               <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedResults.map((discipline) => {
-                  const detailed = detailedMetrics[discipline.slug];
+                  const detailed =
+                    activeYear === "all" ? detailedMetrics[discipline.slug] : undefined;
                   const resolvedApproval =
                     detailed?.approval ?? discipline.approval;
                   const resolvedFailedGrade =

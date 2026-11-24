@@ -1,5 +1,5 @@
 from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 import unicodedata
 from app.models.disciplina import Disciplina
@@ -57,7 +57,10 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
         skip: int = 0,
         limit: Optional[int] = None,
     ) -> Tuple[List[Disciplina], int]:
-        query = db.query(Disciplina)
+        query = db.query(Disciplina).options(
+            joinedload(Disciplina.metrica_consolidada),
+            selectinload(Disciplina.metricas),
+        )
         if apenas_com_turmas:
             query = query.filter(Disciplina.total_turmas > 0)
         if semestre:

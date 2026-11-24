@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Discipline } from "../../types/disciplina.ts";
-import { sortDisciplines } from "../disciplineSorting.ts";
+import { DISCIPLINE_SORT_OPTIONS, sortDisciplines } from "../disciplineSorting.ts";
 
 function makeDiscipline(
   name: string,
@@ -59,5 +59,25 @@ test("ordena por nome, turmas ofertadas e carga horária usando dados reais", ()
   assert.deepEqual(
     sortDisciplines(disciplines, "hours_desc").map(({ name }) => name),
     ["Álgebra", "Cálculo", "Banco de Dados"],
+  );
+});
+
+test("lista ordem alfabética como primeira opção e desempata por nome", () => {
+  assert.equal(DISCIPLINE_SORT_OPTIONS[0]?.value, "name_asc");
+
+  const disciplines = [
+    makeDiscipline("Zebra", { approval: 80 }),
+    makeDiscipline("Beta", { approval: null }),
+    makeDiscipline("Alfa", { approval: null }),
+    makeDiscipline("Cálculo", { approval: 80 }),
+  ];
+
+  assert.deepEqual(
+    sortDisciplines(disciplines, "approval_desc").map(({ name }) => name),
+    ["Cálculo", "Zebra", "Alfa", "Beta"],
+  );
+  assert.deepEqual(
+    sortDisciplines(disciplines, "approval_asc").map(({ name }) => name),
+    ["Cálculo", "Zebra", "Alfa", "Beta"],
   );
 });
