@@ -15,8 +15,7 @@ interface MaterialPreviewModalProps {
   onReject: (material: MaterialPendente, motivo: string) => Promise<void>;
 }
 
-export default function MaterialPreviewModal({
-  isOpen,
+function MaterialPreviewDialog({
   material,
   blobUrl,
   loading,
@@ -24,7 +23,7 @@ export default function MaterialPreviewModal({
   onClose,
   onApprove,
   onReject,
-}: MaterialPreviewModalProps) {
+}: Omit<MaterialPreviewModalProps, "isOpen"> & { material: MaterialPendente }) {
   const [motivo, setMotivo] = useState("");
   const [erroMotivo, setErroMotivo] = useState("");
   const [exibirCampoMotivo, setExibirCampoMotivo] = useState(false);
@@ -36,28 +35,13 @@ export default function MaterialPreviewModal({
         onClose();
       }
     }
-    if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-    }
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, enviando, onClose]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setMotivo("");
-      setErroMotivo("");
-      setExibirCampoMotivo(false);
-      setEnviando(false);
-    }
-  }, [isOpen, material]);
-
-  if (!isOpen || !material) {
-    return null;
-  }
+  }, [enviando, onClose]);
 
   const isPdf = material.formato.toLowerCase() === "pdf";
   const isImage = ["png", "jpg", "jpeg"].includes(material.formato.toLowerCase());
@@ -76,10 +60,8 @@ export default function MaterialPreviewModal({
     setErroMotivo("");
     setEnviando(true);
     try {
-      if (material) {
-        await onReject(material, textoLimpo);
-        onClose();
-      }
+      await onReject(material, textoLimpo);
+      onClose();
     } finally {
       setEnviando(false);
     }
@@ -88,10 +70,8 @@ export default function MaterialPreviewModal({
   async function handleConfirmApprove() {
     setEnviando(true);
     try {
-      if (material) {
-        await onApprove(material);
-        onClose();
-      }
+      await onApprove(material);
+      onClose();
     } finally {
       setEnviando(false);
     }
@@ -221,5 +201,19 @@ export default function MaterialPreviewModal({
         </footer>
       </div>
     </div>
+  );
+}
+
+export default function MaterialPreviewModal(props: MaterialPreviewModalProps) {
+  if (!props.isOpen || !props.material) {
+    return null;
+  }
+
+  return (
+    <MaterialPreviewDialog
+      key={props.material.id}
+      {...props}
+      material={props.material}
+    />
   );
 }

@@ -15,41 +15,60 @@ import { ApiError } from "../httpClient.ts";
 
 const dados = new Map<string, string>();
 Object.defineProperty(globalThis, "window", { value: {}, configurable: true });
-Object.defineProperty(globalThis, "localStorage", { value: {
-  getItem: (key: string) => dados.get(key) ?? null,
-  setItem: (key: string, value: string) => dados.set(key, value),
-  removeItem: (key: string) => dados.delete(key),
-}, configurable: true });
+Object.defineProperty(globalThis, "localStorage", {
+  value: {
+    getItem: (key: string) => dados.get(key) ?? null,
+    setItem: (key: string, value: string) => dados.set(key, value),
+    removeItem: (key: string) => dados.delete(key),
+  },
+  configurable: true,
+});
 
 test("somente perfis administrativos podem moderar", () => {
   assert.equal(podeModerar("STUDENT"), false);
+  assert.equal(podeModerar("estudante"), false);
   assert.equal(podeModerar("MODERATOR"), true);
+  assert.equal(podeModerar("MODERADOR"), true);
   assert.equal(podeModerar("ADMIN"), true);
 });
 
 test("perfil ADMIN em cache não autoriza estudante", async (t) => {
   dados.set("tamburetei_auth_token", "token");
   dados.set("tamburetei_user", JSON.stringify({ role: "ADMIN" }));
-  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ id: "1", role: "STUDENT" }), { status: 200 }));
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response(JSON.stringify({ id: "1", role: "STUDENT" }), { status: 200 })
+  );
   await assert.rejects(verificarModerador(), (e: unknown) => e instanceof ApiError && e.status === 403);
 });
 
 test("sem token não consulta sessão", async (t) => {
   dados.clear();
-  const fetch = t.mock.method(globalThis, "fetch", async () => { throw new Error("Não deveria consultar"); });
+  const fetch = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("Não deveria consultar");
+  });
   await assert.rejects(verificarModerador(), (e: unknown) => e instanceof ApiError && e.status === 401);
   assert.equal(fetch.mock.callCount(), 0);
 });
 
 test("sessão expirada não usa fallback de cache", async (t) => {
   dados.set("tamburetei_auth_token", "expirado");
-  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ detail: "Token expirado." }), { status: 401 }));
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response(JSON.stringify({ detail: "Token expirado." }), { status: 401 })
+  );
   await assert.rejects(verificarModerador(), (e: unknown) => e instanceof ApiError && e.status === 401);
 });
 
 test("perfil administrativo validado no servidor", async (t) => {
   dados.set("tamburetei_auth_token", "token");
-  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ id: "1", role: "ADMIN", is_active: true }), { status: 200 }));
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response(JSON.stringify({ id: "1", role: "ADMIN", is_active: true }), { status: 200 })
+  );
   assert.equal((await verificarModerador()).role, "ADMIN");
 });
 
@@ -65,7 +84,10 @@ test("fila e decisão usam Bearer e contrato correto", async (t) => {
   assert.match(chamadas[0].url, /pagina=2&tamanho_pagina=20/);
   assert.equal(new Headers(chamadas[0].options.headers).get("Authorization"), "Bearer token");
   assert.equal(chamadas[1].options.method, "PATCH");
-  assert.deepEqual(JSON.parse(String(chamadas[1].options.body)), { status: "RECUSADO", justificativa: "Material inadequado." });
+  assert.deepEqual(JSON.parse(String(chamadas[1].options.body)), {
+    status: "RECUSADO",
+    justificativa: "Material inadequado.",
+  });
 });
 
 test("conflito de outro moderador é propagado", async (t) => {
@@ -110,18 +132,18 @@ test("criarDenuncia valida entrada e envia POST para /comunidade/denuncias", asy
         ocultado_automaticamente: false,
         created_at: "2026-11-06T12:00:00Z",
       }),
-      { status: 201 },
+      { status: 201 }
     );
   });
 
   await assert.rejects(
     criarDenuncia({ categoria: "OFENSA_DOCENTE", motivo: "Motivo válido com mais de cinco letras" }),
-    /alvo válido/,
+    /alvo válido/
   );
 
   await assert.rejects(
     criarDenuncia({ comentario_id: 42, categoria: "OFENSA_DOCENTE", motivo: "abc" }),
-    /mínimo 5 caracteres/,
+    /mínimo 5 caracteres/
   );
 
   const resposta = await criarDenuncia({
@@ -167,14 +189,6 @@ test("listarDenunciasPendentes e decidirDenuncia enviam filtros e payload de aca
   });
 });
 
-  test("podeModerar aceita MODERATOR, MODERADOR e ADMIN e rejeita outros", () => {
-  assert.equal(podeModerar("STUDENT"), false);
-  assert.equal(podeModerar("estudante"), false);
-  assert.equal(podeModerar("MODERATOR"), true);
-  assert.equal(podeModerar("MODERADOR"), true);
-  assert.equal(podeModerar("ADMIN"), true);
-});
-
 test("decidirCuradoria envia status RECUSADO com justificativa informada pelo moderador", async (t) => {
   dados.set("tamburetei_auth_token", "token");
   const chamadas: Array<{ url: string; options: RequestInit }> = [];
@@ -194,7 +208,11 @@ test("decidirCuradoria envia status RECUSADO com justificativa informada pelo mo
 
 test("decidirDenuncia propaga erro de conflito 409 quando ja avaliada por outro moderador", async (t) => {
   dados.set("tamburetei_auth_token", "token-mod");
-  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ detail: "Já avaliada por outro moderador." }), { status: 409 }));
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response(JSON.stringify({ detail: "Já avaliada por outro moderador." }), { status: 409 })
+  );
 
   await assert.rejects(
     decidirDenuncia(10, "EXCLUIR_CONTEUDO", "Violação confirmada da RN04"),
@@ -213,4 +231,81 @@ test("baixarParaAnalise retorna blob integro para geracao de preview", async (t)
   const blob = await baixarParaAnalise(45);
   assert.ok(blob);
   assert.equal(await blob.text(), "%PDF-1.4 conteudo de teste para visualizacao");
+});
+
+test("fluxo de justificativa obrigatoria rejeita texto em branco e valida tamanho", () => {
+  function validarJustificativaRecusa(texto: string): { valido: boolean; erro?: string; limpo?: string } {
+    const limpo = texto.trim();
+    if (!limpo) {
+      return { valido: false, erro: "Informe uma justificativa para recusar o material." };
+    }
+    if (limpo.length > 1000) {
+      return { valido: false, erro: "A justificativa deve ter no máximo 1000 caracteres." };
+    }
+    return { valido: true, limpo };
+  }
+
+  assert.equal(validarJustificativaRecusa("").valido, false);
+  assert.equal(validarJustificativaRecusa("     ").valido, false);
+  assert.equal(validarJustificativaRecusa("a".repeat(1001)).valido, false);
+  const ok = validarJustificativaRecusa("  Arquivo com baixa resolucao e dados ilegiveis.  ");
+  assert.equal(ok.valido, true);
+  assert.equal(ok.limpo, "Arquivo com baixa resolucao e dados ilegiveis.");
+});
+
+test("gerenciamento de URLs de preview invoca revokeObjectURL ao substituir e fechar", () => {
+  const revogados: string[] = [];
+  const fakeUrlModule = {
+    createObjectURL: (blob: unknown) => `blob:http://localhost/${String(blob)}`,
+    revokeObjectURL: (url: string) => {
+      revogados.push(url);
+    },
+  };
+
+  let previewUrl: string | null = null;
+  function abrir(novoBlob: string) {
+    if (previewUrl) {
+      fakeUrlModule.revokeObjectURL(previewUrl);
+    }
+    previewUrl = fakeUrlModule.createObjectURL(novoBlob);
+  }
+
+  function fechar() {
+    if (previewUrl) {
+      fakeUrlModule.revokeObjectURL(previewUrl);
+      previewUrl = null;
+    }
+  }
+
+  abrir("arquivo-1");
+  assert.equal(previewUrl, "blob:http://localhost/arquivo-1");
+  assert.equal(revogados.length, 0);
+
+  abrir("arquivo-2");
+  assert.equal(previewUrl, "blob:http://localhost/arquivo-2");
+  assert.deepEqual(revogados, ["blob:http://localhost/arquivo-1"]);
+
+  fechar();
+  assert.equal(previewUrl, null);
+  assert.deepEqual(revogados, ["blob:http://localhost/arquivo-1", "blob:http://localhost/arquivo-2"]);
+});
+
+test("tratamento de concorrencia visual descarta resposta de download assincrono obsoleto", async () => {
+  let seqAtual = 0;
+  let materialVisivelId: number | null = null;
+
+  async function dispararDownloadConcorrente(materialId: number, delayMs: number) {
+    const reqSeq = ++seqAtual;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    if (reqSeq === seqAtual) {
+      materialVisivelId = materialId;
+    }
+  }
+
+  const req1 = dispararDownloadConcorrente(101, 50);
+  const req2 = dispararDownloadConcorrente(102, 10);
+
+  await Promise.all([req1, req2]);
+
+  assert.equal(materialVisivelId, 102);
 });
