@@ -1,13 +1,18 @@
 "use client";
+
+import { hasApprovalData } from "@/utils/academicMetrics";
+import { normalizeSearchTerm } from "@/utils/search";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
 import DificuldadesPanel from "@/components/DificuldadesPanel";
 import MateriaisApoio from "@/components/MateriaisApoio";
+import PreRequisitosSection from "@/components/PreRequisitosSection";
 
 import React, {
   useState,
   useEffect,
   useMemo,
   useCallback,
+  useSyncExternalStore,
   Suspense,
 } from "react";
 import Link from "next/link";
@@ -21,6 +26,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
 import ClassCard from "@/components/ClassCard";
+import Pagination from "@/components/Pagination";
+import { CLASSES_PER_PAGE, paginateClasses } from "@/utils/classPagination";
 import ClassCardSkeleton from "@/components/ClassCardSkeleton";
 import ClassEmptyState from "@/components/ClassEmptyState";
 import ClassFilters, {
@@ -28,21 +35,32 @@ import ClassFilters, {
   CLASS_SORT_OPTIONS,
 } from "@/components/ClassFilters";
 import MaterialModal from "@/components/MaterialModal";
-import { isAuthenticated } from "@/services/authService";
+import OpenDataExportBar from "@/components/OpenDataExportBar";
+import ClassPerformancePieForm from "@/components/ClassPerformancePieForm";
+import { isAuthenticated, subscribeAuthChange } from "@/services/authService";
 import {
   getDisciplineBySlug,
   getClassesByDiscipline,
 } from "@/services/disciplineService";
 import {
+  exportDisciplineHistoryOpenData,
+  mapHistoricalPerformanceToOpenData,
+} from "@/services/openDataService";
+import {
+  buildDisciplinePeriodOptions,
+  computePeriodMetricsSummary,
+} from "@/utils/disciplinePeriodMetrics";
+import {
   Discipline,
-  DEFAULT_HISTORICAL_PERFORMANCE,
 } from "@/types/disciplina";
 import {
   Class,
   ClassShiftFilter,
   ClassSortOption,
   normalizeClassShift,
-  calculateOccupancyRate,
+  compareClassOccupancy,
+  compareHistoricalClasses,
+  splitClassesByOrigin,
 } from "@/types/turma";
 
 function parseInitialShift(param: string | null): ClassShiftFilter {
@@ -64,6 +82,7 @@ function DisciplineDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const simulateClassesError = searchParams.get("erroTurmas") === "true";
 
   const slug =
     typeof params?.slug === "string"
@@ -81,30 +100,44 @@ function DisciplineDetailContent() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [classesError, setClassesError] = useState<string | null>(null);
+  const [classPage, setClassPage] = useState(1);
 
   // Estados de filtro e ordenação sincronizados com URL query params
   const [selectedShift, setSelectedShift] = useState<ClassShiftFilter>(() =>
     parseInitialShift(searchParams.get("turno"))
   );
+  const [periodoSelecionado, setPeriodoSelecionado] = useState<string>(
+    () => searchParams.get("semestre") || "Todos"
+  );
   const [sortBy, setSortBy] = useState<ClassSortOption>(() =>
     parseInitialSort(searchParams.get("ordem"))
   );
 
-  const [period, setPeriod] = useState("Todos os semestres (2020 a 2025)");
-  const [completed, setCompleted] = useState(false);
+  const [period, setPeriod] = useState("ALL");
+  const [showSemesterEvolution, setShowSemesterEvolution] = useState(true);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [materialsReloadTrigger, setMaterialsReloadTrigger] = useState(0);
+  const [pendingMaterialIds, setPendingMaterialIds] = useState<string[]>([]);
+
+  const authenticated = useSyncExternalStore(
+    subscribeAuthChange,
+    isAuthenticated,
+    () => false
+  );
 
   const handleOpenMaterialModal = useCallback(() => {
-    if (!isAuthenticated()) {
-      router.push("/login");
+    if (!authenticated || !isAuthenticated()) {
       return;
     }
     setShowMaterialModal(true);
-  }, [router]);
+  }, [authenticated]);
 
   const syncUrlParams = useCallback(
-    (nextShift: ClassShiftFilter, nextSort: ClassSortOption) => {
+    (
+      nextShift: ClassShiftFilter,
+      nextSort: ClassSortOption,
+      proximoPeriodo: string
+    ) => {
       const current = new URLSearchParams(searchParams.toString());
       if (nextShift === "Todos") {
         current.delete("turno");
@@ -118,6 +151,12 @@ function DisciplineDetailContent() {
         current.set("ordem", nextSort);
       }
 
+      if (proximoPeriodo === "Todos") {
+        current.delete("semestre");
+      } else {
+        current.set("semestre", proximoPeriodo);
+      }
+
       const queryString = current.toString();
       const targetUrl = queryString ? `${pathname}?${queryString}` : pathname;
       router.replace(targetUrl, { scroll: false });
@@ -128,23 +167,40 @@ function DisciplineDetailContent() {
   const handleShiftChange = useCallback(
     (shift: ClassShiftFilter) => {
       setSelectedShift(shift);
-      syncUrlParams(shift, sortBy);
+      setClassPage(1);
+      syncUrlParams(shift, sortBy, periodoSelecionado);
     },
-    [sortBy, syncUrlParams]
+    [sortBy, periodoSelecionado, syncUrlParams]
+  );
+
+  const aoAlterarPeriodo = useCallback(
+    (periodo: string) => {
+      setPeriodoSelecionado(periodo);
+      setClassPage(1);
+      syncUrlParams(selectedShift, sortBy, periodo);
+    },
+    [selectedShift, sortBy, syncUrlParams]
   );
 
   const handleSortChange = useCallback(
     (sort: ClassSortOption) => {
       setSortBy(sort);
-      syncUrlParams(selectedShift, sort);
+      setClassPage(1);
+      syncUrlParams(selectedShift, sort, periodoSelecionado);
     },
-    [selectedShift, syncUrlParams]
+    [selectedShift, periodoSelecionado, syncUrlParams]
   );
+
+  const [classSearchQuery, setClassSearchQuery] = useState("");
+  const [classOriginTab, setClassOriginTab] = useState<"current" | "historical">("current");
 
   const handleResetClassFilters = useCallback(() => {
     setSelectedShift("Todos");
+    setPeriodoSelecionado("Todos");
     setSortBy("code_asc");
-    syncUrlParams("Todos", "code_asc");
+    setClassSearchQuery("");
+    setClassPage(1);
+    syncUrlParams("Todos", "code_asc", "Todos");
   }, [syncUrlParams]);
 
   const handleRetryDiscipline = useCallback(() => {
@@ -212,7 +268,7 @@ function DisciplineDetailContent() {
         setClassesLoading(true);
 
         // Permite simular estado de erro via query param (?erroTurmas=true) para testes de UI
-        if (searchParams.get("erroTurmas") === "true") {
+        if (simulateClassesError) {
           throw new Error(
             "Não foi possível carregar as turmas ofertadas no momento."
           );
@@ -264,34 +320,99 @@ function DisciplineDetailContent() {
     return () => {
       isMounted = false;
     };
-  }, [discipline, searchParams, classesRetryCount]);
+  }, [discipline, slug, simulateClassesError, classesRetryCount]);
 
-  // Filtragem por turno e ordenação reativa
+  // Separação entre turmas do período atual (com oferta) e turmas trazidas do histórico
+  const { current: currentClasses, historical: historicalClasses } = useMemo(
+    () => splitClassesByOrigin(classes),
+    [classes]
+  );
+
+  const activeClassTab: "current" | "historical" =
+    currentClasses.length > 0 && historicalClasses.length > 0
+      ? classOriginTab
+      : currentClasses.length > 0
+      ? "current"
+      : "historical";
+
+  const activeSourceClasses =
+    activeClassTab === "current" ? currentClasses : historicalClasses;
+  const isViewingHistoricalTab = activeClassTab === "historical";
+
+  const periodosDisponiveis = useMemo(() => {
+    const unicos = new Set<string>();
+    for (const item of activeSourceClasses) {
+      const sem = (item.semestre || "").trim();
+      if (sem) unicos.add(sem);
+    }
+    return Array.from(unicos).sort((a, b) =>
+      b.localeCompare(a, "pt-BR", { numeric: true })
+    );
+  }, [activeSourceClasses]);
+
+  const periodoAtivo =
+    periodoSelecionado === "Todos" ||
+    periodosDisponiveis.includes(periodoSelecionado)
+      ? periodoSelecionado
+      : "Todos";
+
+  // Filtragem por período (histórico), turno (atual), busca e ordenação reativa
   const filteredAndSortedClasses = useMemo(() => {
-    const filtered = classes.filter((item) => {
-      if (selectedShift === "Todos") return true;
-      const normalized = normalizeClassShift(item.turno, item.horarios);
-      return normalized === selectedShift;
+    const qNorm = normalizeSearchTerm(classSearchQuery);
+    const filtered = activeSourceClasses.filter((item) => {
+      if (isViewingHistoricalTab && periodoAtivo !== "Todos") {
+        if ((item.semestre || "").trim() !== periodoAtivo) return false;
+      }
+
+      if (!isViewingHistoricalTab && selectedShift !== "Todos") {
+        const normalized = normalizeClassShift(item.turno, item.horarios);
+        if (normalized !== selectedShift) return false;
+      }
+
+      if (qNorm) {
+        const profNorm = normalizeSearchTerm(item.professor);
+        const codNorm = normalizeSearchTerm(item.codigoTurma);
+        const semNorm = normalizeSearchTerm(item.semestre ?? "");
+        if (
+          !profNorm.includes(qNorm) &&
+          !codNorm.includes(qNorm) &&
+          !semNorm.includes(qNorm)
+        ) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     return [...filtered].sort((a, b) => {
-      const occA =
-        a.occupancy ?? calculateOccupancyRate(a.vagasOcupadas, a.totalVagas);
-      const occB =
-        b.occupancy ?? calculateOccupancyRate(b.vagasOcupadas, b.totalVagas);
-
-      if (sortBy === "occupancy_asc") {
-        return occA.percentage - occB.percentage;
+      if (isViewingHistoricalTab) {
+        return compareHistoricalClasses(a, b);
       }
-      if (sortBy === "occupancy_desc") {
-        return occB.percentage - occA.percentage;
+      if (sortBy === "occupancy_asc" || sortBy === "occupancy_desc") {
+        return compareClassOccupancy(a, b, sortBy);
       }
+      const semCompare = (b.semestre || "").localeCompare(
+        a.semestre || "",
+        "pt-BR",
+        { numeric: true }
+      );
+      if (semCompare !== 0) return semCompare;
       return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
         numeric: true,
         sensitivity: "base",
       });
     });
-  }, [classes, selectedShift, sortBy]);
+  }, [
+    activeSourceClasses,
+    isViewingHistoricalTab,
+    periodoAtivo,
+    selectedShift,
+    sortBy,
+    classSearchQuery,
+  ]);
+
+  const paginatedClasses = paginateClasses(filteredAndSortedClasses, classPage);
 
   if (loading) {
     return (
@@ -301,7 +422,7 @@ function DisciplineDetailContent() {
           <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
           <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
           <div className="h-32 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="mb-8 grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto">
             {[1, 2, 3, 4].map((i) => (
               <ClassCardSkeleton key={i} />
             ))}
@@ -378,28 +499,58 @@ function DisciplineDetailContent() {
     );
   }
 
-  const performanceList =
-    discipline.historicalPerformance || DEFAULT_HISTORICAL_PERFORMANCE;
+  const realHistoricalPerformance =
+    discipline.historicalPerformance ?? [];
+  const periodOptions = buildDisciplinePeriodOptions(realHistoricalPerformance);
+  const activePeriod = periodOptions.some((opt) => opt.value === period)
+    ? period
+    : "ALL";
+  const periodSummary = computePeriodMetricsSummary({
+    history: realHistoricalPerformance,
+    consolidatedMetric: discipline.metrica_consolidada,
+    period: activePeriod,
+  });
 
-  // Extração dos dados consolidados reais da disciplina
-  const metrica = discipline.metrica_consolidada;
-  const totalMatriculados = metrica?.matriculados ?? 0;
+  const exportableHistoryRows = mapHistoricalPerformanceToOpenData(
+    discipline.code,
+    discipline.name,
+    periodSummary.selectedHistory,
+    periodSummary.filteredConsolidatedMetric
+  );
+  const hasRealExportableHistory = exportableHistoryRows.length > 0;
+
+  const performanceList = periodSummary.publicHistory;
+
+  // Extração dos dados consolidados reais da disciplina para o período selecionado
+  const totalDadosFornecidos = discipline.metrica_consolidada?.matriculados ?? 0;
+  const totalMatriculados = periodSummary.matriculados;
+  const hasConsolidatedMetrics =
+    !periodSummary.suppressedByLgpd &&
+    (hasApprovalData(periodSummary.approval) || totalMatriculados > 0);
 
   // Formatação segura de quantidades de alunos
   const formatAlunos = (qtd: number | undefined) => {
-    const val = qtd ?? 0;
-    return `${val} ${val === 1 ? "aluno" : "alunos"}`;
+    if (!hasConsolidatedMetrics || !qtd || qtd <= 0) {
+      return "Sem dados";
+    }
+    return `${qtd} ${qtd === 1 ? "aluno" : "alunos"}`;
   };
 
-  // Cards de métricas consumindo as taxas centralizadas no adaptador
+  // Cards de métricas consumindo o período selecionado
   const metrics = [
     {
       label: "Taxa de Aprovação",
-      value: `${discipline.approval}%`,
-      count: formatAlunos(metrica?.aprovados),
-      color: "#067A59",
-      iconColor: "#10B981",
-      background: "#E9F9F3",
+      value:
+        hasConsolidatedMetrics &&
+        hasApprovalData(periodSummary.approval) &&
+        (periodSummary.approval ?? 0) > 0
+          ? `${periodSummary.approval}%`
+          : "Sem dados",
+      count: formatAlunos(periodSummary.aprovados),
+      color: "var(--status-success-text)",
+      iconColor: "var(--status-success-text)",
+      background: "var(--status-success-bg)",
+      border: "var(--status-success-border)",
       icon: (
         <path
           d="M5 10.5l3 3L15 6.5"
@@ -412,11 +563,15 @@ function DisciplineDetailContent() {
     },
     {
       label: "Reprovação por Nota",
-      value: `${discipline.failedGrade ?? 0}%`,
-      count: formatAlunos(metrica?.reprovados_nota),
-      color: "#C52C2C",
-      iconColor: "#EF4444",
-      background: "#FFF0F0",
+      value:
+        hasConsolidatedMetrics && periodSummary.failedGrade > 0
+          ? `${periodSummary.failedGrade}%`
+          : "Sem dados",
+      count: formatAlunos(periodSummary.reprovadosNota),
+      color: "var(--status-danger-text)",
+      iconColor: "var(--status-danger-text)",
+      background: "var(--status-danger-bg)",
+      border: "var(--status-danger-border)",
       icon: (
         <path
           d="M5 6l4 4 3-3 4 4M13 11h3V8"
@@ -429,11 +584,15 @@ function DisciplineDetailContent() {
     },
     {
       label: "Reprovação por Falta",
-      value: `${discipline.failedAttendance ?? 0}%`,
-      count: formatAlunos(metrica?.reprovados_falta),
-      color: "#9A5700",
-      iconColor: "#F59E0B",
-      background: "#FFF7E8",
+      value:
+        hasConsolidatedMetrics && periodSummary.failedAttendance > 0
+          ? `${periodSummary.failedAttendance}%`
+          : "Sem dados",
+      count: formatAlunos(periodSummary.reprovadosFalta),
+      color: "var(--status-warning-text)",
+      iconColor: "var(--status-warning-text)",
+      background: "var(--status-warning-bg)",
+      border: "var(--status-warning-border)",
       icon: (
         <>
           <circle
@@ -454,11 +613,15 @@ function DisciplineDetailContent() {
     },
     {
       label: "Trancamentos",
-      value: `${discipline.withdrawn ?? 0}%`,
-      count: formatAlunos(metrica?.trancamentos),
-      color: "#526174",
-      iconColor: "#64748B",
-      background: "#F1F5F9",
+      value:
+        hasConsolidatedMetrics && periodSummary.withdrawn > 0
+          ? `${periodSummary.withdrawn}%`
+          : "Sem dados",
+      count: formatAlunos(periodSummary.trancamentos),
+      color: "var(--status-neutral-text)",
+      iconColor: "var(--status-neutral-text)",
+      background: "var(--status-neutral-bg)",
+      border: "var(--status-neutral-border)",
       icon: (
         <path
           d="M7 6v8M13 6v8"
@@ -541,63 +704,45 @@ function DisciplineDetailContent() {
 
               
               <div className="flex flex-wrap sm:flex-nowrap lg:flex-wrap xl:flex-nowrap items-center gap-3 w-full lg:w-auto shrink-0 pt-2 lg:pt-1">
-                                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!completed) {
-                        const confirmou = window.confirm(
-                          `Confirmar que você já concluiu ${discipline.name}? Essa informação apoia a comunidade na identificação de estudantes veteranos.`
-                        );
-                        if (confirmou) {
-                          setCompleted(true);
-                        }
-                      } else {
-                        setCompleted(false);
-                      }
-                    }}
-                    aria-pressed={completed}
-                    className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                      completed
-                        ? "bg-[#E9F9F3] text-[#067A59] border border-[#A7E6CF]"
-                        : "bg-[#EDE9FD] text-[#5B4BDB] border border-[#D8D1FA] hover:bg-[#5B4BDB]/15"
-                    }`}
+                <div
+                  title="Quantidade de registros acadêmicos enviados para esta disciplina"
+                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap bg-[#EDE9FD] text-[#5B4BDB] border border-[#D8D1FA] select-none"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 18 18"
+                    fill="none"
+                    aria-hidden="true"
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 18 18"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M2.5 6.5L9 3l6.5 3.5L9 10 2.5 6.5Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M5 8.2v3.3c1.2 1.6 6.8 1.6 8 0V8.2M15.5 7v4"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span>{completed ? "Materia cursada" : "Ja cursei essa materia"}</span>
-                    <span className="ml-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
-                      {(discipline.metrica_consolidada?.aprovados || 0) + (completed ? 1 : 0)}
-                    </span>
-                  </button>
+                    <path
+                      d="M3 13.5V9.5M7.5 13.5V5.5M12 13.5V7.5M15.5 13.5H2.5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span>Dados fornecidos</span>
+                  <span className="ml-1 rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
+                    {totalDadosFornecidos}
+                  </span>
                 </div>
 
                 <button
                   type="button"
+                  disabled={!authenticated}
+                  title={!authenticated ? "Faça login para adicionar materiais" : undefined}
                   onClick={handleOpenMaterialModal}
                   data-reload-count={materialsReloadTrigger}
-                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-[#5B4BDB] px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-all hover:brightness-110 shadow-xs active:scale-95"
+                  className={`flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-all shadow-xs ${
+                    authenticated
+                      ? "bg-[#5B4BDB] hover:brightness-110 active:scale-95 cursor-pointer"
+                      : "bg-gray-300 cursor-not-allowed opacity-60"
+                  }`}
                 >
                   <span className="text-base leading-none">+</span>
-                  Adicionar material
+                  {authenticated ? "Adicionar material" : "Faça login para adicionar"}
                 </button>
               </div>
             </div>
@@ -610,7 +755,10 @@ function DisciplineDetailContent() {
             disciplineSlug={slug}
             disciplineName={discipline.name}
             onClose={() => setShowMaterialModal(false)}
-            onUploadSuccess={() => {
+            onUploadSuccess={(uploadedIds) => {
+              if (uploadedIds && uploadedIds.length > 0) {
+                setPendingMaterialIds(uploadedIds);
+              }
               setMaterialsReloadTrigger((prev) => prev + 1);
             }}
           />
@@ -651,44 +799,28 @@ function DisciplineDetailContent() {
                 </p>
 
                     
-                {(discipline.preRequisitos || discipline.equivalencias) && (
-                  <div className="mt-6 pt-5 border-t border-gray-100 flex flex-col gap-3">
-                    {discipline.preRequisitos &&
-                      discipline.preRequisitos.length > 0 && (
-                        <div>
-                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
-                            Pré-requisitos:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {discipline.preRequisitos.map((req) => (
-                              <span
-                                key={req}
-                                className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
-                              >
-                                {req}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    {discipline.equivalencias &&
-                      discipline.equivalencias.length > 0 && (
-                        <div>
-                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
-                            Equivalências:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {discipline.equivalencias.map((eq) => (
-                              <span
-                                key={eq}
-                                className="rounded-md bg-purple-50 px-2 py-0.5 text-xs text-purple-700"
-                              >
-                                {eq}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                {/* Seção dedicada e navegável de Pré-requisitos (Issue #286) */}
+                <PreRequisitosSection
+                  preRequisitosItens={discipline.preRequisitosItens}
+                  preRequisitosStrings={discipline.preRequisitos}
+                  coRequisitos={discipline.coRequisitos}
+                />
+
+                {discipline.equivalencias && discipline.equivalencias.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                      Equivalências:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {discipline.equivalencias.map((eq) => (
+                        <span
+                          key={eq}
+                          className="rounded-md bg-purple-50 px-2 py-0.5 text-xs text-purple-700"
+                        >
+                          {eq}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -779,8 +911,8 @@ function DisciplineDetailContent() {
                     Turmas Ofertadas
                   </h2>
                   <p className="text-xs sm:text-sm text-gray-500">
-                    Consulte docentes, horários, salas e ocupação das vagas no
-                    semestre letivo atual
+                    Consulte docentes, horários, salas e ocupação do período
+                    atual ou o histórico de turmas anteriores
                   </p>
                 </div>
               </div>
@@ -808,7 +940,7 @@ function DisciplineDetailContent() {
             {classesLoading ? (
               <div
                 aria-label="Carregando lista de turmas"
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5"
+                className="grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto sm:gap-5"
               >
                 {[1, 2, 3, 4].map((skeletonId) => (
                   <ClassCardSkeleton key={skeletonId} />
@@ -865,28 +997,119 @@ function DisciplineDetailContent() {
                 </button>
               </div>
             ) : classes.length > 0 ? (
-              /* Estado 3: Barra de Filtros + Grid de Turmas ou Empty State de Filtro */
+              /* Estado 3: Abas Período Atual / Turmas Anteriores + Barra de Filtros + Grid de Turmas */
               <>
+                {currentClasses.length > 0 && historicalClasses.length > 0 && (
+                  <div
+                    role="tablist"
+                    aria-label="Origem das turmas"
+                    className="mb-5 inline-flex flex-wrap items-center gap-2 rounded-2xl border border-[#ECEAF5] bg-[#FAFAFC] p-1.5"
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeClassTab === "current"}
+                      onClick={() => {
+                        setClassOriginTab("current");
+                        setClassPage(1);
+                      }}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                        activeClassTab === "current"
+                          ? "bg-[#5B4BDB] text-white shadow-xs"
+                          : "text-gray-600 hover:text-[#5B4BDB]"
+                      }`}
+                    >
+                      <span>Período atual</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                          activeClassTab === "current"
+                            ? "bg-white/20 text-white"
+                            : "bg-[#EDE9FD] text-[#5B4BDB]"
+                        }`}
+                      >
+                        {currentClasses.length}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeClassTab === "historical"}
+                      onClick={() => {
+                        setClassOriginTab("historical");
+                        setClassPage(1);
+                      }}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                        activeClassTab === "historical"
+                          ? "bg-[#5B4BDB] text-white shadow-xs"
+                          : "text-gray-600 hover:text-[#5B4BDB]"
+                      }`}
+                    >
+                      <span>Turmas anteriores</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                          activeClassTab === "historical"
+                            ? "bg-white/20 text-white"
+                            : "bg-[#EDE9FD] text-[#5B4BDB]"
+                        }`}
+                      >
+                        {historicalClasses.length}
+                      </span>
+                    </button>
+                  </div>
+                )}
+
                 <ClassFilters
                   selectedShift={selectedShift}
                   onShiftChange={handleShiftChange}
                   sortBy={sortBy}
                   onSortChange={handleSortChange}
-                  totalCount={classes.length}
+                  totalCount={activeSourceClasses.length}
                   filteredCount={filteredAndSortedClasses.length}
                   onResetFilters={handleResetClassFilters}
+                  searchQuery={classSearchQuery}
+                  onSearchChange={(val) => {
+                    setClassSearchQuery(val);
+                    setClassPage(1);
+                  }}
+                  periodosDisponiveis={
+                    isViewingHistoricalTab ? periodosDisponiveis : []
+                  }
+                  periodoSelecionado={
+                    isViewingHistoricalTab ? periodoAtivo : "Todos"
+                  }
+                  aoAlterarPeriodo={
+                    isViewingHistoricalTab ? aoAlterarPeriodo : undefined
+                  }
+                  hideOfferControls={isViewingHistoricalTab}
                 />
 
                 {filteredAndSortedClasses.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                    {filteredAndSortedClasses.map((turma) => (
-                      <ClassCard key={turma.id} classData={turma} />
-                    ))}
-                  </div>
+                  <>
+                    <p role="status" className="mb-4 text-sm text-gray-600">
+                      Mostrando {paginatedClasses.startItem} a {paginatedClasses.endItem}{" "}
+                      de {filteredAndSortedClasses.length}{" "}
+                      {filteredAndSortedClasses.length === 1 ? "turma" : "turmas"}
+                      {isViewingHistoricalTab ? " anteriores" : ""}
+                    </p>
+                    <div className="overflow-x-auto pb-2">
+                      <div className="grid min-w-[1000px] grid-cols-4 gap-4 sm:gap-5">
+                        {paginatedClasses.items.map((turma) => (
+                          <ClassCard key={turma.id} classData={turma} />
+                        ))}
+                      </div>
+                    </div>
+                    <Pagination
+                      currentPage={paginatedClasses.currentPage}
+                      totalPages={paginatedClasses.totalPages}
+                      onPageChange={setClassPage}
+                      itemsPerPage={CLASSES_PER_PAGE}
+                    />
+                  </>
                 ) : (
                   <ClassEmptyState
                     hasActiveFilters={true}
-                    selectedShift={selectedShift}
+                    selectedShift={isViewingHistoricalTab ? "Todos" : selectedShift}
                     onResetFilters={handleResetClassFilters}
                   />
                 )}
@@ -897,8 +1120,7 @@ function DisciplineDetailContent() {
             )}
           </section>
 
-          
-          <section className="rounded-3xl bg-white p-6 sm:p-8 border border-[#E8E6F8] shadow-xs">
+          <section className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-xs sm:p-8">
             
             <div className="mb-7 flex flex-col md:flex-row md:items-start justify-between gap-5">
               <div>
@@ -917,13 +1139,15 @@ function DisciplineDetailContent() {
                 </span>
                 <div className="relative">
                   <select
-                    value={period}
+                    value={activePeriod}
                     onChange={(event) => setPeriod(event.target.value)}
-                    className="w-full appearance-none rounded-xl bg-[#F7F7FA] border border-[#DDD9F1] px-4 py-2.5 pr-10 text-xs sm:text-sm font-medium text-[#202124] outline-none focus:border-[#5B4BDB]"
+                    className="w-full appearance-none rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-2.5 pr-10 text-xs font-medium text-[var(--foreground)] outline-none focus:border-[var(--primary)] sm:text-sm"
                   >
-                    <option>Todos os semestres (2020 a 2025)</option>
-                    <option>Últimos 2 anos</option>
-                    <option>2025/2</option>
+                    {periodOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                   <svg
                     className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
@@ -945,7 +1169,23 @@ function DisciplineDetailContent() {
               </label>
             </div>
 
-          
+            <ClassPerformancePieForm classes={classes} />
+
+            {periodSummary.suppressedByLgpd && (
+              <div
+                role="status"
+                className="mb-5 flex items-start gap-2.5 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD] px-4 py-3 text-xs sm:text-sm text-[#5B4BDB]"
+              >
+                <span>
+                  <strong>Dados individuais suprimidos pela LGPD (RN07):</strong>{" "}
+                  o período selecionado possui {periodSummary.matriculados}{" "}
+                  {periodSummary.matriculados === 1 ? "matrícula" : "matrículas"}{" "}
+                  (mínimo de 5 para exibição individual). Selecione{" "}
+                  <strong>Todos os semestres</strong> para ver o acumulado consolidado.
+                </span>
+              </div>
+            )}
+
             <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {metrics.map((metric) => (
                 <div
@@ -953,12 +1193,12 @@ function DisciplineDetailContent() {
                   className="rounded-2xl p-5 border"
                   style={{
                     background: metric.background,
-                    borderColor: `${metric.iconColor}33`,
+                    borderColor: metric.border,
                   }}
                 >
                   <div className="mb-4 flex items-center justify-between">
                     <div
-                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-2xs"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface)] shadow-2xs"
                       style={{ color: metric.iconColor }}
                     >
                       <svg
@@ -987,7 +1227,7 @@ function DisciplineDetailContent() {
                   >
                     {metric.value}
                   </div>
-                  <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-700">
+                  <p className="mt-1 text-xs font-semibold text-[var(--text-muted)] sm:text-sm">
                     {metric.label}
                   </p>
                 </div>
@@ -995,26 +1235,75 @@ function DisciplineDetailContent() {
             </div>
 
             
-            <div className="rounded-2xl bg-[#FAFAFC] p-5 sm:p-6 border border-[#ECEAF5]">
-              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5 sm:p-6">
+              <div
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                  showSemesterEvolution ? "mb-6" : "mb-0"
+                }`}
+              >
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-[#202124]">
+                  <h3 className="text-base font-bold text-[var(--foreground)] sm:text-lg">
                     Evolução semestral
                   </h3>
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                     Distribuição percentual dos resultados por semestre
                   </p>
                 </div>
-                
-                <span className="self-start sm:self-auto rounded-full bg-[#EDE9FD] px-3 py-1 text-xs font-semibold text-[#5B4BDB]">
-                  Base acumulada: {totalMatriculados} {totalMatriculados === 1 ? "matrícula" : "matrículas"}
-                </span>
+
+                <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                  <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--primary-text)]">
+                    Base acumulada:{" "}
+                    {totalMatriculados > 0
+                      ? `${totalMatriculados} ${totalMatriculados === 1 ? "matrícula" : "matrículas"}`
+                      : "Sem dados"}
+                  </span>
+
+                  <button
+                    type="button"
+                    aria-expanded={showSemesterEvolution}
+                    aria-controls="evolucao-semestral-conteudo"
+                    aria-label={
+                      showSemesterEvolution
+                        ? "Ocultar evolução semestral"
+                        : "Mostrar evolução semestral"
+                    }
+                    onClick={() => setShowSemesterEvolution((prev) => !prev)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-xs font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary-text)] cursor-pointer"
+                  >
+                    <span>{showSemesterEvolution ? "Ocultar" : "Mostrar"}</span>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden="true"
+                      className={`transition-transform duration-200 ${
+                        showSemesterEvolution ? "rotate-180" : "rotate-0"
+                      }`}
+                    >
+                      <path
+                        d="M4 6l4 4 4-4"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
-              
+              {showSemesterEvolution && (
+                <div id="evolucao-semestral-conteudo">
+              {performanceList.length === 0 ? (
+                <p role="status" className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]">
+                  Não há histórico semestral público disponível para esta disciplina. Registros com baixa amostragem são preservados conforme a LGPD.
+                </p>
+              ) : (
+                <>
               <div className="flex h-64 gap-3 sm:gap-5">
                 {/* Eixo Y */}
-                <div className="flex w-8 sm:w-10 flex-col justify-between pb-7 text-right text-[11px] font-medium text-gray-500">
+                <div className="flex w-8 flex-col justify-between pb-7 text-right text-[11px] font-medium text-[var(--text-muted)] sm:w-10">
                   <span>100%</span>
                   <span>75%</span>
                   <span>50%</span>
@@ -1023,16 +1312,22 @@ function DisciplineDetailContent() {
                 </div>
 
                 
-                <div className="relative flex flex-1 items-end justify-around border-b border-l border-[#DCD9E9] px-2 sm:px-8 pb-7">
+                <div className="relative flex min-w-0 flex-1 items-end justify-around border-b border-l border-[var(--border-subtle)] px-2 pb-7 sm:px-8">
                   {[25, 50, 75, 100].map((line) => (
                     <div
                       key={line}
-                      className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[#E4E2EC]"
+                      className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[var(--border-subtle)]"
                       style={{ bottom: `${line}%` }}
                     />
                   ))}
 
-                  {performanceList.map((item) => {
+                  {performanceList.map((item, index) => {
+                    const tooltipAlignment =
+                      index === 0
+                        ? "left-0"
+                        : index >= performanceList.length - 2
+                        ? "right-0"
+                        : "left-1/2 -translate-x-1/2";
                     const total =
                       (item.approved || 0) +
                       (item.failed || 0) +
@@ -1058,51 +1353,53 @@ function DisciplineDetailContent() {
                     return (
                       <div
                         key={item.semester}
-                        className="relative z-10 flex h-full w-10 sm:w-16 flex-col items-center justify-end group"
+                        className="relative z-10 flex h-full min-w-0 w-10 sm:w-16 flex-col items-center justify-end group"
                       >
                         
-                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-nowrap z-20 shadow-md">
+                        <div
+                          className={`absolute -top-12 w-40 ${tooltipAlignment} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 whitespace-normal text-center z-20 shadow-md`}
+                        >
                           {item.semester}: {approvedPct}% aprov. (
                           {item.approved}/{total})
                         </div>
 
                         
                         <div
-                          className="flex h-full w-8 sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
+                          className="flex h-full w-8 max-w-[75%] sm:max-w-full sm:w-10 flex-col-reverse overflow-hidden rounded-t-lg transition-transform group-hover:scale-y-102"
                           aria-label={`${item.semester}: ${approvedPct}% aprovação, ${failedPct}% reprovação por nota`}
                         >
                           <div
                             style={{
                               height: `${approvedPct}%`,
-                              background: "#10B981",
+                              background: "var(--status-success-text)",
                             }}
                             title={`Aprovação: ${approvedPct}% (${item.approved})`}
                           />
                           <div
                             style={{
                               height: `${failedPct}%`,
-                              background: "#EF4444",
+                              background: "var(--status-danger-text)",
                             }}
                             title={`Reprovação por nota: ${failedPct}% (${item.failed})`}
                           />
                           <div
                             style={{
                               height: `${absentPct}%`,
-                              background: "#F59E0B",
+                              background: "var(--status-warning-text)",
                             }}
                             title={`Reprovação por falta: ${absentPct}% (${item.absent})`}
                           />
                           <div
                             style={{
                               height: `${withdrawnPct}%`,
-                              background: "#94A3B8",
+                              background: "var(--status-neutral-text)",
                             }}
                             title={`Trancamento: ${withdrawnPct}% (${item.withdrawn})`}
                           />
                         </div>
 
                         
-                        <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-gray-600">
+                        <span className="absolute -bottom-6 whitespace-nowrap text-[11px] font-medium text-[var(--text-muted)] max-sm:-bottom-8 max-sm:-rotate-45">
                           {item.semester}
                         </span>
                       </div>
@@ -1114,14 +1411,14 @@ function DisciplineDetailContent() {
               
               <div className="mt-8 flex flex-wrap justify-center gap-4 sm:gap-7 pt-2">
                 {[
-                  ["Aprovação", "#10B981"],
-                  ["Reprovação por nota", "#EF4444"],
-                  ["Reprovação por falta", "#F59E0B"],
-                  ["Trancamento", "#94A3B8"],
+                  ["Aprovação", "var(--status-success-text)"],
+                  ["Reprovação por nota", "var(--status-danger-text)"],
+                  ["Reprovação por falta", "var(--status-warning-text)"],
+                  ["Trancamento", "var(--status-neutral-text)"],
                 ].map(([label, color]) => (
                   <div
                     key={label}
-                    className="flex items-center gap-2 text-xs font-medium text-gray-600"
+                    className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]"
                   >
                     <span
                       className="h-2.5 w-2.5 rounded-xs"
@@ -1131,9 +1428,93 @@ function DisciplineDetailContent() {
                   </div>
                 ))}
               </div>
+
+              <div className="mt-6 overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
+                <table
+                  aria-label={`Tabela de desempenho historico semestral de ${discipline.name}`}
+                  className="w-full text-left text-xs text-[var(--foreground)]"
+                >
+                  <caption className="sr-only">
+                    Distribuicao semestral de aprovados, reprovados por nota, reprovados por falta e trancamentos da disciplina {discipline.code} - {discipline.name}
+                  </caption>
+                  <thead className="border-b border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                    <tr>
+                      <th scope="col" className="px-3.5 py-2.5">Semestre</th>
+                      <th scope="col" className="px-3.5 py-2.5">Avaliados</th>
+                      <th scope="col" className="px-3.5 py-2.5">Aprovacao</th>
+                      <th scope="col" className="px-3.5 py-2.5">Reprov. Nota</th>
+                      <th scope="col" className="px-3.5 py-2.5">Reprov. Falta</th>
+                      <th scope="col" className="px-3.5 py-2.5">Trancamentos</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
+                    {performanceList.map((item) => {
+                      const total =
+                        (item.approved || 0) +
+                        (item.failed || 0) +
+                        (item.absent || 0) +
+                        (item.withdrawn || 0);
+                      const pct = (val: number) =>
+                        total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
+                      return (
+                        <tr key={`row-${item.semester}`} className="hover:bg-[var(--surface-soft)]">
+                          <th scope="row" className="px-3.5 py-2 font-bold text-[var(--foreground)]">
+                            {item.semester}
+                          </th>
+                          <td className="px-3.5 py-2">{total > 0 ? total : "Sem dados"}</td>
+                          <td className="px-3.5 py-2 font-semibold text-[var(--status-success-text)]">
+                            {(item.approved || 0) > 0
+                              ? `${pct(item.approved || 0)}% (${item.approved})`
+                              : "Sem dados"}
+                          </td>
+                          <td className="px-3.5 py-2 text-[var(--status-danger-text)]">
+                            {(item.failed || 0) > 0
+                              ? `${pct(item.failed || 0)}% (${item.failed})`
+                              : "Sem dados"}
+                          </td>
+                          <td className="px-3.5 py-2 text-[var(--status-warning-text)]">
+                            {(item.absent || 0) > 0
+                              ? `${pct(item.absent || 0)}% (${item.absent})`
+                              : "Sem dados"}
+                          </td>
+                          <td className="px-3.5 py-2 text-[var(--status-neutral-text)]">
+                            {(item.withdrawn || 0) > 0
+                              ? `${pct(item.withdrawn || 0)}% (${item.withdrawn})`
+                              : "Sem dados"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+                </>
+              )}
+                </div>
+              )}
             </div>
 
             
+            <div className="mt-6">
+              <OpenDataExportBar
+                title={`Historico Semestral de ${discipline.code} - ${discipline.name}`}
+                recordCount={exportableHistoryRows.length}
+                recordLabel="semestres"
+                disabled={!hasRealExportableHistory}
+                emptyMessage="Exportacao indisponivel: nao ha historico semestral publico real retornado pela API para esta disciplina (ou os registros possuem baixa amostragem suprimida pela LGPD)."
+                compact={true}
+                onExport={(format) =>
+                  exportDisciplineHistoryOpenData(
+                    discipline.code,
+                    discipline.name,
+                    periodSummary.selectedHistory,
+                    format,
+                    { consolidatedMetric: periodSummary.filteredConsolidatedMetric }
+                  )
+                }
+              />
+            </div>
+
             <div className="mt-6 flex items-start gap-3 rounded-2xl bg-[#F7F7FA] border border-gray-100 px-4 py-3">
               <svg
                 className="mt-0.5 flex-shrink-0 text-gray-500"
@@ -1175,9 +1556,11 @@ function DisciplineDetailContent() {
           />
 
           <MateriaisApoio
+            key={discipline.slug || slug}
             disciplineName={discipline.name}
-            disciplineIdOrSlug={discipline.code || slug}
+            disciplineIdOrSlug={discipline.slug || slug}
             refreshTrigger={materialsReloadTrigger}
+            pendingMaterialIds={pendingMaterialIds}
             onOpenUploadModal={() => setShowMaterialModal(true)}
           />
 
@@ -1195,6 +1578,7 @@ function DisciplineDetailContent() {
 }
 
 export default function DisciplineDetailPage() {
+  const params = useParams();
   return (
     <Suspense
       fallback={
@@ -1204,7 +1588,7 @@ export default function DisciplineDetailPage() {
             <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
             <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
             <div className="h-32 bg-white border border-[#EDE9FD] rounded-2xl p-6 mb-8" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="mb-8 grid grid-flow-col auto-cols-[260px] gap-4 overflow-x-auto">
               {[1, 2, 3, 4].map((i) => (
                 <ClassCardSkeleton key={i} />
               ))}
@@ -1214,7 +1598,7 @@ export default function DisciplineDetailPage() {
         </div>
       }
     >
-      <DisciplineDetailContent />
+      <DisciplineDetailContent key={String(params?.slug ?? "")} />
     </Suspense>
   );
 }

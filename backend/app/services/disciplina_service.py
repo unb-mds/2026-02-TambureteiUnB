@@ -15,6 +15,15 @@ from app.pipeline.transformers.sigaa_transformer import slugify
 
 
 class DisciplinaService:
+    @staticmethod
+    def _incluir_locais_oferta(db: Session, items: List[Disciplina], semestre: Optional[str] = None) -> None:
+        ids = [item.id for item in items]
+        locais = disciplina_repo.listar_locais_oferta(db, ids, semestre)
+        ids_pizza = disciplina_repo.listar_ids_com_pizza(db, ids)
+        for item in items:
+            item.locais_oferta = locais.get(item.id, [])
+            item.possui_dados_pizza = item.id in ids_pizza
+
     def listar_catalogo(
         self,
         db: Session,
@@ -32,6 +41,7 @@ class DisciplinaService:
             skip=(page - 1) * size,
             limit=size,
         )
+        self._incluir_locais_oferta(db, items)
         return {
             "items": items,
             "total": total,
@@ -46,6 +56,8 @@ class DisciplinaService:
         nome: Optional[str] = None,
         codigo: Optional[str] = None,
         departamento: Optional[str] = None,
+        apenas_com_turmas: bool = False,
+        semestre: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> List[Disciplina]:
         items, _ = disciplina_repo.search_paginated(
@@ -53,9 +65,12 @@ class DisciplinaService:
             nome=nome,
             codigo=codigo,
             departamento=departamento,
+            apenas_com_turmas=apenas_com_turmas,
+            semestre=semestre,
             skip=0,
             limit=limit,
         )
+        self._incluir_locais_oferta(db, items, semestre)
         return items
 
     @staticmethod
@@ -119,6 +134,8 @@ class DisciplinaService:
                     )
                 )
 
+        ids_pizza = disciplina_repo.listar_ids_com_pizza(db, [disciplina.id])
+
         return DisciplinaResponse(
             id=disciplina.id,
             codigo=disciplina.codigo or "",
@@ -134,6 +151,7 @@ class DisciplinaService:
             pre_requisitos_itens=pre_req_itens,
             equivalencias_itens=equiv_itens,
             cursos=cursos_info,
+            possui_dados_pizza=disciplina.id in ids_pizza,
             metrica_consolidada=disciplina.metrica_consolidada,
             metricas=disciplina.metricas or [],
         )

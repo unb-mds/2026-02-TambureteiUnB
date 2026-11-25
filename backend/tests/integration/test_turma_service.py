@@ -1,3 +1,6 @@
+import pytest
+from app.models.turma import Turma
+
 class TestCriarTurma:
     def test_criar_turma_com_sucesso(self, client, admin_headers, disciplina, professor_1, professor_2):
         response = client.post(
@@ -164,3 +167,31 @@ class TestObterTurma:
     def test_obter_turma_inexistente(self, client):
         response = client.get("/turmas/999999")
         assert response.status_code == 404
+
+@pytest.mark.parametrize("capacidade,matriculados", [(45, 38), (45, 0), (None, None), (45, None), (None, 12), (0, 0), (30, 38)])
+def test_ocupacao_persistida_na_listagem_e_detalhe(client, db, disciplina, professor_1, professor_2, capacidade, matriculados):
+    turma = Turma(disciplina_id=disciplina.id, codigo_turma="OC", semestre="2026.1",
+                  capacidade=capacidade, matriculados=matriculados, professores=[professor_1, professor_2])
+    db.add(turma)
+    db.commit()
+    for consulta in (f"disciplina_id={disciplina.id}", f"disciplina_slug={disciplina.slug}"):
+        resposta = client.get(f"/turmas?{consulta}")
+        assert resposta.status_code == 200
+        registros = [item for item in resposta.json() if item["id"] == turma.id]
+        assert len(registros) == 1
+        assert registros[0]["capacidade"] == capacidade
+        assert registros[0]["matriculados"] == matriculados
+        assert len(registros[0]["professores"]) == 2
+    detalhe = client.get(f"/turmas/{turma.id}")
+    assert detalhe.status_code == 200
+    assert detalhe.json()["capacidade"] == capacidade
+    assert detalhe.json()["matriculados"] == matriculados
+
+
+def test_criacao_de_turma_nao_inventa_ocupacao(client, admin_headers, disciplina, professor_1):
+    resposta = client.post("/turmas", headers=admin_headers, json={
+        "disciplina_id": disciplina.id, "semestre": "2026.1", "codigo_turma": "NOVA", "professores_ids": [professor_1.id],
+    })
+    assert resposta.status_code == 201
+    assert resposta.json()["capacidade"] is None
+    assert resposta.json()["matriculados"] is None

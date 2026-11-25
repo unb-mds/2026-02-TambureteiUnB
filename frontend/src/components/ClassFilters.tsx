@@ -25,6 +25,12 @@ export interface ClassFiltersProps {
   totalCount: number;
   filteredCount: number;
   onResetFilters?: () => void;
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
+  periodosDisponiveis?: string[];
+  periodoSelecionado?: string;
+  aoAlterarPeriodo?: (periodo: string) => void;
+  hideOfferControls?: boolean;
 }
 
 export default function ClassFilters({
@@ -35,48 +41,137 @@ export default function ClassFilters({
   totalCount,
   filteredCount,
   onResetFilters,
+  searchQuery = "",
+  onSearchChange,
+  periodosDisponiveis = [],
+  periodoSelecionado = "Todos",
+  aoAlterarPeriodo,
+  hideOfferControls = false,
 }: ClassFiltersProps) {
-  const hasActiveFilter = selectedShift !== "Todos" || sortBy !== "code_asc";
+  const hasActiveFilter =
+    (!hideOfferControls && selectedShift !== "Todos") ||
+    (!hideOfferControls && sortBy !== "code_asc") ||
+    searchQuery.trim().length > 0 ||
+    periodoSelecionado !== "Todos";
 
   return (
     <div
-      className="mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-2xl border border-[#ECEAF5] bg-[#FAFAFC] p-4"
+      className="mb-6 flex flex-col gap-3.5 rounded-2xl border border-[#ECEAF5] bg-[#FAFAFC] p-4"
       role="region"
       aria-label="Filtros e ordenação de turmas"
     >
-      {/* Filtro por Turno */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 shrink-0">
-          Turno:
-        </span>
-        <div
-          className="flex flex-wrap items-center gap-2"
-          role="group"
-          aria-label="Filtrar turmas por turno"
-        >
-          {CLASS_SHIFT_OPTIONS.map((shift) => {
-            const selected = selectedShift === shift;
-            return (
-              <button
-                key={shift}
-                type="button"
-                onClick={() => onShiftChange(shift)}
-                aria-pressed={selected}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                  selected
-                    ? "bg-[#5B4BDB] text-white shadow-xs"
-                    : "bg-white text-gray-600 border border-[#E1DFEA] hover:border-[#5B4BDB]/40 hover:text-[#5B4BDB]"
-                }`}
+      {/* Linha superior: Busca por professor/turma e Filtro por Período */}
+      {(onSearchChange || (aoAlterarPeriodo && periodosDisponiveis.length > 0)) && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {onSearchChange && (
+            <div className="relative w-full max-w-lg">
+              <svg
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
               >
-                {shift}
-              </button>
-            );
-          })}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Buscar por professor, turma ou semestre..."
+                aria-label="Buscar turma por professor, código ou semestre"
+                className="w-full rounded-xl border border-[#DDD9F1] bg-white py-2 pl-9 pr-3 text-xs font-medium text-[#202124] placeholder-gray-400 outline-none transition-colors focus:border-[#5B4BDB]"
+              />
+            </div>
+          )}
+
+          {aoAlterarPeriodo && periodosDisponiveis.length > 0 && (
+            <label className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">
+                Período:
+              </span>
+              <div className="relative w-44 sm:w-48">
+                <select
+                  value={periodoSelecionado}
+                  onChange={(event) => aoAlterarPeriodo(event.target.value)}
+                  aria-label="Filtrar turmas por período"
+                  className="w-full appearance-none rounded-xl border border-[#DDD9F1] bg-white px-3.5 py-2 pr-8 text-xs font-semibold text-[#202124] outline-none transition-colors focus:border-[#5B4BDB] cursor-pointer"
+                >
+                  <option value="Todos">Todos os períodos</option>
+                  {periodosDisponiveis.map((periodo) => (
+                    <option key={periodo} value={periodo}>
+                      {periodo}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 6l4 4 4-4"
+                    stroke="#6B7280"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </label>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* Linha inferior: Turno, Resumo e Ordenação */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* Filtro por Turno (somente para turmas com horário de oferta) */}
+      {!hideOfferControls && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 shrink-0">
+            Turno:
+          </span>
+          <div
+            className="flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Filtrar turmas por turno"
+          >
+            {CLASS_SHIFT_OPTIONS.map((shift) => {
+              const selected = selectedShift === shift;
+              return (
+                <button
+                  key={shift}
+                  type="button"
+                  onClick={() => onShiftChange(shift)}
+                  aria-pressed={selected}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    selected
+                      ? "bg-[#5B4BDB] text-white shadow-xs"
+                      : "bg-white text-gray-600 border border-[#E1DFEA] hover:border-[#5B4BDB]/40 hover:text-[#5B4BDB]"
+                  }`}
+                >
+                  {shift}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Ordenação Rápida e Resumo */}
-      <div className="flex flex-wrap items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0 border-t lg:border-t-0 border-[#ECEAF5]">
+      <div
+        className={`flex flex-wrap items-center justify-between lg:justify-end gap-3 ${
+          hideOfferControls ? "" : "pt-2 lg:pt-0 border-t lg:border-t-0 border-[#ECEAF5]"
+        }`}
+      >
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span>
             Exibindo{" "}
@@ -95,44 +190,47 @@ export default function ClassFilters({
           )}
         </div>
 
-        <label className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-500 whitespace-nowrap">
-            Ordenar por:
-          </span>
-          <div className="relative w-56 sm:w-64">
-            <select
-              value={sortBy}
-              onChange={(event) =>
-                onSortChange(event.target.value as ClassSortOption)
-              }
-              aria-label="Ordenar lista de turmas"
-              className="w-full appearance-none rounded-xl bg-white border border-[#DDD9F1] px-3.5 py-2 pr-8 text-xs font-semibold text-[#202124] outline-none transition-colors focus:border-[#5B4BDB] cursor-pointer"
-            >
-              {CLASS_SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <svg
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path
-                d="M4 6l4 4 4-4"
-                stroke="#6B7280"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-        </label>
+        {!hideOfferControls && (
+          <label className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-500 whitespace-nowrap">
+              Ordenar por:
+            </span>
+            <div className="relative w-56 sm:w-64">
+              <select
+                value={sortBy}
+                onChange={(event) =>
+                  onSortChange(event.target.value as ClassSortOption)
+                }
+                aria-label="Ordenar lista de turmas"
+                className="w-full appearance-none rounded-xl bg-white border border-[#DDD9F1] px-3.5 py-2 pr-8 text-xs font-semibold text-[#202124] outline-none transition-colors focus:border-[#5B4BDB] cursor-pointer"
+              >
+                {CLASS_SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <svg
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M4 6l4 4 4-4"
+                  stroke="#6B7280"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          </label>
+        )}
       </div>
+    </div>
     </div>
   );
 }

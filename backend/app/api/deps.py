@@ -1,5 +1,5 @@
-from typing import List, Union
-from fastapi import Depends, HTTPException, status
+from typing import Annotated, Optional
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
@@ -11,6 +11,40 @@ from app.repositories.usuario_repo import usuario_repo
 
 # Extrai o header Authorization: Bearer <token>
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme_opcional = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+
+
+def get_optional_current_user(
+    token: Optional[str] = Depends(oauth2_scheme_opcional),
+    db: Session = Depends(get_db),
+) -> Optional[Usuario]:
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: Optional[str] = payload.get("sub")
+        if email is None:
+            return None
+    except JWTError:
+        return None
+
+    user = usuario_repo.get_by_email(db, email=email)
+    if user is None or not user.is_active:
+        return None
+    return user
+
+
+def get_optional_current_user_from_header(
+    authorization: Annotated[Optional[str], Header(include_in_schema=False)] = None,
+    db: Session = Depends(get_db),
+) -> Optional[Usuario]:
+    """Lê token Bearer opcionalmente sem registrar requisito de segurança no schema OpenAPI."""
+    if not authorization:
+        return None
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        return None
+    return get_optional_current_user(token=token.strip(), db=db)
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Usuario:

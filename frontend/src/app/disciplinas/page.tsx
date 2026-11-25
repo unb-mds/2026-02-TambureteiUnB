@@ -1,19 +1,36 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, Suspense } from "react";
-import Link from "next/link";
+import React, { useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoolIllustration from "@/components/StoolIllustration";
 import Pagination from "@/components/Pagination";
+import OpenDataExportBar from "@/components/OpenDataExportBar";
+import CatalogYearFilter from "@/components/CatalogYearFilter";
 import { getDisciplines } from "@/services/disciplineService";
+import { exportDisciplinesOpenData } from "@/services/openDataService";
+import {
+  applyDisciplineYearFilter,
+  getAvailableDisciplineCatalogYears,
+  type CatalogYearSelection,
+} from "@/utils/catalogYearFilter";
+import useAsyncList from "@/hooks/useAsyncList";
 import {
   GLOBAL_CAMPUSES,
   GLOBAL_AREAS,
-  GLOBAL_DEPARTMENTS,
   Discipline,
 } from "@/types/disciplina";
+import { normalizeSearchTerm } from "@/utils/search";
+import { getDepartmentOptions } from "@/utils/disciplineDepartments";
+import { matchesDisciplineCampus } from "@/utils/disciplineCampuses";
+import DisciplineCard from "@/components/DisciplineCard";
+import { useDisciplineDetailedMetrics } from "@/hooks/useDisciplineApprovalMetrics";
+import {
+  DISCIPLINE_SORT_OPTIONS,
+  sortDisciplines,
+  type DisciplineSortOption,
+} from "@/utils/disciplineSorting";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -21,61 +38,67 @@ function DisciplinasContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
 
-  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: disciplines, loading } = useAsyncList(
+    getDisciplines,
+    "Erro ao carregar catálogo de disciplinas:"
+  );
 
   const [query, setQuery] = useState(initialQuery);
-  const [appliedQuery, setAppliedQuery] = useState(initialQuery);
   const [campus, setCampus] = useState("Todos os Campi");
   const [department, setDepartment] = useState("Todos os Departamentos");
+  const departmentOptions = useMemo(
+    () => getDepartmentOptions(disciplines),
+    [disciplines],
+  );
   const [area, setArea] = useState("Todas");
-  const [sort, setSort] = useState<"Mais populares" | "Menor taxa de aprovação" | "Mais materiais">("Mais populares");
+  const [selectedYear, setSelectedYear] = useState<CatalogYearSelection>("all");
+  const [sort, setSort] = useState<DisciplineSortOption>("data_priority");
+  const [onlyWithClasses, setOnlyWithClasses] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadDisciplines() {
-      try {
-        setLoading(true);
-        const data = await getDisciplines();
-        if (isMounted) {
-          setDisciplines(data);
-        }
-      } catch (err) {
-        console.error("Erro ao carregar catálogo de disciplinas:", err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-    loadDisciplines();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const availableYears = useMemo(
+    () => getAvailableDisciplineCatalogYears(disciplines),
+    [disciplines]
+  );
+  const activeYear: CatalogYearSelection =
+    selectedYear === "all" || availableYears.includes(selectedYear)
+      ? selectedYear
+      : "all";
+
+  const handleQueryChange = (newQuery: string) => {
+    setQuery(newQuery);
+    setCurrentPage(1);
+  };
 
   const filteredResults: Discipline[] = useMemo(() => {
-    const normalizedQuery = appliedQuery.trim().toLocaleLowerCase("pt-BR");
+    const normalizedQuery = normalizeSearchTerm(query);
 
-    return disciplines.filter((discipline) => {
-      const searchable = `${discipline.name} ${discipline.code} ${discipline.departmentName} ${discipline.department}`.toLocaleLowerCase("pt-BR");
+    const filtered = disciplines.filter((discipline) => {
+      const matchesTurmas =
+        !onlyWithClasses ||
+        (discipline.total_turmas !== undefined && discipline.total_turmas > 0);
+      if (!matchesTurmas) return false;
+
+      const searchable = normalizeSearchTerm(
+        `${discipline.name} ${discipline.code} ${discipline.departmentName} ${discipline.department}`
+      );
       const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
-      const matchesCampus =
-        campus === "Todos os Campi" ||
-        discipline.campusFilter === campus ||
-        discipline.campus === campus;
+      const matchesCampus = matchesDisciplineCampus(discipline, campus);
       const matchesDepartment =
-        department === "Todos os Departamentos" || discipline.department === department;
+        department === "Todos os Departamentos" ||
+        discipline.departmentName === department;
       const matchesArea = area === "Todas" || discipline.area === area;
 
       return matchesQuery && matchesCampus && matchesDepartment && matchesArea;
-    }).sort((a, b) => {
-      if (sort === "Menor taxa de aprovação") return a.approval - b.approval;
-      if (sort === "Mais materiais") return b.resources - a.resources;
-      return b.popularity - a.popularity;
     });
-  }, [disciplines, appliedQuery, campus, department, area, sort]);
+
+    const yearAdjusted =
+      activeYear === "all"
+        ? filtered.map((d) => applyDisciplineYearFilter(d, "all"))
+        : filtered.map((d) => applyDisciplineYearFilter(d, activeYear));
+
+    return sortDisciplines(yearAdjusted, sort);
+  }, [disciplines, query, campus, department, area, sort, onlyWithClasses, activeYear]);
 
   const totalPages = Math.max(1, Math.ceil(filteredResults.length / ITEMS_PER_PAGE));
   const activePage = Math.min(currentPage, totalPages);
@@ -84,6 +107,7 @@ function DisciplinasContent() {
     const start = (activePage - 1) * ITEMS_PER_PAGE;
     return filteredResults.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredResults, activePage]);
+  const detailedMetrics = useDisciplineDetailedMetrics(paginatedResults);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -107,23 +131,28 @@ function DisciplinasContent() {
     setCurrentPage(1);
   };
 
-  const handleSortChange = (newSort: "Mais populares" | "Menor taxa de aprovação" | "Mais materiais") => {
+  const handleSortChange = (newSort: DisciplineSortOption) => {
     setSort(newSort);
     setCurrentPage(1);
   };
 
+  const handleYearChange = (year: CatalogYearSelection) => {
+    setSelectedYear(year);
+    setCurrentPage(1);
+  };
+
   const executeSearch = () => {
-    setAppliedQuery(query);
     setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
     setQuery("");
-    setAppliedQuery("");
     setCampus("Todos os Campi");
     setDepartment("Todos os Departamentos");
     setArea("Todas");
-    setSort("Mais populares");
+    setSelectedYear("all");
+    setSort("data_priority");
+    setOnlyWithClasses(true);
     setCurrentPage(1);
   };
 
@@ -169,7 +198,7 @@ function DisciplinasContent() {
                 <input
                   type="search"
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => handleQueryChange(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") executeSearch();
                   }}
@@ -177,6 +206,18 @@ function DisciplinasContent() {
                   aria-label="Pesquisar disciplinas da UnB"
                   className="flex-1 bg-transparent py-2 text-sm text-[#202124] outline-none placeholder-gray-400"
                 />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => handleQueryChange("")}
+                    className="p-1 text-gray-400 hover:text-gray-600 transition-colors mr-2"
+                    aria-label="Limpar busca"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
               <button
                 type="button"
@@ -223,8 +264,13 @@ function DisciplinasContent() {
                     onChange={(event) => handleDepartmentChange(event.target.value)}
                     className="w-full appearance-none rounded-xl bg-[#F7F7FA] border border-[#E1DFEA] px-4 py-2.5 pr-10 text-xs font-medium text-[#202124] outline-none focus:border-[#5B4BDB]"
                   >
-                    {GLOBAL_DEPARTMENTS.map((item) => (
-                      <option key={item}>{item}</option>
+                    <option value="Todos os Departamentos">
+                      Todos os Departamentos
+                    </option>
+                    {departmentOptions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
                     ))}
                   </select>
                   <svg
@@ -271,18 +317,56 @@ function DisciplinasContent() {
                 );
               })}
             </div>
+
+            {/* Alternador: Apenas disciplinas com turmas ofertadas */}
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#ECEAF5] pt-4">
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={onlyWithClasses}
+                  onChange={(e) => {
+                    setOnlyWithClasses(e.target.checked);
+                    setCurrentPage(1);
+                  }}
+                  className="sr-only peer"
+                />
+                <div
+                  className={`relative w-10 h-5.5 rounded-full transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4BDB]/30 ${
+                    onlyWithClasses
+                      ? "bg-[var(--primary)]"
+                      : "border border-[var(--border-subtle)] bg-[var(--surface-muted)]"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`absolute top-[2px] left-[2px] h-4.5 w-4.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] transition-transform ${
+                      onlyWithClasses
+                        ? "translate-x-4.5"
+                        : "translate-x-0"
+                    }`}
+                  />
+                </div>
+                <span className="ml-3 text-xs sm:text-sm font-semibold text-[var(--foreground)]">
+                  Apenas disciplinas com turmas ofertadas
+                </span>
+              </label>
+
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-muted)]">
+                {onlyWithClasses ? "Ocultando sem turmas" : "Exibindo todas (inclusive sem turmas)"}
+              </span>
+            </div>
           </section>
 
           {/* Barra de Ordenação e Contador */}
-          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="text-xs sm:text-sm text-gray-600">
               Exibindo <strong className="text-[#202124]">{filteredResults.length} disciplinas</strong>{" "}
-              {appliedQuery && (
+              {query.trim() && (
                 <>
-                  para <strong className="text-[#5B4BDB]">&quot;{appliedQuery}&quot;</strong>
+                  para <strong className="text-[#5B4BDB]">&quot;{query.trim()}&quot;</strong>
                 </>
               )}{" "}
-              em toda a UnB
+              {onlyWithClasses ? "com turmas ofertadas" : "no catálogo geral"}
             </p>
 
             <label className="flex items-center gap-2.5 self-end sm:self-auto">
@@ -291,13 +375,15 @@ function DisciplinasContent() {
                 <select
                   value={sort}
                   onChange={(event) =>
-                    handleSortChange(event.target.value as "Mais populares" | "Menor taxa de aprovação" | "Mais materiais")
+                    handleSortChange(event.target.value as DisciplineSortOption)
                   }
                   className="w-full appearance-none rounded-xl bg-white border border-[#E1DFEA] px-3.5 py-2 pr-8 text-xs font-semibold text-[#202124] outline-none focus:border-[#5B4BDB]"
                 >
-                  <option>Mais populares</option>
-                  <option>Menor taxa de aprovação</option>
-                  <option>Mais materiais</option>
+                  {DISCIPLINE_SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
                 <svg
                   className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
@@ -317,6 +403,34 @@ function DisciplinasContent() {
                 </svg>
               </div>
             </label>
+          </div>
+
+          <CatalogYearFilter
+            years={availableYears}
+            selectedYear={activeYear}
+            onChange={handleYearChange}
+            allLabel="Todos os anos"
+            description="Exibindo acumulado consolidado de todos os anos disponíveis"
+          />
+
+          <div className="mb-6">
+            <OpenDataExportBar
+              title={
+                activeYear === "all"
+                  ? "Exportar Catalogo Analitico de Disciplinas"
+                  : `Exportar Catalogo Analitico de Disciplinas (${activeYear})`
+              }
+              recordCount={filteredResults.length}
+              recordLabel="disciplinas"
+              disabled={loading}
+              compact={true}
+              onExport={(format) =>
+                exportDisciplinesOpenData(filteredResults, format, {
+                  year: activeYear,
+                  identifier: department !== "Todos os Departamentos" ? department : null,
+                })
+              }
+            />
           </div>
 
           {/* Grade de Disciplinas */}
@@ -342,65 +456,18 @@ function DisciplinasContent() {
           ) : filteredResults.length > 0 ? (
             <>
               <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paginatedResults.map((discipline) => (
-                  <article
-                    key={discipline.slug || discipline.code}
-                    className="group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#E8E6F8] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all"
-                  >
-                    <div>
-                      <div className="mb-4 flex items-center justify-between gap-2">
-                        <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
-                          {discipline.code}
-                        </span>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            discipline.approval >= 70
-                              ? "bg-[#E9F9F3] text-[#067A59]"
-                              : "bg-[#FFF7E8] text-[#925600]"
-                          }`}
-                        >
-                          {discipline.approval}% de aprovação
-                        </span>
-                      </div>
+                {paginatedResults.map((discipline) => {
+                  const detailed =
+                    activeYear === "all" ? detailedMetrics[discipline.slug] : undefined;
 
-                      <h2 className="text-base sm:text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
-                        {discipline.name}
-                      </h2>
-
-                      <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-                        {discipline.departmentName} <span className="mx-1 text-[#C4C1D8]">•</span> {discipline.campus}
-                      </p>
-
-                      <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-700">
-                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-[#7C6CF0]">
-                          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
-                          <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                        </svg>
-                        {discipline.credits}
-                      </div>
-
-                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-[#7C6CF0]">
-                          <path d="M3 2.5h7.5A2.5 2.5 0 0 1 13 5v8.5H5.5A2.5 2.5 0 0 1 3 11V2.5Z" stroke="currentColor" strokeWidth="1.3" />
-                          <path d="M3 11a2.5 2.5 0 0 1 2.5-2.5H13" stroke="currentColor" strokeWidth="1.3" />
-                        </svg>
-                        <span>
-                          <strong className="text-gray-800">{discipline.resources}</strong> materiais e relatos
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 border-t border-[#EDE9FD] pt-4">
-                      <Link
-                        href={`/disciplinas/${discipline.slug}`}
-                        className="flex w-full items-center justify-between text-xs sm:text-sm font-bold text-[#5B4BDB] group-hover:translate-x-0.5 transition-all"
-                      >
-                        <span>Acessar disciplina</span>
-                        <span aria-hidden="true">→</span>
-                      </Link>
-                    </div>
-                  </article>
-                ))}
+                  return (
+                    <DisciplineCard
+                      key={discipline.slug || discipline.code}
+                      discipline={discipline}
+                      detailedMetrics={detailed}
+                    />
+                  );
+                })}
               </section>
 
               <Pagination
@@ -419,15 +486,28 @@ function DisciplinasContent() {
               </div>
               <h2 className="text-lg font-bold text-[#202124]">Nenhuma disciplina encontrada</h2>
               <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-                Tente remover um filtro ou pesquisar outro nome, código ou departamento.
+                {onlyWithClasses
+                  ? "Nenhuma disciplina com turmas ofertadas atendeu aos critérios. Você pode desmarcar o filtro para consultar o catálogo histórico completo."
+                  : "Tente remover um filtro ou pesquisar outro nome, código ou departamento."}
               </p>
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="mt-5 rounded-xl bg-[#5B4BDB] px-5 py-2.5 text-xs font-semibold text-white hover:brightness-110"
-              >
-                Redefinir filtros
-              </button>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                {onlyWithClasses && (
+                  <button
+                    type="button"
+                    onClick={() => setOnlyWithClasses(false)}
+                    className="rounded-xl border border-[#5B4BDB] text-[#5B4BDB] bg-white px-4 py-2 text-xs font-semibold hover:bg-[#EDE9FD]/40 transition-colors"
+                  >
+                    Exibir disciplinas sem turmas
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="rounded-xl bg-[#5B4BDB] px-4 py-2 text-xs font-semibold text-white hover:brightness-110 transition-colors"
+                >
+                  Redefinir filtros
+                </button>
+              </div>
             </section>
           )}
         </div>

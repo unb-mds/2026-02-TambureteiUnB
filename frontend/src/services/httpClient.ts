@@ -37,7 +37,8 @@ export function hasStoredToken(): boolean {
 
 export async function request<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  responseType: "json" | "blob" = "json"
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const headers = new Headers(options.headers || {});
@@ -105,7 +106,12 @@ export async function request<T>(
     throw new ApiError(errorMessage, response.status, errorData);
   }
 
+  if (responseType === "blob") return response.blob() as Promise<T>;
   return response.json() as Promise<T>;
+}
+
+export function requestBlob(endpoint: string, options: RequestInit = {}): Promise<Blob> {
+  return request<Blob>(endpoint, options, "blob");
 }
 
 export default request;

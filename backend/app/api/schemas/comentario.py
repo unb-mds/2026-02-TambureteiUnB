@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Optional
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_core import PydanticCustomError
@@ -66,10 +65,9 @@ class ComentarioUpdate(BaseModel):
 
 
 class ComentarioResponse(BaseModel):
-    """Schema de saída — retornado pela API."""
+    """Schema de saída — retornado pela API sem expor identificadores internos de usuário."""
 
     id: int
-    usuario_id: UUID
     disciplina_id: int
     turma_id: Optional[int] = None
     autor_alias: str
@@ -78,6 +76,28 @@ class ComentarioResponse(BaseModel):
     parent_id: Optional[int] = None
     status_moderacao: str
     created_at: datetime
+    upvotes: int = 0
+    liked_by_me: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ComentarioVotoResponse(BaseModel):
+    """Schema de saída após alternar voto útil (Concordo) em comentário."""
+
+    comentario_id: int
+    upvotes: int
+    liked_by_me: bool
+
+
+class ComentarioStatusResponse(BaseModel):
+    """Status atual da triagem de moderação para acompanhamento do autor."""
+
+    id: int
+    status_moderacao: str
+    motivo_moderacao: Optional[str] = None
+    moderado_por: Optional[str] = None
+    confianca_ia: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
 

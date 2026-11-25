@@ -75,8 +75,8 @@ class MetricaCurso(Base):
     concluintes = Column(Integer, default=0, nullable=False)
     trancados = Column(Integer, default=0, nullable=False)
     desvinculados = Column(Integer, default=0, nullable=False)
-    taxa_sucesso = Column(Numeric(5, 2), nullable=True)  # % concluintes / ingressantes
-    taxa_evasao = Column(Numeric(5, 2), nullable=True)   # % desvinculados / matriculados
+    taxa_sucesso = Column(Numeric(8, 2), nullable=True)  # % concluintes / ingressantes
+    taxa_evasao = Column(Numeric(8, 2), nullable=True)   # % desvinculados / matriculados
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

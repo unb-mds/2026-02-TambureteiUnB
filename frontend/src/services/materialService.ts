@@ -2,9 +2,10 @@ import type {
   MaterialPageResponse,
   MaterialResponse,
   MaterialType,
+  MaterialVoteResponse,
   UploadProgressInfo,
 } from "../types/material.ts";
-import { ApiError, request } from "./httpClient.ts";
+import { ApiError, request, requestBlob } from "./httpClient.ts";
 
 export interface SingleUploadOptions {
   disciplineIdOrSlug: string | number;
@@ -26,9 +27,16 @@ export interface BatchUploadOptions {
   signal?: AbortSignal;
 }
 
+export interface CreateExternalLinkOptions {
+  disciplineIdOrSlug: string | number;
+  title: string;
+  url: string;
+  type?: MaterialType;
+}
+
 const UPLOAD_ERROR_MESSAGES_BY_STATUS: Record<number, string> = {
   401: "Sessao expirada ou nao autenticada. Faca login novamente.",
-  403: "Apenas usuarios com perfil de estudante (STUDENT) podem enviar materiais.",
+  403: "Voce nao possui permissao para enviar materiais com esta conta.",
   404: "Disciplina nao encontrada no sistema.",
   413: "O arquivo excede o limite maximo de 5 MiB permitido pelo servidor.",
   415: "Formato de arquivo nao aceito. Envie apenas PDF, PNG ou JPG.",
@@ -169,11 +177,12 @@ export async function uploadMaterialsBatch(
  */
 export async function listMaterials(
   disciplineIdOrSlug: string | number,
-  params: { titulo?: string; tipo?: string; pagina?: number; tamanho_pagina?: number } = {}
+  params: { titulo?: string; tipo?: string; tipos?: MaterialType[]; pagina?: number; tamanho_pagina?: number } = {}
 ): Promise<MaterialPageResponse> {
   const query = new URLSearchParams();
   if (params.titulo) query.set("titulo", params.titulo);
   if (params.tipo) query.set("tipo", params.tipo);
+  for (const tipo of params.tipos ?? []) query.append("tipos", tipo);
   if (params.pagina) query.set("pagina", String(params.pagina));
   if (params.tamanho_pagina) query.set("tamanho_pagina", String(params.tamanho_pagina));
 
@@ -181,13 +190,47 @@ export async function listMaterials(
   const endpoint = `/cadeiras/${encodeURIComponent(disciplineIdOrSlug)}/materiais${
     qs ? `?${qs}` : ""
   }`;
-  return request<MaterialPageResponse>(endpoint);
+  return request<MaterialPageResponse>(endpoint, { cache: "no-store" });
+}
+
+export async function downloadMaterial(id: number): Promise<Blob> {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ApiError("Material inválido.", 422);
+  const blob = await requestBlob(`/materiais/${id}/download`, { cache: "no-store" });
+  if (blob.size === 0) throw new ApiError("O servidor retornou um arquivo vazio.", 503);
+  return blob;
+}
+
+export async function toggleMaterialVote(id: number): Promise<MaterialVoteResponse> {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ApiError("Material inválido.", 422);
+  return request<MaterialVoteResponse>(`/materiais/${id}/voto`, {
+    method: "POST",
+  });
+}
+
+export async function createExternalLink({
+  disciplineIdOrSlug,
+  title,
+  url,
+  type = "RESUMO",
+}: CreateExternalLinkOptions): Promise<MaterialResponse> {
+  const endpoint = `/cadeiras/${encodeURIComponent(disciplineIdOrSlug)}/links`;
+  return request<MaterialResponse>(endpoint, {
+    method: "POST",
+    body: JSON.stringify({
+      titulo: title.trim(),
+      url_origem: url.trim(),
+      tipo: type,
+    }),
+  });
 }
 
 export const materialService = {
+  createExternalLink,
+  downloadMaterial,
   uploadMaterial,
   uploadMaterialsBatch,
   listMaterials,
+  toggleMaterialVote,
 };
 
 export default materialService;

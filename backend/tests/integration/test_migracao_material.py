@@ -24,10 +24,13 @@ def test_migracao_reversivel_e_indices(engine, revisao):
     inspector = inspect(engine)
     assert "materiais" not in inspector.get_table_names()
     assert {"id", "usuario_id", "disciplina_id", "titulo", "url_origem", "tipo",
-            "caminho_arquivo", "formato", "tamanho_bytes", "status_moderacao", "created_at"}.issubset(
+            "caminho_arquivo", "formato", "tamanho_bytes", "status_moderacao",
+            "motivo_moderacao", "confianca_ia", "moderado_por", "created_at"}.issubset(
         {c["name"] for c in inspector.get_columns("conteudos")})
+    assert {"motivo_moderacao", "confianca_ia", "moderado_por"}.issubset(
+        {c["name"] for c in inspector.get_columns("comentarios")})
     assert "ix_conteudos_arquivos_disciplina_status" in {i["name"] for i in inspector.get_indexes("conteudos")}
-    assert len(inspector.get_check_constraints("conteudos")) == 7
+    assert len(inspector.get_check_constraints("conteudos")) == 9
     assert len(inspector.get_foreign_keys("conteudos")) == 3
 
     assert "metricas_consolidadas" in inspector.get_table_names()
@@ -74,7 +77,16 @@ def test_convergencia_preserva_registros_existentes(engine, revisao):
 def test_historico_linear_sem_heads_concorrentes():
     script = ScriptDirectory.from_config(Config("alembic.ini"))
 
-    assert script.get_heads() == ["012_estatisticas_consolidadas"]
+    assert script.get_heads() == ["021_add_pizza_moderacao_imagem"]
+    assert script.get_revision("021_add_pizza_moderacao_imagem").down_revision == "020_limpar_professores_poluidos"
+    assert script.get_revision("020_limpar_professores_poluidos").down_revision == "019_add_historico_amostras"
+    assert script.get_revision("019_add_historico_amostras").down_revision == "018_add_curso_matriz"
+    assert script.get_revision("018_add_curso_matriz").down_revision == "017_widen_metricas_cursos_taxas"
+    assert script.get_revision("017_widen_metricas_cursos_taxas").down_revision == "016_widen_turma_horario_to_text"
+    assert script.get_revision("016_widen_turma_horario_to_text").down_revision == "015_moderacao_ia"
+    assert script.get_revision("015_moderacao_ia").down_revision == "014_mv_evasao_campus"
+    assert script.get_revision("014_mv_evasao_campus").down_revision == "013_estat_disciplina_semestre"
+    assert script.get_revision("013_estat_disciplina_semestre").down_revision == "012_estatisticas_consolidadas"
     assert script.get_revision("012_estatisticas_consolidadas").down_revision == "011_denuncias"
     assert script.get_revision("011_denuncias").down_revision == "010_curadorias"
     assert script.get_revision("010_curadorias").down_revision == "009_arquivos_conteudos"

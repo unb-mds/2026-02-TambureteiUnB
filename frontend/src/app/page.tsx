@@ -1,76 +1,76 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useSyncExternalStore, useState, useMemo } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GuestBanner from "@/components/GuestBanner";
+import CourseCard from "@/components/CourseCard";
+import DataCollectionBanner from "@/components/DataCollectionBanner";
 import Button from "@/components/Button";
+import Pagination from "@/components/Pagination";
+import { authService } from "@/services/authService";
+import OpenDataExportBar from "@/components/OpenDataExportBar";
+import CatalogYearFilter from "@/components/CatalogYearFilter";
 import { getCourses } from "@/services/courseService";
+import { exportCoursesOpenData } from "@/services/openDataService";
+import {
+  getAvailableCourseCatalogYears,
+  type CatalogYearSelection,
+} from "@/utils/catalogYearFilter";
+import useAsyncList from "@/hooks/useAsyncList";
+import {
+  filterCourses,
+  paginateCourses,
+  COURSES_PER_PAGE,
+} from "@/utils/courseCatalog";
 import { CampusFilter, CAMPUS_LIST, Course } from "@/types/curso";
 
 export default function HomePage() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: courses, loading } = useAsyncList(
+    getCourses,
+    "Erro ao carregar cursos da API:"
+  );
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<CampusFilter>("Todos");
+  const [selectedYear, setSelectedYear] = useState<CatalogYearSelection>("all");
+  const isLoggedIn = useSyncExternalStore(
+    authService.subscribeAuthChange,
+    authService.isAuthenticated,
+    () => false,
+  );
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadCourses() {
-      try {
-        setLoading(true);
-        const data = await getCourses();
-        if (isMounted) {
-          setCourses(data);
-        }
-      } catch (err) {
-        console.error("Erro ao carregar cursos da API:", err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-    loadCourses();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const availableYears = useMemo(
+    () => getAvailableCourseCatalogYears(courses),
+    [courses]
+  );
+  const activeYear: CatalogYearSelection =
+    selectedYear === "all" || availableYears.includes(selectedYear)
+      ? selectedYear
+      : "all";
 
   // Filtro e busca em tempo real do catálogo na Landing Page
   const filteredCourses = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return courses.filter((course) => {
-      const matchCampus =
-        selectedCampus === "Todos" ||
-        (course.campus && course.campus.toLowerCase().includes(selectedCampus.toLowerCase()));
-
-      const matchQuery =
-        !query ||
-        course.nome.toLowerCase().includes(query) ||
-        (course.departamento && course.departamento.toLowerCase().includes(query)) ||
-        (course.campus && course.campus.toLowerCase().includes(query));
-
-      return matchCampus && matchQuery;
-    });
+    return filterCourses(courses, searchQuery, selectedCampus);
   }, [courses, searchQuery, selectedCampus]);
 
-  const campusBadgeColor = (campus: string) => {
-    if (!campus) return "bg-gray-100 text-gray-700 border-gray-200";
-    if (campus.includes("FCTE") || campus.includes("FGA")) {
-      return "bg-indigo-50 text-indigo-700 border-indigo-200";
-    }
-    if (campus.includes("Darcy") || campus.includes("Darcy Ribeiro")) {
-      return "bg-purple-50 text-purple-700 border-purple-200";
-    }
-    if (campus.includes("FCE") || campus.includes("Ceilândia") || campus.includes("Ceilandia")) {
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    }
-    if (campus.includes("FUP") || campus.includes("Planaltina")) {
-      return "bg-amber-50 text-amber-800 border-amber-200";
-    }
-    return "bg-gray-100 text-gray-700 border-gray-200";
+  const paginated = paginateCourses(filteredCourses, currentPage);
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+  const handleCampusChange = (value: CampusFilter) => {
+    setSelectedCampus(value);
+    setCurrentPage(1);
+  };
+  const handleYearChange = (year: CatalogYearSelection) => {
+    setSelectedYear(year);
+    setCurrentPage(1);
+  };
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -80,10 +80,13 @@ export default function HomePage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex flex-col gap-8">
         {/* Faixa de Aviso de Visitante */}
-        <GuestBanner />
+        {!isLoggedIn && <GuestBanner />}
+
+        {/* Faixa de Aviso sobre Coleta Colaborativa de Dados */}
+        <DataCollectionBanner />
 
         {/* Hero Section */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-white to-[#EDE9FD]/50 border border-[#E8E6F8] p-8 sm:p-12 shadow-xs">
+        <section className="home-hero relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-white to-[#EDE9FD]/50 border border-[#E8E6F8] p-8 sm:p-12 shadow-xs">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-[#5B4BDB]/10 px-3 py-1 text-xs font-bold text-[#5B4BDB] mb-4">
               <span>Universidade de Brasília • MDS 2026/2</span>
@@ -110,11 +113,13 @@ export default function HomePage() {
                   Explorar Disciplinas
                 </Button>
               </Link>
-              <Link href="/login">
-                <Button variant="ghost" size="lg">
-                  Entrar na Comunidade
-                </Button>
-              </Link>
+              {!isLoggedIn && (
+                <Link href="/login">
+                  <Button variant="ghost" size="lg">
+                    Entrar na Comunidade
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </section>
@@ -150,16 +155,17 @@ export default function HomePage() {
                 </svg>
               </div>
               <input
-                type="text"
+                type="search"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Buscar curso por nome ou departamento..."
+                aria-label="Buscar curso por nome ou departamento"
                 className="w-full pl-10 pr-4 py-2.5 bg-[#F7F7FA] border border-[#E8E6F8] rounded-xl text-sm text-[#202124] placeholder-gray-400 focus:bg-white focus:border-[#5B4BDB] focus:ring-4 focus:ring-[#5B4BDB]/15 transition-all outline-none"
               />
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => handleSearchChange("")}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                   aria-label="Limpar busca"
                 >
@@ -178,7 +184,8 @@ export default function HomePage() {
                   <button
                     key={campus}
                     type="button"
-                    onClick={() => setSelectedCampus(campus)}
+                    aria-pressed={active}
+                    onClick={() => handleCampusChange(campus)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                       active
                         ? "bg-[#5B4BDB] text-white shadow-xs"
@@ -193,7 +200,7 @@ export default function HomePage() {
           </div>
 
           {/* Contador de Resultados */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <p className="text-xs text-gray-500 font-medium">
               Exibindo <span className="font-bold text-[#202124]">{filteredCourses.length}</span> cursos{" "}
               {selectedCampus !== "Todos" && (
@@ -203,18 +210,45 @@ export default function HomePage() {
               )}
             </p>
 
-            {(searchQuery || selectedCampus !== "Todos") && (
+            {(searchQuery || selectedCampus !== "Todos" || activeYear !== "all") && (
               <button
                 type="button"
                 onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCampus("Todos");
+                  handleSearchChange("");
+                  handleCampusChange("Todos");
+                  handleYearChange("all");
                 }}
                 className="text-xs text-[#5B4BDB] hover:text-[#4F3EC9] font-semibold hover:underline"
               >
                 Redefinir filtros
               </button>
             )}
+          </div>
+
+          <CatalogYearFilter
+            years={availableYears}
+            selectedYear={activeYear}
+            onChange={handleYearChange}
+          />
+
+          <div className="mb-6">
+            <OpenDataExportBar
+              title={
+                activeYear === "all"
+                  ? "Exportar Catalogo de Cursos da UnB"
+                  : `Exportar Catalogo de Cursos da UnB (${activeYear})`
+              }
+              recordCount={filteredCourses.length}
+              recordLabel="cursos"
+              disabled={loading}
+              compact={true}
+              onExport={(format) =>
+                exportCoursesOpenData(filteredCourses, format, {
+                  year: activeYear,
+                  identifier: selectedCampus !== "Todos" ? selectedCampus : null,
+                })
+              }
+            />
           </div>
 
           {/* Grade de Cards de Cursos */}
@@ -238,73 +272,25 @@ export default function HomePage() {
               ))}
             </div>
           ) : filteredCourses.length > 0 ? (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCourses.map((course: Course) => (
-                <div
+              {paginated.items.map((course: Course) => (
+                <CourseCard
                   key={course.slug || course.id}
-                  className="group bg-white rounded-2xl border border-[#E8E6F8] p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Badges superiores: Campus e Grau */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${campusBadgeColor(
-                          course.campus
-                        )}`}
-                      >
-                        {course.campus}
-                      </span>
-                      <span className="text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
-                        {course.grau} • {course.turno}
-                      </span>
-                    </div>
-
-                    {/* Nome do Curso */}
-                    <h3 className="text-lg font-bold text-[#202124] group-hover:text-[#5B4BDB] transition-colors leading-snug">
-                      {course.nome}
-                    </h3>
-
-                    {/* Departamento / Faculdade */}
-                    {course.departamento && (
-                      <p className="text-xs text-gray-500 font-medium mt-1">
-                        {course.departamento}
-                      </p>
-                    )}
-
-                    {/* Descrição resumida */}
-                    {course.descricao && (
-                      <p className="text-xs text-gray-600 mt-3 line-clamp-2 leading-relaxed">
-                        {course.descricao}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Rodapé do Card com Métricas e Botão */}
-                  <div className="mt-5 pt-4 border-t border-[#F7F7FA] flex items-center justify-between gap-3">
-                    <div className="text-[11px] text-gray-500 flex flex-col">
-                      <span className="font-semibold text-gray-700">
-                        {course.semestres ? `${course.semestres} semestres` : "Fluxo padrão"}
-                      </span>
-                      <span>{course.total_disciplinas || 45} disciplinas</span>
-                    </div>
-
-                    <Link href={`/cursos/${course.slug}`}>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        rightIcon={
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        }
-                      >
-                        Ver disciplinas
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
+                  course={course}
+                  activeYear={activeYear}
+                />
               ))}
             </div>
+            <Pagination
+              currentPage={paginated.currentPage}
+              totalPages={paginated.totalPages}
+              onPageChange={handlePageChange}
+              totalItems={filteredCourses.length}
+              itemsPerPage={COURSES_PER_PAGE}
+              itemName="cursos"
+            />
+            </>
           ) : (
             /* Estado Vazio */
             <div className="bg-white rounded-3xl border border-[#E8E6F8] p-12 text-center max-w-md mx-auto">
@@ -328,8 +314,8 @@ export default function HomePage() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCampus("Todos");
+                  handleSearchChange("");
+                  handleCampusChange("Todos");
                 }}
               >
                 Limpar filtros

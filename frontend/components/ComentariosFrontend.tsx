@@ -1,10 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { isAuthenticated } from "@/services/authService";
+import React, { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
+import Link from "next/link";
+import { getStoredUser, isAuthenticated, subscribeAuthChange } from "@/services/authService";
 import { request } from "@/services/httpClient";
-import { criarDenuncia, ROTULOS_CATEGORIA_DENUNCIA, validarMotivoDenuncia } from "@/services/moderacaoService";
+import {
+  criarDenuncia,
+  getTriageBannerClasses,
+  iniciarPollingStatusComentario,
+  ROTULOS_CATEGORIA_DENUNCIA,
+  validarMotivoDenuncia,
+  type AvisoTriagemComentario,
+} from "@/services/moderacaoService";
 import type { CategoriaDenuncia } from "@/types/moderacao";
 
 export interface CommentItem {
@@ -28,6 +35,7 @@ interface BackendCommentItem {
   created_at?: string;
   parent_id?: number | string | null;
   upvotes?: number;
+  liked_by_me?: boolean;
 }
 
 interface BackendCommentResponse {
@@ -46,12 +54,20 @@ export default function ComentariosFrontend({
   disciplineCode,
   disciplineId,
 }: ComentariosFrontendProps) {
-  const router = useRouter();
+  const authenticated = useSyncExternalStore(
+    subscribeAuthChange,
+    isAuthenticated,
+    () => false
+  );
+  const storedUser = authenticated ? getStoredUser() : null;
+  const displayAuthorName = storedUser?.nome?.trim() || "Estudante UnB";
+
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCommentText, setNewCommentText] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [customAlias] = useState("@estudante_fcte");
+  const [triageNotice, setTriageNotice] = useState<AvisoTriagemComentario | null>(null);
+  const [replyNotice, setReplyNotice] = useState<(AvisoTriagemComentario & { parentId: string }) | null>(null);
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [expandedThreads, setExpandedThreads] = useState<Record<string, boolean>>({});
@@ -68,74 +84,85 @@ export default function ComentariosFrontend({
   const isMainLengthValid = newCommentText.length >= MIN_CHARS && newCommentText.length <= MAX_CHARS;
   const isReplyLengthValid = replyText.length >= MIN_CHARS && replyText.length <= MAX_CHARS;
 
-  useEffect(() => {
-    let isMounted = true;
+  const pollCancelRef = useRef<(() => void) | null>(null);
+  const isMountedRef = useRef(true);
 
-    async function loadComments() {
-      const identifier = disciplineId || disciplineCode;
-      if (!identifier) {
-        setLoading(false);
-        return;
+  const fetchComments = useCallback(async (): Promise<CommentItem[]> => {
+    const identifier = disciplineId || disciplineCode;
+    if (!identifier) {
+      return [];
+    }
+
+    try {
+      const response = await request<BackendCommentResponse | BackendCommentItem[]>(
+        `/cadeiras/${identifier}/comentarios`,
+        { cache: "no-store" }
+      );
+
+      const rawItems: BackendCommentItem[] = Array.isArray(response)
+        ? response
+        : response?.items || [];
+
+      const mapped: CommentItem[] = rawItems.map((item) => ({
+        id: String(item.id),
+        authorAlias: item.autor_alias || "Estudante Anônimo",
+        isAnonymous:
+          !item.autor_alias ||
+          item.autor_alias.toLowerCase().includes("anonim") ||
+          item.autor_alias.toLowerCase().includes("anônim"),
+        content: item.conteudo,
+        createdAt: item.created_at
+          ? new Date(item.created_at).toLocaleDateString("pt-BR")
+          : "Recente",
+        upvotes: item.upvotes || 0,
+        isLikedByMe: Boolean(item.liked_by_me),
+        parentId: item.parent_id ? String(item.parent_id) : null,
+        replies: [],
+      }));
+
+      const roots: CommentItem[] = [];
+      const lookup = new Map<string, CommentItem>();
+
+      mapped.forEach((c) => lookup.set(c.id, { ...c, replies: [] }));
+
+      mapped.forEach((c) => {
+        if (c.parentId && lookup.has(c.parentId)) {
+          lookup.get(c.parentId)!.replies!.push(lookup.get(c.id)!);
+        } else {
+          roots.push(lookup.get(c.id)!);
+        }
+      });
+
+      if (isMountedRef.current) {
+        setComments(roots);
       }
+      return mapped;
+    } catch (err) {
+      console.error("Erro ao carregar comentarios:", err);
+      return [];
+    }
+  }, [disciplineId, disciplineCode]);
 
-      setLoading(true);
-      try {
-        const response = await request<BackendCommentResponse | BackendCommentItem[]>(
-          `/cadeiras/${identifier}/comentarios`
-        );
+  useEffect(() => {
+    isMountedRef.current = true;
 
-        if (isMounted) {
-          const rawItems: BackendCommentItem[] = Array.isArray(response)
-            ? response
-            : response?.items || [];
-
-          const mapped: CommentItem[] = rawItems.map((item) => ({
-            id: String(item.id),
-            authorAlias: item.autor_alias || "@estudante_fcte",
-            isAnonymous: !item.autor_alias || item.autor_alias.includes("Anonimo"),
-            content: item.conteudo,
-            createdAt: item.created_at
-              ? new Date(item.created_at).toLocaleDateString("pt-BR")
-              : "Recente",
-            upvotes: item.upvotes || 0,
-            isLikedByMe: false,
-            parentId: item.parent_id ? String(item.parent_id) : null,
-            replies: [],
-          }));
-
-          const roots: CommentItem[] = [];
-          const lookup = new Map<string, CommentItem>();
-
-          mapped.forEach((c) => lookup.set(c.id, { ...c, replies: [] }));
-
-          mapped.forEach((c) => {
-            if (c.parentId && lookup.has(c.parentId)) {
-              lookup.get(c.parentId)!.replies!.push(lookup.get(c.id)!);
-            } else {
-              roots.push(lookup.get(c.id)!);
-            }
-          });
-
-          setComments(roots);
-        }
-      } catch (err) {
-        console.error("Erro ao carregar comentarios:", err);
-        if (isMounted) {
-          setComments([]);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+    async function loadInitial() {
+      await fetchComments();
+      if (isMountedRef.current) {
+        setLoading(false);
       }
     }
 
-    loadComments();
+    void loadInitial();
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      if (pollCancelRef.current) {
+        pollCancelRef.current();
+        pollCancelRef.current = null;
+      }
     };
-  }, [disciplineId, disciplineCode]);
+  }, [fetchComments, authenticated]);
 
   const toggleExpand = (commentId: string) => {
     setExpandedThreads((prev) => ({
@@ -144,39 +171,137 @@ export default function ComentariosFrontend({
     }));
   };
 
-  const handleToggleUpvote = (commentId: string) => {
-    const updateRecursive = (list: CommentItem[]): CommentItem[] => {
+  const findCommentById = (
+    list: CommentItem[],
+    commentId: string
+  ): CommentItem | null => {
+    for (const item of list) {
+      if (item.id === commentId) return item;
+      if (item.replies && item.replies.length > 0) {
+        const nested = findCommentById(item.replies, commentId);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  };
+
+  const handleToggleUpvote = async (commentId: string) => {
+    if (!authenticated || !isAuthenticated()) {
+      return;
+    }
+
+    const previous = findCommentById(comments, commentId);
+    if (!previous) return;
+
+    const updateRecursive = (
+      list: CommentItem[],
+      nextState?: { upvotes: number; isLikedByMe: boolean }
+    ): CommentItem[] => {
       return list.map((item) => {
         if (item.id === commentId) {
+          if (nextState) {
+            return { ...item, ...nextState };
+          }
           const willLike = !item.isLikedByMe;
           return {
             ...item,
             isLikedByMe: willLike,
-            upvotes: willLike ? item.upvotes + 1 : item.upvotes - 1,
+            upvotes: Math.max(0, willLike ? item.upvotes + 1 : item.upvotes - 1),
           };
         }
         if (item.replies && item.replies.length > 0) {
-          return { ...item, replies: updateRecursive(item.replies) };
+          return { ...item, replies: updateRecursive(item.replies, nextState) };
         }
         return item;
       });
     };
+
     setComments((prev) => updateRecursive(prev));
-  };
 
-  const handleMainSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isMainLengthValid) return;
-
-    if (!isAuthenticated()) {
-      alert("Apenas estudantes cadastrados podem publicar comentarios.");
-      router.push("/login");
+    const numericId = Number(commentId);
+    if (!Number.isSafeInteger(numericId) || numericId <= 0) {
       return;
     }
 
+    try {
+      const synced = await request<{
+        comentario_id: number;
+        upvotes: number;
+        liked_by_me: boolean;
+      }>(`/comentarios/${numericId}/voto`, {
+        method: "POST",
+      });
+      if (!isMountedRef.current) return;
+      setComments((prev) =>
+        updateRecursive(prev, {
+          upvotes: synced.upvotes,
+          isLikedByMe: synced.liked_by_me,
+        })
+      );
+    } catch {
+      if (!isMountedRef.current) return;
+      setComments((prev) =>
+        updateRecursive(prev, {
+          upvotes: previous.upvotes,
+          isLikedByMe: previous.isLikedByMe,
+        })
+      );
+    }
+  };
+
+  const startTriagePolling = useCallback(
+    (createdId: string, contexto: "relato" | "resposta", replyParentId?: string) => {
+      if (pollCancelRef.current) {
+        pollCancelRef.current();
+        pollCancelRef.current = null;
+      }
+
+      const aplicarAviso = (aviso: AvisoTriagemComentario) => {
+        if (!isMountedRef.current) return;
+        setTriageNotice(aviso);
+        if (replyParentId) {
+          setReplyNotice({ ...aviso, parentId: replyParentId });
+        }
+        pollCancelRef.current = null;
+      };
+
+      const numericId = Number(createdId);
+      if (Number.isSafeInteger(numericId) && numericId > 0) {
+        pollCancelRef.current = iniciarPollingStatusComentario({
+          commentId: numericId,
+          contexto,
+          onApproved: async () => {
+            await fetchComments();
+          },
+          onFallbackCheckPublished: async () => {
+            const items = await fetchComments();
+            return items.some((item) => item.id === createdId);
+          },
+          onStatus: aplicarAviso,
+        });
+      }
+    },
+    [fetchComments]
+  );
+
+  const handleMainSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setReplyNotice(null);
+    if (!authenticated || !isAuthenticated()) {
+      setTriageNotice({
+        kind: "error",
+        text: "Faça login com sua conta de estudante para publicar comentários.",
+      });
+      return;
+    }
+    if (!isMainLengthValid) return;
+
+    const currentUser = getStoredUser();
+    const authorName = currentUser?.nome?.trim() || "Estudante UnB";
+
     const newComment: CommentItem = {
       id: Date.now().toString(),
-      authorAlias: isAnonymous ? "@estudante_anonimo" : customAlias,
+      authorAlias: isAnonymous ? "Estudante Anônimo" : authorName,
       isAnonymous,
       content: newCommentText.trim(),
       createdAt: "agora mesmo",
@@ -185,12 +310,15 @@ export default function ComentariosFrontend({
       replies: [],
     };
 
-    setComments((prev) => [newComment, ...prev]);
     setNewCommentText("");
+    setTriageNotice({
+      kind: "pending",
+      text: "[TRIAGEM AUTOMATICA] Seu relato foi recebido e submetido a moderacao automatica. Aguardando resultado...",
+    });
 
     try {
       const targetId = disciplineId || 1;
-      await request("/comentarios", {
+      const created = await request<{ id?: number | string; status_moderacao?: string }>("/comentarios", {
         method: "POST",
         body: JSON.stringify({
           disciplina_id: targetId,
@@ -198,23 +326,48 @@ export default function ComentariosFrontend({
           autor_alias: newComment.authorAlias,
         }),
       });
+
+      const createdId = created?.id != null ? String(created.id) : null;
+      if (created?.status_moderacao === "PUBLICADO") {
+        await fetchComments();
+        if (!isMountedRef.current) return;
+        setTriageNotice({
+          kind: "approved",
+          text: "[PUBLICADO] Seu relato foi aprovado e já está visível abaixo.",
+        });
+      } else if (createdId) {
+        startTriagePolling(createdId, "relato");
+      }
     } catch (err) {
-      console.error("Erro ao registrar comentario no backend:", err);
+      setNewCommentText(newComment.content);
+      setTriageNotice({
+        kind: "error",
+        text:
+          err instanceof Error
+            ? err.message
+            : "Não foi possível publicar o comentário. Verifique se sua sessão está ativa.",
+      });
     }
   };
 
   const handleReplySubmit = async (parentId: string) => {
-    if (!isReplyLengthValid) return;
-
-    if (!isAuthenticated()) {
-      alert("Apenas estudantes cadastrados podem responder comentarios.");
-      router.push("/login");
+    if (!authenticated || !isAuthenticated()) {
+      const aviso: AvisoTriagemComentario = {
+        kind: "error",
+        text: "Faça login com sua conta de estudante para responder comentários.",
+      };
+      setTriageNotice(aviso);
+      setReplyNotice({ ...aviso, parentId });
       return;
     }
+    if (!isReplyLengthValid) return;
+
+    const currentUser = getStoredUser();
+    const authorName = currentUser?.nome?.trim() || "Estudante UnB";
 
     const newReply: CommentItem = {
       id: Date.now().toString(),
-      authorAlias: isAnonymous ? "@estudante_anonimo" : customAlias,
+      authorAlias: isAnonymous ? "Estudante Anônimo" : authorName,
       isAnonymous,
       content: replyText.trim(),
       createdAt: "agora mesmo",
@@ -224,25 +377,9 @@ export default function ComentariosFrontend({
       replies: [],
     };
 
-    setComments((prev) =>
-      prev.map((parent) => {
-        if (parent.id === parentId) {
-          return {
-            ...parent,
-            replies: [...(parent.replies || []), newReply],
-          };
-        }
-        return parent;
-      })
-    );
-
-    setExpandedThreads((prev) => ({ ...prev, [parentId]: true }));
-    setReplyingToId(null);
-    setReplyText("");
-
     try {
       const targetId = disciplineId || 1;
-      await request("/comentarios", {
+      const created = await request<{ id?: number | string; status_moderacao?: string }>("/comentarios", {
         method: "POST",
         body: JSON.stringify({
           disciplina_id: targetId,
@@ -251,12 +388,47 @@ export default function ComentariosFrontend({
           parent_id: Number(parentId) || null,
         }),
       });
+
+      setExpandedThreads((prev) => ({ ...prev, [parentId]: true }));
+      setReplyingToId(null);
+      setReplyText("");
+      const pendingNotice: AvisoTriagemComentario = {
+        kind: "pending",
+        text: "[TRIAGEM AUTOMATICA] Sua resposta foi recebida e submetida a moderacao automatica. Aguardando resultado...",
+      };
+      setTriageNotice(pendingNotice);
+      setReplyNotice({ ...pendingNotice, parentId });
+
+      const createdId = created?.id != null ? String(created.id) : null;
+      if (created?.status_moderacao === "PUBLICADO") {
+        await fetchComments();
+        if (!isMountedRef.current) return;
+        const approvedNotice: AvisoTriagemComentario = {
+          kind: "approved",
+          text: "[PUBLICADO] Sua resposta foi aprovada e já está visível abaixo.",
+        };
+        setTriageNotice(approvedNotice);
+        setReplyNotice({ ...approvedNotice, parentId });
+      } else if (createdId) {
+        startTriagePolling(createdId, "resposta", parentId);
+      }
     } catch (err) {
-      console.error("Erro ao registrar resposta no backend:", err);
+      const errorNotice: AvisoTriagemComentario = {
+        kind: "error",
+        text:
+          err instanceof Error
+            ? err.message
+            : "Não foi possível enviar a resposta. Verifique se sua sessão está ativa.",
+      };
+      setTriageNotice(errorNotice);
+      setReplyNotice({ ...errorNotice, parentId });
     }
   };
 
   const handleOpenReportModal = (comment: Comment) => {
+    if (!authenticated || !isAuthenticated()) {
+      return;
+    }
     setReportingComment(comment);
     setReportCategory("OFENSA_DOCENTE");
     setReportReason("");
@@ -266,6 +438,10 @@ export default function ComentariosFrontend({
   const handleSubmitReport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportingComment) return;
+    if (!authenticated || !isAuthenticated()) {
+      setReportError("Faça login com sua conta de estudante para enviar denúncias.");
+      return;
+    }
 
     const validacao = validarMotivoDenuncia(reportReason);
     if (!validacao.valido) {
@@ -334,31 +510,61 @@ export default function ComentariosFrontend({
         </div>
       )}
 
-      <form onSubmit={handleMainSubmit} className="mb-8 rounded-2xl bg-[#FAFAFC] p-4 sm:p-5 border border-[#ECEAF5]">
+      <form
+        onSubmit={handleMainSubmit}
+        aria-label={`Publicar relato ou duvida sobre ${disciplineName}`}
+        className="mb-8 rounded-2xl bg-[#FAFAFC] p-4 sm:p-5 border border-[#ECEAF5]"
+      >
+        {!authenticated && (
+          <div
+            role="status"
+            className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#D8D1FA] bg-[#EDE9FD] px-4 py-3 text-xs sm:text-sm text-[#5B4BDB]"
+          >
+            <span>
+              Apenas estudantes autenticados podem publicar ou responder comentários.
+            </span>
+            <Link
+              href="/login"
+              className="rounded-lg bg-[#5B4BDB] px-3 py-1.5 text-xs font-bold text-white hover:brightness-110 transition-all"
+            >
+              Fazer login
+            </Link>
+          </div>
+        )}
+
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+          <label
+            htmlFor="novo-relato-disciplina"
+            className="text-xs font-bold uppercase tracking-wider text-gray-500"
+          >
             Deixar um relato ou duvida
-          </span>
+          </label>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
+              disabled={!authenticated}
               onClick={() => setIsAnonymous(false)}
               className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-                !isAnonymous
-                  ? "bg-[#5B4BDB] text-white shadow-2xs"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                !authenticated
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-70"
+                  : !isAnonymous
+                  ? "bg-[#5B4BDB] text-white shadow-2xs cursor-pointer"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer"
               }`}
             >
-              Postar como {customAlias}
+              Postar como {authenticated ? displayAuthorName : "seu usuário"}
             </button>
             <button
               type="button"
+              disabled={!authenticated}
               onClick={() => setIsAnonymous(true)}
               className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-                isAnonymous
-                  ? "bg-[#5B4BDB] text-white shadow-2xs"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                !authenticated
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-70"
+                  : isAnonymous
+                  ? "bg-[#5B4BDB] text-white shadow-2xs cursor-pointer"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer"
               }`}
             >
               Anonimo
@@ -367,19 +573,43 @@ export default function ComentariosFrontend({
         </div>
 
         <textarea
+          id="novo-relato-disciplina"
           rows={3}
+          disabled={!authenticated}
           value={newCommentText}
-          onChange={(e) => setNewCommentText(e.target.value)}
-          placeholder="Compartilhe dicas sobre as provas, listas de exercicios ou tire uma duvida sobre a materia..."
-          className="w-full resize-none rounded-xl bg-white border border-[#DDD9F1] p-3 text-xs sm:text-sm text-[#202124] placeholder-gray-400 outline-none focus:border-[#5B4BDB] focus:ring-1 focus:ring-[#5B4BDB]"
+          onChange={(e) => {
+            setNewCommentText(e.target.value);
+            if (triageNotice) setTriageNotice(null);
+          }}
+          aria-label={`Relato ou duvida sobre ${disciplineName}`}
+          aria-describedby="conduta-etica-rn04 contador-caracteres-relato"
+          placeholder={
+            authenticated
+              ? "Compartilhe dicas sobre as provas, listas de exercicios ou tire uma duvida sobre a materia..."
+              : "Faça login para compartilhar dicas, relatos ou dúvidas sobre esta disciplina..."
+          }
+          className={`w-full resize-none rounded-xl bg-white border border-[#DDD9F1] p-3 text-xs sm:text-sm text-[#202124] placeholder-gray-400 outline-none focus:border-[#5B4BDB] focus:ring-1 focus:ring-[#5B4BDB] ${
+            !authenticated ? "cursor-not-allowed opacity-70" : ""
+          }`}
         />
 
-        <p className="mt-2 text-[11px] text-gray-500">
+        <p id="conduta-etica-rn04" className="mt-2 text-[11px] text-gray-500">
           Conduta ética (RN04): concentre seu relato na ementa, metodologia e dificuldades técnicas da matéria. Ataques pessoais a docentes são vedados.
         </p>
 
+        {triageNotice && (
+          <p
+            role={triageNotice.kind === "rejected" || triageNotice.kind === "error" ? "alert" : "status"}
+            className={`mt-3 rounded-xl border p-3 text-xs font-medium ${getTriageBannerClasses(triageNotice.kind)}`}
+          >
+            {triageNotice.text}
+          </p>
+        )}
+
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <span
+            id="contador-caracteres-relato"
+            aria-live="polite"
             className={`text-xs ${
               newCommentText.length > MAX_CHARS
                 ? "text-red-500 font-bold"
@@ -394,14 +624,14 @@ export default function ComentariosFrontend({
 
           <button
             type="submit"
-            disabled={!isMainLengthValid}
+            disabled={!authenticated || !isMainLengthValid}
             className={`rounded-xl px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition-all shadow-xs ${
-              isMainLengthValid
+              authenticated && isMainLengthValid
                 ? "bg-[#5B4BDB] hover:brightness-110 active:scale-95 cursor-pointer"
-                : "bg-gray-300 cursor-not-allowed"
+                : "bg-gray-300 cursor-not-allowed opacity-60"
             }`}
           >
-            Publicar Comentario
+            {authenticated ? "Publicar Comentario" : "Faça login para comentar"}
           </button>
         </div>
       </form>
@@ -425,7 +655,7 @@ export default function ComentariosFrontend({
                 key={comment.id}
                 className="flex flex-col gap-3 rounded-2xl bg-white p-5 border border-[#EDE9FD] transition-all hover:border-[#D8D1FA]"
               >
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EDE9FD] text-[#5B4BDB] text-xs font-bold">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -443,23 +673,36 @@ export default function ComentariosFrontend({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setReplyingToId(replyingToId === comment.id ? null : comment.id)}
-                      className="rounded-lg px-2.5 py-1 text-xs font-semibold text-[#5B4BDB] hover:bg-[#EDE9FD] transition-colors cursor-pointer"
+                      disabled={!authenticated}
+                      title={!authenticated ? "Faça login para responder comentários" : undefined}
+                      onClick={() => {
+                        if (!authenticated) return;
+                        setReplyingToId(replyingToId === comment.id ? null : comment.id);
+                      }}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                        authenticated
+                          ? "text-[#5B4BDB] hover:bg-[#EDE9FD] cursor-pointer"
+                          : "text-gray-400 cursor-not-allowed opacity-60"
+                      }`}
                     >
                       Responder
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => handleToggleUpvote(comment.id)}
+                      disabled={!authenticated}
+                      title={!authenticated ? "Faça login para curtir comentários" : undefined}
+                      onClick={() => void handleToggleUpvote(comment.id)}
                       aria-label={`Apoiar comentario de ${comment.authorAlias}`}
-                      className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-                        comment.isLikedByMe
-                          ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5]"
-                          : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100"
+                      className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                        !authenticated
+                          ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60"
+                          : comment.isLikedByMe
+                          ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5] active:scale-95 cursor-pointer"
+                          : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100 active:scale-95 cursor-pointer"
                       }`}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill={comment.isLikedByMe ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
@@ -470,9 +713,15 @@ export default function ComentariosFrontend({
 
                     <button
                       type="button"
+                      disabled={!authenticated}
+                      title={!authenticated ? "Faça login para denunciar comentários" : undefined}
                       onClick={() => handleOpenReportModal(comment)}
                       aria-label={`Denunciar comentário de ${comment.authorAlias}`}
-                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
+                        authenticated
+                          ? "border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                          : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+                      }`}
                     >
                       Denunciar
                     </button>
@@ -483,12 +732,22 @@ export default function ComentariosFrontend({
                   {comment.content}
                 </p>
 
+                {replyNotice && replyNotice.parentId === comment.id && (
+                  <p
+                    role={replyNotice.kind === "rejected" || replyNotice.kind === "error" ? "alert" : "status"}
+                    className={`mt-1 rounded-xl border p-3 text-xs font-medium ${getTriageBannerClasses(replyNotice.kind)}`}
+                  >
+                    {replyNotice.text}
+                  </p>
+                )}
+
                 {replyingToId === comment.id && (
                   <div className="mt-2 ml-4 pl-4 border-l-2 border-[#DDD9F1] flex flex-col gap-2">
                     <textarea
                       rows={2}
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
+                      aria-label={`Responder ao relato de ${comment.authorAlias}`}
                       placeholder="Escreva uma resposta para este comentario..."
                       className="w-full resize-none rounded-xl bg-[#FAFAFC] border border-[#DDD9F1] p-2.5 text-xs text-[#202124] placeholder-gray-400 outline-none focus:border-[#5B4BDB]"
                     />
@@ -509,12 +768,12 @@ export default function ComentariosFrontend({
                         </button>
                         <button
                           type="button"
-                          disabled={!isReplyLengthValid}
+                          disabled={!authenticated || !isReplyLengthValid}
                           onClick={() => handleReplySubmit(comment.id)}
                           className={`rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-all ${
-                            isReplyLengthValid
+                            authenticated && isReplyLengthValid
                               ? "bg-[#5B4BDB] hover:brightness-110 cursor-pointer"
-                              : "bg-gray-300 cursor-not-allowed"
+                              : "bg-gray-300 cursor-not-allowed opacity-60"
                           }`}
                         >
                           Enviar Resposta
@@ -552,11 +811,15 @@ export default function ComentariosFrontend({
                               </span>
                               <button
                                 type="button"
-                                onClick={() => handleToggleUpvote(reply.id)}
-                                className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full cursor-pointer ${
-                                  reply.isLikedByMe
-                                    ? "bg-[#FFF0F2] text-[#EF4444]"
-                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                disabled={!authenticated}
+                                title={!authenticated ? "Faça login para curtir comentários" : undefined}
+                                onClick={() => void handleToggleUpvote(reply.id)}
+                                className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                                  !authenticated
+                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+                                    : reply.isLikedByMe
+                                    ? "bg-[#FFF0F2] text-[#EF4444] cursor-pointer"
+                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200 cursor-pointer"
                                 }`}
                               >
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill={reply.isLikedByMe ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">

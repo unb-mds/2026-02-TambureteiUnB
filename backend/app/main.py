@@ -1,22 +1,26 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import auth, cursos, disciplinas, turmas, professores, catalogo, comentarios, comunidade, materiais, moderacao, dashboard
+from app.api.routers import auth, cursos, disciplinas, turmas, professores, catalogo, comentarios, comunidade, materiais, moderacao, dashboard, perfil
 
 from app.core.config import settings
 from app.api.routers import estatisticas_consolidadas
 
+is_production = (settings.ENVIRONMENT or "").strip().lower() == "production"
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else f"{settings.API_V1_STR}/openapi.json",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS if hasattr(settings, "BACKEND_CORS_ORIGINS") else ["*"],
+    allow_origins=settings.BACKEND_CORS_ORIGINS if isinstance(settings.BACKEND_CORS_ORIGINS, list) else [],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 # Inclusão dos roteadores de API
@@ -32,6 +36,7 @@ app.include_router(materiais.router)
 app.include_router(estatisticas_consolidadas.router)
 app.include_router(dashboard.router)
 app.include_router(moderacao.router)
+app.include_router(perfil.router)
 
 
 @app.get("/")

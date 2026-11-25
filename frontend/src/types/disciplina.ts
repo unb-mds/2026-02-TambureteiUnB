@@ -1,9 +1,15 @@
+import { getDisciplineArea } from "../utils/disciplineAreas.ts";
+import { getOfferingCampuses } from "../utils/disciplineCampuses.ts";
+import { hasApprovalData } from "../utils/academicMetrics.ts";
+
 export interface HistoricalPerformance {
   semester: string;
+  matriculados?: number;
   approved: number;
   failed: number;
   absent: number;
   withdrawn: number;
+  amostragem_suprimida_lgpd?: boolean;
 }
 
 export interface DisciplineMetric {
@@ -31,10 +37,11 @@ export interface Discipline {
   departmentName: string;
   campus: string;
   campusFilter: string;
+  offeringCampuses?: string[];
   area: "Exatas" | "Tecnologia" | "Saúde" | "Humanas";
   credits: string;
   hours: number;
-  approval: number;
+  approval?: number | null;
   failedGrade?: number;
   failedAttendance?: number;
   withdrawn?: number;
@@ -46,9 +53,16 @@ export interface Discipline {
   objectives?: string[];
   historicalPerformance?: HistoricalPerformance[];
   preRequisitos?: string[];
+  preRequisitosItens?: BackendDisciplinaResumo[];
   equivalencias?: string[];
+  equivalenciasItens?: BackendDisciplinaResumo[];
+  coRequisitos?: string | null;
   courses?: CourseReference[];
   metrica_consolidada?: BackendMetricaConsolidada | null;
+  referenceYear?: number | null;
+  withdrawnCount?: number | null;
+  total_turmas?: number;
+  possui_dados_pizza?: boolean;
 }
 
 // Backend schemas interfaces
@@ -59,6 +73,11 @@ export interface BackendDisciplinaResumo {
   slug: string;
   departamento?: string | null;
   creditos?: number | null;
+  total_turmas?: number;
+  possui_dados_pizza?: boolean;
+  locais_oferta?: string[];
+  metrica_consolidada?: BackendMetricaConsolidada | null;
+  metricas?: BackendMetricaAcademica[];
 }
 
 export interface BackendCursoDisciplinaInfo {
@@ -160,6 +179,19 @@ export const DEFAULT_HISTORICAL_PERFORMANCE: HistoricalPerformance[] = [
   { semester: "2025/2", approved: 84, failed: 10, absent: 4, withdrawn: 2 },
 ];
 
+function getDepartmentName(department?: string | null): string {
+  const normalized = department?.trim();
+  if (!normalized) return "Departamento Acadêmico";
+  if (
+    /^(departamento|faculdade|instituto|centro|escola|unidade|decanato)\b/i.test(
+      normalized,
+    )
+  ) {
+    return normalized;
+  }
+  return `Departamento de ${normalized}`;
+}
+
 /**
  * Converte dados do backend para a interface completa Discipline
  */
@@ -169,46 +201,45 @@ export function adaptBackendDisciplina(
   const isFull = "ementa" in raw || "metricas" in raw || "cursos" in raw;
   const full = isFull ? (raw as BackendDisciplinaResponse) : undefined;
 
+  const department = raw.departamento?.trim() || "";
   const dep = (raw.departamento || "Geral").toUpperCase();
   let campus = "Darcy Ribeiro";
   let campusFilter = "Darcy Ribeiro";
-  let area: "Exatas" | "Tecnologia" | "Saúde" | "Humanas" = "Exatas";
+  const area = getDisciplineArea(raw);
 
   if (dep.includes("FGA") || dep.includes("FCTE")) {
     campus = "FCTE";
     campusFilter = "FCTE (Gama)";
-    area = "Tecnologia";
   } else if (dep.includes("FCE")) {
     campus = "FCE";
     campusFilter = "FCE (Ceilândia)";
-    area = "Saúde";
   } else if (dep.includes("FUP")) {
     campus = "FUP";
     campusFilter = "FUP (Planaltina)";
-    area = "Humanas";
   } else if (dep.includes("CIC")) {
     campus = "Darcy Ribeiro";
     campusFilter = "Darcy Ribeiro";
-    area = "Tecnologia";
   } else if (dep.includes("MAT") || dep.includes("EST") || dep.includes("FIS") || dep.includes("IQ")) {
     campus = "Darcy Ribeiro";
     campusFilter = "Darcy Ribeiro";
-    area = "Exatas";
   }
 
   const creditosNum = raw.creditos || 4;
   const cargaHoraria = full?.carga_horaria || creditosNum * 15;
 
-  let approval = 0;
+  let approval: number | null = null;
   let failedGrade = 0;
   let failedAttendance = 0;
   let withdrawn = 0;
 
-  if (full?.metrica_consolidada) {
-    const mc = full.metrica_consolidada;
-    approval = mc.taxa_aprovacao_acumulada !== null && mc.taxa_aprovacao_acumulada !== undefined
-      ? Number(mc.taxa_aprovacao_acumulada)
-      : (mc.matriculados > 0 ? Number(((mc.aprovados / mc.matriculados) * 100).toFixed(1)) : 0);
+  const metricaConsolidada = raw.metrica_consolidada ?? null;
+  if (metricaConsolidada) {
+    const mc = metricaConsolidada;
+    approval = mc.matriculados > 0
+      ? (hasApprovalData(mc.taxa_aprovacao_acumulada)
+        ? mc.taxa_aprovacao_acumulada
+        : Number(((mc.aprovados / mc.matriculados) * 100).toFixed(1)))
+      : null;
     if (mc.matriculados > 0) {
       failedGrade = Number(((mc.reprovados_nota / mc.matriculados) * 100).toFixed(1));
       failedAttendance = Number(((mc.reprovados_falta / mc.matriculados) * 100).toFixed(1));
@@ -217,13 +248,16 @@ export function adaptBackendDisciplina(
   }
 
   let historicalPerf: HistoricalPerformance[] | undefined = undefined;
-  if (full?.metricas && full.metricas.length > 0) {
-    historicalPerf = full.metricas.map((m) => ({
+  const rawMetricas = raw.metricas;
+  if (rawMetricas && rawMetricas.length > 0) {
+    historicalPerf = rawMetricas.map((m) => ({
       semester: `${m.ano}/${m.semestre}`,
+      matriculados: m.matriculados,
       approved: m.aprovados,
       failed: m.reprovados_nota,
       absent: m.reprovados_falta,
       withdrawn: m.trancamentos,
+      amostragem_suprimida_lgpd: Boolean(m.amostragem_suprimida_lgpd),
     }));
   }
 
@@ -242,10 +276,11 @@ export function adaptBackendDisciplina(
     code: raw.codigo,
     name: raw.nome,
     slug: raw.slug,
-    department: raw.departamento || "DEP",
-    departmentName: raw.departamento ? `Departamento de ${raw.departamento}` : "Departamento Acadêmico",
+    department: department || "DEP",
+    departmentName: getDepartmentName(department),
     campus,
     campusFilter,
+    offeringCampuses: raw.locais_oferta ? getOfferingCampuses(raw.locais_oferta) : undefined,
     area,
     credits: `${creditosNum} créditos • ${cargaHoraria}h`,
     hours: cargaHoraria,
@@ -253,13 +288,19 @@ export function adaptBackendDisciplina(
     failedGrade,
     failedAttendance,
     withdrawn,
-    resources: 12,
+    resources: 0,
     popularity: 85,
     ementa: full?.ementa || undefined,
     historicalPerformance: historicalPerf,
     preRequisitos: preReqs,
+    preRequisitosItens: full?.pre_requisitos_itens || [],
     equivalencias: equivs,
+    equivalenciasItens: full?.equivalencias_itens || [],
+    coRequisitos: full?.co_requisitos || null,
     courses,
-    metrica_consolidada: full?.metrica_consolidada || null,
+    metrica_consolidada: metricaConsolidada,
+    withdrawnCount: metricaConsolidada ? metricaConsolidada.trancamentos : null,
+    total_turmas: raw.total_turmas ?? 0,
+    possui_dados_pizza: Boolean(raw.possui_dados_pizza),
   };
 }

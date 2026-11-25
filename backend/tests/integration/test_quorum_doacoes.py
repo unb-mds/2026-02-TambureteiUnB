@@ -28,7 +28,7 @@ def _aluno(db, n):
     return u
 
 
-def _doar(db, turma, n, aprov, nota, falta, tranc):
+def _doar(db, turma, n, aprov, nota, falta, tranc, avaliar=True):
     dados = DoacaoCreate(
         semestre_referencia="2026.1",
         taxa_aprovacao=aprov,
@@ -36,7 +36,12 @@ def _doar(db, turma, n, aprov, nota, falta, tranc):
         taxa_reprovacao_falta=falta,
         taxa_trancamento=tranc,
     )
-    return doacao_service.criar_doacao(db, turma.id, _aluno(db, n).id, dados)
+    doacao = doacao_service.criar_doacao(db, turma.id, _aluno(db, n).id, dados)
+    if avaliar:
+        doacao_service.avaliar_consenso(db, turma.id, "2026.1")
+        db.commit()
+        db.refresh(doacao)
+    return doacao
 
 
 def _status_por_aprovacao(db, turma):
@@ -178,11 +183,11 @@ class TestRegrasDeConsistencia:
         assert data["consolidado"] is False
 
 class TestAtomicidadeDaDoacao:
-    def test_falha_no_consenso_nao_persiste_a_doacao(self, db, turma, monkeypatch):
+    def test_falha_no_commit_nao_persiste_a_doacao(self, db, turma, monkeypatch):
         def falhar(*args, **kwargs):
-            raise RuntimeError("falha simulada no consenso")
+            raise RuntimeError("falha simulada no commit")
 
-        monkeypatch.setattr(doacao_service, "avaliar_consenso", falhar)
+        monkeypatch.setattr(db, "commit", falhar)
 
         dados = DoacaoCreate(
             semestre_referencia="2026.1",

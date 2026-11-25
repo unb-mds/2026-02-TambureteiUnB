@@ -1,0 +1,5164 @@
+{
+  "observacao": "",
+  "ciclo": "2021–2023",
+  "sistema": "Sistema Universal",
+  "url": "https://cdn.cebraspe.org.br/wp-content/uploads/2024/03/2024_PAS_Boletim-Informativo_2021-2023_v1.pdf",
+  "sha256": "dbe391b9f91f603d4ed6b8f621b8928d31f7b314c6f6d6c5bf3c723eb14d8771",
+  "modalidades": [
+    {
+      "id": "ep_baixa_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda ≤ 1,5 salário mínimo · PPI"
+    },
+    {
+      "id": "ep_baixa_pcd_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda ≤ 1,5 salário mínimo · PCD e PPI"
+    },
+    {
+      "id": "ep_baixa_nao_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda ≤ 1,5 salário mínimo · Não PPI"
+    },
+    {
+      "id": "ep_baixa_pcd_nao_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda ≤ 1,5 salário mínimo · PCD e Não PPI"
+    },
+    {
+      "id": "ep_alta_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda > 1,5 salário mínimo · PPI"
+    },
+    {
+      "id": "ep_alta_pcd_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda > 1,5 salário mínimo · PCD e PPI"
+    },
+    {
+      "id": "ep_alta_nao_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda > 1,5 salário mínimo · Não PPI"
+    },
+    {
+      "id": "ep_alta_pcd_nao_ppi",
+      "sistema": "Sistema de Cotas para Escolas Públicas",
+      "descricao": "Renda > 1,5 salário mínimo · PCD e Não PPI"
+    },
+    {
+      "id": "negros",
+      "sistema": "Sistema de Cotas para Negros",
+      "descricao": "Sistema de Cotas para Negros"
+    }
+  ],
+  "registros": [
+    {
+      "nome": "Enfermagem",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Enfermagem (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "40.205",
+      "maximo": "65.958",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-35.670",
+          "maximo": "-13.949"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "4.774",
+          "maximo": "52.752"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-66.432",
+          "maximo": "-42.493"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "19.111",
+          "maximo": "35.365"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "2.879",
+          "maximo": "2.879"
+        }
+      }
+    },
+    {
+      "nome": "Farmácia",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Farmácia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "11.818",
+      "maximo": "63.743",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-42.825",
+          "maximo": "-3.477"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-55.330",
+          "maximo": "-35.599"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-59.032",
+          "maximo": "1.504"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-1.811",
+          "maximo": "86.786"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "11.437",
+          "maximo": "11.437"
+        }
+      }
+    },
+    {
+      "nome": "Fisioterapia",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Fisioterapia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "31.089",
+      "maximo": "79.217",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-29.528",
+          "maximo": "-6.075"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "16.592",
+          "maximo": "40.502"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-56.521",
+          "maximo": "-28.036"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "11.653",
+          "maximo": "27.267"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-9.095",
+          "maximo": "-9.095"
+        }
+      }
+    },
+    {
+      "nome": "Fonoaudiologia",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Fonoaudiologia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "19.105",
+      "maximo": "64.645",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-68.611",
+          "maximo": "20.447"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-27.261",
+          "maximo": "-17.719"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-49.838",
+          "maximo": "-49.838"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-38.678",
+          "maximo": "34.443"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-21.229",
+          "maximo": "-21.229"
+        }
+      }
+    },
+    {
+      "nome": "Saúde Coletiva",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Saúde Coletiva (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-79.717",
+      "maximo": "25.273",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-92.731",
+          "maximo": "-92.731"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-42.438",
+          "maximo": "-23.874"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-39.762",
+          "maximo": "-28.877"
+        }
+      }
+    },
+    {
+      "nome": "Terapia Ocupacional",
+      "campus": "FCE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Terapia Ocupacional (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-9.621",
+      "maximo": "42.752",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-16.701",
+          "maximo": "-16.701"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-88.602",
+          "maximo": "-3.990"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-37.682",
+          "maximo": "-4.110"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-46.005",
+          "maximo": "1.824"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "8.543",
+          "maximo": "8.543"
+        }
+      }
+    },
+    {
+      "nome": "Administração",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Administração (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "46.485",
+      "maximo": "94.873",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-53.789",
+          "maximo": "-9.772"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-59.221",
+          "maximo": "-21.197"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-51.290",
+          "maximo": "2.093"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "13.596",
+          "maximo": "33.653"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-4.981",
+          "maximo": "44.699"
+        }
+      }
+    },
+    {
+      "nome": "Administração",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Administração (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-17.276",
+      "maximo": "52.003",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-45.664",
+          "maximo": "6.082"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-63.326",
+          "maximo": "12.204"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-6.548",
+          "maximo": "-2.003"
+        }
+      }
+    },
+    {
+      "nome": "Agronomia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Agronomia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-7.422",
+      "maximo": "85.304",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-64.647",
+          "maximo": "-16.992"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-28.599",
+          "maximo": "19.269"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-61.917",
+          "maximo": "-4.933"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-35.875",
+          "maximo": "1.054"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-86.604",
+          "maximo": "32.518"
+        }
+      }
+    },
+    {
+      "nome": "Arquitetura e Urbanismo",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Arquitetura e Urbanismo (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "89.757",
+      "maximo": "125.136",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-23.280",
+          "maximo": "23.159"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-14.415",
+          "maximo": "58.507"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-10.139",
+          "maximo": "15.247"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null,
+          "maximoOriginal": "h",
+          "observacao": "O boletim imprime ‘h’ no máximo desta modalidade; não há valor numérico válido."
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "59.408",
+          "maximo": "79.914"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "53.175",
+          "maximo": "53.175"
+        }
+      }
+    },
+    {
+      "nome": "Arquitetura e Urbanismo",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Arquitetura e Urbanismo (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "61.623",
+      "maximo": "87.641",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-20.256",
+          "maximo": "-20.256"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-39.050",
+          "maximo": "-39.050"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-44.019",
+          "maximo": "37.832"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-49.856",
+          "maximo": "-49.856"
+        }
+      }
+    },
+    {
+      "nome": "Arquivologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Arquivologia (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-55.630",
+      "maximo": "-13.001",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-30.721",
+          "maximo": "-19.200"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-34.645",
+          "maximo": "-30.382"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Artes Cênicas - Interpretação Teatral",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Artes Cênicas - Interpretação Teatral (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "9.492",
+      "maximo": "24.387",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-42.490",
+          "maximo": "-42.490"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-64.508",
+          "maximo": "-64.508"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-58.968",
+          "maximo": "-58.968"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-6.534",
+          "maximo": "-6.534"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Artes Visuais",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Artes Visuais (Bacharelado)*",
+      "turno": "Diurno",
+      "minimo": "-13.782",
+      "maximo": "47.739",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-73.314",
+          "maximo": "-3.219"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Biblioteconomia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Biblioteconomia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-82.692",
+      "maximo": "28.164",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-15.523",
+          "maximo": "-15.523"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-45.652",
+          "maximo": "-45.652"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-30.853",
+          "maximo": "22.648"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-34.372",
+          "maximo": "-34.372"
+        }
+      }
+    },
+    {
+      "nome": "Biotecnologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Biotecnologia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "68.301",
+      "maximo": "132.613",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-35.358",
+          "maximo": "22.414"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-25.817",
+          "maximo": "-25.817"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "2.909",
+          "maximo": "28.978"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "64.750",
+          "maximo": "64.750"
+        }
+      }
+    },
+    {
+      "nome": "Ciência da Computação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciência da Computação (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "143.984",
+      "maximo": "188.751",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-7.916",
+          "maximo": "6.671"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "8.992",
+          "maximo": "21.805"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "53.970",
+          "maximo": "91.909"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "107.146",
+          "maximo": "124.221"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "137.024",
+          "maximo": "137.024"
+        }
+      }
+    },
+    {
+      "nome": "Ciência Política",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciência Política (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "51.125",
+      "maximo": "76.944",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-15.546",
+          "maximo": "-3.077"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-21.736",
+          "maximo": "15.499"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-30.791",
+          "maximo": "5.586"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "16.428",
+          "maximo": "22.171"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "59.772",
+          "maximo": "59.772"
+        }
+      }
+    },
+    {
+      "nome": "Ciências Ambientais",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciências Ambientais (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-51.442",
+      "maximo": "9.203",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-6.827",
+          "maximo": "-6.827"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-51.524",
+          "maximo": "-51.524"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-29.414",
+          "maximo": "-13.823"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-39.988",
+          "maximo": "-39.988"
+        }
+      }
+    },
+    {
+      "nome": "Ciências Biológicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciências Biológicas (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "92.094",
+      "maximo": "139.272",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-4.111",
+          "maximo": "3.960"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "11.011",
+          "maximo": "14.473"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-50.159",
+          "maximo": "-26.927"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "40.429",
+          "maximo": "40.429"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": "-25.671",
+          "maximo": "-25.671"
+        },
+        "negros": {
+          "minimo": "24.351",
+          "maximo": "24.351"
+        }
+      }
+    },
+    {
+      "nome": "Ciências Contábeis",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciências Contábeis (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "12.567",
+      "maximo": "74.209",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-59.857",
+          "maximo": "-59.857"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-49.303",
+          "maximo": "44.815"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-21.687",
+          "maximo": "-21.687"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-50.174",
+          "maximo": "55.242"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-24.684",
+          "maximo": "3.632"
+        }
+      }
+    },
+    {
+      "nome": "Ciências Contábeis",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciências Contábeis (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-69.227",
+      "maximo": "45.134",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-54.966",
+          "maximo": "-29.047"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-29.321",
+          "maximo": "-6.142"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-60.649",
+          "maximo": "0.749"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-70.205",
+          "maximo": "-24.978"
+        }
+      }
+    },
+    {
+      "nome": "Ciências Econômicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Ciências Econômicas (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "105.597",
+      "maximo": "150.500",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-37.553",
+          "maximo": "35.066"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-37.254",
+          "maximo": "59.411"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-8.931",
+          "maximo": "73.774"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "13.260",
+          "maximo": "13.260"
+        }
+      }
+    },
+    {
+      "nome": "Ciências Sociais – Antropologia / Sociologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Ciências Sociais – Antropologia / Sociologia (Bacharelado/ Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "3.024",
+      "maximo": "73.106",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-61.197",
+          "maximo": "-32.867"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-65.302",
+          "maximo": "-5.054"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-57.603",
+          "maximo": "10.110"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-37.615",
+          "maximo": "33.041"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-9.211",
+          "maximo": "20.554"
+        }
+      }
+    },
+    {
+      "nome": "Computação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Computação (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-26.500",
+      "maximo": "71.725",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-5.522",
+          "maximo": "-5.522"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-50.802",
+          "maximo": "-11.640"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": "18.874",
+          "maximo": "18.874"
+        },
+        "negros": {
+          "minimo": "35.660",
+          "maximo": "35.660"
+        }
+      }
+    },
+    {
+      "nome": "Comunicação Organizacional",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Comunicação Organizacional (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-28.122",
+      "maximo": "57.848",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-56.789",
+          "maximo": "-56.789"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-9.150",
+          "maximo": "-9.150"
+        }
+      }
+    },
+    {
+      "nome": "Comunicação Social – Audiovisual",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Comunicação Social – Audiovisual (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "64.129",
+      "maximo": "103.109",
+      "pagina": 7,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-34.127",
+          "maximo": "-10.753"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": "-6.390",
+          "maximo": "-6.390"
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-15.585",
+          "maximo": "74.452"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "3.320",
+          "maximo": "3.320"
+        }
+      }
+    },
+    {
+      "nome": "Comunicação Social - Publicidade e Propaganda",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Comunicação Social - Publicidade e Propaganda (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "69.286",
+      "maximo": "79.509",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-11.438",
+          "maximo": "-1.404"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "28.907",
+          "maximo": "28.907"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-74.578",
+          "maximo": "-74.578"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "22.817",
+          "maximo": "31.547"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "66.561",
+          "maximo": "66.561"
+        }
+      }
+    },
+    {
+      "nome": "Design – Programação Visual/ Projeto do Produto",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Design – Programação Visual/ Projeto do Produto (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "72.512",
+      "maximo": "107.697",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-10.378",
+          "maximo": "1.203"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-3.349",
+          "maximo": "-3.349"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-33.340",
+          "maximo": "-24.481"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "61.424",
+          "maximo": "61.424"
+        }
+      }
+    },
+    {
+      "nome": "Direito",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Direito (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "120.424",
+      "maximo": "173.239",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "19.392",
+          "maximo": "69.167"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "28.509",
+          "maximo": "56.079"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "31.732",
+          "maximo": "114.506"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "100.598",
+          "maximo": "133.701"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "71.160",
+          "maximo": "85.356"
+        }
+      }
+    },
+    {
+      "nome": "Direito",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Direito (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "101.522",
+      "maximo": "131.453",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-5.484",
+          "maximo": "1.005"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "26.665",
+          "maximo": "96.173"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-10.725",
+          "maximo": "9.184"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "74.138",
+          "maximo": "94.779"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "66.815",
+          "maximo": "97.600"
+        }
+      }
+    },
+    {
+      "nome": "Educação Física",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Educação Física (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "15.802",
+      "maximo": "78.060",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-62.949",
+          "maximo": "11.211"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-32.422",
+          "maximo": "31.837"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-24.980",
+          "maximo": "-3.544"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "9.385",
+          "maximo": "12.097"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "32.152",
+          "maximo": "32.152"
+        }
+      }
+    },
+    {
+      "nome": "Educação Física",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Educação Física (Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-13.216",
+      "maximo": "39.102",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-52.013",
+          "maximo": "-31.870"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-50.604",
+          "maximo": "-24.864"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-72.467",
+          "maximo": "-34.575"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-16.337",
+          "maximo": "-15.772"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "20.087",
+          "maximo": "20.087"
+        }
+      }
+    },
+    {
+      "nome": "Enfermagem",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Enfermagem (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "59.656",
+      "maximo": "128.899",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-7.654",
+          "maximo": "20.717"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "6.742",
+          "maximo": "13.820"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-19.606",
+          "maximo": "42.630"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "5.924",
+          "maximo": "41.750"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "11.027",
+          "maximo": "11.027"
+        }
+      }
+    },
+    {
+      "nome": "Engenharia Ambiental",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Ambiental (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "18.395",
+      "maximo": "67.115",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-53.536",
+          "maximo": "-53.536"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "110.263",
+          "maximo": "110.263"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-58.071",
+          "maximo": "12.011"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "70.353",
+          "maximo": "70.353"
+        }
+      }
+    },
+    {
+      "nome": "Engenharia Civil",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Civil (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "66.769",
+      "maximo": "120.301",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-33.289",
+          "maximo": "-33.289"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-19.162",
+          "maximo": "28.158"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-29.887",
+          "maximo": "76.766"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "39.079",
+          "maximo": "39.079"
+        }
+      }
+    },
+    {
+      "nome": "Engenharia de Computação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia de Computação (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "120.445",
+      "maximo": "156.459",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "16.988",
+          "maximo": "70.613"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "29.216",
+          "maximo": "40.403"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "8.390",
+          "maximo": "40.382"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "72.542",
+          "maximo": "154.756"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "46.950",
+          "maximo": "46.950"
+        }
+      }
+    },
+    {
+      "nome": "Engenharia de Produção",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia de Produção (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-75.158",
+      "maximo": "104.096",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-30.751",
+          "maximo": "-18.063"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-13.400",
+          "maximo": "-13.400"
+        }
+      }
+    },
+    {
+      "nome": "Engenharia de Redes de Comunicação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia de Redes de Comunicação (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "17.816",
+      "maximo": "61.652",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-22.553",
+          "maximo": "-22.553"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-66.487",
+          "maximo": "-9.020"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-14.191",
+          "maximo": "13.092"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-25.064",
+          "maximo": "7.869"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "59.299",
+          "maximo": "59.299"
+        }
+      }
+    },
+    {
+      "nome": "Engenharia Elétrica",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Elétrica (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "125.478",
+      "maximo": "156.300",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "21.442",
+          "maximo": "51.500"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-22.252",
+          "maximo": "6.079"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "51.632",
+          "maximo": "72.957"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "25.261",
+          "maximo": "75.920"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "85.127",
+          "maximo": "85.127"
+        }
+      }
+    },
+    {
+      "nome": "Engenharia Florestal",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Florestal (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-53.021",
+      "maximo": "42.301",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-21.467",
+          "maximo": "-21.467"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-13.984",
+          "maximo": "-13.984"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-32.417",
+          "maximo": "-32.417"
+        }
+      }
+    },
+    {
+      "nome": "Engenharia Mecânica",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Mecânica (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "88.120",
+      "maximo": "136.666",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "22.756",
+          "maximo": "22.756"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-32.365",
+          "maximo": "-32.365"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-68.903",
+          "maximo": "42.090"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-22.760",
+          "maximo": "39.682"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "65.176",
+          "maximo": "65.176"
+        }
+      }
+    },
+    {
+      "nome": "Engenharia Mecatrônica – Controle e Automação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Mecatrônica – Controle e Automação (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "71.137",
+      "maximo": "156.247",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-40.631",
+          "maximo": "71.731"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "139.153",
+          "maximo": "139.153"
+        }
+      }
+    },
+    {
+      "nome": "Engenharia Química",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharia Química (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "61.647",
+      "maximo": "136.761",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "27.883",
+          "maximo": "27.883"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-55.770",
+          "maximo": "-55.770"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-42.449",
+          "maximo": "125.822"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "56.973",
+          "maximo": "56.973"
+        }
+      }
+    },
+    {
+      "nome": "Estatística",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Estatística (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "30.096",
+      "maximo": "136.549",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-34.548",
+          "maximo": "-13.142"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-44.549",
+          "maximo": "-44.549"
+        }
+      }
+    },
+    {
+      "nome": "Farmácia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Farmácia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "76.858",
+      "maximo": "148.690",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-30.833",
+          "maximo": "-30.833"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-19.548",
+          "maximo": "56.659"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-63.950",
+          "maximo": "27.148"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "36.288",
+          "maximo": "66.401"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "15.549",
+          "maximo": "15.549"
+        }
+      }
+    },
+    {
+      "nome": "Farmácia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Farmácia (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "19.242",
+      "maximo": "88.621",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-4.337",
+          "maximo": "-4.337"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-14.031",
+          "maximo": "2.801"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-37.354",
+          "maximo": "5.191"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "25.623",
+          "maximo": "25.623"
+        }
+      }
+    },
+    {
+      "nome": "Filosofia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Filosofia (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-30.256",
+      "maximo": "34.653",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-37.555",
+          "maximo": "-37.555"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-17.946",
+          "maximo": "-17.946"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": "-48.451",
+          "maximo": "-48.451"
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-68.186",
+          "maximo": "-15.966"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-23.598",
+          "maximo": "-23.598"
+        }
+      }
+    },
+    {
+      "nome": "Filosofia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Filosofia (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-48.290",
+      "maximo": "-48.290",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Física",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Física (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-7.206",
+      "maximo": "141.578",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-15.349",
+          "maximo": "7.367"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-57.411",
+          "maximo": "41.027"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "37.136",
+          "maximo": "37.136"
+        }
+      }
+    },
+    {
+      "nome": "Geofísica",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Geofísica (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-47.521",
+      "maximo": "8.759",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-50.006",
+          "maximo": "-50.006"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-48.561",
+          "maximo": "-48.561"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Geografia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Geografia (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-25.568",
+      "maximo": "44.373",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-53.491",
+          "maximo": "-53.491"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "7.666",
+          "maximo": "7.666"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-16.387",
+          "maximo": "7.067"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-8.190",
+          "maximo": "18.368"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Geologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Geologia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-56.763",
+      "maximo": "97.846",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-3.498",
+          "maximo": "-3.498"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "9.264",
+          "maximo": "9.264"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Gestão de Agronegócio",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Gestão de Agronegócio (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-83.888",
+      "maximo": "-27.976",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-32.966",
+          "maximo": "-32.966"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-48.114",
+          "maximo": "-48.114"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-12.020",
+          "maximo": "-12.020"
+        }
+      }
+    },
+    {
+      "nome": "Gestão de Políticas Públicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Gestão de Políticas Públicas (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-19.441",
+      "maximo": "89.961",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-41.061",
+          "maximo": "-34.960"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-58.902",
+          "maximo": "-41.161"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-36.205",
+          "maximo": "-36.205"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-64.370",
+          "maximo": "20.875"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "5.313",
+          "maximo": "5.313"
+        }
+      }
+    },
+    {
+      "nome": "História",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "História (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "36.270",
+      "maximo": "120.935",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-24.220",
+          "maximo": "10.211"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "19.371",
+          "maximo": "52.742"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-41.891",
+          "maximo": "-6.303"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "32.467",
+          "maximo": "41.995"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "11.829",
+          "maximo": "11.829"
+        }
+      }
+    },
+    {
+      "nome": "História",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "História (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-69.357",
+      "maximo": "12.295",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-17.725",
+          "maximo": "-17.725"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-47.859",
+          "maximo": "4.551"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-25.475",
+          "maximo": "-17.183"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Jornalismo",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Jornalismo (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "95.519",
+      "maximo": "130.233",
+      "pagina": 8,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "18.926",
+          "maximo": "19.950"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "9.810",
+          "maximo": "9.810"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "4.081",
+          "maximo": "44.224"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "21.437",
+          "maximo": "21.437"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "53.554",
+          "maximo": "53.554"
+        }
+      }
+    },
+    {
+      "nome": "Letras – Português do Brasil como Segunda Língua",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Letras – Português do Brasil como Segunda Língua (Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-49.960",
+      "maximo": "58.052",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-48.360",
+          "maximo": "-48.360"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-41.555",
+          "maximo": "-41.555"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-45.762",
+          "maximo": "-45.762"
+        }
+      }
+    },
+    {
+      "nome": "Letras – Tradução – Francês",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Letras – Tradução – Francês (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-27.088",
+      "maximo": "108.220",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Letras – Tradução – Inglês",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Letras – Tradução – Inglês (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-18.136",
+      "maximo": "26.575",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-50.121",
+          "maximo": "-0.815"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-20.761",
+          "maximo": "-20.341"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "8.667",
+          "maximo": "8.667"
+        }
+      }
+    },
+    {
+      "nome": "Letras – Tradução Espanhol",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Letras – Tradução Espanhol (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-56.295",
+      "maximo": "-56.295",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-74.097",
+          "maximo": "-24.363"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Licenciatura em Artes Cênicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Artes Cênicas",
+      "turno": "Diurno",
+      "minimo": "-1.077",
+      "maximo": "21.881",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-42.056",
+          "maximo": "-5.063"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Licenciatura em Artes Cênicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Artes Cênicas",
+      "turno": "Noturno",
+      "minimo": "-68.863",
+      "maximo": "25.467",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Licenciatura em Ciências Biológicas",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Ciências Biológicas",
+      "turno": "Noturno",
+      "minimo": "1.357",
+      "maximo": "67.671",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-32.040",
+          "maximo": "-17.529"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-34.270",
+          "maximo": "-8.304"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-14.417",
+          "maximo": "9.672"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "3.563",
+          "maximo": "3.563"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Licenciatura em Física",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Física",
+      "turno": "Noturno",
+      "minimo": "55.585",
+      "maximo": "149.957",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Licenciatura em Matemática",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Matemática",
+      "turno": "Noturno",
+      "minimo": "-73.474",
+      "maximo": "22.858",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "43.063",
+          "maximo": "43.063"
+        }
+      }
+    },
+    {
+      "nome": "Licenciatura em Química",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Licenciatura em Química",
+      "turno": "Noturno",
+      "minimo": "-21.346",
+      "maximo": "1.634",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-30.874",
+          "maximo": "-30.874"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-22.384",
+          "maximo": "-22.241"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Língua e Literatura Japonesa",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua e Literatura Japonesa (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-5.043",
+      "maximo": "5.755",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-18.525",
+          "maximo": "-18.525"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Língua Espanhola e Literatura Espanhola e Hispano-Americana",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua Espanhola e Literatura Espanhola e Hispano-Americana (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-46.586",
+      "maximo": "-13.667",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-14.494",
+          "maximo": "-14.494"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Língua Estrangeira Aplicada – Multilinguismo e Sociedade da Informação",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Língua Estrangeira Aplicada – Multilinguismo e Sociedade da Informação (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-47.775",
+      "maximo": "48.385",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-45.996",
+          "maximo": "-32.916"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-15.779",
+          "maximo": "-15.779"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Língua Francesa e Respectiva Literatura",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua Francesa e Respectiva Literatura (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": null,
+      "maximo": null,
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-48.692",
+          "maximo": "0.205"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-33.805",
+          "maximo": "-33.805"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Língua Inglesa e Respectiva Literatura",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua Inglesa e Respectiva Literatura (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "32.247",
+      "maximo": "72.620",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-18.631",
+          "maximo": "-17.678"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-5.532",
+          "maximo": "-5.532"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-77.785",
+          "maximo": "-77.785"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "3.014",
+          "maximo": "11.995"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-17.014",
+          "maximo": "-17.014"
+        }
+      }
+    },
+    {
+      "nome": "Língua Portuguesa e Respectiva Literatura",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua Portuguesa e Respectiva Literatura (Bacharelado/Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "52.636",
+      "maximo": "82.448",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-21.582",
+          "maximo": "1.737"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "39.574",
+          "maximo": "39.574"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-23.758",
+          "maximo": "9.729"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "17.882",
+          "maximo": "34.783"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "35.734",
+          "maximo": "35.734"
+        }
+      }
+    },
+    {
+      "nome": "Língua Portuguesa e Respectiva Literatura",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Língua Portuguesa e Respectiva Literatura (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-46.157",
+      "maximo": "-9.045",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-45.745",
+          "maximo": "14.783"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-13.592",
+          "maximo": "-13.592"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-8.792",
+          "maximo": "-7.475"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-31.960",
+          "maximo": "-31.960"
+        }
+      }
+    },
+    {
+      "nome": "Matemática",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Matemática (Bacharelado/ Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-2.875",
+      "maximo": "75.036",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-6.051",
+          "maximo": "13.305"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-20.208",
+          "maximo": "8.078"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-51.870",
+          "maximo": "21.222"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "18.569",
+          "maximo": "18.569"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "12.575",
+          "maximo": "12.575"
+        }
+      }
+    },
+    {
+      "nome": "Medicina",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Medicina (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "177.881",
+      "maximo": "211.738",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "43.826",
+          "maximo": "86.390"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "93.632",
+          "maximo": "98.249"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "107.578",
+          "maximo": "134.438"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "175.472",
+          "maximo": "175.472"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": "107.509",
+          "maximo": "107.509"
+        },
+        "negros": {
+          "minimo": "171.622",
+          "maximo": "171.622"
+        }
+      }
+    },
+    {
+      "nome": "Medicina Veterinária",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Medicina Veterinária (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "93.664",
+      "maximo": "127.484",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-33.589",
+          "maximo": "27.235"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "20.167",
+          "maximo": "56.233"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "16.694",
+          "maximo": "78.776"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "49.328",
+          "maximo": "58.293"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "73.643",
+          "maximo": "73.643"
+        }
+      }
+    },
+    {
+      "nome": "Museologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Museologia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-59.957",
+      "maximo": "11.393",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-38.902",
+          "maximo": "-38.902"
+        }
+      }
+    },
+    {
+      "nome": "Música",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Música (Bacharelado)*",
+      "turno": "Diurno",
+      "minimo": "-23.394",
+      "maximo": "46.282",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Música",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Música (Licenciatura)*",
+      "turno": "Diurno",
+      "minimo": "-41.360",
+      "maximo": "25.412",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-69.940",
+          "maximo": "-69.940"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-64.024",
+          "maximo": "-64.024"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "30.345",
+          "maximo": "41.995"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Nutrição",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Nutrição (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "66.130",
+      "maximo": "101.845",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-25.597",
+          "maximo": "3.043"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "3.444",
+          "maximo": "3.444"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-29.919",
+          "maximo": "47.747"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "24.985",
+          "maximo": "24.985"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "31.750",
+          "maximo": "31.750"
+        }
+      }
+    },
+    {
+      "nome": "Odontologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Odontologia (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "90.466",
+      "maximo": "104.035",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-2.387",
+          "maximo": "50.584"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "51.880",
+          "maximo": "51.880"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-20.934",
+          "maximo": "0.839"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "113.007",
+          "maximo": "113.007"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "34.282",
+          "maximo": "34.282"
+        }
+      }
+    },
+    {
+      "nome": "Pedagogia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Pedagogia (Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-10.802",
+      "maximo": "60.661",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-69.472",
+          "maximo": "-11.148"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-2.290",
+          "maximo": "26.289"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-92.894",
+          "maximo": "17.832"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-8.669",
+          "maximo": "16.663"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "0.572",
+          "maximo": "9.731"
+        }
+      }
+    },
+    {
+      "nome": "Pedagogia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Pedagogia (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-59.858",
+      "maximo": "5.534",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-96.102",
+          "maximo": "-18.331"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-65.559",
+          "maximo": "-52.908"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-16.966",
+          "maximo": "-16.966"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-66.338",
+          "maximo": "-38.725"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-52.111",
+          "maximo": "-52.111"
+        }
+      }
+    },
+    {
+      "nome": "Psicologia",
+      "campus": "Darcy Ribeiro",
+      "grau": "Licenciatura",
+      "graus": [
+        "Bacharelado",
+        "Licenciatura",
+        "Psicólogo"
+      ],
+      "ofertaOriginal": "Psicologia (Bacharelado / Licenciatura / Psicólogo)",
+      "turno": "Diurno",
+      "minimo": "98.121",
+      "maximo": "139.150",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "7.379",
+          "maximo": "43.658"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "26.153",
+          "maximo": "40.230"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": "-11.536",
+          "maximo": "-11.536"
+        },
+        "ep_alta_ppi": {
+          "minimo": "27.138",
+          "maximo": "66.328"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "81.072",
+          "maximo": "81.072"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": "2.412",
+          "maximo": "2.412"
+        },
+        "negros": {
+          "minimo": "61.640",
+          "maximo": "61.640"
+        }
+      }
+    },
+    {
+      "nome": "Química",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Química (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "34.268",
+      "maximo": "108.780",
+      "pagina": 9,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-57.812",
+          "maximo": "20.502"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-45.165",
+          "maximo": "47.427"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-1.973",
+          "maximo": "-1.973"
+        }
+      }
+    },
+    {
+      "nome": "Química Tecnológica",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Química Tecnológica (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-67.895",
+      "maximo": "53.064",
+      "pagina": 10,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-53.722",
+          "maximo": "-27.070"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Relações Internacionais",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Relações Internacionais (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "92.834",
+      "maximo": "138.473",
+      "pagina": 10,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-25.567",
+          "maximo": "81.011"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "13.986",
+          "maximo": "28.171"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-10.252",
+          "maximo": "10.138"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "68.634",
+          "maximo": "73.110"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "94.164",
+          "maximo": "94.164"
+        }
+      }
+    },
+    {
+      "nome": "Saúde Coletiva",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Saúde Coletiva (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-90.691",
+      "maximo": "-12.104",
+      "pagina": 10,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-78.911",
+          "maximo": "-78.911"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-5.497",
+          "maximo": "-5.497"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-85.042",
+          "maximo": "-50.550"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-37.506",
+          "maximo": "-37.506"
+        }
+      }
+    },
+    {
+      "nome": "Serviço Social",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Serviço Social (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-26.943",
+      "maximo": "26.034",
+      "pagina": 10,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-21.301",
+          "maximo": "-21.301"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-19.616",
+          "maximo": "-18.297"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-61.490",
+          "maximo": "-36.380"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-22.493",
+          "maximo": "-22.493"
+        }
+      }
+    },
+    {
+      "nome": "Serviço Social",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Serviço Social (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-69.150",
+      "maximo": "1.997",
+      "pagina": 10,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-46.647",
+          "maximo": "-46.647"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-31.822",
+          "maximo": "-31.822"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-45.238",
+          "maximo": "-45.238"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-9.961",
+          "maximo": "-9.961"
+        }
+      }
+    },
+    {
+      "nome": "Teoria, Crítica e História da Arte",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Teoria, Crítica e História da Arte (Bacharelado)",
+      "turno": "Noturno",
+      "minimo": "-56.171",
+      "maximo": "25.563",
+      "pagina": 10,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "4.736",
+          "maximo": "4.736"
+        }
+      }
+    },
+    {
+      "nome": "Turismo",
+      "campus": "Darcy Ribeiro",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Turismo (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-95.121",
+      "maximo": "-32.420",
+      "pagina": 10,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-13.362",
+          "maximo": "-7.216"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-70.349",
+          "maximo": "-23.007"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "-47.957",
+          "maximo": "-47.957"
+        }
+      }
+    },
+    {
+      "nome": "Engenharias – Aeroespacial / Automotiva / Eletrônica / Energia / Software",
+      "campus": "FCTE",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Engenharias – Aeroespacial / Automotiva / Eletrônica / Energia / Software (Bacharelados)**",
+      "turno": "Diurno",
+      "minimo": "70.386",
+      "maximo": "144.063",
+      "pagina": 10,
+      "ingressoConjunto": true,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-48.142",
+          "maximo": "32.607"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": "-36.993",
+          "maximo": "53.835"
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": "-44.055",
+          "maximo": "107.386"
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "13.073",
+          "maximo": "93.718"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": "33.370",
+          "maximo": "77.805"
+        }
+      }
+    },
+    {
+      "nome": "Ciências Naturais",
+      "campus": "FUP",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Ciências Naturais (Licenciatura)",
+      "turno": "Diurno",
+      "minimo": "-85.110",
+      "maximo": "9.258",
+      "pagina": 10,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": "-49.692",
+          "maximo": "-49.692"
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Ciências Naturais",
+      "campus": "FUP",
+      "grau": "Licenciatura",
+      "graus": [
+        "Licenciatura"
+      ],
+      "ofertaOriginal": "Ciências Naturais (Licenciatura)",
+      "turno": "Noturno",
+      "minimo": "-52.216",
+      "maximo": "9.125",
+      "pagina": 10,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    },
+    {
+      "nome": "Gestão do Agronegócio",
+      "campus": "FUP",
+      "grau": "Bacharelado",
+      "graus": [
+        "Bacharelado"
+      ],
+      "ofertaOriginal": "Gestão do Agronegócio (Bacharelado)",
+      "turno": "Diurno",
+      "minimo": "-56.321",
+      "maximo": "-36.700",
+      "pagina": 10,
+      "ingressoConjunto": false,
+      "cotas": {
+        "ep_baixa_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_baixa_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_pcd_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "ep_alta_nao_ppi": {
+          "minimo": "-54.109",
+          "maximo": "-22.499"
+        },
+        "ep_alta_pcd_nao_ppi": {
+          "minimo": null,
+          "maximo": null
+        },
+        "negros": {
+          "minimo": null,
+          "maximo": null
+        }
+      }
+    }
+  ]
+}

@@ -1,56 +1,54 @@
-## 📌 Descrição da Pull Request
+## Descricao da Pull Request
 
-Descreva de forma clara e objetiva o propósito desta PR e quais alterações foram realizadas.
-
----
-
-## 🛠️ Tipo de Mudança
-
-- [ ] 🚀 Nova funcionalidade (`feat`)
-- [ ] 🐛 Correção de bug (`fix`)
-- [ ] ♻️ Refatoração de código (`refactor`)
-- [ ] 🧪 Testes automatizados (`test`)
-- [ ] 📝 Documentação (`docs`)
-- [ ] 🔧 Configuração / Infraestrutura (`chore` ou `ci`)
+Descreva de forma clara e objetiva o proposito desta PR e quais alteracoes foram realizadas.
 
 ---
 
-## 📐 Checklist de Conformidade Arquitetural (specs/backend-architecture-spec.md)
+## Tipo de Mudanca
 
-Antes de solicitar a revisão, marque todos os itens que se aplicam ao código desta PR:
-
-### 1. Camadas e Arquitetura Limpa
-- [ ] **Routers Declarativos:** Os routers em `app/api/routers/` apenas recebem requisições HTTP, injetam dependências e delegam para a camada `app/services/`.
-- [ ] **Sem SQL no Router:** Nenhum router executa `db.query(...)` ou instancia diretamente modelos do SQLAlchemy (`Turma(...)`, `Usuario(...)`).
-- [ ] **Regras no Service:** Todas as validações de domínio (existência, duplicidade, cálculos) residem em `app/services/`.
-
-### 2. Validação e Schemas (Pydantic)
-- [ ] **Mensagens em Português:** As validações de schemas usam `PydanticCustomError` com mensagens claras, humanizadas e em português.
-- [ ] **Formatos Institucionais:** Campos acadêmicos (como semestre no padrão UnB `YYYY.S`) foram devidamente validados.
-
-### 3. Banco de Dados e Repositórios
-- [ ] **Prevenção de Duplicatas N:N:** Consultas que carregam relacionamentos N:N (ex: turmas e professores) utilizam `selectinload` ou `.unique()`.
-- [ ] **Migrations:** Nenhuma alteração de tabela foi feita sem a respectiva migração do Alembic.
-
-### 4. Testes e Qualidade
-- [ ] **Testes Automatizados:** Foram adicionados testes com `pytest` em `backend/tests/` para os novos fluxos e schemas.
-- [ ] **Execução Verde:** A suíte de testes executa com 100% de sucesso via Docker:
-  ```powershell
-  docker exec 2026-02-tambureteiunb-backend-1 pytest -v
-  ```
+- [ ] Nova funcionalidade (`feat`)
+- [ ] Correcao de bug (`fix`)
+- [ ] Refatoracao de codigo (`refactor`)
+- [ ] Testes automatizados (`test`)
+- [ ] Documentacao (`docs`)
+- [ ] Configuracao / Infraestrutura (`chore` ou `ci`)
 
 ---
 
-## 🧪 Como Testar
+## Checklist de Conformidade Arquitetural (`specs/backend-architecture-spec.md`)
 
-Descreva os passos para reproduzir e testar as alterações (endpoints, payloads, etc.):
+Antes de solicitar a revisao, marque todos os itens que se aplicam ao codigo desta PR:
 
-1. 
-2. 
-3. 
+### 1. Camadas e Arquitetura Limpa (Backend)
+- [ ] **Routers Declarativos:** os routers em `backend/app/api/routers/` apenas recebem requisicoes HTTP, injetam dependencias e delegam para `backend/app/services/`.
+- [ ] **Sem SQL no Router:** nenhum router executa `db.query(...)` ou instancia diretamente modelos do SQLAlchemy (`Turma(...)`, `Usuario(...)`).
+- [ ] **Regras no Service e Domain:** validacoes de negocio puras residem em `backend/app/domain/` e a orquestracao em `backend/app/services/`.
+
+### 2. Validacao e Schemas (Pydantic)
+- [ ] **Mensagens em Portugues:** as validacoes de schemas usam `PydanticCustomError` com mensagens claras, humanizadas e em portugues.
+- [ ] **Formatos Institucionais:** campos academicos (como semestre no padrao UnB `YYYY.S`) foram devidamente validados.
+
+### 3. Banco de Dados e Repositorios
+- [ ] **Prevencao de Duplicatas N:N:** consultas que carregam relacionamentos N:N (ex.: turmas e professores) utilizam `selectinload` ou `.unique()`.
+- [ ] **Migrations:** nenhuma alteracao de tabela foi feita sem a respectiva migracao linear do Alembic.
+
+### 4. Testes, Qualidade e Comunicacao
+- [ ] **Backend:** testes unitarios e de integracao aprovados (`docker compose exec backend pytest -v`), `ruff` e `bandit` sem pendencias.
+- [ ] **Frontend:** verificacoes aprovadas (`npm test`, `npm run lint`, `npx tsc --noEmit` e `npm run build`).
+- [ ] **Comunicacao Limpa (`AGENTS.md`):** codigo, documentacao, commits e PR sem emojis.
 
 ---
 
-## 🔗 Rastreabilidade de Issues
+## Como Testar
+
+Descreva os passos para reproduzir e testar as alteracoes (endpoints, rotas ou comandos):
+
+1.
+2.
+3.
+
+---
+
+## Rastreabilidade de Issues
 
 Closes #

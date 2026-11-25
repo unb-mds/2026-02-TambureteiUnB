@@ -179,3 +179,139 @@ class TestCatalogoCadeiras:
         items = disciplina_service.listar(db, nome="Busca Service")
         assert len(items) >= 1
         assert any(d.codigo == "SERV0002" for d in items)
+
+    def test_listar_cadeiras_com_turmas_e_filtro(self, client, db):
+        from app.models.turma import Turma
+
+        d_com = _criar_disciplina(db, "TURMA001", "disc-com-turma", "Disciplina Com Turma", "CIC")
+        d_sem = _criar_disciplina(db, "TURMA002", "disc-sem-turma", "Disciplina Sem Turma", "CIC")
+
+        t = Turma(disciplina_id=d_com.id, codigo_turma="01", semestre="2026.1", capacidade=40, matriculados=35)
+        db.add(t)
+        db.commit()
+
+        # Sem filtro apenas_com_turmas: retorna ambas, com total_turmas calculado
+        resp_all = client.get("/cadeiras?departamento=CIC")
+        assert resp_all.status_code == 200
+        data_all = {item["codigo"]: item for item in resp_all.json()}
+        assert "TURMA001" in data_all
+        assert "TURMA002" in data_all
+        assert data_all["TURMA001"]["total_turmas"] >= 1
+        assert data_all["TURMA002"]["total_turmas"] == 0
+
+        # Com filtro apenas_com_turmas=true
+        resp_filtered = client.get("/cadeiras?departamento=CIC&apenas_com_turmas=true")
+        assert resp_filtered.status_code == 200
+        codigos_filtered = [item["codigo"] for item in resp_filtered.json()]
+        assert "TURMA001" in codigos_filtered
+        assert "TURMA002" not in codigos_filtered
+
+    def test_listar_cadeiras_inclui_metrica_consolidada(self, client, db):
+        from app.models.metrica import MetricaConsolidada
+
+        d_com_metrica = _criar_disciplina(db, "METR0001", "disc-com-metrica", "Disciplina Com Metrica", "METRTEST")
+        _criar_disciplina(db, "METR0002", "disc-sem-metrica", "Disciplina Sem Metrica", "METRTEST")
+
+        mc = MetricaConsolidada(
+            disciplina_id=d_com_metrica.id,
+            matriculados=20,
+            aprovados=15,
+            reprovados_nota=3,
+            reprovados_falta=1,
+            trancamentos=1,
+            taxa_aprovacao_acumulada=75.0,
+            total_turmas_suprimidas=0,
+        )
+        db.add(mc)
+        db.commit()
+
+        resp = client.get("/cadeiras?departamento=METRTEST")
+        assert resp.status_code == 200
+        by_codigo = {item["codigo"]: item for item in resp.json()}
+
+        assert by_codigo["METR0001"]["metrica_consolidada"] is not None
+        assert by_codigo["METR0001"]["metrica_consolidada"]["taxa_aprovacao_acumulada"] == 75.0
+        assert by_codigo["METR0002"]["metrica_consolidada"] is None
+
+    def test_listar_cadeiras_inclui_metricas_anuais(self, client, db):
+        from app.models.metrica import MetricaAcademica
+
+        disc = _criar_disciplina(db, "ANUAL01", "disc-anual-teste", "Disciplina Anual Teste", "ANUALTEST")
+        ma = MetricaAcademica(
+            disciplina_id=disc.id,
+            ano=2023,
+            semestre=2,
+            matriculados=40,
+            aprovados=30,
+            reprovados_nota=5,
+            reprovados_falta=2,
+            trancamentos=3,
+            taxa_aprovacao=75.0,
+            amostragem_suprimida_lgpd=False,
+        )
+        db.add(ma)
+        db.commit()
+
+        resp = client.get("/cadeiras?departamento=ANUALTEST")
+        assert resp.status_code == 200
+        item = next(d for d in resp.json() if d["codigo"] == "ANUAL01")
+        assert len(item["metricas"]) == 1
+        assert item["metricas"][0]["ano"] == 2023
+        assert item["metricas"][0]["trancamentos"] == 3
+
+    def test_listar_cadeiras_ordena_pizza_depois_historico_depois_sem_dados(self, client, db):
+        from app.models.estatistica_consolidada import EstatisticaConsolidada
+        from app.models.metrica import MetricaConsolidada
+        from app.models.turma import Turma
+
+        d_sem_dados = _criar_disciplina(db, "ORD001", "alfa-sem-dados", "Alfa Sem Dados", "ORDTEST")
+        d_historico = _criar_disciplina(db, "ORD002", "beta-historico", "Beta Histórico", "ORDTEST")
+        d_pizza = _criar_disciplina(db, "ORD003", "zebra-pizza", "Zebra Pizza", "ORDTEST")
+
+        db.add(
+            MetricaConsolidada(
+                disciplina_id=d_historico.id,
+                matriculados=2,
+                aprovados=0,
+                reprovados_nota=0,
+                reprovados_falta=0,
+                trancamentos=0,
+                taxa_aprovacao_acumulada=None,
+                total_turmas_suprimidas=1,
+            )
+        )
+        turma_pizza = Turma(
+            disciplina_id=d_pizza.id,
+            codigo_turma="01",
+            semestre="2025.1",
+            matriculados=50,
+        )
+        db.add(turma_pizza)
+        db.flush()
+        db.add(
+            EstatisticaConsolidada(
+                turma_id=turma_pizza.id,
+                disciplina_id=d_pizza.id,
+                semestre_referencia="2025.1",
+                taxa_aprovacao=80,
+                taxa_reprovacao_nota=10,
+                taxa_reprovacao_falta=5,
+                taxa_trancamento=5,
+                total_amostras=5,
+                origem="DOACAO_QUORUM",
+                amostragem_suprimida_lgpd=False,
+            )
+        )
+        db.commit()
+
+        resp = client.get("/cadeiras?departamento=ORDTEST")
+        assert resp.status_code == 200
+        itens = resp.json()
+        assert [i["codigo"] for i in itens] == ["ORD003", "ORD002", "ORD001"]
+        assert itens[0]["possui_dados_pizza"] is True
+        assert itens[1]["possui_dados_pizza"] is False
+        assert itens[2]["possui_dados_pizza"] is False
+
+        resp_cat = client.get("/catalogo/cadeiras?departamento=ORDTEST")
+        assert resp_cat.status_code == 200
+        assert [i["codigo"] for i in resp_cat.json()["items"]] == ["ORD003", "ORD002", "ORD001"]

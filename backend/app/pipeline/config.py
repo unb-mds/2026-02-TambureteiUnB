@@ -99,14 +99,6 @@ FCTE_CURSOS = {
         "turno": "Diurno",
     },
     414922: {
-        "nome": "Engenharia Eletrônica",
-        "slug": "engenharia-eletronica",
-        "codigo_mec": "115995",
-        "campus": "FCTE - Gama",
-        "grau": "Bacharelado",
-        "turno": "Diurno",
-    },
-    414926: {
         "nome": "Engenharia de Energia",
         "slug": "engenharia-de-energia",
         "codigo_mec": "115994",
@@ -114,9 +106,17 @@ FCTE_CURSOS = {
         "grau": "Bacharelado",
         "turno": "Diurno",
     },
+    414926: {
+        "nome": "Engenharia Eletrônica",
+        "slug": "engenharia-eletronica",
+        "codigo_mec": "115995",
+        "campus": "FCTE - Gama",
+        "grau": "Bacharelado",
+        "turno": "Diurno",
+    },
     414915: {
         "nome": "Engenharia",
-        "slug": "engenharia-abi",
+        "slug": "engenharia",
         "codigo_mec": "115999",
         "campus": "FCTE - Gama",
         "grau": "Bacharelado",

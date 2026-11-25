@@ -27,6 +27,14 @@ export interface OccupancyRate {
   level: OccupancyLevel;
 }
 
+export interface BackendEstatisticaTurma {
+  taxa_aprovacao: number;
+  taxa_reprovacao_nota: number;
+  taxa_reprovacao_falta: number;
+  taxa_trancamento: number;
+  status: string;
+}
+
 export interface Turma {
   id: string | number;
   codigoTurma: string;          // ex: "Turma 01", "Turma A"
@@ -38,10 +46,14 @@ export interface Turma {
   horarios: string;             // ex: "Seg/Qua 10:00 - 11:50"
   schedule?: Schedule;          // Objeto estruturado de horário
   local: string;                // ex: "FCTE - UAC Sala S-9"
-  vagasOcupadas: number;        // ex: 35
-  totalVagas: number;           // ex: 40
-  turno: TurnoTurma;            // "Matutino" | "Diurno" | "Vespertino" | "Noturno"
-  occupancy?: OccupancyRate;    // Taxa de ocupação calculada
+  vagasOcupadas: number | null; // null quando não informado pela API
+  totalVagas: number | null;    // null quando não informado pela API
+  turno: TurnoTurma | null;     // null quando não há horário informado (ex.: turmas do histórico)
+  occupancy?: OccupancyRate | null; // Taxa calculada somente com dados conhecidos
+  isHistorical?: boolean;       // true quando a turma vem apenas de registros históricos sem dados de oferta
+  estatistica?: BackendEstatisticaTurma | null;
+  amostrasComunidade?: number;
+  minimoAmostrasLgpd?: number;
 }
 
 export type Class = Turma;
@@ -62,6 +74,9 @@ export interface BackendTurmaResponse {
   capacidade?: number | null;
   matriculados?: number | null;
   professores: BackendProfessorResumo[];
+  estatistica?: BackendEstatisticaTurma | null;
+  amostras_comunidade?: number;
+  minimo_amostras_lgpd?: number;
 }
 
 const SIGAA_DAYS_MAP: Record<string, string> = {
@@ -73,7 +88,7 @@ const SIGAA_DAYS_MAP: Record<string, string> = {
   "7": "Sáb",
 };
 
-const SIGAA_TIME_SLOTS: Record<
+export const SIGAA_TIME_SLOTS: Record<
   "M" | "T" | "N",
   Record<string, { start: string; end: string }>
 > = {
@@ -104,11 +119,12 @@ const SIGAA_TIME_SLOTS: Record<
  * Calcula a taxa de ocupação e classifica o nível de lotação da turma.
  */
 export function calculateOccupancyRate(
-  occupied: number,
-  total: number
-): OccupancyRate {
-  const safeTotal = Math.max(0, total);
-  const safeOccupied = Math.max(0, occupied);
+  occupied: number | null,
+  total: number | null
+): OccupancyRate | null {
+  const safeTotal = normalizeOccupancyCount(total);
+  const safeOccupied = normalizeOccupancyCount(occupied);
+  if (safeTotal === null || safeOccupied === null) return null;
   const percentage =
     safeTotal > 0 ? Math.round((safeOccupied / safeTotal) * 100) : 0;
   const isFull = safeTotal > 0 && safeOccupied >= safeTotal;
@@ -277,6 +293,8 @@ export function adaptBackendTurma(
   raw: BackendTurmaResponse,
   disciplinaCodigo = ""
 ): Class {
+  const hasRawHorario = Boolean((raw.horario ?? "").trim());
+  const hasRawLocal = Boolean((raw.local ?? "").trim());
   const parsed = parseClassSchedule(raw.horario, raw.local);
   const codigoFormatado = raw.codigo_turma.toLowerCase().startsWith("turma")
     ? raw.codigo_turma
@@ -287,14 +305,10 @@ export function adaptBackendTurma(
       ? raw.professores.map((p) => p.nome)
       : ["Docente a definir"];
 
-  const totalVagas =
-    typeof raw.capacidade === "number" && raw.capacidade > 0
-      ? raw.capacidade
-      : 45;
-  const vagasOcupadas =
-    typeof raw.matriculados === "number" && raw.matriculados >= 0
-      ? raw.matriculados
-      : 0;
+  const totalVagas = normalizeOccupancyCount(raw.capacidade);
+  const vagasOcupadas = normalizeOccupancyCount(raw.matriculados);
+  const occupancy = calculateOccupancyRate(vagasOcupadas, totalVagas);
+  const isHistorical = !hasRawHorario && !hasRawLocal && occupancy === null;
 
   return {
     id: raw.id,
@@ -304,12 +318,120 @@ export function adaptBackendTurma(
     semestre: raw.semestre,
     professor: listaProfessores.join(" • "),
     professores: listaProfessores,
-    horarios: parsed.formatted,
-    schedule: parsed.schedule,
-    local: raw.local || "Local a definir",
+    horarios: hasRawHorario ? parsed.formatted : "",
+    schedule: hasRawHorario ? parsed.schedule : undefined,
+    local: hasRawLocal ? (raw.local ?? "").trim() : "",
     vagasOcupadas,
     totalVagas,
-    turno: parsed.shift,
-    occupancy: calculateOccupancyRate(vagasOcupadas, totalVagas),
+    turno: hasRawHorario ? parsed.shift : null,
+    occupancy,
+    isHistorical,
+    estatistica: raw.estatistica ?? null,
+    amostrasComunidade: raw.amostras_comunidade ?? 0,
+    minimoAmostrasLgpd: raw.minimo_amostras_lgpd ?? 5,
   };
+}
+
+export function hasClassSchedule(horarios?: string | null): boolean {
+  const clean = (horarios ?? "").trim();
+  return clean.length > 0 && clean.toLowerCase() !== "horário a definir";
+}
+
+export function hasClassLocal(local?: string | null): boolean {
+  const clean = (local ?? "").trim();
+  return clean.length > 0 && clean.toLowerCase() !== "local a definir";
+}
+
+export function hasClassOccupancy(
+  turma: Pick<Class, "vagasOcupadas" | "totalVagas">
+): boolean {
+  return calculateOccupancyRate(turma.vagasOcupadas, turma.totalVagas) !== null;
+}
+
+export function isHistoricalClass(turma: Class): boolean {
+  if (typeof turma.isHistorical === "boolean") {
+    return turma.isHistorical;
+  }
+  return (
+    !hasClassSchedule(turma.horarios) &&
+    !hasClassLocal(turma.local) &&
+    !hasClassOccupancy(turma)
+  );
+}
+
+export function splitClassesByOrigin(classes: readonly Class[]): {
+  current: Class[];
+  historical: Class[];
+} {
+  const current: Class[] = [];
+  const historical: Class[] = [];
+
+  for (const item of classes) {
+    if (isHistoricalClass(item)) {
+      historical.push(item);
+    } else {
+      current.push(item);
+    }
+  }
+
+  return { current, historical };
+}
+
+function getHistoricalDataTier(turma: Class): 0 | 1 | 2 {
+  if (turma.estatistica) return 0;
+  if ((turma.amostrasComunidade ?? 0) > 0) return 1;
+  return 2;
+}
+
+/**
+ * Ordena turmas históricas priorizando turmas com estatísticas consolidadas,
+ * seguidas por turmas em coleta (maior número de amostras primeiro) e por fim
+ * turmas sem dados; desempata por semestre mais recente e código da turma.
+ */
+export function compareHistoricalClasses(a: Class, b: Class): number {
+  const tierDiff = getHistoricalDataTier(a) - getHistoricalDataTier(b);
+  if (tierDiff !== 0) return tierDiff;
+
+  if (!a.estatistica && !b.estatistica) {
+    const sampleDiff = (b.amostrasComunidade ?? 0) - (a.amostrasComunidade ?? 0);
+    if (sampleDiff !== 0) return sampleDiff;
+  }
+
+  const semCompare = (b.semestre || "").localeCompare(
+    a.semestre || "",
+    "pt-BR",
+    { numeric: true, sensitivity: "base" }
+  );
+  if (semCompare !== 0) return semCompare;
+
+  return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+/** Quantidades ausentes ou inválidas não podem virar ocupação fictícia. */
+function normalizeOccupancyCount(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null;
+}
+
+export function formatClassOccupancy(occupied: number | null, total: number | null): string {
+  const occupancy = calculateOccupancyRate(occupied, total);
+  return occupancy
+    ? `Ocupação: ${occupancy.occupied}/${occupancy.total} vagas`
+    : "Ocupação: Não informada";
+}
+
+/** Turmas sem ocupação conhecida ficam no fim em ambas as ordenações. */
+export function compareClassOccupancy(a: Class, b: Class, order: "occupancy_asc" | "occupancy_desc"): number {
+  const left = calculateOccupancyRate(a.vagasOcupadas, a.totalVagas);
+  const right = calculateOccupancyRate(b.vagasOcupadas, b.totalVagas);
+  if (!left && !right) return 0;
+  if (!left) return 1;
+  if (!right) return -1;
+  return order === "occupancy_asc"
+    ? left.percentage - right.percentage
+    : right.percentage - left.percentage;
 }

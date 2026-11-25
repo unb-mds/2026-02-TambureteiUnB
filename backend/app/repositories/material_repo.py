@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.conteudo import Conteudo
@@ -10,7 +10,12 @@ class MaterialRepository(BaseRepository[Conteudo]):
         super().__init__(Conteudo)
 
     def get_by_id(self, db: Session, material_id: int) -> Conteudo | None:
-        return db.scalar(select(Conteudo).where(Conteudo.id == material_id, Conteudo.caminho_arquivo.isnot(None)))
+        return db.scalar(
+            select(Conteudo).where(
+                Conteudo.id == material_id,
+                or_(Conteudo.caminho_arquivo.isnot(None), Conteudo.url_origem.isnot(None)),
+            )
+        )
 
     def adicionar(self, db: Session, material: Conteudo) -> None:
         """A transação é concluída pelo serviço junto ao armazenamento do arquivo."""
@@ -19,22 +24,37 @@ class MaterialRepository(BaseRepository[Conteudo]):
         db.refresh(material)
 
     def listar_ativos(
-        self, db: Session, disciplina_id: int, titulo: str | None, pagina: int, tamanho_pagina: int, tipo: str | None = None
+        self,
+        db: Session,
+        disciplina_id: int,
+        titulo: str | None,
+        pagina: int,
+        tamanho_pagina: int,
+        tipo: str | None = None,
+        tipos: list[str] | None = None,
     ) -> tuple[list[Conteudo], int]:
+        origem_ativa = or_(
+            and_(Conteudo.caminho_arquivo.isnot(None), Conteudo.status_moderacao == "ativo"),
+            and_(Conteudo.url_origem.isnot(None), Conteudo.status_moderacao.is_(None)),
+        )
         filtros = [
             Conteudo.disciplina_id == disciplina_id,
-            Conteudo.caminho_arquivo.isnot(None),
+            origem_ativa,
             Conteudo.status_curadoria == "APROVADO",
-            Conteudo.status_moderacao == "ativo",
         ]
+        if tipos:
+            filtros.append(Conteudo.tipo.in_(tipos))
         if tipo:
             filtros.append(Conteudo.tipo == tipo)
         if titulo:
             filtros.append(Conteudo.titulo.icontains(titulo, autoescape=True))
         total = db.scalar(select(func.count()).select_from(Conteudo).where(*filtros)) or 0
         consulta = (
-            select(Conteudo).where(*filtros).order_by(Conteudo.id.desc())
-            .offset((pagina - 1) * tamanho_pagina).limit(tamanho_pagina)
+            select(Conteudo)
+            .where(*filtros)
+            .order_by(Conteudo.id.desc())
+            .offset((pagina - 1) * tamanho_pagina)
+            .limit(tamanho_pagina)
         )
         return list(db.scalars(consulta)), total
 

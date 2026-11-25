@@ -8,6 +8,10 @@ from app.api.schemas.usuario import (
     UsuarioResponse,
     Token,
     UsuarioDesativado,
+    EsqueciSenhaInput,
+    RedefinirSenhaInput,
+    AlterarSenhaInput,
+    MensagemAuthResponse,
 )
 from app.core.database import get_db
 from app.models.usuario import Usuario
@@ -50,4 +54,33 @@ def deactivate_account(
     """
     Desativa a conta do usuário atual (LGPD / Privacy by Design).
     """
-    return auth_service.desativar_conta(db, current_user)
+    return auth_service.desativar_conta(db, current_user)
+
+
+@router.post("/esqueci-senha", response_model=MensagemAuthResponse)
+def esqueci_senha(dados: EsqueciSenhaInput, db: Session = Depends(get_db)):
+    """
+    Solicita a recuperação de senha por e-mail gerando token seguro temporário.
+    """
+    return auth_service.solicitar_recuperacao_senha(db, dados)
+
+
+@router.post("/redefinir-senha", response_model=MensagemAuthResponse)
+def redefinir_senha(dados: RedefinirSenhaInput, db: Session = Depends(get_db)):
+    """
+    Redefine a senha do usuário com base no token recebido.
+    """
+    return auth_service.redefinir_senha(db, dados)
+
+
+@router.post("/alterar-senha", response_model=MensagemAuthResponse)
+def alterar_senha(
+    dados: AlterarSenhaInput,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Altera a senha do usuário autenticado no sistema.
+    """
+    return auth_service.alterar_senha(db, current_user, dados)
+

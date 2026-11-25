@@ -1,0 +1,82 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      ENVIRONMENT: production
+      POSTGRES_SERVER: db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PORT: 5432
+      SECRET_KEY: ${SECRET_KEY}
+      HISTORICO_DEDUP_SECRET: ${HISTORICO_DEDUP_SECRET}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-https://tambureteiunb.com.br,https://www.tambureteiunb.com.br}
+      MATERIALS_DIR: /app/storage/materiais
+      PIZZAS_DIR: /app/storage/pizzas
+      MATERIAL_MAX_BYTES: ${MATERIAL_MAX_BYTES:-5242880}
+      QUORUM_MINIMO_DOACOES: ${QUORUM_MINIMO_DOACOES:-3}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
+      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-90.0}
+      MODERATION_CONFIDENCE_THRESHOLD: ${MODERATION_CONFIDENCE_THRESHOLD:-0.80}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-tambureteiunb@gmail.com}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Tamburetei UnB}
+      SMTP_TLS: ${SMTP_TLS:-true}
+      SMTP_SSL: ${SMTP_SSL:-false}
+      FRONTEND_URL: ${FRONTEND_URL:-https://tambureteiunb.com.br}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - materiais_data:/app/storage/materiais
+      - pizzas_data:/app/storage/pizzas
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.tambureteiunb.com.br}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.tambureteiunb.com.br}
+      BACKEND_INTERNAL_URL: http://backend:8000
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  materiais_data:
+  pizzas_data:

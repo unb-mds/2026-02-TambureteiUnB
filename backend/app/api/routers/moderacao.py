@@ -3,11 +3,23 @@ from fastapi import APIRouter, Depends, Path, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.api.deps import require_role
-from app.api.schemas.curadoria import DecisaoCuradoria, FilaCuradoria, RegistroCuradoria
+from app.api.schemas.curadoria import (
+    ComentarioPendente,
+    DecisaoComentarioCuradoria,
+    DecisaoCuradoria,
+    FilaComentariosCuradoria,
+    FilaCuradoria,
+    RegistroCuradoria,
+)
 from app.api.schemas.denuncia import (
     DecisaoDenuncia,
     FilaDenuncias,
     ResumoDecisaoDenuncia,
+)
+from app.api.schemas.doacao import (
+    FilaPizzasModeracao,
+    PizzaModeracaoDecisaoRequest,
+    PizzaModeracaoDecisaoResponse,
 )
 from app.core.config import settings
 from app.core.database import get_db
@@ -16,6 +28,7 @@ from app.models.usuario import Usuario
 from app.services.armazenamento_material import ArmazenamentoMaterial
 from app.services.curadoria_service import CuradoriaService
 from app.services.denuncia_service import denuncia_service
+from app.services.doacao_service import doacao_service
 
 router = APIRouter(prefix="/moderacao", tags=["Moderação"])
 Moderador = Annotated[Usuario, Depends(require_role("MODERATOR", "ADMIN"))]
@@ -54,6 +67,28 @@ def baixar(id: Identificador, db: Banco, moderador: Moderador, servico: Servico)
                         headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store"})
 
 
+@router.get("/comentarios", response_model=FilaComentariosCuradoria)
+def fila_comentarios(
+    db: Banco,
+    moderador: Moderador,
+    servico: Servico,
+    pagina: Annotated[int, Query(ge=1)] = 1,
+    tamanho_pagina: Annotated[int, Query(ge=1, le=100)] = 20,
+):
+    return servico.listar_comentarios(db, pagina, tamanho_pagina)
+
+
+@router.patch("/comentarios/{id}/curadoria", response_model=ComentarioPendente)
+def decidir_comentario(
+    id: Identificador,
+    dados: DecisaoComentarioCuradoria,
+    db: Banco,
+    moderador: Moderador,
+    servico: Servico,
+):
+    return servico.decidir_comentario(db, id, dados, moderador)
+
+
 @router.get("/denuncias", response_model=FilaDenuncias)
 def fila_denuncias(
     db: Banco,
@@ -74,3 +109,31 @@ def decidir_denuncia(
     moderador: Moderador,
 ) -> ResumoDecisaoDenuncia:
     return denuncia_service.decidir(db, id, dados, moderador)
+
+
+@router.get("/pizzas", response_model=FilaPizzasModeracao)
+def fila_pizzas(db: Banco, moderador: Moderador) -> FilaPizzasModeracao:
+    """Lista submissões de gráficos de pizza pendentes de aprovação humana, agrupadas por semestre."""
+    return doacao_service.listar_pizzas_moderacao(db)
+
+
+@router.get("/pizzas/{id}/imagem", response_class=FileResponse)
+def imagem_pizza(id: Identificador, db: Banco, moderador: Moderador):
+    """Serve o print anexado pelo estudante para conferência do moderador."""
+    caminho, mime = doacao_service.obter_imagem_pizza(db, id)
+    return FileResponse(
+        caminho,
+        media_type=mime,
+        headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store"},
+    )
+
+
+@router.patch("/pizzas/{id}/decisao", response_model=PizzaModeracaoDecisaoResponse)
+def decidir_pizza(
+    id: Identificador,
+    dados: PizzaModeracaoDecisaoRequest,
+    db: Banco,
+    moderador: Moderador,
+) -> PizzaModeracaoDecisaoResponse:
+    """Aprova ou descarta submissões de pizza sem intermediação de LLM."""
+    return doacao_service.decidir_pizza_moderacao(db, id, dados, moderador)

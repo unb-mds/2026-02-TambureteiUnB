@@ -1,10 +1,17 @@
 import math
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
+from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, aliased
 
 from app.models.comentario import Comentario
 from app.repositories.base import BaseRepository
+from app.repositories.voto_repo import (
+    alternar_voto_target,
+    contar_votos_por_target,
+    listar_votos_usuario_por_target,
+)
 
 
 class ComentarioRepository(BaseRepository[Comentario]):
@@ -21,11 +28,17 @@ class ComentarioRepository(BaseRepository[Comentario]):
         topico: Optional[str] = None,
         apenas_dificuldades: bool = False,
     ) -> Tuple[List[Comentario], int]:
+        ParentComentario = aliased(Comentario)
         query = (
             db.query(Comentario)
+            .outerjoin(ParentComentario, Comentario.parent_id == ParentComentario.id)
             .filter(
                 Comentario.disciplina_id == disciplina_id,
                 Comentario.status_moderacao == "PUBLICADO",
+                or_(
+                    Comentario.parent_id.is_(None),
+                    ParentComentario.status_moderacao == "PUBLICADO",
+                ),
             )
         )
 
@@ -74,6 +87,54 @@ class ComentarioRepository(BaseRepository[Comentario]):
             .order_by(Comentario.created_at.desc())
             .all()
         )
+
+    def ocultar_descendentes(
+        self,
+        db: Session,
+        comentario_pai_id: int,
+        moderado_por: Optional[str] = None,
+        motivo: str = "Comentário pai removido pela moderação.",
+    ) -> int:
+        """Oculta em cascata todos os subcomentários descendentes de um comentário removido."""
+        ocultados = 0
+        pais_atuais = [comentario_pai_id]
+        while pais_atuais:
+            filhos = (
+                db.query(Comentario)
+                .filter(Comentario.parent_id.in_(pais_atuais))
+                .all()
+            )
+            if not filhos:
+                break
+            proximos_pais = []
+            for filho in filhos:
+                if filho.status_moderacao != "OCULTO":
+                    filho.status_moderacao = "OCULTO"
+                    if moderado_por and not filho.moderado_por:
+                        filho.moderado_por = moderado_por
+                    if not filho.motivo_moderacao:
+                        filho.motivo_moderacao = motivo
+                    ocultados += 1
+                proximos_pais.append(filho.id)
+            pais_atuais = proximos_pais
+        if ocultados > 0:
+            db.flush()
+        return ocultados
+
+    def contar_votos_comentarios(
+        self, db: Session, comentario_ids: List[int]
+    ) -> Dict[int, int]:
+        return contar_votos_por_target(db, "COMENTARIO", comentario_ids)
+
+    def listar_votos_usuario(
+        self, db: Session, comentario_ids: List[int], usuario_id: UUID
+    ) -> Set[int]:
+        return listar_votos_usuario_por_target(db, "COMENTARIO", comentario_ids, usuario_id)
+
+    def alternar_voto_comentario(
+        self, db: Session, comentario_id: int, usuario_id: UUID
+    ) -> Tuple[int, bool]:
+        return alternar_voto_target(db, "COMENTARIO", comentario_id, usuario_id)
 
 
 comentario_repo = ComentarioRepository()

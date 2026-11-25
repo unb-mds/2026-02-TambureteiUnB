@@ -32,7 +32,9 @@ def test_link_preservado_e_arquivo_na_mesma_entidade(client, db, disciplina, hea
     assert client.patch(f"/moderacao/conteudos/{arquivo_id}/curadoria", headers=admin_headers, json={"status": "APROVADO"}).status_code == 200
     assert link.url_origem == "https://unb.br" and link.caminho_arquivo is None
     assert client.get(f"/materiais/{link.id}/download", headers=headers).status_code == 404
-    assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["total"] == 1
+    listagem = client.get(f"/cadeiras/{disciplina.id}/materiais").json()
+    assert listagem["total"] == 2
+    assert {item["id"] for item in listagem["items"]} == {link.id, arquivo_id}
     assert {c.id for c in conteudo_repo.get_aprovados_by_disciplina(db, disciplina.id)} == {link.id, arquivo_id}
     arquivo.status_moderacao = "bloqueado"
     db.commit()
@@ -73,7 +75,7 @@ def test_downgrade_impede_perda_de_arquivo(engine):
                 command.downgrade(config, "008")
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT caminho_arquivo FROM conteudos WHERE id = :id"), {"id": arquivo_id}) == "preservar.pdf"
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "012_estatisticas_consolidadas"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "021_add_pizza_moderacao_imagem"
     finally:
         with engine.begin() as connection:
             connection.execute(text("DELETE FROM disciplinas WHERE id = :id"), {"id": disciplina_id})
