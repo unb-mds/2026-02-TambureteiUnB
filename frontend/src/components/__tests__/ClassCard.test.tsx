@@ -55,8 +55,59 @@ test("card exibe progresso de coleta da comunidade abaixo do limiar LGPD e taxas
     },
   });
   const htmlLiberada = renderToStaticMarkup(<ClassCard classData={turmaLiberada} />);
-  assert.ok(htmlLiberada.includes("Aprovação: 83%"));
+  assert.ok(htmlLiberada.includes("Aprovação: 83.33%"));
+  assert.ok(htmlLiberada.includes("Reprov.: 16.67%"));
+  assert.ok(htmlLiberada.includes("Tranc.: 0%"));
   assert.ok(htmlLiberada.includes("Baseado em 6 históricos"));
+});
+
+test("card preserva casas decimais da pizza e soma exatamente 100% sem gerar 101%", () => {
+  const casos = [
+    {
+      taxa_aprovacao: 96.5,
+      taxa_reprovacao_nota: 0.9,
+      taxa_reprovacao_falta: 0,
+      taxa_trancamento: 2.6,
+      esperado: ["Aprovação: 96.5%", "Reprov.: 0.9%", "Tranc.: 2.6%"],
+    },
+    {
+      taxa_aprovacao: 62.7,
+      taxa_reprovacao_nota: 24.3,
+      taxa_reprovacao_falta: 6.5,
+      taxa_trancamento: 6.5,
+      esperado: ["Aprovação: 62.7%", "Reprov.: 30.8%", "Tranc.: 6.5%"],
+    },
+    {
+      taxa_aprovacao: 33.333,
+      taxa_reprovacao_nota: 33.333,
+      taxa_reprovacao_falta: 0,
+      taxa_trancamento: 33.333,
+      esperado: ["Aprovação: 33.34%", "Reprov.: 33.33%", "Tranc.: 33.33%"],
+    },
+  ];
+
+  for (const caso of casos) {
+    const turma = adaptBackendTurma({
+      ...base,
+      estatistica: {
+        taxa_aprovacao: caso.taxa_aprovacao,
+        taxa_reprovacao_nota: caso.taxa_reprovacao_nota,
+        taxa_reprovacao_falta: caso.taxa_reprovacao_falta,
+        taxa_trancamento: caso.taxa_trancamento,
+        status: "VALIDADO",
+      },
+    });
+    const html = renderToStaticMarkup(<ClassCard classData={turma} />);
+    for (const trecho of caso.esperado) {
+      assert.ok(html.includes(trecho), `Esperado encontrar "${trecho}" no HTML`);
+    }
+    const numeros = [...html.matchAll(/(?:Aprovação|Reprov\.|Tranc\.):\s*([\d.]+)%/g)].map((m) =>
+      Number(m[1])
+    );
+    assert.equal(numeros.length, 3);
+    const somaCentesimos = Math.round((numeros[0] + numeros[1] + numeros[2]) * 100);
+    assert.equal(somaCentesimos, 10000);
+  }
 });
 
 test("card preserva badge de turma sem quebra de linha e ClassFilters exibe seletor de período", () => {

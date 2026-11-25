@@ -5,6 +5,10 @@ import {
   formatClassOccupancy,
 } from "@/types/turma";
 import { ClassOccupancyPie } from "@/components/ClassPerformancePieForm";
+import {
+  formatExactPercent,
+  resumirTaxasTurma,
+} from "@/utils/academicMetrics";
 
 export interface ClassCardProps {
   turma?: Class;
@@ -140,30 +144,30 @@ export default function ClassCard({
           </div>
         </dl>
         {item.estatistica ? (
-          <div className="mt-3.5 rounded-xl bg-[#F7F7FA] px-3 py-2 text-[11px]">
-            <div className="flex flex-wrap items-center justify-between gap-1 font-semibold">
-              <span className="text-emerald-700">
-                Aprovação: {Math.round(item.estatistica.taxa_aprovacao)}%
-              </span>
-              <span className="text-red-600">
-                Reprov.:{" "}
-                {Math.round(
-                  item.estatistica.taxa_reprovacao_nota +
-                    item.estatistica.taxa_reprovacao_falta
+          (() => {
+            const taxas = resumirTaxasTurma(item.estatistica);
+            return (
+              <div className="mt-3.5 rounded-xl bg-[#F7F7FA] px-3 py-2 text-[11px]">
+                <div className="flex flex-wrap items-center justify-between gap-1 font-semibold">
+                  <span className="text-emerald-700">
+                    Aprovação: {formatExactPercent(taxas.aprovacao)}%
+                  </span>
+                  <span className="text-red-600">
+                    Reprov.: {formatExactPercent(taxas.reprovacao)}%
+                  </span>
+                  <span className="text-amber-700">
+                    Tranc.: {formatExactPercent(taxas.trancamento)}%
+                  </span>
+                </div>
+                {(item.amostrasComunidade ?? 0) > 0 && (
+                  <p className="mt-1 text-[10px] text-gray-500">
+                    Baseado em {item.amostrasComunidade}{" "}
+                    {item.amostrasComunidade === 1 ? "histórico" : "históricos"}
+                  </p>
                 )}
-                %
-              </span>
-              <span className="text-amber-700">
-                Tranc.: {Math.round(item.estatistica.taxa_trancamento)}%
-              </span>
-            </div>
-            {(item.amostrasComunidade ?? 0) > 0 && (
-              <p className="mt-1 text-[10px] text-gray-500">
-                Baseado em {item.amostrasComunidade}{" "}
-                {item.amostrasComunidade === 1 ? "histórico" : "históricos"}
-              </p>
-            )}
-          </div>
+              </div>
+            );
+          })()
         ) : (item.amostrasComunidade ?? 0) > 0 ? (
           <div className="mt-3.5 rounded-xl border border-dashed border-[#D8D1FA] bg-[#F8F7FF] px-3 py-2 text-[11px] font-medium text-[#5B4BDB]">
             Coleta comunidade: {item.amostrasComunidade}/

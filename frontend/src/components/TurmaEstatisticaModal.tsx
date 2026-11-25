@@ -384,10 +384,10 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
         {turmasCursadas.length === 0 ? (
           <div className="mt-6 text-center py-6">
             <p className="text-sm font-semibold text-[var(--foreground)]">
-              Nenhuma turma comprovada encontrada.
+              Nenhuma turma concluída encontrada.
             </p>
             <p className="text-xs text-[var(--text-muted)] mt-1">
-              Importe primeiro o seu Histórico Escolar oficial do SIGAA (PDF) na seção acima antes de enviar os gráficos de turmas.
+              Importe o seu Histórico Escolar oficial do SIGAA (PDF) com disciplinas já finalizadas antes de enviar os gráficos. Turmas ainda em andamento não entram na seleção por não possuírem dados consolidados.
             </p>
             <Button variant="outline" size="sm" onClick={onClose} className="mt-4">
               Entendido
