@@ -21,15 +21,6 @@ export interface TurmaEstatisticaModalProps {
   onSuccess?: (mensagem: string) => void;
 }
 
-function normalizarNomeDocente(nome: string): string {
-  return nome
-    .replace(/^(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+/i, "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
   isOpen,
@@ -252,24 +243,15 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
       );
 
       const codigoNorm = normalizarCodigoTurma(turmaSelecionada.turma);
-      let turmaEncontrada = turmasApi.find(
+      const turmaEncontrada = turmasApi.find(
         (t) =>
           t.codigo_turma.toUpperCase() === turmaSelecionada.turma.trim().toUpperCase() ||
           normalizarCodigoTurma(t.codigo_turma) === codigoNorm
       );
 
-      if (!turmaEncontrada && turmaSelecionada.professores.length > 0) {
-        const profsHistorico = new Set(
-          turmaSelecionada.professores.map(normalizarNomeDocente).filter(Boolean)
-        );
-        turmaEncontrada = turmasApi.find((t) =>
-          (t.professores ?? []).some((p) => profsHistorico.has(normalizarNomeDocente(p.nome)))
-        );
-      }
-
       if (!turmaEncontrada?.id) {
         throw new ApiError(
-          `A turma ${turmaSelecionada.turma} da disciplina ${turmaSelecionada.codigo} no semestre ${turmaSelecionada.semestre} ainda não possui registro cadastrado na base de turmas do Tamburetei.`,
+          `A turma ${turmaSelecionada.turma} da disciplina ${turmaSelecionada.codigo} no semestre ${turmaSelecionada.semestre} ainda não possui registro cadastrado. Reimporte seu histórico para cadastrar os vínculos de todas as turmas e tente novamente.`,
           404
         );
       }
@@ -377,7 +359,7 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
             Comprovação Obrigatória de Vínculo:
           </p>
           <p className="mt-0.5">
-            Para garantir a veracidade dos dados, você só pode submeter gráficos de turmas em que esteve efetivamente matriculado(a), comprovadas pelo seu Histórico Escolar importado.
+            Para garantir a veracidade dos dados, você só pode submeter gráficos de turmas em que esteve efetivamente matriculado(a), comprovadas pelo seu Histórico Escolar importado. Turmas trancadas, canceladas ou ainda em andamento não entram na seleção.
           </p>
         </div>
 
@@ -387,7 +369,7 @@ export const TurmaEstatisticaModal: React.FC<TurmaEstatisticaModalProps> = ({
               Nenhuma turma concluída encontrada.
             </p>
             <p className="text-xs text-[var(--text-muted)] mt-1">
-              Importe o seu Histórico Escolar oficial do SIGAA (PDF) com disciplinas já finalizadas antes de enviar os gráficos. Turmas ainda em andamento não entram na seleção por não possuírem dados consolidados.
+              Importe o seu Histórico Escolar oficial do SIGAA (PDF) com disciplinas já finalizadas antes de enviar os gráficos. Turmas trancadas, canceladas ou ainda em andamento não entram na seleção.
             </p>
             <Button variant="outline" size="sm" onClick={onClose} className="mt-4">
               Entendido
