@@ -15,6 +15,9 @@ import {
   consultarStatusComentario,
   resolverAvisoTriagemComentario,
   iniciarPollingStatusComentario,
+  listarPizzasModeracao,
+  baixarImagemPizza,
+  decidirPizzaModeracao,
 } from "../moderacaoService.ts";
 import { ApiError } from "../httpClient.ts";
 
@@ -81,6 +84,43 @@ test("fila e decisão usam Bearer e contrato correto", async (t) => {
 test("conflito de outro moderador é propagado", async (t) => {
   t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ detail: "Já avaliado." }), { status: 409 }));
   await assert.rejects(decidirCuradoria(12, "APROVADO"), (e: unknown) => e instanceof ApiError && e.status === 409);
+});
+
+test("fila e decisão de gráficos de pizza usam endpoints dedicados da moderação", async (t) => {
+  dados.set("tamburetei_auth_token", "token");
+  const chamadas: Array<{ url: string; options: RequestInit }> = [];
+  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
+    chamadas.push({ url, options });
+    if (url.endsWith("/imagem")) {
+      return new Response(new Uint8Array([137, 80, 78, 71]), { status: 200 });
+    }
+    return new Response(JSON.stringify({ grupos_semestre: [], total_itens: 0, total_envios_pendentes: 0 }), { status: 200 });
+  });
+
+  await listarPizzasModeracao();
+  await baixarImagemPizza(77);
+  await decidirPizzaModeracao(77, {
+    status: "CONSOLIDADA",
+    taxa_aprovacao: 80,
+    taxa_reprovacao_nota: 10,
+    taxa_reprovacao_falta: 5,
+    taxa_trancamento: 5,
+    justificativa: "  Print conferido. ",
+  });
+
+  assert.match(chamadas[0].url, /\/moderacao\/pizzas$/);
+  assert.match(chamadas[1].url, /\/moderacao\/pizzas\/77\/imagem$/);
+  assert.equal(new Headers(chamadas[1].options.headers).get("Authorization"), "Bearer token");
+  assert.match(chamadas[2].url, /\/moderacao\/pizzas\/77\/decisao$/);
+  assert.equal(chamadas[2].options.method, "PATCH");
+  assert.deepEqual(JSON.parse(String(chamadas[2].options.body)), {
+    status: "CONSOLIDADA",
+    taxa_aprovacao: 80,
+    taxa_reprovacao_nota: 10,
+    taxa_reprovacao_falta: 5,
+    taxa_trancamento: 5,
+    justificativa: "Print conferido.",
+  });
 });
 
 test("download usa endpoint protegido e retorna binário", async (t) => {
