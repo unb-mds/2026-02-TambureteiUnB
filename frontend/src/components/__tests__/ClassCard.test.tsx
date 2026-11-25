@@ -90,8 +90,9 @@ test("card exibe progresso de coleta da comunidade abaixo do limiar LGPD e taxas
   assert.ok(htmlLiberada.includes("Baseado em 6 históricos"));
 });
 
-test("card preserva casas decimais da pizza e soma exatamente 100% sem gerar 101%", () => {
+test("card preserva percentuais originais sem compensar diferenças de soma", () => {
   const casos = [
+    {taxa_aprovacao:91.8,taxa_reprovacao_nota:4.6,taxa_reprovacao_falta:0,taxa_trancamento:3.5,esperado:["Aprovação: 91.8%","Reprov. nota: 4.6%","Reprov. falta: 0%","Tranc.: 3.5%"]},
     {
       taxa_aprovacao: 96.5,
       taxa_reprovacao_nota: 0.9,
@@ -122,10 +123,10 @@ test("card preserva casas decimais da pizza e soma exatamente 100% sem gerar 101
       taxa_reprovacao_falta: 0,
       taxa_trancamento: 33.333,
       esperado: [
-        "Aprovação: 33.34%",
-        "Reprov. nota: 33.33%",
+        "Aprovação: 33.333%",
+        "Reprov. nota: 33.333%",
         "Reprov. falta: 0%",
-        "Tranc.: 33.33%",
+        "Tranc.: 33.333%",
       ],
     },
   ];
@@ -151,10 +152,7 @@ test("card preserva casas decimais da pizza e soma exatamente 100% sem gerar 101
       ),
     ].map((m) => Number(m[1]));
     assert.equal(numeros.length, 4);
-    const somaCentesimos = Math.round(
-      (numeros[0] + numeros[1] + numeros[2] + numeros[3]) * 100
-    );
-    assert.equal(somaCentesimos, 10000);
+    assert.deepEqual(numeros,[caso.taxa_aprovacao,caso.taxa_reprovacao_nota,caso.taxa_reprovacao_falta,caso.taxa_trancamento]);
   }
 });
 
