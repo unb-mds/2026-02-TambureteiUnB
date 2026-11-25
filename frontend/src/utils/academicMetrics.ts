@@ -13,7 +13,7 @@ export function formatPositiveMetric(
 
 export function formatExactPercent(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return "0";
-  return Number(value.toFixed(2)).toString();
+  return String(value);
 }
 
 export interface TurmaTaxasResumidas {
@@ -29,38 +29,13 @@ export interface TurmaTaxasDetalhadas {
   trancamento: number;
 }
 
-function normalizarParcelasCem(bruto: number[]): number[] {
-  const limpos = bruto.map((valor) =>
-    Number.isFinite(valor) ? Math.max(0, valor) : 0,
-  );
-  const somaBruta = limpos.reduce((acc, val) => acc + val, 0);
-  if (somaBruta <= 0) {
-    return limpos.map(() => 0);
-  }
-
-  const escalados = limpos.map((valor) => (valor / somaBruta) * 10000);
-  const inteiros = escalados.map((valor) => Math.floor(valor));
-  const somaInteiros = inteiros.reduce((acc, val) => acc + val, 0);
-  const restante = 10000 - somaInteiros;
-
-  if (restante > 0) {
-    const indicesOrdenados = limpos
-      .map((_, i) => i)
-      .sort(
-        (i, j) => escalados[j] - inteiros[j] - (escalados[i] - inteiros[i]),
-      );
-    for (let k = 0; k < restante; k += 1) {
-      inteiros[indicesOrdenados[k % indicesOrdenados.length]] += 1;
-    }
-  }
-
-  return inteiros.map((centesimos) => centesimos / 100);
+function preservarParcelas(bruto: number[]): number[] {
+  return bruto.map(valor => Number.isFinite(valor) ? Math.max(0, valor) : 0);
 }
 
 /**
- * Preserva até 2 casas decimais das taxas de turma (evitando perda de precisão
- * por Math.round inteiro) e ajusta centésimos residuais pelo método dos
- * maiores restos para garantir que a soma dos 3 indicadores seja sempre 100%.
+ * Preserva as taxas recebidas; agrega somente as duas categorias de reprovação.
+ * Não reescala as parcelas para compensar diferenças da soma exibida no SIGAA.
  */
 export function resumirTaxasTurma(estatistica: {
   taxa_aprovacao: number;
@@ -68,7 +43,7 @@ export function resumirTaxasTurma(estatistica: {
   taxa_reprovacao_falta: number;
   taxa_trancamento: number;
 }): TurmaTaxasResumidas {
-  const [aprovacao, reprovacao, trancamento] = normalizarParcelasCem([
+  const [aprovacao, reprovacao, trancamento] = preservarParcelas([
     estatistica.taxa_aprovacao,
     (Number.isFinite(estatistica.taxa_reprovacao_nota)
       ? estatistica.taxa_reprovacao_nota
@@ -84,7 +59,7 @@ export function resumirTaxasTurma(estatistica: {
 
 /**
  * Versão estratificada em 4 parcelas (aprovação, reprovação por nota,
- * reprovação por falta e trancamento), preservando decimais e garantindo soma 100%.
+ * reprovação por falta e trancamento), sem normalizar nem alterar as parcelas.
  */
 export function resumirTaxasTurmaDetalhadas(estatistica: {
   taxa_aprovacao: number;
@@ -93,7 +68,7 @@ export function resumirTaxasTurmaDetalhadas(estatistica: {
   taxa_trancamento: number;
 }): TurmaTaxasDetalhadas {
   const [aprovacao, reprovacaoNota, reprovacaoFalta, trancamento] =
-    normalizarParcelasCem([
+    preservarParcelas([
       estatistica.taxa_aprovacao,
       estatistica.taxa_reprovacao_nota,
       estatistica.taxa_reprovacao_falta,

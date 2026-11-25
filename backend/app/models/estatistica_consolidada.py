@@ -47,7 +47,7 @@ class EstatisticaConsolidada(Base):
             name="chk_estatistica_taxas_positivas",
         ),
         CheckConstraint(
-            "(taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00",
+            "(taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) BETWEEN 99.80 AND 100.20",
             name="chk_estatistica_soma_cem",
         ),
     )

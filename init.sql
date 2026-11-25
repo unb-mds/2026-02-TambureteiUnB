@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS doacoes_estatisticas (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_usuario_turma_semestre_doacao UNIQUE (usuario_id, turma_id, semestre_referencia),
     CONSTRAINT chk_soma_taxas_cem CHECK (
-        (taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00
+        (taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) BETWEEN 99.80 AND 100.20
     )
 );
 
@@ -365,7 +365,7 @@ CREATE TABLE IF NOT EXISTS estatisticas_consolidadas (
         AND taxa_reprovacao_falta >= 0 AND taxa_trancamento >= 0
     ),
     CONSTRAINT chk_estatistica_soma_cem CHECK (
-        (taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00
+        (taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) BETWEEN 99.80 AND 100.20
     )
 );
 

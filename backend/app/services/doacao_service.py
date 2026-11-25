@@ -77,6 +77,14 @@ class DoacaoService:
                 detail=f"O semestre da doação deve ser o mesmo da turma ({turma.semestre}).",
             )
 
+        oficial = estatistica_repo.get_by_turma_e_semestre(db, turma_id, semestre_referencia)
+        if (oficial is not None and oficial.origem == "DOACAO_QUORUM"
+                and doacao_repo.tem_recusa(db, usuario_id, turma_id, semestre_referencia)):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="Esta turma já possui estatística de pizza publicada.",
+            )
+
         if doacao_repo.get_duplicada(db, usuario_id, turma_id, semestre_referencia):
             raise HTTPException(
                 status.HTTP_409_CONFLICT,

@@ -3,6 +3,7 @@
 import React, { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { isAuthenticated, subscribeAuthChange } from "@/services/authService";
+import BugReportButton from "./BugReportButton";
 import StoolIllustration from "./StoolIllustration";
 
 export default function Footer() {
@@ -64,6 +65,7 @@ export default function Footer() {
             </svg>
             <span>GitHub</span>
           </a>
+          <BugReportButton />
           {!isLoggedIn && (
             <>
               <Link href="/login" className="transition-colors hover:text-[#5B4BDB]">
