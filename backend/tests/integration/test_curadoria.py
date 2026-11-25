@@ -110,16 +110,73 @@ def test_falha_de_auditoria_reverte_decisao(client, db, pendente, admin_headers,
     assert db.scalar(select(func.count()).select_from(Curadoria)) == 0
 
 
-def test_fila_paginada_nao_inclui_links_ou_arquivos_excluidos(client, db, pendente, disciplina, admin_headers):
-    db.add(Conteudo(disciplina_id=disciplina.id, titulo="Link pendente", tipo="LINK_UTIL", url_origem="https://unb.br"))
+def test_fila_paginada_inclui_links_pendentes_e_exclui_arquivos_removidos(client, db, pendente, disciplina, admin_headers):
+    link = Conteudo(disciplina_id=disciplina.id, titulo="Link pendente", tipo="LINK_UTIL", url_origem="https://unb.br")
+    db.add(link)
     db.commit()
-    assert client.get("/moderacao/materiais?tamanho_pagina=1", headers=admin_headers).json()["total"] == 1
-    assert client.get("/moderacao/materiais?pagina=2&tamanho_pagina=1", headers=admin_headers).json()["items"] == []
+    pagina_1 = client.get("/moderacao/materiais?tamanho_pagina=1", headers=admin_headers).json()
+    assert pagina_1["total"] == 2
+    assert len(pagina_1["items"]) == 1
+    assert client.get("/moderacao/materiais?pagina=3&tamanho_pagina=1", headers=admin_headers).json()["items"] == []
     assert client.get("/moderacao/materiais?pagina=0", headers=admin_headers).status_code == 422
+    assert client.get(f"/moderacao/materiais/{link.id}/download", headers=admin_headers).status_code == 404
     db.get(Conteudo, pendente).status_moderacao = "excluido"
     db.commit()
-    assert client.get("/moderacao/materiais", headers=admin_headers).json()["total"] == 0
+    assert client.get("/moderacao/materiais", headers=admin_headers).json()["total"] == 1
     assert client.patch(f"/moderacao/conteudos/{pendente}/curadoria", headers=admin_headers, json={"status": "APROVADO"}).status_code == 404
+
+
+def test_aprovacao_e_recusa_de_link_externo_na_curadoria(client, db, disciplina, headers, admin_headers):
+    enviado_video = client.post(
+        f"/cadeiras/{disciplina.id}/links",
+        headers=headers,
+        json={
+            "titulo": "Função Real",
+            "url_origem": "https://www.youtube.com/watch?v=wPesFG0cG7g",
+            "tipo": "RESUMO",
+        },
+    )
+    assert enviado_video.status_code == 201, enviado_video.text
+    link_aprovado_id = enviado_video.json()["id"]
+
+    enviado_prova = client.post(
+        f"/cadeiras/{disciplina.slug}/links",
+        headers=headers,
+        json={
+            "titulo": "Link Prova P1",
+            "url_origem": "https://aprender3.unb.br/mod/resource/view.php?id=10",
+            "tipo": "PROVA_ANTIGA",
+        },
+    )
+    assert enviado_prova.status_code == 201, enviado_prova.text
+    link_recusado_id = enviado_prova.json()["id"]
+
+    fila = client.get("/moderacao/materiais", headers=admin_headers)
+    assert fila.status_code == 200
+    assert {item["id"]: item["url_origem"] for item in fila.json()["items"]} == {
+        link_aprovado_id: "https://www.youtube.com/watch?v=wPesFG0cG7g",
+        link_recusado_id: "https://aprender3.unb.br/mod/resource/view.php?id=10",
+    }
+
+    r_ok = client.patch(
+        f"/moderacao/conteudos/{link_aprovado_id}/curadoria",
+        headers=admin_headers,
+        json={"status": "APROVADO"},
+    )
+    assert r_ok.status_code == 200, r_ok.text
+    assert db.get(Conteudo, link_aprovado_id).status_moderacao is None
+
+    r_no = client.patch(
+        f"/moderacao/conteudos/{link_recusado_id}/curadoria",
+        headers=admin_headers,
+        json={"status": "RECUSADO", "justificativa": "Link com gabarito não autorizado."},
+    )
+    assert r_no.status_code == 200, r_no.text
+
+    publicos = client.get(f"/cadeiras/{disciplina.id}/materiais").json()
+    assert publicos["total"] == 1
+    assert publicos["items"][0]["id"] == link_aprovado_id
+    assert publicos["items"][0]["url_origem"] == "https://www.youtube.com/watch?v=wPesFG0cG7g"
 
 
 def test_download_pendente_com_arquivo_ausente_e_inexistente(client, db, pendente, admin_headers):

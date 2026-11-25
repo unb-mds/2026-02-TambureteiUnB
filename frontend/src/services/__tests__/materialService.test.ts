@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  createExternalLink,
   listMaterials,
   toggleMaterialVote,
   uploadMaterial,
@@ -173,5 +174,54 @@ test("toggleMaterialVote chama POST /materiais/{id}/voto e retorna contagem atua
   assert.equal(capturedMethod, "POST");
   assert.deepEqual(res, { material_id: 42, upvotes: 3, liked_by_me: true });
 
+  globalThis.fetch = originalFetch;
+});
+
+test("createExternalLink envia POST /cadeiras/{id}/links com payload normalizado", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedUrl = "";
+  let capturedMethod = "";
+  let capturedBody = "";
+
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    capturedUrl = String(input);
+    capturedMethod = init?.method || "GET";
+    capturedBody = String(init?.body || "");
+    return new Response(
+      JSON.stringify({
+        id: 99,
+        disciplina_id: 1,
+        titulo: "Função Real",
+        tipo: "RESUMO",
+        formato: null,
+        tamanho_bytes: null,
+        url_origem: "https://www.youtube.com/watch?v=wPesFG0cG7g",
+        status_curadoria: "PENDENTE",
+        status_moderacao: null,
+        created_at: "2026-11-25T00:00:00Z",
+      }),
+      { status: 201, headers: { "Content-Type": "application/json" } }
+    );
+  }) as typeof fetch;
+
+  setStoredToken("token-link");
+  const created = await createExternalLink({
+    disciplineIdOrSlug: "calculo-1",
+    title: "  Função Real  ",
+    url: "  https://www.youtube.com/watch?v=wPesFG0cG7g  ",
+    type: "PROVA_ANTIGA",
+  });
+
+  assert.match(capturedUrl, /\/cadeiras\/calculo-1\/links$/);
+  assert.equal(capturedMethod, "POST");
+  assert.deepEqual(JSON.parse(capturedBody), {
+    titulo: "Função Real",
+    url_origem: "https://www.youtube.com/watch?v=wPesFG0cG7g",
+    tipo: "PROVA_ANTIGA",
+  });
+  assert.equal(created.id, 99);
+  assert.equal(created.url_origem, "https://www.youtube.com/watch?v=wPesFG0cG7g");
+
+  removeStoredToken();
   globalThis.fetch = originalFetch;
 });

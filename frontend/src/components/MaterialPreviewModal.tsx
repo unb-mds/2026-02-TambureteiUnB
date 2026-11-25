@@ -1,21 +1,32 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Button from "./Button";
-import type { MaterialPendente } from "@/types/moderacao";
 import { formatFileSize } from "@/utils/fileValidation";
 
-interface MaterialPreviewModalProps {
+export interface PreviewMaterialItem {
+  id: number | string;
+  titulo: string;
+  tipo: string;
+  formato?: string | null;
+  tamanho_bytes?: number | null;
+  disciplina?: { nome: string } | null;
+  disciplinaNome?: string | null;
+}
+
+interface MaterialPreviewModalProps<T extends PreviewMaterialItem = PreviewMaterialItem> {
   isOpen: boolean;
-  material: MaterialPendente | null;
+  material: T | null;
   blobUrl: string | null;
   loading: boolean;
   error: string;
   onClose: () => void;
-  onApprove: (material: MaterialPendente) => Promise<void>;
-  onReject: (material: MaterialPendente, motivo: string) => Promise<void>;
+  onApprove?: (material: T) => Promise<void>;
+  onReject?: (material: T, motivo: string) => Promise<void>;
+  onDownload?: (material: T) => void | Promise<void>;
+  downloading?: boolean;
 }
 
-function MaterialPreviewDialog({
+function MaterialPreviewDialog<T extends PreviewMaterialItem>({
   material,
   blobUrl,
   loading,
@@ -23,7 +34,9 @@ function MaterialPreviewDialog({
   onClose,
   onApprove,
   onReject,
-}: Omit<MaterialPreviewModalProps, "isOpen"> & { material: MaterialPendente }) {
+  onDownload,
+  downloading = false,
+}: Omit<MaterialPreviewModalProps<T>, "isOpen"> & { material: T }) {
   const [motivo, setMotivo] = useState("");
   const [erroMotivo, setErroMotivo] = useState("");
   const [exibirCampoMotivo, setExibirCampoMotivo] = useState(false);
@@ -43,10 +56,17 @@ function MaterialPreviewDialog({
     };
   }, [enviando, onClose]);
 
-  const isPdf = material.formato.toLowerCase() === "pdf";
-  const isImage = ["png", "jpg", "jpeg"].includes(material.formato.toLowerCase());
+  const formatoNormalizado = (material.formato || "").toLowerCase();
+  const isPdf = formatoNormalizado === "pdf";
+  const isImage = ["png", "jpg", "jpeg"].includes(formatoNormalizado);
+  const disciplinaNome = material.disciplina?.nome || material.disciplinaNome || "Material de Apoio";
+  const formatLabel = material.formato ? material.formato.toUpperCase() : "ARQUIVO";
+  const sizeLabel =
+    typeof material.tamanho_bytes === "number" ? ` • ${formatFileSize(material.tamanho_bytes)}` : "";
+  const hasModerationActions = Boolean(onApprove && onReject);
 
   async function handleConfirmReject() {
+    if (!onReject) return;
     const textoLimpo = motivo.trim();
     if (!textoLimpo) {
       setExibirCampoMotivo(true);
@@ -68,6 +88,7 @@ function MaterialPreviewDialog({
   }
 
   async function handleConfirmApprove() {
+    if (!onApprove) return;
     setEnviando(true);
     try {
       await onApprove(material);
@@ -88,13 +109,14 @@ function MaterialPreviewDialog({
         <header className="flex items-start justify-between border-b border-gray-200 p-5 sm:p-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[#5B4BDB]">
-              {material.disciplina.nome}
+              {disciplinaNome}
             </p>
             <h2 id="preview-modal-title" className="mt-1 text-xl font-bold text-[#202124]">
               {material.titulo}
             </h2>
             <p className="mt-1 text-xs text-gray-500">
-              {material.tipo} • {material.formato.toUpperCase()} • {formatFileSize(material.tamanho_bytes)}
+              {material.tipo} • {formatLabel}
+              {sizeLabel}
             </p>
           </div>
           <button
@@ -178,25 +200,38 @@ function MaterialPreviewDialog({
           </Button>
 
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              disabled={enviando || loading}
-              onClick={() => {
-                if (!exibirCampoMotivo) {
-                  setExibirCampoMotivo(true);
-                } else {
-                  void handleConfirmReject();
-                }
-              }}
-            >
-              Rejeitar com Justificativa
-            </Button>
-            <Button
-              disabled={enviando || loading}
-              onClick={() => void handleConfirmApprove()}
-            >
-              Aprovar Material
-            </Button>
+            {onDownload && (
+              <Button
+                variant={hasModerationActions ? "outline" : "primary"}
+                disabled={enviando || loading || downloading}
+                onClick={() => void onDownload(material)}
+              >
+                {downloading ? "Baixando..." : "Baixar material"}
+              </Button>
+            )}
+            {hasModerationActions && (
+              <>
+                <Button
+                  variant="outline"
+                  disabled={enviando || loading}
+                  onClick={() => {
+                    if (!exibirCampoMotivo) {
+                      setExibirCampoMotivo(true);
+                    } else {
+                      void handleConfirmReject();
+                    }
+                  }}
+                >
+                  Rejeitar com Justificativa
+                </Button>
+                <Button
+                  disabled={enviando || loading}
+                  onClick={() => void handleConfirmApprove()}
+                >
+                  Aprovar Material
+                </Button>
+              </>
+            )}
           </div>
         </footer>
       </div>
@@ -204,7 +239,9 @@ function MaterialPreviewDialog({
   );
 }
 
-export default function MaterialPreviewModal(props: MaterialPreviewModalProps) {
+export default function MaterialPreviewModal<T extends PreviewMaterialItem>(
+  props: MaterialPreviewModalProps<T>
+) {
   if (!props.isOpen || !props.material) {
     return null;
   }

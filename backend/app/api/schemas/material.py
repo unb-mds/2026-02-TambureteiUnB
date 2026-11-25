@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Annotated, Literal
+from urllib.parse import urlsplit
 
-from pydantic import AfterValidator, BaseModel, ConfigDict
+from pydantic import AfterValidator, BaseModel, ConfigDict, field_validator
 from pydantic_core import PydanticCustomError
 
 
@@ -12,10 +13,11 @@ class MaterialResponse(BaseModel):
     disciplina_id: int
     titulo: str
     tipo: str = "ARQUIVO"
-    formato: Literal["pdf", "png", "jpg"]
-    tamanho_bytes: int
+    formato: Literal["pdf", "png", "jpg"] | None = None
+    tamanho_bytes: int | None = None
+    url_origem: str | None = None
     status_curadoria: Literal["PENDENTE", "APROVADO", "RECUSADO"]
-    status_moderacao: str
+    status_moderacao: str | None = None
     created_at: datetime
     upvotes: int = 0
     liked_by_me: bool = False
@@ -43,4 +45,38 @@ def validar_titulo(valor: str) -> str:
     return valor
 
 
+def validar_url_externa(valor: str) -> str:
+    valor = valor.strip()
+    if not 1 <= len(valor) <= 2000 or any(ch.isspace() for ch in valor):
+        raise PydanticCustomError(
+            "url_invalida", "Informe uma URL válida iniciada por http:// ou https://."
+        )
+    parsed = urlsplit(valor)
+    if (
+        parsed.scheme.lower() not in {"http", "https"}
+        or not parsed.hostname
+        or "." not in parsed.hostname
+    ):
+        raise PydanticCustomError(
+            "url_invalida", "Informe uma URL válida iniciada por http:// ou https://."
+        )
+    return valor
+
+
 TituloMaterial = Annotated[str, AfterValidator(validar_titulo)]
+UrlExterna = Annotated[str, AfterValidator(validar_url_externa)]
+
+
+class MaterialLinkCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    titulo: TituloMaterial
+    url_origem: UrlExterna
+    tipo: Literal["RESUMO", "DICA", "PROVA_ANTIGA", "LINK_UTIL"] = "RESUMO"
+
+    @field_validator("tipo", mode="before")
+    @classmethod
+    def normalizar_tipo(cls, valor: str) -> str:
+        if isinstance(valor, str):
+            return valor.strip().upper()
+        return valor

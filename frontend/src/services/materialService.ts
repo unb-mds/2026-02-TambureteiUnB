@@ -27,6 +27,13 @@ export interface BatchUploadOptions {
   signal?: AbortSignal;
 }
 
+export interface CreateExternalLinkOptions {
+  disciplineIdOrSlug: string | number;
+  title: string;
+  url: string;
+  type?: MaterialType;
+}
+
 const UPLOAD_ERROR_MESSAGES_BY_STATUS: Record<number, string> = {
   401: "Sessao expirada ou nao autenticada. Faca login novamente.",
   403: "Voce nao possui permissao para enviar materiais com esta conta.",
@@ -200,7 +207,25 @@ export async function toggleMaterialVote(id: number): Promise<MaterialVoteRespon
   });
 }
 
+export async function createExternalLink({
+  disciplineIdOrSlug,
+  title,
+  url,
+  type = "RESUMO",
+}: CreateExternalLinkOptions): Promise<MaterialResponse> {
+  const endpoint = `/cadeiras/${encodeURIComponent(disciplineIdOrSlug)}/links`;
+  return request<MaterialResponse>(endpoint, {
+    method: "POST",
+    body: JSON.stringify({
+      titulo: title.trim(),
+      url_origem: url.trim(),
+      tipo: type,
+    }),
+  });
+}
+
 export const materialService = {
+  createExternalLink,
   downloadMaterial,
   uploadMaterial,
   uploadMaterialsBatch,

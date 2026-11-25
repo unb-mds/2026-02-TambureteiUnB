@@ -10,7 +10,7 @@ import {
   formatFileSize,
   MAX_FILES_PER_BATCH,
 } from "@/utils/fileValidation";
-import { uploadMaterialsBatch } from "@/services/materialService";
+import { createExternalLink, uploadMaterialsBatch } from "@/services/materialService";
 import { isAuthenticated } from "@/services/authService";
 
 export interface MaterialModalProps {
@@ -27,6 +27,7 @@ const TIPO_LABELS: Record<MaterialType, string> = {
   RESUMO: "Resumo / Notas de Estudo",
   PROVA_ANTIGA: "Enunciado de Prova Publica",
   DICA: "Dica de Estudo",
+  LINK_UTIL: "Link Util",
 };
 
 export default function MaterialModal({
@@ -331,9 +332,14 @@ export default function MaterialModal({
   };
 
   // Validação e submissão da aba de link externo
-  const handleValidateLink = (e: React.FormEvent) => {
+  const handleValidateLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setLinkError(null);
+
+    if (!isAuthenticated()) {
+      setLinkError("Voce precisa estar autenticado para compartilhar links. Faca login novamente.");
+      return;
+    }
 
     const titleVal = validateMaterialTitle(linkTitle);
     if (!titleVal.isValid) {
@@ -347,11 +353,34 @@ export default function MaterialModal({
       return;
     }
 
-    // Alerta informativo: no backend atual (Feature 5.2), o endpoint implementado
-    // atende estritamente a arquivos físicos via POST /cadeiras/{id}/materiais.
-    setLinkError(
-      "[PENDENCIA DE BACKEND] A API atual do backend disponibiliza apenas o endpoint multipart de arquivos fisicos (POST /cadeiras/{id}/materiais). A submissao de URLs externas estara disponivel assim que a rota correspondente de links for liberada no backend."
-    );
+    const disciplineTarget = disciplineId || disciplineSlug;
+    if (!disciplineTarget) {
+      setLinkError("Identificador da disciplina nao localizado.");
+      return;
+    }
+
+    setUploadStatus("uploading");
+    try {
+      const created = await createExternalLink({
+        disciplineIdOrSlug: disciplineTarget,
+        title: linkTitle,
+        url: linkUrl,
+        type: linkType,
+      });
+
+      setUploadStatus("success");
+      setSuccessMessage(
+        "Link externo enviado com sucesso para moderacao! Ele ficara disponivel na disciplina assim que aprovado pela equipe."
+      );
+      if (onUploadSuccess) {
+        onUploadSuccess([String(created.id)]);
+      }
+    } catch (err: unknown) {
+      setUploadStatus("error");
+      const message =
+        err instanceof Error ? err.message : "Nao foi possivel enviar o link externo. Tente novamente.";
+      setLinkError(message);
+    }
   };
 
   if (!isOpen) return null;
@@ -445,7 +474,9 @@ export default function MaterialModal({
                   />
                 </svg>
               </div>
-              <h4 className="text-base font-bold text-[#202124] mb-2">[SUCESSO] Upload Concluido!</h4>
+              <h4 className="text-base font-bold text-[#202124] mb-2">
+                {activeTab === "link" ? "[SUCESSO] Link Enviado!" : "[SUCESSO] Upload Concluido!"}
+              </h4>
               <p className="text-xs sm:text-sm text-gray-600 max-w-md mb-6 leading-relaxed">
                 {successMessage}
               </p>
@@ -778,7 +809,7 @@ export default function MaterialModal({
                 {linkError && (
                   <div
                     role="alert"
-                    className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 leading-relaxed font-medium"
+                    className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700 leading-relaxed font-medium"
                   >
                     {linkError}
                   </div>
@@ -786,7 +817,7 @@ export default function MaterialModal({
 
                 <div className="rounded-xl bg-[#F7F7FA] border border-gray-100 p-3 text-[11px] text-gray-500 leading-relaxed">
                   [AVISO] Links compartilhados direcionam para repositorios e materiais abertos na
-                  web e devem respeitar os direitos autorais.
+                  web, passam pela moderacao e devem respeitar os direitos autorais.
                 </div>
               </div>
 
@@ -794,15 +825,17 @@ export default function MaterialModal({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="rounded-xl border border-gray-300 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  disabled={uploadStatus === "uploading"}
+                  className="rounded-xl border border-gray-300 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-[#5B4BDB] px-5 py-2.5 text-xs font-semibold text-white hover:brightness-110 cursor-pointer shadow-xs"
+                  disabled={uploadStatus === "uploading"}
+                  className="rounded-xl bg-[#5B4BDB] px-5 py-2.5 text-xs font-semibold text-white hover:brightness-110 cursor-pointer shadow-xs disabled:opacity-60"
                 >
-                  Adicionar Link
+                  {uploadStatus === "uploading" ? "Enviando link..." : "Adicionar Link"}
                 </button>
               </div>
             </form>

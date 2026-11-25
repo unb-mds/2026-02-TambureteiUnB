@@ -13,6 +13,7 @@ from app.api.schemas.material import (
     MaterialResponse,
     MaterialVotoResponse,
     validar_titulo,
+    validar_url_externa,
 )
 from app.domain.materiais import ArquivoMuitoGrande, ArquivoVazio, FormatoNaoSuportado
 from app.models.conteudo import Conteudo
@@ -31,7 +32,9 @@ logger = logging.getLogger(__name__)
 
 
 class MaterialService:
-    TIPOS_PERMITIDOS = {"ARQUIVO", "RESUMO", "PROVA_ANTIGA", "DICA"}
+    TIPOS_ARQUIVO = {"ARQUIVO", "RESUMO", "PROVA_ANTIGA", "DICA"}
+    TIPOS_LINK = {"RESUMO", "PROVA_ANTIGA", "DICA", "LINK_UTIL"}
+    TIPOS_PERMITIDOS = TIPOS_ARQUIVO | TIPOS_LINK
 
     def __init__(self, armazenamento: ArmazenamentoMaterial):
         self.armazenamento = armazenamento
@@ -57,8 +60,8 @@ class MaterialService:
     ) -> MaterialResponse:
         disciplina = self.resolver_disciplina(db, id_ou_slug)
         tipo = tipo.strip().upper() if tipo else "ARQUIVO"
-        if tipo not in self.TIPOS_PERMITIDOS:
-            raise HTTPException(422, f"Tipo inválido. Tipos permitidos: {sorted(self.TIPOS_PERMITIDOS)}")
+        if tipo not in self.TIPOS_ARQUIVO:
+            raise HTTPException(422, f"Tipo inválido. Tipos permitidos: {sorted(self.TIPOS_ARQUIVO)}")
         try:
             titulo = validar_titulo(titulo)
         except PydanticCustomError as exc:
@@ -143,16 +146,58 @@ class MaterialService:
         ]
         return MaterialPage(items=items_resposta, total=total, pagina=pagina, tamanho_pagina=tamanho_pagina)
 
+    def enviar_link(
+        self,
+        db: Session,
+        usuario_id: UUID,
+        id_ou_slug: int | str,
+        titulo: str,
+        url_origem: str,
+        tipo: str = "RESUMO",
+    ) -> MaterialResponse:
+        """Persiste um link externo na fila de curadoria humana da disciplina."""
+        disciplina = self.resolver_disciplina(db, id_ou_slug)
+        tipo_norm = tipo.strip().upper() if tipo else "RESUMO"
+        if tipo_norm not in self.TIPOS_LINK:
+            raise HTTPException(422, f"Tipo de link inválido. Tipos permitidos: {sorted(self.TIPOS_LINK)}")
+        try:
+            titulo_limpo = validar_titulo(titulo)
+            url_limpa = validar_url_externa(url_origem)
+        except PydanticCustomError as exc:
+            raise HTTPException(422, str(exc)) from exc
+
+        try:
+            material = Conteudo(
+                tipo=tipo_norm,
+                status_curadoria="PENDENTE",
+                usuario_id=usuario_id,
+                disciplina_id=disciplina.id,
+                titulo=titulo_limpo,
+                url_origem=url_limpa,
+                caminho_arquivo=None,
+                formato=None,
+                tamanho_bytes=None,
+                status_moderacao=None,
+            )
+            material_repo.adicionar(db, material)
+            resposta = MaterialResponse.model_validate(material)
+            db.commit()
+            return resposta
+        except SQLAlchemyError as exc:
+            db.rollback()
+            logger.exception("Falha ao persistir link externo.")
+            raise HTTPException(503, "Não foi possível salvar o link. Tente novamente.") from exc
+
     def alternar_voto(
         self, db: Session, material_id: int, usuario: Usuario
     ) -> MaterialVotoResponse:
         """Alterna o voto útil (curtida) de um usuário autenticado em um material publicado."""
         material = material_repo.get_by_id(db, material_id)
-        if (
-            material is None
-            or material.status_moderacao != "ativo"
-            or material.status_curadoria != "APROVADO"
-        ):
+        eh_link = material is not None and material.caminho_arquivo is None and material.url_origem is not None
+        publicado = material is not None and material.status_curadoria == "APROVADO" and (
+            material.status_moderacao is None if eh_link else material.status_moderacao == "ativo"
+        )
+        if not publicado:
             raise HTTPException(404, "Material não encontrado ou ainda não publicado.")
         upvotes, liked_by_me = alternar_voto_target(db, "CONTEUDO", material_id, usuario.id)
         return MaterialVotoResponse(
@@ -163,7 +208,7 @@ class MaterialService:
 
     def baixar(self, db: Session, material_id: int) -> tuple[Conteudo, Path]:
         material = material_repo.get_by_id(db, material_id)
-        if material is None or material.status_moderacao == "excluido":
+        if material is None or material.caminho_arquivo is None or material.status_moderacao == "excluido":
             raise HTTPException(404, "Material não encontrado.")
         if material.status_moderacao != "ativo" or material.status_curadoria != "APROVADO":
             raise HTTPException(403, "Material indisponível por moderação.")

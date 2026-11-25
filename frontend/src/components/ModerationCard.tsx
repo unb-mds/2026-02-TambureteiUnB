@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Button from "./Button";
-import { formatFileSize } from "@/utils/fileValidation";
+import { formatFileSize, validateExternalUrl } from "@/utils/fileValidation";
 import type { DecisaoCuradoria, MaterialPendente } from "@/types/moderacao";
 
 interface Props {
@@ -17,6 +17,12 @@ export default function ModerationCard({ material, disabled, onDecision, onDownl
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState("");
   const [exibirCampoMotivo, setExibirCampoMotivo] = useState(false);
+
+  const isExternalLink = Boolean(material.url_origem);
+  const safeExternalUrl =
+    material.url_origem && validateExternalUrl(material.url_origem).isValid
+      ? material.url_origem
+      : null;
 
   async function recusar() {
     const texto = motivo.trim();
@@ -40,7 +46,13 @@ export default function ModerationCard({ material, disabled, onDecision, onDownl
             {material.titulo}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {material.tipo} • {material.formato.toUpperCase()} • {formatFileSize(material.tamanho_bytes)}
+            {isExternalLink
+              ? `${material.tipo} • LINK EXTERNO`
+              : `${material.tipo} • ${(material.formato || "ARQUIVO").toUpperCase()}${
+                  typeof material.tamanho_bytes === "number"
+                    ? ` • ${formatFileSize(material.tamanho_bytes)}`
+                    : ""
+                }`}
           </p>
           <p className="mt-1 text-sm text-gray-500">
             Enviado em {new Date(material.created_at).toLocaleString("pt-BR")}
@@ -50,6 +62,26 @@ export default function ModerationCard({ material, disabled, onDecision, onDownl
           Pendente
         </span>
       </div>
+
+      {isExternalLink && (
+        <div className="mt-4 rounded-xl border border-[#DDD9F1] bg-[#FAF9FD] p-3 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#5B4BDB]">
+            URL Externa Submetida
+          </p>
+          {safeExternalUrl ? (
+            <a
+              href={safeExternalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block break-all font-medium text-[#5B4BDB] underline hover:brightness-110"
+            >
+              {safeExternalUrl}
+            </a>
+          ) : (
+            <p className="mt-1 break-all text-xs text-red-700">{material.url_origem}</p>
+          )}
+        </div>
+      )}
 
       {(material.motivo_moderacao || typeof material.confianca_ia === "number") && (
         <div className="mt-4 rounded-xl border border-[#EDE9FD] bg-[#FAF9FD] p-3 text-sm text-gray-700">
@@ -66,7 +98,9 @@ export default function ModerationCard({ material, disabled, onDecision, onDownl
       )}
 
       <p className="mt-4 text-sm text-gray-600">
-        Analise o arquivo antes de decidir. Verifique a pertinência e se o conteúdo respeita as regras de compartilhamento.
+        {isExternalLink
+          ? "Confira a URL externa antes de decidir. Verifique se o destino e pertinente e seguro para os estudantes."
+          : "Analise o arquivo antes de decidir. Verifique a pertinência e se o conteúdo respeita as regras de compartilhamento."}
       </p>
 
       {exibirCampoMotivo && (
@@ -98,14 +132,26 @@ export default function ModerationCard({ material, disabled, onDecision, onDownl
       )}
 
       <div className="mt-5 flex flex-wrap gap-3">
-        {onPreview && (
+        {!isExternalLink && onPreview && (
           <Button variant="outline" disabled={disabled} onClick={() => void onPreview(material)}>
             Pré-visualizar
           </Button>
         )}
-        <Button variant="outline" disabled={disabled} onClick={() => void onDownload(material)}>
-          Baixar para análise
-        </Button>
+        {!isExternalLink && (
+          <Button variant="outline" disabled={disabled} onClick={() => void onDownload(material)}>
+            Baixar para análise
+          </Button>
+        )}
+        {safeExternalUrl && (
+          <a
+            href={safeExternalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#202124] transition-colors hover:bg-gray-50"
+          >
+            Abrir link externo
+          </a>
+        )}
         <Button disabled={disabled} onClick={() => void onDecision(material, "APROVADO")}>
           Aprovar
         </Button>

@@ -4,16 +4,19 @@ import React, { useState, useEffect, useCallback, useRef, useSyncExternalStore }
 import Link from "next/link";
 import { isAuthenticated, subscribeAuthChange } from "@/services/authService";
 import Pagination from "@/components/Pagination";
+import MaterialPreviewModal from "@/components/MaterialPreviewModal";
 import { ApiError } from "@/services/httpClient";
 import type { MaterialType } from "@/types/material";
 import { listMaterials, downloadMaterial, toggleMaterialVote } from "@/services/materialService";
+import { formatFileSize, validateExternalUrl } from "@/utils/fileValidation";
 
 export interface MaterialItem {
   id: string;
   titulo: string;
-  tipo: "ARQUIVO" | "RESUMO" | "PROVA_ANTIGA" | "DICA" | string;
+  tipo: "ARQUIVO" | "RESUMO" | "PROVA_ANTIGA" | "DICA" | "LINK_UTIL" | string;
   formato: string;
   tamanho_bytes?: number;
+  url_origem?: string;
   created_at: string;
   url?: string;
   upvotes: number;
@@ -26,8 +29,9 @@ interface BackendMaterialItem {
   id: string | number;
   titulo?: string;
   tipo: string;
-  formato?: string;
-  tamanho_bytes?: number;
+  formato?: string | null;
+  tamanho_bytes?: number | null;
+  url_origem?: string | null;
   created_at?: string;
   url?: string;
   arquivo_url?: string;
@@ -48,7 +52,7 @@ interface MateriaisApoioProps {
 
 const MATERIALS_PER_PAGE = 20;
 const CATEGORY_TYPES: Record<"resumos" | "links" | "provas", MaterialType[]> = {
-  resumos: ["RESUMO", "DICA"], links: ["ARQUIVO"], provas: ["PROVA_ANTIGA"],
+  resumos: ["RESUMO", "DICA"], links: ["ARQUIVO", "LINK_UTIL"], provas: ["PROVA_ANTIGA"],
 };
 
 export default function MateriaisApoio({
@@ -82,6 +86,12 @@ export default function MateriaisApoio({
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [previewMaterial, setPreviewMaterial] = useState<MaterialItem | null>(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+  const previewBlobUrlRef = useRef<string | null>(null);
+  const previewSequence = useRef(0);
   const requestSequence = useRef(0);
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -103,8 +113,13 @@ export default function MateriaisApoio({
         id: String(item.id),
         titulo: item.titulo || "Material sem título",
         tipo: item.tipo,
-        formato: item.formato ? String(item.formato).toUpperCase() : "ARQUIVO",
-        tamanho_bytes: item.tamanho_bytes,
+        formato: item.url_origem
+          ? "LINK"
+          : item.formato
+          ? String(item.formato).toUpperCase()
+          : "ARQUIVO",
+        tamanho_bytes: typeof item.tamanho_bytes === "number" ? item.tamanho_bytes : undefined,
+        url_origem: item.url_origem || undefined,
         created_at: item.created_at
           ? new Date(item.created_at).toLocaleDateString("pt-BR")
           : "Recente",
@@ -146,6 +161,11 @@ export default function MateriaisApoio({
       cancelled = true;
       isMountedRef.current = false;
       requestSequence.current += 1;
+      previewSequence.current += 1;
+      if (previewBlobUrlRef.current) {
+        URL.revokeObjectURL(previewBlobUrlRef.current);
+        previewBlobUrlRef.current = null;
+      }
       if (pollTimerRef.current) {
         clearTimeout(pollTimerRef.current);
         pollTimerRef.current = null;
@@ -187,7 +207,7 @@ export default function MateriaisApoio({
         setRetryCount(value => value + 1);
         if (published.tipo === "PROVA_ANTIGA") {
           setActiveTab("provas");
-        } else if (published.tipo === "ARQUIVO") {
+        } else if (published.tipo === "ARQUIVO" || published.tipo === "LINK_UTIL") {
           setActiveTab("links");
         } else {
           setActiveTab("resumos");
@@ -288,6 +308,53 @@ export default function MateriaisApoio({
   };
 
   const filteredMaterials = materials;
+  const handlePreview = async (material: MaterialItem) => {
+    const reqSeq = ++previewSequence.current;
+    if (previewBlobUrlRef.current) {
+      URL.revokeObjectURL(previewBlobUrlRef.current);
+      previewBlobUrlRef.current = null;
+      setPreviewBlobUrl(null);
+    }
+    setDownloadError(null);
+    setPreviewMaterial(material);
+    setPreviewLoading(true);
+    setPreviewError("");
+    try {
+      const blob = await downloadMaterial(Number(material.id));
+      if (!isMountedRef.current || reqSeq !== previewSequence.current) {
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      previewBlobUrlRef.current = url;
+      setPreviewBlobUrl(url);
+    } catch (error) {
+      if (!isMountedRef.current || reqSeq !== previewSequence.current) {
+        return;
+      }
+      setPreviewError(
+        error instanceof ApiError
+          ? error.message
+          : "Não foi possível carregar o arquivo para pré-visualização."
+      );
+    } finally {
+      if (isMountedRef.current && reqSeq === previewSequence.current) {
+        setPreviewLoading(false);
+      }
+    }
+  };
+
+  const handleClosePreview = () => {
+    previewSequence.current += 1;
+    if (previewBlobUrlRef.current) {
+      URL.revokeObjectURL(previewBlobUrlRef.current);
+      previewBlobUrlRef.current = null;
+      setPreviewBlobUrl(null);
+    }
+    setPreviewMaterial(null);
+    setPreviewError("");
+    setPreviewLoading(false);
+  };
+
   const handleDownload = async (material: MaterialItem) => {
     setDownloadError(null);
     setDownloadingId(material.id);
@@ -461,81 +528,137 @@ export default function MateriaisApoio({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredMaterials.map((material) => (
-            <div
-              key={material.id}
-              className="flex flex-col justify-between rounded-2xl bg-white p-5 border border-[#EDE9FD] transition-all hover:border-[#D8D1FA] hover:shadow-xs"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="inline-flex items-center gap-1 rounded-md bg-[#EDE9FD] px-2 py-0.5 text-[11px] font-bold uppercase text-[#5B4BDB]">
-                    {material.formato}
-                  </span>
-                  <span className="text-[11px] text-gray-400">
-                    {material.created_at}
-                  </span>
-                </div>
+          {filteredMaterials.map((material) => {
+            const safeExternalUrl =
+              material.url_origem && validateExternalUrl(material.url_origem).isValid
+                ? material.url_origem
+                : null;
+            const canPreview =
+              !safeExternalUrl &&
+              ["pdf", "png", "jpg", "jpeg"].includes(material.formato.toLowerCase());
 
-                <h3 className="text-sm sm:text-base font-bold text-[#202124] line-clamp-2">
-                  {material.titulo}
-                </h3>
+            return (
+              <div
+                key={material.id}
+                className="flex flex-col justify-between rounded-2xl bg-white p-5 border border-[#EDE9FD] transition-all hover:border-[#D8D1FA] hover:shadow-xs"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-[#EDE9FD] px-2 py-0.5 text-[11px] font-bold uppercase text-[#5B4BDB]">
+                      {material.formato}
+                    </span>
+                    <span className="text-[11px] text-gray-400">
+                      {material.created_at}
+                    </span>
+                  </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                  <span>Por {material.authorAlias}</span>
-                  {material.professor && (
-                    <span>• Prof: <strong className="text-gray-700">{material.professor}</strong></span>
+                  <h3 className="text-sm sm:text-base font-bold text-[#202124] line-clamp-2">
+                    {material.titulo}
+                  </h3>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                    <span>Por {material.authorAlias}</span>
+                    {material.professor && (
+                      <span>• Prof: <strong className="text-gray-700">{material.professor}</strong></span>
+                    )}
+                    {!safeExternalUrl && typeof material.tamanho_bytes === "number" && (
+                      <span>• {formatFileSize(material.tamanho_bytes)}</span>
+                    )}
+                  </div>
+
+                  {safeExternalUrl && (
+                    <p className="mt-2 truncate text-xs text-gray-500" title={safeExternalUrl}>
+                      {safeExternalUrl}
+                    </p>
                   )}
                 </div>
-              </div>
 
-              <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                <button
-                  type="button"
-                  onClick={() => void handleDownload(material)}
-                  disabled={downloadingId !== null}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5B4BDB] hover:underline cursor-pointer disabled:opacity-50"
-                >
-                  {downloadingId === material.id ? "Baixando..." : "Baixar material"}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={!authenticated}
-                  title={!authenticated ? "Faça login para curtir materiais" : undefined}
-                  onClick={() => void handleToggleUpvote(material.id)}
-                  aria-label={`Curtir material ${material.titulo}`}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                    !authenticated
-                      ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60"
-                      : material.isLikedByMe
-                      ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5] active:scale-95 cursor-pointer"
-                      : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100 active:scale-95 cursor-pointer"
-                  }`}
-                >
-                  {material.isLikedByMe ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3">
+                  {safeExternalUrl ? (
+                    <a
+                      href={safeExternalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5B4BDB] hover:underline"
+                    >
+                      Abrir link externo
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
                   ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {canPreview && (
+                        <button
+                          type="button"
+                          onClick={() => void handlePreview(material)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#D8D1FA] bg-[#FAF9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB] hover:bg-[#EDE9FD] cursor-pointer transition-colors"
+                        >
+                          Pré-visualizar
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => void handleDownload(material)}
+                        disabled={downloadingId !== null}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5B4BDB] hover:underline cursor-pointer disabled:opacity-50"
+                      >
+                        {downloadingId === material.id ? "Baixando..." : "Baixar material"}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" />
+                          <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                      </button>
+                    </div>
                   )}
-                  <span>{material.upvotes}</span>
-                </button>
+
+                  <button
+                    type="button"
+                    disabled={!authenticated}
+                    title={!authenticated ? "Faça login para curtir materiais" : undefined}
+                    onClick={() => void handleToggleUpvote(material.id)}
+                    aria-label={`Curtir material ${material.titulo}`}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                      !authenticated
+                        ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60"
+                        : material.isLikedByMe
+                        ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5] active:scale-95 cursor-pointer"
+                        : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100 active:scale-95 cursor-pointer"
+                    }`}
+                  >
+                    {material.isLikedByMe ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                      </svg>
+                    )}
+                    <span>{material.upvotes}</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {!loading && !listError && (
         <Pagination currentPage={page} totalPages={Math.ceil(total / MATERIALS_PER_PAGE)} onPageChange={setPage} totalItems={total} itemsPerPage={MATERIALS_PER_PAGE} itemName="materiais" />
       )}
+      <MaterialPreviewModal
+        isOpen={Boolean(previewMaterial)}
+        material={previewMaterial ? { ...previewMaterial, disciplinaNome: disciplineName } : null}
+        blobUrl={previewBlobUrl}
+        loading={previewLoading}
+        error={previewError}
+        downloading={Boolean(previewMaterial && downloadingId === previewMaterial.id)}
+        onClose={handleClosePreview}
+        onDownload={(item) => void handleDownload(item)}
+      />
     </section>
   );
 }

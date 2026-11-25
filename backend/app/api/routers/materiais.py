@@ -9,6 +9,7 @@ from app.api.deps import (
     get_optional_current_user_from_header,
 )
 from app.api.schemas.material import (
+    MaterialLinkCreate,
     MaterialPage,
     MaterialResponse,
     MaterialVotoResponse,
@@ -45,6 +46,18 @@ def enviar_material(
     )
     background_tasks.add_task(processar_moderacao_material_bg, resposta.id)
     return resposta
+
+
+@router.post("/cadeiras/{id}/links", response_model=MaterialResponse, status_code=201)
+def enviar_link(
+    id: Annotated[str, Path(description="ID ou slug da cadeira")],
+    dados: MaterialLinkCreate,
+    usuario: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    service: Annotated[MaterialService, Depends(get_material_service)],
+) -> MaterialResponse:
+    """Registra um link externo na fila de curadoria para aprovação da moderação."""
+    return service.enviar_link(db, usuario.id, id, dados.titulo, dados.url_origem, tipo=dados.tipo)
 
 
 @router.get("/cadeiras/{id}/materiais", response_model=MaterialPage)

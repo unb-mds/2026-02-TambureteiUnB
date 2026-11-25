@@ -326,3 +326,59 @@ def test_voto_em_material_exige_login_e_persiste_contagem(client, disciplina, he
     descurtir = client.post(f"/materiais/{material_id}/voto", headers=headers)
     assert descurtir.status_code == 200
     assert descurtir.json() == {"material_id": material_id, "upvotes": 0, "liked_by_me": False}
+
+
+@pytest.mark.parametrize("tipo", ["RESUMO", "DICA", "PROVA_ANTIGA"])
+def test_submissao_link_externo_por_categoria_vai_para_curadoria_e_aceita_voto(
+    client, disciplina, headers, admin_headers, tipo
+):
+    # Sem login rejeita com 401
+    assert client.post(
+        f"/cadeiras/{disciplina.id}/links",
+        json={"titulo": "Vídeo aula", "url_origem": "https://www.youtube.com/watch?v=wPesFG0cG7g", "tipo": tipo},
+    ).status_code == 401
+
+    criado = client.post(
+        f"/cadeiras/{disciplina.slug}/links",
+        headers=headers,
+        json={
+            "titulo": "Função Real",
+            "url_origem": "https://www.youtube.com/watch?v=wPesFG0cG7g",
+            "tipo": tipo,
+        },
+    )
+    assert criado.status_code == 201, criado.text
+    dados = criado.json()
+    assert dados["tipo"] == tipo
+    assert dados["status_curadoria"] == "PENDENTE"
+    assert dados["status_moderacao"] is None
+    assert dados["url_origem"] == "https://www.youtube.com/watch?v=wPesFG0cG7g"
+    assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["total"] == 0
+
+    assert client.patch(
+        f"/moderacao/conteudos/{dados['id']}/curadoria",
+        headers=admin_headers,
+        json={"status": "APROVADO"},
+    ).status_code == 200
+
+    listados = client.get(f"/cadeiras/{disciplina.id}/materiais?tipo={tipo}").json()
+    assert listados["total"] == 1
+    assert listados["items"][0]["url_origem"] == "https://www.youtube.com/watch?v=wPesFG0cG7g"
+
+    voto = client.post(f"/materiais/{dados['id']}/voto", headers=headers)
+    assert voto.status_code == 200
+    assert voto.json() == {"material_id": dados["id"], "upvotes": 1, "liked_by_me": True}
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"titulo": "Link XSS", "url_origem": "javascript:alert(1)", "tipo": "RESUMO"},
+        {"titulo": "Link inválido", "url_origem": "ftp://unb.br/file.pdf", "tipo": "DICA"},
+        {"titulo": "Tipo arquivo", "url_origem": "https://unb.br/doc", "tipo": "ARQUIVO"},
+        {"titulo": "   ", "url_origem": "https://unb.br/doc", "tipo": "PROVA_ANTIGA"},
+    ],
+)
+def test_rejeita_link_externo_invalido(client, disciplina, headers, payload):
+    resposta = client.post(f"/cadeiras/{disciplina.id}/links", headers=headers, json=payload)
+    assert resposta.status_code == 422

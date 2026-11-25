@@ -41,7 +41,11 @@ class CuradoriaService:
             conteudo = self.obter(db, conteudo_id, bloquear=True)
             if conteudo.status_curadoria != "PENDENTE":
                 raise HTTPException(409, "Este material já foi avaliado. Atualize a fila.")
-            if conteudo.status_moderacao not in {"ativo", "em_analise"}:
+            eh_link = conteudo.caminho_arquivo is None and conteudo.url_origem is not None
+            if eh_link:
+                if conteudo.status_moderacao is not None:
+                    raise HTTPException(409, "O material não está disponível para curadoria.")
+            elif conteudo.status_moderacao not in {"ativo", "em_analise"}:
                 raise HTTPException(409, "O material não está disponível para curadoria.")
             registro = Curadoria(
                 conteudo_id=conteudo.id, moderador_id=moderador.id, perfil_moderador=moderador.role,
@@ -52,7 +56,7 @@ class CuradoriaService:
             conteudo.moderado_por = moderador.role
             if dados.justificativa:
                 conteudo.motivo_moderacao = dados.justificativa
-            if dados.status == "APROVADO":
+            if dados.status == "APROVADO" and not eh_link:
                 conteudo.status_moderacao = "ativo"
             curadoria_repo.registrar(db, registro)
             resposta = RegistroCuradoria.model_validate(registro)
@@ -99,6 +103,8 @@ class CuradoriaService:
 
     def baixar(self, db: Session, conteudo_id: int) -> tuple[Conteudo, Path]:
         conteudo = self.obter(db, conteudo_id)
+        if conteudo.caminho_arquivo is None:
+            raise HTTPException(404, "Arquivo não encontrado.")
         if conteudo.status_curadoria != "PENDENTE" or conteudo.status_moderacao not in {"ativo", "em_analise"}:
             raise HTTPException(409, "O material não está mais pendente. Atualize a fila.")
         try:
