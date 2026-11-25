@@ -10,6 +10,7 @@ from app.models.conteudo import Conteudo
 from app.models.curadoria import Curadoria
 from app.models.comentario import Comentario
 from app.models.denuncia import Denuncia
+from app.models.relato_bug import RelatoBug
 from app.models.voto import VotoUtil
 from app.models.doacao import DoacaoEstatistica
 from app.models.estatistica_consolidada import EstatisticaConsolidada
@@ -34,6 +35,7 @@ __all__ = [
     "Curadoria",
     "Comentario",
     "Denuncia",
+    "RelatoBug",
     "VotoUtil",
     "DoacaoEstatistica",
     "EstatisticaConsolidada",

@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import BugReportsPanel from "@/components/BugReportsPanel";
 import Footer from "@/components/Footer";
 import Button from "@/components/Button";
 import ModerationCard from "@/components/ModerationCard";
@@ -43,7 +44,7 @@ import type {
 } from "@/types/moderacao";
 
 type Acesso = "loading" | "allowed" | "anonymous" | "denied" | "error";
-type AbaPainel = "materiais" | "comentarios" | "denuncias" | "pizzas";
+type AbaPainel = "materiais" | "comentarios" | "denuncias" | "pizzas" | "bugs";
 
 export default function ModeracaoPage() {
   const router = useRouter();
@@ -472,13 +473,16 @@ export default function ModeracaoPage() {
                   </span>
                 )}
               </button>
+              <button type="button" role="tab" aria-selected={aba === "bugs"} onClick={() => setAba("bugs")} className={`cursor-pointer rounded-xl border px-4 py-2.5 text-sm font-semibold ${aba === "bugs" ? "bg-[#5B4BDB] text-white" : "border-gray-200 bg-white text-gray-700"}`}>Problemas do site</button>
             </div>
 
-            <Button variant="outline" disabled={busy} onClick={() => void carregar()}>
+            {aba !== "bugs" && <Button variant="outline" disabled={busy} onClick={() => void carregar()}>
               Atualizar fila
-            </Button>
+            </Button>}
           </div>
         )}
+
+        {acesso === "allowed" && aba === "bugs" && <BugReportsPanel />}
 
         {acesso === "allowed" && aba === "materiais" && fila && (
           <>

@@ -433,4 +433,46 @@ class TestModeracaoPizzas:
             + body["taxa_reprovacao_nota"]
             + body["taxa_reprovacao_falta"]
             + body["taxa_trancamento"]
-        ) == 100.0
+        ) == pytest.approx(99.9)
+
+@pytest.mark.parametrize("apr,rep,tranc", [("91.8","4.6","3.5"),("80.95","14.28","4.76")])
+def test_pizza_preserva_decimais_no_envio_fila_e_aprovacao(client,db,turma,student_headers,admin_headers,apr,rep,tranc):
+    from decimal import Decimal
+    values={"taxa_aprovacao":apr,"taxa_reprovacao_nota":rep,"taxa_reprovacao_falta":"0","taxa_trancamento":tranc}
+    response=client.post(f"/turmas/{turma.id}/doacoes/upload",headers=student_headers,data={"semestre_referencia":turma.semestre,**values})
+    assert response.status_code == 201,response.text
+    for key,value in values.items(): assert Decimal(str(response.json()[key]))==Decimal(value)
+    queue=client.get("/moderacao/pizzas",headers=admin_headers).json()
+    item=next(item for group in queue["grupos_semestre"] for item in group["itens"] if item["id"]==response.json()["id"])
+    for key,value in values.items(): assert Decimal(str(item[key]))==Decimal(value)
+    decision=client.patch(f"/moderacao/pizzas/{item['id']}/decisao",headers=admin_headers,json={"status":"CONSOLIDADA"})
+    assert decision.status_code == 200,decision.text
+    db.expire_all()
+    official=db.query(EstatisticaConsolidada).filter_by(turma_id=turma.id,semestre_referencia=turma.semestre).one()
+    for key,value in values.items(): assert getattr(official,key)==Decimal(value)
+
+
+def test_reenvio_apos_recusa_preserva_auditoria(client, db, turma, student_headers, admin_headers):
+    from app.models.doacao import DoacaoEstatistica
+    payload = dict(semestre_referencia=turma.semestre, taxa_aprovacao='84.7', taxa_reprovacao_nota='12.5', taxa_reprovacao_falta='0', taxa_trancamento='2.8')
+    url = f"/turmas/{turma.id}/doacoes/upload"
+    first = client.post(url, headers=student_headers, data=payload)
+    assert first.status_code == 201
+    first_id = first.json()['id']
+    assert client.post(url, headers=student_headers, data=payload).status_code == 409
+    refused = client.patch(f"/moderacao/pizzas/{first_id}/decisao", headers=admin_headers, json={'status':'DESCARTADA', 'justificativa':'Valores incorretos.'})
+    assert refused.status_code == 200
+    consultation = client.post('/perfil/turmas-estatisticas/status', headers=student_headers, json={'itens':[{'codigo':turma.disciplina.codigo, 'turma':turma.codigo_turma, 'semestre':turma.semestre}]})
+    assert consultation.status_code == 200
+    assert consultation.json()['itens'][0]['ja_enviada_usuario'] is False
+    second = client.post(url, headers=student_headers, data=payload)
+    assert second.status_code == 201
+    assert second.json()['id'] != first_id
+    db.expire_all()
+    original = db.get(DoacaoEstatistica, first_id)
+    assert original.status == 'DESCARTADA'
+    assert original.justificativa_moderacao == 'Valores incorretos.'
+    assert original.moderado_em is not None
+    approved = client.patch(f"/moderacao/pizzas/{second.json()['id']}/decisao", headers=admin_headers, json={'status':'CONSOLIDADA'})
+    assert approved.status_code == 200
+    assert client.post(url, headers=student_headers, data=payload).status_code == 409

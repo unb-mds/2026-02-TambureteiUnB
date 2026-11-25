@@ -37,8 +37,8 @@ def _validar_soma_cem(
 ) -> tuple[Decimal, Decimal, Decimal, Decimal]:
     """
     Aceita tolerância de ±0.20% decorrente do arredondamento de 1 casa decimal
-    do gráfico do SIGAA (ex.: 73.3 + 17.3 + 5.3 + 4.0 = 99.9%) e ajusta a diferença
-    residual na maior parcela para manter soma exata de 100.00% no banco.
+    do gráfico do SIGAA (ex.: 73.3 + 17.3 + 5.3 + 4.0 = 99.9%).
+    Preserva cada parcela informada, sem compensar a diferença na maior taxa.
     """
     valores = [taxa_aprovacao, taxa_reprovacao_nota, taxa_reprovacao_falta, taxa_trancamento]
     soma = sum(valores, Decimal("0.00"))
@@ -48,9 +48,6 @@ def _validar_soma_cem(
             "soma_taxas_invalida",
             f"A soma das taxas deve ser exatamente 100% (soma informada: {soma}%).",
         )
-    if diferenca != Decimal("0.00"):
-        idx_maior = max(range(4), key=lambda i: valores[i])
-        valores[idx_maior] = (valores[idx_maior] + diferenca).quantize(Decimal("0.01"))
     return valores[0], valores[1], valores[2], valores[3]
 
 

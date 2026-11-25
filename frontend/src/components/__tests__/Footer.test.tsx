@@ -28,3 +28,11 @@ test("Footer oculta Entrar e Cadastrar reativamente com base no estado autentica
   assert.match(source, /isAuthenticated\(\)/);
   assert.match(source, /\{!isLoggedIn\s*&&/);
 });
+
+
+test("Footer oferece relato de problema com dialogo acessivel", () => {
+  const markup = renderToStaticMarkup(<Footer />);
+  assert.match(markup, /Relatar problema/);
+  assert.match(markup, /<dialog[^>]*aria-labelledby="relato-bug-titulo"/);
+  assert.match(markup, /Entre na sua conta para enviar um relato/);
+});

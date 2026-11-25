@@ -8,7 +8,8 @@ from sqlalchemy import (
     ForeignKey,
     DateTime,
     func,
-    UniqueConstraint,
+    Index,
+    text,
     CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -55,7 +56,7 @@ class DoacaoEstatistica(Base):
         return bool(self.imagem_chave)
 
     __table_args__ = (
-        UniqueConstraint("usuario_id", "turma_id", "semestre_referencia", name="uq_usuario_turma_semestre_doacao"),
+        Index("uq_usuario_turma_semestre_doacao", "usuario_id", "turma_id", "semestre_referencia", unique=True, postgresql_where=text("status <> 'DESCARTADA'")),
         CheckConstraint("taxa_aprovacao IS NULL OR (taxa_aprovacao >= 0 AND taxa_aprovacao <= 100)", name="chk_taxa_aprovacao"),
         CheckConstraint("taxa_reprovacao_nota IS NULL OR (taxa_reprovacao_nota >= 0 AND taxa_reprovacao_nota <= 100)", name="chk_taxa_reprov_nota"),
         CheckConstraint("taxa_reprovacao_falta IS NULL OR (taxa_reprovacao_falta >= 0 AND taxa_reprovacao_falta <= 100)", name="chk_taxa_reprov_falta"),
@@ -70,7 +71,7 @@ class DoacaoEstatistica(Base):
             ") OR ("
             "taxa_aprovacao IS NOT NULL AND taxa_reprovacao_nota IS NOT NULL AND "
             "taxa_reprovacao_falta IS NOT NULL AND taxa_trancamento IS NOT NULL AND "
-            "(taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00"
+            "(taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) BETWEEN 99.80 AND 100.20"
             ")",
             name="chk_soma_taxas_cem",
         ),
