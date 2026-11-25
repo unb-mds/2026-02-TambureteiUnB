@@ -11,24 +11,50 @@ const base = { id: 1, disciplina_id: 2, codigo_turma: "01", semestre: "2026.1", 
 for (const [capacidade, matriculados, texto] of [
   [45, 38, "Ocupação: 38/45 vagas"], [45, 0, "Ocupação: 0/45 vagas"],
   [0, 0, "Ocupação: 0/0 vagas"], [30, 38, "Ocupação: 38/30 vagas"],
-  [null, null, "Ocupação: Não informada"], [45, null, "Ocupação: Não informada"], [null, 38, "Ocupação: Não informada"],
 ] as const) {
-  test(`card apresenta apenas ocupação informada: ${matriculados}/${capacidade}`, () => {
-    const turma = adaptBackendTurma({ ...base, capacidade, matriculados });
+  test(`card apresenta ocupação informada: ${matriculados}/${capacidade}`, () => {
+    const turma = adaptBackendTurma({ ...base, horario: "24T23", local: "FCTE - S10", capacidade, matriculados });
     const html = renderToStaticMarkup(<ClassCard classData={turma} />);
     assert.ok(html.includes(texto));
     assert.ok(html.includes("Docente de teste"));
     assert.ok(html.includes("Turma 01"));
+    assert.ok(html.includes("Vespertino"));
+    assert.ok(html.includes("FCTE - S10"));
     assert.ok(html.includes('role="img"'));
     for (const removido of ["Vagas abertas", "Últimas vagas", "Esgotada", "progressbar"]) assert.ok(!html.includes(removido));
   });
 }
 
-test("card mantém compatibilidade com a prop turma e não mostra mock quando não há dados", () => {
+for (const [capacidade, matriculados] of [
+  [null, null], [45, null], [null, 38],
+] as const) {
+  test(`card histórico sem horário, local e ocupação omite campos inexistentes: ${matriculados}/${capacidade}`, () => {
+    const turma = adaptBackendTurma({ ...base, capacidade, matriculados });
+    const html = renderToStaticMarkup(<ClassCard classData={turma} />);
+    assert.ok(html.includes("Docente de teste"));
+    assert.ok(html.includes("Turma 01"));
+    assert.ok(html.includes("Histórico"));
+    for (const ausente of [
+      "Horário:",
+      "Horário a definir",
+      "Local:",
+      "Local a definir",
+      "Ocupação:",
+      "Ocupação: Não informada",
+      "Matutino",
+      'role="img"',
+    ]) {
+      assert.ok(!html.includes(ausente), `Não deveria exibir "${ausente}" em turma histórica`);
+    }
+  });
+}
+
+test("card mantém compatibilidade com a prop turma e não mostra dados fictícios", () => {
   const turma = adaptBackendTurma(base);
   const html = renderToStaticMarkup(<ClassCard turma={turma} />);
-  assert.ok(html.includes("Ocupação: Não informada"));
+  assert.ok(html.includes("Sem estatísticas comunitárias registradas"));
   assert.ok(!html.includes("0/45"));
+  assert.ok(!html.includes("Ocupação: Não informada"));
   assert.equal(renderToStaticMarkup(<ClassCard />), "");
 });
 
@@ -41,22 +67,95 @@ test("card exibe progresso de coleta da comunidade abaixo do limiar LGPD e taxas
   });
   const htmlColeta = renderToStaticMarkup(<ClassCard classData={turmaColeta} />);
   assert.ok(htmlColeta.includes("Coleta comunidade: 2/5 históricos (RN07)"));
+  assert.ok(htmlColeta.includes("Histórico"));
+  assert.ok(!htmlColeta.includes("Horário a definir"));
 
   const turmaLiberada = adaptBackendTurma({
     ...base,
     amostras_comunidade: 6,
     minimo_amostras_lgpd: 5,
     estatistica: {
-      taxa_aprovacao: 83.33,
-      taxa_reprovacao_nota: 16.67,
-      taxa_reprovacao_falta: 0,
-      taxa_trancamento: 0,
+      taxa_aprovacao: 75,
+      taxa_reprovacao_nota: 15,
+      taxa_reprovacao_falta: 6,
+      taxa_trancamento: 4,
       status: "VALIDADO",
     },
   });
   const htmlLiberada = renderToStaticMarkup(<ClassCard classData={turmaLiberada} />);
-  assert.ok(htmlLiberada.includes("Aprovação: 83%"));
+  assert.ok(htmlLiberada.includes("Aprovação: 75%"));
+  assert.ok(htmlLiberada.includes("Reprov. nota: 15%"));
+  assert.ok(htmlLiberada.includes("Reprov. falta: 6%"));
+  assert.ok(htmlLiberada.includes("Tranc.: 4%"));
   assert.ok(htmlLiberada.includes("Baseado em 6 históricos"));
+});
+
+test("card preserva casas decimais da pizza e soma exatamente 100% sem gerar 101%", () => {
+  const casos = [
+    {
+      taxa_aprovacao: 96.5,
+      taxa_reprovacao_nota: 0.9,
+      taxa_reprovacao_falta: 0,
+      taxa_trancamento: 2.6,
+      esperado: [
+        "Aprovação: 96.5%",
+        "Reprov. nota: 0.9%",
+        "Reprov. falta: 0%",
+        "Tranc.: 2.6%",
+      ],
+    },
+    {
+      taxa_aprovacao: 62.7,
+      taxa_reprovacao_nota: 24.3,
+      taxa_reprovacao_falta: 6.5,
+      taxa_trancamento: 6.5,
+      esperado: [
+        "Aprovação: 62.7%",
+        "Reprov. nota: 24.3%",
+        "Reprov. falta: 6.5%",
+        "Tranc.: 6.5%",
+      ],
+    },
+    {
+      taxa_aprovacao: 33.333,
+      taxa_reprovacao_nota: 33.333,
+      taxa_reprovacao_falta: 0,
+      taxa_trancamento: 33.333,
+      esperado: [
+        "Aprovação: 33.34%",
+        "Reprov. nota: 33.33%",
+        "Reprov. falta: 0%",
+        "Tranc.: 33.33%",
+      ],
+    },
+  ];
+
+  for (const caso of casos) {
+    const turma = adaptBackendTurma({
+      ...base,
+      estatistica: {
+        taxa_aprovacao: caso.taxa_aprovacao,
+        taxa_reprovacao_nota: caso.taxa_reprovacao_nota,
+        taxa_reprovacao_falta: caso.taxa_reprovacao_falta,
+        taxa_trancamento: caso.taxa_trancamento,
+        status: "VALIDADO",
+      },
+    });
+    const html = renderToStaticMarkup(<ClassCard classData={turma} />);
+    for (const trecho of caso.esperado) {
+      assert.ok(html.includes(trecho), `Esperado encontrar "${trecho}" no HTML`);
+    }
+    const numeros = [
+      ...html.matchAll(
+        /(?:Aprovação|Reprov\. nota|Reprov\. falta|Tranc\.):\s*([\d.]+)%/g
+      ),
+    ].map((m) => Number(m[1]));
+    assert.equal(numeros.length, 4);
+    const somaCentesimos = Math.round(
+      (numeros[0] + numeros[1] + numeros[2] + numeros[3]) * 100
+    );
+    assert.equal(somaCentesimos, 10000);
+  }
 });
 
 test("card preserva badge de turma sem quebra de linha e ClassFilters exibe seletor de período", () => {

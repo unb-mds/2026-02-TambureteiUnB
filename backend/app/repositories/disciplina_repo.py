@@ -1,8 +1,10 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Set, Tuple
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import func
+from sqlalchemy import case, exists, func, or_
 import unicodedata
 from app.models.disciplina import Disciplina
+from app.models.estatistica_consolidada import EstatisticaConsolidada
+from app.models.metrica import MetricaAcademica, MetricaConsolidada
 from app.models.turma import Turma
 from app.models.curso import CursoDisciplina
 from app.repositories.base import BaseRepository
@@ -60,6 +62,19 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
                 locais.setdefault(disciplina_id, set()).add(local.strip())
         return {identifier: sorted(values) for identifier, values in locais.items()}
 
+    def listar_ids_com_pizza(
+        self, db: Session, disciplina_ids: Optional[List[int]] = None
+    ) -> Set[int]:
+        if disciplina_ids is not None and not disciplina_ids:
+            return set()
+        query = db.query(EstatisticaConsolidada.disciplina_id).filter(
+            EstatisticaConsolidada.origem == "DOACAO_QUORUM",
+            EstatisticaConsolidada.amostragem_suprimida_lgpd.is_(False),
+        )
+        if disciplina_ids is not None:
+            query = query.filter(EstatisticaConsolidada.disciplina_id.in_(disciplina_ids))
+        return {row[0] for row in query.distinct().all()}
+
     def search_paginated(
         self,
         db: Session,
@@ -96,7 +111,27 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
         if departamento:
             query = query.filter(Disciplina.departamento.ilike(f"%{departamento}%"))
         total = query.count()
-        query = query.order_by(Disciplina.nome).offset(skip)
+
+        tem_pizza_expr = exists().where(
+            EstatisticaConsolidada.disciplina_id == Disciplina.id,
+            EstatisticaConsolidada.origem == "DOACAO_QUORUM",
+            EstatisticaConsolidada.amostragem_suprimida_lgpd.is_(False),
+        )
+        tem_historico_expr = or_(
+            exists().where(
+                MetricaConsolidada.disciplina_id == Disciplina.id,
+                MetricaConsolidada.matriculados > 0,
+            ),
+            exists().where(MetricaAcademica.disciplina_id == Disciplina.id),
+            exists().where(EstatisticaConsolidada.disciplina_id == Disciplina.id),
+        )
+        prioridade_dados = case(
+            (tem_pizza_expr, 0),
+            (tem_historico_expr, 1),
+            else_=2,
+        )
+
+        query = query.order_by(prioridade_dados, Disciplina.nome).offset(skip)
         if limit is not None:
             query = query.limit(limit)
         items = query.all()

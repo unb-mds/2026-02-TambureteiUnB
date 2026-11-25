@@ -62,6 +62,7 @@ export interface Discipline {
   referenceYear?: number | null;
   withdrawnCount?: number | null;
   total_turmas?: number;
+  possui_dados_pizza?: boolean;
 }
 
 // Backend schemas interfaces
@@ -73,6 +74,7 @@ export interface BackendDisciplinaResumo {
   departamento?: string | null;
   creditos?: number | null;
   total_turmas?: number;
+  possui_dados_pizza?: boolean;
   locais_oferta?: string[];
   metrica_consolidada?: BackendMetricaConsolidada | null;
   metricas?: BackendMetricaAcademica[];
@@ -299,5 +301,6 @@ export function adaptBackendDisciplina(
     metrica_consolidada: metricaConsolidada,
     withdrawnCount: metricaConsolidada ? metricaConsolidada.trancamentos : null,
     total_turmas: raw.total_turmas ?? 0,
+    possui_dados_pizza: Boolean(raw.possui_dados_pizza),
   };
 }
