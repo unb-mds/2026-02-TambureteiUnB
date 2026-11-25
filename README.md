@@ -85,7 +85,7 @@ O Tamburetei estrutura dados históricos obtidos via **Lei de Acesso à Informa�
 
 ### 4. Perfil Acadêmico e Doação de Dados (`/perfil`)
 * **Parser de Histórico Escolar (PDF):** Leitura local e segura do Histórico Escolar Simplificado do SIGAA para mapeamento visual de matérias concluídas, em andamento e pendentes.
-* **Crowdsourcing de Estatísticas de Turmas:** Fluxo de contribuição onde o estudante envia o print do gráfico de pizza do SIGAA ou informa professor, turma e percentuais, com validação estrita da soma de 100% antes da persistência.
+* **Crowdsourcing de Estatísticas de Turmas:** Fluxo de contribuição em que o estudante seleciona uma turma validada pelo Histórico Escolar importado e envia o print do gráfico de pizza do SIGAA (opcional) ou informa os percentuais de aprovação, reprovação por nota, por falta e trancamento (com tolerância de soma entre `99,8%` e `100,2%` para arredondamentos do SIGAA), seguindo para curadoria humana com selo visual de consenso a partir de 5 envios manuais idênticos.
 
 ### 5. Repositório Comunitário e Moderação
 * **Compartilhamento de Materiais:** Upload e download de provas anteriores, resumos e listas, com validação de extensão (PDF, PNG, JPG), limite de tamanho (5 MiB) e verificação de integridade MIME.
@@ -119,21 +119,21 @@ O Tamburetei estrutura dados históricos obtidos via **Lei de Acesso à Informa�
 
 ### Backend
 * **Python 3.12** com **FastAPI >= 0.110.0**
-* **SQLAlchemy 2.0.28** (ORM assíncrono e síncrono)
-* **Alembic 1.13.1** para migrações relacionais
+* **SQLAlchemy >= 2.0.28** (ORM assíncrono e síncrono)
+* **Alembic >= 1.13.1** para migrações relacionais
 * **Pydantic v2** e `pydantic-settings` para validação de esquemas e contratos de dados
-* **python-jose** e **passlib/bcrypt** para autenticação JWT e hashing seguro de senhas
-* **pypdf 4.0.0** e **BeautifulSoup4** para parsing de históricos e dados tabulares
+* **python-jose** e **bcrypt** para autenticação JWT e hashing seguro de senhas
+* **pypdf >= 4.0.0** e **BeautifulSoup4** para parsing de históricos e dados tabulares
 
 ### Banco de Dados & Armazenamento
 * **PostgreSQL 17** (instância primária de persistência relacional)
-* **Volumes Docker** dedicados para isolamento de arquivos de materiais (`materiais_data`) e dados do banco (`pgdata`)
+* **Volumes Docker** dedicados para isolamento de arquivos enviados pela comunidade (`materiais_data`) e dados do banco (`pgdata`)
 
 ### Infraestrutura, Testes & DevOps
 * **Docker & Docker Compose** (orquestração de múltiplos contêineres)
 * **GitHub Actions** (pipeline de CI com testes, cobertura, análise de mutação e linters)
 * **SonarCloud** (análise estática de código e métricas de qualidade)
-* **Ruff** (linter e formatador de código Python)
+* **Ruff** e **Bandit** (linting, formatação e análise estática de segurança em Python)
 * **Pytest**, `pytest-cov` e **Mutmut** (testes unitários, de integração e mutação no backend)
 * **Node Test Runner nativo** (`node --test`) com `tsx` para testes no frontend
 * **MkDocs Material** para geração do portal estático de documentação
@@ -150,8 +150,8 @@ O sistema adota os princípios de **Clean Architecture**, estabelecendo um isola
 
 ### Fluxo de Comunicação entre Componentes
 1. **Cliente Web (Next.js):** Consome a API RESTful do backend de forma assíncrona via HTTP/JSON, gerenciando autenticação por Bearer Tokens (JWT).
-2. **Camada de API (FastAPI):** Expõe roteadores versionados em `/app/api/routers/`, validando payloads com esquemas Pydantic e delegando a execução para os serviços de aplicação.
-3. **Serviços de Domínio:** Orquestram as regras de negócio (cálculo de quórum de doações, validação de limites de arquivos e geração de pseudônimos irreversíveis).
+2. **Camada de API (FastAPI):** Expõe roteadores em `backend/app/api/routers/`, validando payloads com esquemas Pydantic e delegando a execução para os serviços de aplicação.
+3. **Serviços de Domínio:** Orquestram as regras de negócio (cálculo de quórum e consenso de doações, validação de limites de arquivos e geração de pseudônimos irreversíveis).
 4. **Persistência Relacional:** O SQLAlchemy gerencia conexões transacionais com o PostgreSQL 17. Migrações estruturais de esquema são versionadas pelo Alembic.
 
 ---
@@ -197,6 +197,14 @@ O sistema adota os princípios de **Clean Architecture**, estabelecendo um isola
 ├── mkdocs.yml                    # Configurações do portal de documentação MkDocs
 └── README.md                     # Apresentação principal do projeto
 ```
+
+### Documentação Técnica e Documentos de Referência
+* **[Documento de Visão](docs/index.md):** Contexto do problema, objetivos e escopo do sistema.
+* **[Requisitos](docs/produto/requisitos.md), [Regras de Negócio](docs/produto/regras_negocio.md) & [Relatório Final](docs/produto/relatorio_final.md):** Especificação funcional, governança e consolidação das entregas.
+* **[Arquitetura & ADRs](docs/engenharia/arquitetura.md) & [Dicionário de Dados](docs/engenharia/banco_de_dados.md):** Visão C4, decisões arquiteturais e modelagem do PostgreSQL 17.
+* **[Pipeline ETL](docs/engenharia/pipeline_etl.md) & [Como Popular o Banco](docs/comecando/popular_banco_de_dados.md):** Ingestão e anonimização dos dados históricos da UnB.
+* **[Guia de Desenvolvimento](docs/comecando/desenvolvimento.md), [Deploy](docs/engenharia/deploy.md) & [Uso de IA](docs/ai/ai_usage.md):** Setup local, infraestrutura em produção e governança com `AGENTS.md`.
+* **[Histórico de Versões (CHANGELOG)](./CHANGELOG.md):** Registro consolidado das releases do projeto.
 
 ---
 
@@ -269,6 +277,9 @@ As configurações do projeto são gerenciadas por variáveis de ambiente declar
 | `QUORUM_MINIMO_DOACOES`| Número mínimo de doações para consolidar turma | Não | `3` |
 | `OLLAMA_BASE_URL` | URL do servidor Ollama para moderação por IA | Não | `http://host.docker.internal:11434` |
 | `OLLAMA_MODEL` | Modelo LLM local para classificação de texto | Não | `qwen2.5:3b` |
+| `OLLAMA_VISION_MODEL` | Modelo de visão multimodal no Ollama | Não | *(Vazio por padrão)* |
+| `OLLAMA_TIMEOUT_SECONDS` | Timeout das requisições ao Ollama (em segundos) | Não | `90.0` |
+| `MODERATION_CONFIDENCE_THRESHOLD` | Confiança mínima para triagem automática de materiais | Não | `0.80` |
 | `ENVIRONMENT` | Identificador do ambiente de execução | Não | `development` |
 | `BACKEND_CORS_ORIGINS` | Origens autorizadas para requisições no backend | Sim | `http://localhost:3000` |
 | `NEXT_PUBLIC_API_URL` | URL base da API consumida pelo frontend | Sim | `http://localhost:8000` |
@@ -276,6 +287,10 @@ As configurações do projeto são gerenciadas por variáveis de ambiente declar
 | `SMTP_PORT` | Porta do serviço SMTP | Não | `587` |
 | `SMTP_USER` | Conta de usuário no serviço SMTP | Não | `tambureteiunb@gmail.com` |
 | `SMTP_PASSWORD` | Senha de aplicativo no serviço SMTP | Não | *(Senha de app Google)* |
+| `SMTP_FROM_EMAIL` | Endereço remetente exibido nos e-mails transacionais | Não | `tambureteiunb@gmail.com` |
+| `SMTP_FROM_NAME` | Nome remetente exibido nos e-mails transacionais | Não | `"Tamburetei UnB"` |
+| `SMTP_TLS` | Habilita STARTTLS na conexão SMTP | Não | `true` |
+| `SMTP_SSL` | Habilita SSL implícito na conexão SMTP | Não | `false` |
 | `FRONTEND_URL` | URL base do cliente web para links em e-mails | Não | `http://localhost:3000` |
 
 ---
@@ -292,11 +307,12 @@ docker compose exec backend pytest -v
 # Executar testes com relatório e meta mínima de 70% de cobertura
 docker compose exec backend pytest --cov=app --cov-report=term-missing --cov-fail-under=70
 
-# Executar análise estática de mutação com Mutmut
-docker compose exec backend mutmut run
+# Executar análise de mutação (meta mínima de 50% no CI)
+docker compose exec backend mutmut run --no-progress
 
-# Verificação de linter e formatação com Ruff
-docker compose exec backend ruff check .
+# Verificação de linter (Ruff) e segurança estática (Bandit)
+docker compose exec backend ruff check app tests
+docker compose exec backend bandit -r app -ll
 ```
 
 ### Testes e Validação do Frontend (Node.js / Next.js)
@@ -327,7 +343,7 @@ mkdocs serve -a localhost:8001
 ## 12. Fontes de Dados e Limitações
 
 ### Origem das Informações
-1. **Dados Oficiais (LAI e DPO):** Registros estatísticos de aprovação, reprovação e retenção obtidos via pedidos formais pela Lei de Acesso à Informação e relatórios do DPO/UnB.
+1. **Dados Oficiais (LAI e DPO):** Registros estatísticos de aprovação, reprovação e retenção obtidos via pedidos formais pela Lei de Acesso à Informação e relatórios do [Anuário Estatístico UnB (DPO)](https://repositoriodpo.unb.br/anuarios/anuario-estatistico-2025/).
 2. **Dados Públicos Estruturados (SIGAA):** Catálogo curricular e estruturas de turmas mapeados diretamente do portal público da universidade.
 3. **Dados Colaborativos (Crowdsourcing):** Percentuais de desempenho e turmas informados por estudantes autenticados, consolidados somente após atingirem o quórum mínimo de conferência.
 4. **Arquivos Comunitários:** Provas anteriores e sínteses conceituais compartilhadas voluntariamente por usuários.
