@@ -57,6 +57,7 @@ def upgrade() -> None:
     op.alter_column("doacoes_estatisticas", "taxa_reprovacao_falta", existing_type=sa.Numeric(5, 2), nullable=True)
     op.alter_column("doacoes_estatisticas", "taxa_trancamento", existing_type=sa.Numeric(5, 2), nullable=True)
 
+    # Dropar constraints antigas com seguranca (caso existam)
     for cname in (
         "chk_taxa_aprovacao",
         "chk_taxa_reprov_nota",
@@ -64,7 +65,34 @@ def upgrade() -> None:
         "chk_taxa_trancamento",
         "chk_soma_taxas_cem",
     ):
-        op.drop_constraint(cname, "doacoes_estatisticas", type_="check")
+        op.execute(f"ALTER TABLE doacoes_estatisticas DROP CONSTRAINT IF EXISTS {cname}")
+
+    # Dropar tambem quaisquer constraints check inline autogeradas pelo PostgreSQL
+    op.execute(
+        """
+        DO $$
+        DECLARE
+            r RECORD;
+        BEGIN
+            FOR r IN (
+                SELECT conname
+                FROM pg_constraint
+                WHERE conrelid = 'doacoes_estatisticas'::regclass
+                  AND contype = 'c'
+                  AND conname NOT IN (
+                      'chk_taxa_aprovacao',
+                      'chk_taxa_reprov_nota',
+                      'chk_taxa_reprov_falta',
+                      'chk_taxa_trancamento',
+                      'chk_tipo_envio_doacao',
+                      'chk_soma_taxas_cem'
+                  )
+            ) LOOP
+                EXECUTE 'ALTER TABLE doacoes_estatisticas DROP CONSTRAINT IF EXISTS ' || quote_ident(r.conname);
+            END LOOP;
+        END $$;
+        """
+    )
 
     op.create_check_constraint(
         "chk_taxa_aprovacao",
