@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { adaptBackendTurma, calculateOccupancyRate, compareClassOccupancy, formatClassOccupancy } from "../turma.ts";
+import {
+  adaptBackendTurma,
+  calculateOccupancyRate,
+  compareClassOccupancy,
+  formatClassOccupancy,
+  isHistoricalClass,
+  splitClassesByOrigin,
+} from "../turma.ts";
 import type { BackendTurmaResponse } from "../turma.ts";
 
 const base: BackendTurmaResponse = { id: 1, disciplina_id: 2, codigo_turma: "01", semestre: "2026.1", professores: [] };
@@ -44,3 +51,37 @@ for (const order of ["occupancy_asc", "occupancy_desc"] as const) {
     assert.equal(compareClassOccupancy(unknown, unknown, order), 0);
   });
 }
+
+test("classifica e separa turmas do período atual e turmas históricas sem dados de oferta", () => {
+  const atual = adaptBackendTurma({
+    ...base,
+    id: 10,
+    semestre: "2026.2",
+    horario: "356T45",
+    local: "FCTE - S10",
+    capacidade: 70,
+    matriculados: 58,
+  });
+  const historica = adaptBackendTurma({
+    ...base,
+    id: 11,
+    semestre: "2025.2",
+    horario: null,
+    local: null,
+    capacidade: null,
+    matriculados: null,
+    amostras_comunidade: 4,
+  });
+
+  assert.equal(isHistoricalClass(atual), false);
+  assert.equal(atual.turno, "Vespertino");
+
+  assert.equal(isHistoricalClass(historica), true);
+  assert.equal(historica.turno, null);
+  assert.equal(historica.horarios, "");
+  assert.equal(historica.local, "");
+
+  const { current, historical } = splitClassesByOrigin([atual, historica]);
+  assert.deepEqual(current.map((c) => c.id), [10]);
+  assert.deepEqual(historical.map((c) => c.id), [11]);
+});

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Class } from "@/types/turma";
+import { hasClassOccupancy, type Class } from "@/types/turma";
 
 export interface ClassPerformancePieFormProps {
   classes: Class[];
@@ -228,17 +228,19 @@ export default function ClassPerformancePieForm({
   classes,
 }: ClassPerformancePieFormProps) {
   const sortedClasses = useMemo(() => {
-    return [...classes].sort((a, b) => {
-      const semCompare = (b.semestre || "").localeCompare(a.semestre || "", "pt-BR", {
-        numeric: true,
-        sensitivity: "base",
+    return classes
+      .filter((item) => hasClassOccupancy(item))
+      .sort((a, b) => {
+        const semCompare = (b.semestre || "").localeCompare(a.semestre || "", "pt-BR", {
+          numeric: true,
+          sensitivity: "base",
+        });
+        if (semCompare !== 0) return semCompare;
+        return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
+          numeric: true,
+          sensitivity: "base",
+        });
       });
-      if (semCompare !== 0) return semCompare;
-      return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
-        numeric: true,
-        sensitivity: "base",
-      });
-    });
   }, [classes]);
 
   const hasMultipleSemesters = useMemo(() => {
@@ -299,7 +301,7 @@ export default function ClassPerformancePieForm({
         </div>
       ) : (
         <p className="py-6 text-center text-sm text-gray-500">
-          Não há turmas disponíveis para esta disciplina.
+          Não há dados de ocupação disponíveis para as turmas desta disciplina.
         </p>
       )}
     </div>

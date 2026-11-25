@@ -498,7 +498,7 @@ export function mapClassesToOpenData(
           ? turma.semestre.trim()
           : null,
       docentes: turma.professor,
-      turno: turma.turno,
+      turno: turma.turno ?? "",
       horarios: turma.horarios,
       local: turma.local,
       vagas_ocupadas: occupied,
