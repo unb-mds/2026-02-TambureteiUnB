@@ -48,8 +48,9 @@ export interface Turma {
   local: string;                // ex: "FCTE - UAC Sala S-9"
   vagasOcupadas: number | null; // null quando não informado pela API
   totalVagas: number | null;    // null quando não informado pela API
-  turno: TurnoTurma;            // "Matutino" | "Diurno" | "Vespertino" | "Noturno"
+  turno: TurnoTurma | null;     // null quando não há horário informado (ex.: turmas do histórico)
   occupancy?: OccupancyRate | null; // Taxa calculada somente com dados conhecidos
+  isHistorical?: boolean;       // true quando a turma vem apenas de registros históricos sem dados de oferta
   estatistica?: BackendEstatisticaTurma | null;
   amostrasComunidade?: number;
   minimoAmostrasLgpd?: number;
@@ -292,6 +293,8 @@ export function adaptBackendTurma(
   raw: BackendTurmaResponse,
   disciplinaCodigo = ""
 ): Class {
+  const hasRawHorario = Boolean((raw.horario ?? "").trim());
+  const hasRawLocal = Boolean((raw.local ?? "").trim());
   const parsed = parseClassSchedule(raw.horario, raw.local);
   const codigoFormatado = raw.codigo_turma.toLowerCase().startsWith("turma")
     ? raw.codigo_turma
@@ -304,6 +307,8 @@ export function adaptBackendTurma(
 
   const totalVagas = normalizeOccupancyCount(raw.capacidade);
   const vagasOcupadas = normalizeOccupancyCount(raw.matriculados);
+  const occupancy = calculateOccupancyRate(vagasOcupadas, totalVagas);
+  const isHistorical = !hasRawHorario && !hasRawLocal && occupancy === null;
 
   return {
     id: raw.id,
@@ -313,17 +318,63 @@ export function adaptBackendTurma(
     semestre: raw.semestre,
     professor: listaProfessores.join(" • "),
     professores: listaProfessores,
-    horarios: parsed.formatted,
-    schedule: parsed.schedule,
-    local: raw.local || "Local a definir",
+    horarios: hasRawHorario ? parsed.formatted : "",
+    schedule: hasRawHorario ? parsed.schedule : undefined,
+    local: hasRawLocal ? (raw.local ?? "").trim() : "",
     vagasOcupadas,
     totalVagas,
-    turno: parsed.shift,
-    occupancy: calculateOccupancyRate(vagasOcupadas, totalVagas),
+    turno: hasRawHorario ? parsed.shift : null,
+    occupancy,
+    isHistorical,
     estatistica: raw.estatistica ?? null,
     amostrasComunidade: raw.amostras_comunidade ?? 0,
     minimoAmostrasLgpd: raw.minimo_amostras_lgpd ?? 5,
   };
+}
+
+export function hasClassSchedule(horarios?: string | null): boolean {
+  const clean = (horarios ?? "").trim();
+  return clean.length > 0 && clean.toLowerCase() !== "horário a definir";
+}
+
+export function hasClassLocal(local?: string | null): boolean {
+  const clean = (local ?? "").trim();
+  return clean.length > 0 && clean.toLowerCase() !== "local a definir";
+}
+
+export function hasClassOccupancy(
+  turma: Pick<Class, "vagasOcupadas" | "totalVagas">
+): boolean {
+  return calculateOccupancyRate(turma.vagasOcupadas, turma.totalVagas) !== null;
+}
+
+export function isHistoricalClass(turma: Class): boolean {
+  if (typeof turma.isHistorical === "boolean") {
+    return turma.isHistorical;
+  }
+  return (
+    !hasClassSchedule(turma.horarios) &&
+    !hasClassLocal(turma.local) &&
+    !hasClassOccupancy(turma)
+  );
+}
+
+export function splitClassesByOrigin(classes: readonly Class[]): {
+  current: Class[];
+  historical: Class[];
+} {
+  const current: Class[] = [];
+  const historical: Class[] = [];
+
+  for (const item of classes) {
+    if (isHistoricalClass(item)) {
+      historical.push(item);
+    } else {
+      current.push(item);
+    }
+  }
+
+  return { current, historical };
 }
 
 /** Quantidades ausentes ou inválidas não podem virar ocupação fictícia. */

@@ -59,6 +59,7 @@ import {
   ClassSortOption,
   normalizeClassShift,
   compareClassOccupancy,
+  splitClassesByOrigin,
 } from "@/types/turma";
 
 function parseInitialShift(param: string | null): ClassShiftFilter {
@@ -190,14 +191,13 @@ function DisciplineDetailContent() {
   );
 
   const [classSearchQuery, setClassSearchQuery] = useState("");
-  const [onlyClassesWithData, setOnlyClassesWithData] = useState(false);
+  const [classOriginTab, setClassOriginTab] = useState<"current" | "historical">("current");
 
   const handleResetClassFilters = useCallback(() => {
     setSelectedShift("Todos");
     setPeriodoSelecionado("Todos");
     setSortBy("code_asc");
     setClassSearchQuery("");
-    setOnlyClassesWithData(false);
     setClassPage(1);
     syncUrlParams("Todos", "code_asc", "Todos");
   }, [syncUrlParams]);
@@ -321,16 +321,33 @@ function DisciplineDetailContent() {
     };
   }, [discipline, slug, simulateClassesError, classesRetryCount]);
 
+  // Separação entre turmas do período atual (com oferta) e turmas trazidas do histórico
+  const { current: currentClasses, historical: historicalClasses } = useMemo(
+    () => splitClassesByOrigin(classes),
+    [classes]
+  );
+
+  const activeClassTab: "current" | "historical" =
+    currentClasses.length > 0 && historicalClasses.length > 0
+      ? classOriginTab
+      : currentClasses.length > 0
+      ? "current"
+      : "historical";
+
+  const activeSourceClasses =
+    activeClassTab === "current" ? currentClasses : historicalClasses;
+  const isViewingHistoricalTab = activeClassTab === "historical";
+
   const periodosDisponiveis = useMemo(() => {
     const unicos = new Set<string>();
-    for (const item of classes) {
+    for (const item of activeSourceClasses) {
       const sem = (item.semestre || "").trim();
       if (sem) unicos.add(sem);
     }
     return Array.from(unicos).sort((a, b) =>
       b.localeCompare(a, "pt-BR", { numeric: true })
     );
-  }, [classes]);
+  }, [activeSourceClasses]);
 
   const periodoAtivo =
     periodoSelecionado === "Todos" ||
@@ -338,23 +355,17 @@ function DisciplineDetailContent() {
       ? periodoSelecionado
       : "Todos";
 
-  // Filtragem por período, turno, busca por professor/turma/semestre, dados e ordenação reativa
+  // Filtragem por período (histórico), turno (atual), busca e ordenação reativa
   const filteredAndSortedClasses = useMemo(() => {
     const qNorm = normalizeSearchTerm(classSearchQuery);
-    const filtered = classes.filter((item) => {
-      if (periodoAtivo !== "Todos") {
+    const filtered = activeSourceClasses.filter((item) => {
+      if (isViewingHistoricalTab && periodoAtivo !== "Todos") {
         if ((item.semestre || "").trim() !== periodoAtivo) return false;
       }
 
-      if (selectedShift !== "Todos") {
+      if (!isViewingHistoricalTab && selectedShift !== "Todos") {
         const normalized = normalizeClassShift(item.turno, item.horarios);
         if (normalized !== selectedShift) return false;
-      }
-
-      if (onlyClassesWithData) {
-        const hasAcademicData =
-          Boolean(item.estatistica) || (item.amostrasComunidade ?? 0) > 0;
-        if (!hasAcademicData) return false;
       }
 
       if (qNorm) {
@@ -374,6 +385,18 @@ function DisciplineDetailContent() {
     });
 
     return [...filtered].sort((a, b) => {
+      if (isViewingHistoricalTab) {
+        const semCompare = (b.semestre || "").localeCompare(
+          a.semestre || "",
+          "pt-BR",
+          { numeric: true, sensitivity: "base" }
+        );
+        if (semCompare !== 0) return semCompare;
+        return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
+          numeric: true,
+          sensitivity: "base",
+        });
+      }
       if (sortBy === "occupancy_asc" || sortBy === "occupancy_desc") {
         return compareClassOccupancy(a, b, sortBy);
       }
@@ -389,12 +412,12 @@ function DisciplineDetailContent() {
       });
     });
   }, [
-    classes,
+    activeSourceClasses,
+    isViewingHistoricalTab,
     periodoAtivo,
     selectedShift,
     sortBy,
     classSearchQuery,
-    onlyClassesWithData,
   ]);
 
   const paginatedClasses = paginateClasses(filteredAndSortedClasses, classPage);
@@ -896,8 +919,8 @@ function DisciplineDetailContent() {
                     Turmas Ofertadas
                   </h2>
                   <p className="text-xs sm:text-sm text-gray-500">
-                    Consulte docentes, horários, salas e ocupação das vagas no
-                    semestre letivo atual
+                    Consulte docentes, horários, salas e ocupação do período
+                    atual ou o histórico de turmas anteriores
                   </p>
                 </div>
               </div>
@@ -982,14 +1005,74 @@ function DisciplineDetailContent() {
                 </button>
               </div>
             ) : classes.length > 0 ? (
-              /* Estado 3: Barra de Filtros + Grid de Turmas ou Empty State de Filtro */
+              /* Estado 3: Abas Período Atual / Turmas Anteriores + Barra de Filtros + Grid de Turmas */
               <>
+                {currentClasses.length > 0 && historicalClasses.length > 0 && (
+                  <div
+                    role="tablist"
+                    aria-label="Origem das turmas"
+                    className="mb-5 inline-flex flex-wrap items-center gap-2 rounded-2xl border border-[#ECEAF5] bg-[#FAFAFC] p-1.5"
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeClassTab === "current"}
+                      onClick={() => {
+                        setClassOriginTab("current");
+                        setClassPage(1);
+                      }}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                        activeClassTab === "current"
+                          ? "bg-[#5B4BDB] text-white shadow-xs"
+                          : "text-gray-600 hover:text-[#5B4BDB]"
+                      }`}
+                    >
+                      <span>Período atual</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                          activeClassTab === "current"
+                            ? "bg-white/20 text-white"
+                            : "bg-[#EDE9FD] text-[#5B4BDB]"
+                        }`}
+                      >
+                        {currentClasses.length}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeClassTab === "historical"}
+                      onClick={() => {
+                        setClassOriginTab("historical");
+                        setClassPage(1);
+                      }}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                        activeClassTab === "historical"
+                          ? "bg-[#5B4BDB] text-white shadow-xs"
+                          : "text-gray-600 hover:text-[#5B4BDB]"
+                      }`}
+                    >
+                      <span>Turmas anteriores</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                          activeClassTab === "historical"
+                            ? "bg-white/20 text-white"
+                            : "bg-[#EDE9FD] text-[#5B4BDB]"
+                        }`}
+                      >
+                        {historicalClasses.length}
+                      </span>
+                    </button>
+                  </div>
+                )}
+
                 <ClassFilters
                   selectedShift={selectedShift}
                   onShiftChange={handleShiftChange}
                   sortBy={sortBy}
                   onSortChange={handleSortChange}
-                  totalCount={classes.length}
+                  totalCount={activeSourceClasses.length}
                   filteredCount={filteredAndSortedClasses.length}
                   onResetFilters={handleResetClassFilters}
                   searchQuery={classSearchQuery}
@@ -997,14 +1080,16 @@ function DisciplineDetailContent() {
                     setClassSearchQuery(val);
                     setClassPage(1);
                   }}
-                  onlyWithData={onlyClassesWithData}
-                  onOnlyWithDataChange={(only) => {
-                    setOnlyClassesWithData(only);
-                    setClassPage(1);
-                  }}
-                  periodosDisponiveis={periodosDisponiveis}
-                  periodoSelecionado={periodoAtivo}
-                  aoAlterarPeriodo={aoAlterarPeriodo}
+                  periodosDisponiveis={
+                    isViewingHistoricalTab ? periodosDisponiveis : []
+                  }
+                  periodoSelecionado={
+                    isViewingHistoricalTab ? periodoAtivo : "Todos"
+                  }
+                  aoAlterarPeriodo={
+                    isViewingHistoricalTab ? aoAlterarPeriodo : undefined
+                  }
+                  hideOfferControls={isViewingHistoricalTab}
                 />
 
                 {filteredAndSortedClasses.length > 0 ? (
@@ -1013,6 +1098,7 @@ function DisciplineDetailContent() {
                       Mostrando {paginatedClasses.startItem} a {paginatedClasses.endItem}{" "}
                       de {filteredAndSortedClasses.length}{" "}
                       {filteredAndSortedClasses.length === 1 ? "turma" : "turmas"}
+                      {isViewingHistoricalTab ? " anteriores" : ""}
                     </p>
                     <div className="overflow-x-auto pb-2">
                       <div className="grid min-w-[1000px] grid-cols-4 gap-4 sm:gap-5">
@@ -1031,7 +1117,7 @@ function DisciplineDetailContent() {
                 ) : (
                   <ClassEmptyState
                     hasActiveFilters={true}
-                    selectedShift={selectedShift}
+                    selectedShift={isViewingHistoricalTab ? "Todos" : selectedShift}
                     onResetFilters={handleResetClassFilters}
                   />
                 )}
