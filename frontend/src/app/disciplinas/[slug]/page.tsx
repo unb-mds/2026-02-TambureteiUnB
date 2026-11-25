@@ -59,6 +59,7 @@ import {
   ClassSortOption,
   normalizeClassShift,
   compareClassOccupancy,
+  compareHistoricalClasses,
   splitClassesByOrigin,
 } from "@/types/turma";
 
@@ -386,16 +387,7 @@ function DisciplineDetailContent() {
 
     return [...filtered].sort((a, b) => {
       if (isViewingHistoricalTab) {
-        const semCompare = (b.semestre || "").localeCompare(
-          a.semestre || "",
-          "pt-BR",
-          { numeric: true, sensitivity: "base" }
-        );
-        if (semCompare !== 0) return semCompare;
-        return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
-          numeric: true,
-          sensitivity: "base",
-        });
+        return compareHistoricalClasses(a, b);
       }
       if (sortBy === "occupancy_asc" || sortBy === "occupancy_desc") {
         return compareClassOccupancy(a, b, sortBy);

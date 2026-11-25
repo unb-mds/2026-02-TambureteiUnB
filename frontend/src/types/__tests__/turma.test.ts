@@ -4,6 +4,7 @@ import {
   adaptBackendTurma,
   calculateOccupancyRate,
   compareClassOccupancy,
+  compareHistoricalClasses,
   formatClassOccupancy,
   isHistoricalClass,
   splitClassesByOrigin,
@@ -84,4 +85,67 @@ test("classifica e separa turmas do período atual e turmas históricas sem dado
   const { current, historical } = splitClassesByOrigin([atual, historica]);
   assert.deepEqual(current.map((c) => c.id), [10]);
   assert.deepEqual(historical.map((c) => c.id), [11]);
+});
+
+test("compareHistoricalClasses prioriza turmas com estatisticas consolidadas, depois em coleta e por fim sem dados", () => {
+  const semDados = adaptBackendTurma({
+    ...base,
+    id: 1,
+    codigo_turma: "01",
+    semestre: "2026.1",
+    amostras_comunidade: 0,
+    estatistica: null,
+  });
+  const coletaMenor = adaptBackendTurma({
+    ...base,
+    id: 2,
+    codigo_turma: "26",
+    semestre: "2026.1",
+    amostras_comunidade: 1,
+    estatistica: null,
+  });
+  const coletaMaior = adaptBackendTurma({
+    ...base,
+    id: 3,
+    codigo_turma: "20",
+    semestre: "2025.2",
+    amostras_comunidade: 4,
+    estatistica: null,
+  });
+  const comPizzaAntiga = adaptBackendTurma({
+    ...base,
+    id: 4,
+    codigo_turma: "27",
+    semestre: "2025.1",
+    amostras_comunidade: 0,
+    estatistica: {
+      taxa_aprovacao: 32.1,
+      taxa_reprovacao_nota: 33.2,
+      taxa_reprovacao_falta: 14.2,
+      taxa_trancamento: 20.5,
+      status: "VALIDADO",
+    },
+  });
+  const comPizzaRecente = adaptBackendTurma({
+    ...base,
+    id: 5,
+    codigo_turma: "27",
+    semestre: "2025.2",
+    amostras_comunidade: 1,
+    estatistica: {
+      taxa_aprovacao: 62.7,
+      taxa_reprovacao_nota: 24.3,
+      taxa_reprovacao_falta: 6.5,
+      taxa_trancamento: 6.5,
+      status: "VALIDADO",
+    },
+  });
+
+  const ordenadas = [semDados, coletaMenor, comPizzaAntiga, coletaMaior, comPizzaRecente].sort(
+    compareHistoricalClasses
+  );
+  assert.deepEqual(
+    ordenadas.map((t) => t.id),
+    [5, 4, 3, 2, 1]
+  );
 });

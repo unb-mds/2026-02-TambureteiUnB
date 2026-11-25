@@ -377,6 +377,39 @@ export function splitClassesByOrigin(classes: readonly Class[]): {
   return { current, historical };
 }
 
+function getHistoricalDataTier(turma: Class): 0 | 1 | 2 {
+  if (turma.estatistica) return 0;
+  if ((turma.amostrasComunidade ?? 0) > 0) return 1;
+  return 2;
+}
+
+/**
+ * Ordena turmas históricas priorizando turmas com estatísticas consolidadas,
+ * seguidas por turmas em coleta (maior número de amostras primeiro) e por fim
+ * turmas sem dados; desempata por semestre mais recente e código da turma.
+ */
+export function compareHistoricalClasses(a: Class, b: Class): number {
+  const tierDiff = getHistoricalDataTier(a) - getHistoricalDataTier(b);
+  if (tierDiff !== 0) return tierDiff;
+
+  if (!a.estatistica && !b.estatistica) {
+    const sampleDiff = (b.amostrasComunidade ?? 0) - (a.amostrasComunidade ?? 0);
+    if (sampleDiff !== 0) return sampleDiff;
+  }
+
+  const semCompare = (b.semestre || "").localeCompare(
+    a.semestre || "",
+    "pt-BR",
+    { numeric: true, sensitivity: "base" }
+  );
+  if (semCompare !== 0) return semCompare;
+
+  return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
 /** Quantidades ausentes ou inválidas não podem virar ocupação fictícia. */
 function normalizeOccupancyCount(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
