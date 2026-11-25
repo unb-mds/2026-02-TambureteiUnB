@@ -21,7 +21,7 @@ Plataforma aberta e colaborativa de inteligência acadêmica para análise de in
 ![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
 
-[Aplicação em Produção](https://tambureteiunb.com.br/) · [Documentação Oficial](https://unb-mds.github.io/2026-02-TambureteiUnB/) · [Pré-requisitos e Instalação](#4-pré-requisitos-e-instalação) · [Como Usar](#5-como-usar) · [Arquitetura](#6-arquitetura-em-camadas) · [Equipe](#7-equipe) · [Como Contribuir](CONTRIBUTING.md) · [Licença](#9-licença)
+[Aplicação em Produção](https://tambureteiunb.com.br/) · [Documentação Oficial](https://unb-mds.github.io/2026-02-TambureteiUnB/) · [Pré-requisitos e Instalação](#4-pré-requisitos-e-instalação) · [Como Usar](#5-como-usar) · [Arquitetura](#6-arquitetura-em-camadas) · [Como Contribuir](#7-como-contribuir) · [Licença](#8-licença) · [Equipe](#9-equipe)
 
 ---
 
@@ -184,23 +184,7 @@ mkdocs serve -a localhost:8001
 
 ---
 
-## 7. Equipe
-
-Projeto desenvolvido colaborativamente para a disciplina de **Métodos de Desenvolvimento de Software (MDS)** da **Universidade de Brasília — Faculdade de Ciências e Tecnologias em Engenharia (FCTE / Gama)**.
-
-| Nome                                 | GitHub                                                                                 |
-| ------------------------------------ | -------------------------------------------------------------------------------------- |
-| Bruno Cauê Souza Lopes Oliveira      | [@bcaueLPS](https://github.com/bcaueLPS)                                               |
-| Gabriel Di Angellis Basilio Ferreira | [@diangellis](https://github.com/diangellis)                                           |
-| Luis Guilherme de Almeida Costa      | [@Luis-Guilherme-de-Almeida-Costa](https://github.com/LuisGuilherme67) |
-| Lucas Miranda Souza                  | [@lucasssmira](https://github.com/lucasssmira)                                         |
-| Luiza Carneiro Carvalho              | [@LuizaCarvalho691](https://github.com/LuizaCarvalho691)                               |
-| Maria Vitória Queiroz Lima           | [@mariav-07](https://github.com/mariav-07)                                             |
-| Thamires Ellen Souza Araujo          | [@thamiresellensa](https://github.com/thamiresellensa)                                 |
-
----
-
-## 8. Como Contribuir
+## 7. Como Contribuir
 
 Contribuições da comunidade e de novos desenvolvedores são muito bem-vindas. Para manter a estabilidade arquitetural e a conformidade técnica do projeto:
 
@@ -210,6 +194,22 @@ Contribuições da comunidade e de novos desenvolvedores são muito bem-vindas. 
 
 ---
 
-## 9. Licença
+## 8. Licença
 
 Este projeto é distribuído sob os termos da **[Licença MIT](LICENSE)**. Qualquer pessoa tem permissão para usar, modificar, copiar e redistribuir o software livremente, preservando os devidos créditos aos autores originais.
+
+---
+
+## 9. Equipe
+
+Desenvolvedores responsáveis pela criação e manutenção do projeto:
+
+| Foto de Perfil | Nome do Integrante | Link do GitHub |
+| :---: | :--- | :---: |
+| <img src="https://github.com/bcaueLPS.png" width="90" height="90" style="border-radius: 8px;" alt="Bruno Cauê" /> | **Bruno Cauê Souza Lopes Oliveira** | [![GitHub Perfil](https://img.shields.io/badge/GitHub-Perfil-181717?style=flat&logo=github&logoColor=white)](https://github.com/bcaueLPS) |
+| <img src="https://github.com/diangellis.png" width="90" height="90" style="border-radius: 8px;" alt="Gabriel Di Angellis" /> | **Gabriel Di Angellis Basilio Ferreira** | [![GitHub Perfil](https://img.shields.io/badge/GitHub-Perfil-181717?style=flat&logo=github&logoColor=white)](https://github.com/diangellis) |
+| <img src="https://github.com/LuisGuilherme67.png" width="90" height="90" style="border-radius: 8px;" alt="Luis Guilherme" /> | **Luis Guilherme de Almeida Costa** | [![GitHub Perfil](https://img.shields.io/badge/GitHub-Perfil-181717?style=flat&logo=github&logoColor=white)](https://github.com/LuisGuilherme67) |
+| <img src="https://github.com/lucasssmira.png" width="90" height="90" style="border-radius: 8px;" alt="Lucas Miranda" /> | **Lucas Miranda Souza** | [![GitHub Perfil](https://img.shields.io/badge/GitHub-Perfil-181717?style=flat&logo=github&logoColor=white)](https://github.com/lucasssmira) |
+| <img src="https://github.com/LuizaCarvalho691.png" width="90" height="90" style="border-radius: 8px;" alt="Luiza Carneiro" /> | **Luiza Carneiro Carvalho** | [![GitHub Perfil](https://img.shields.io/badge/GitHub-Perfil-181717?style=flat&logo=github&logoColor=white)](https://github.com/LuizaCarvalho691) |
+| <img src="https://github.com/mariav-07.png" width="90" height="90" style="border-radius: 8px;" alt="Maria Vitória" /> | **Maria Vitória Queiroz Lima** | [![GitHub Perfil](https://img.shields.io/badge/GitHub-Perfil-181717?style=flat&logo=github&logoColor=white)](https://github.com/mariav-07) |
+| <img src="https://github.com/thamiresellensa.png" width="90" height="90" style="border-radius: 8px;" alt="Thamires Ellen" /> | **Thamires Ellen Souza Araujo** | [![GitHub Perfil](https://img.shields.io/badge/GitHub-Perfil-181717?style=flat&logo=github&logoColor=white)](https://github.com/thamiresellensa) |
