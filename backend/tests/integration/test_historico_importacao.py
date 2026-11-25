@@ -375,3 +375,44 @@ def test_importar_historico_substitui_vinculo_poluido_de_professor(client, db, h
     assert nomes == ["Lucas Ursulino Boaventura"]
 
 
+
+
+def test_importacao_cadastra_turma_aprovada_mesmo_com_trancamento_e_amostra_duplicada(client, db, headers):
+    disc = Disciplina(codigo="FGA0158", nome="Orientação a Objetos", slug="teste-tentativas", departamento="FCTE", carga_horaria=60)
+    db.add(disc)
+    db.commit()
+    text = _gerar_texto_historico("251088888", "APR", "SS").replace(
+        "2025.2  FGA0158  ORIENTAÇÃO A OBJETOS  60  02  100,0  SS  APR",
+        "2025.2  FGA0158  ORIENTAÇÃO A OBJETOS  60  08  --  -  TRANC\nDocente Trancada (60h)\n2025.2  FGA0158  ORIENTAÇÃO A OBJETOS  60  07  100,0  SS  APR",
+    )
+    def upload():
+        with patch("app.services.historico_parser_service.PdfReader", return_value=_FakeReader(text)):
+            return client.post("/perfil/importar-historico", headers=headers, files={"arquivo":("historico.pdf",b"%PDF-1.4 ok","application/pdf")})
+    response=upload()
+    assert response.status_code == 200, response.text
+    approved=db.query(Turma).filter_by(disciplina_id=disc.id,codigo_turma="07",semestre="2025.2").one_or_none()
+    assert approved is not None
+    # Simula um cadastro antigo que registrou apenas a turma trancada.
+    db.delete(approved)
+    db.commit()
+    previous_count=db.query(AmostraHistorico).count()
+    response=upload()
+    assert response.status_code == 200, response.text
+    approved=db.query(Turma).filter_by(disciplina_id=disc.id,codigo_turma="07",semestre="2025.2").one()
+    assert db.query(AmostraHistorico).count() == previous_count
+    donation=client.post(f"/turmas/{approved.id}/doacoes/upload",headers=headers,data={"semestre_referencia":"2025.2","taxa_aprovacao":"84","taxa_reprovacao_nota":"0","taxa_reprovacao_falta":"4","taxa_trancamento":"12"})
+    assert donation.status_code == 201, donation.text
+    assert donation.json()["turma_id"] == approved.id
+
+
+def test_status_nao_substitui_numero_da_turma_pelo_mesmo_docente(client,db,headers):
+    from app.models.professor import Professor
+    subject=Disciplina(codigo="TST0999",nome="Disciplina teste",slug="status-turma-exata",departamento="FCTE")
+    professor=Professor(nome="Docente Compartilhado",departamento="FCTE")
+    db.add_all([subject,professor])
+    db.flush()
+    db.add(Turma(disciplina_id=subject.id,codigo_turma="08",semestre="2025.1",professores=[professor]))
+    db.commit()
+    response=client.post("/perfil/turmas-estatisticas/status",headers=headers,json={"itens":[{"codigo":"TST0999","turma":"07","semestre":"2025.1","professores":[professor.nome]}]})
+    assert response.status_code == 200
+    assert response.json()["itens"][0]["turma_id"] is None

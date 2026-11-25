@@ -166,3 +166,11 @@ test("TurmaEstatisticaModal bloqueia opcoes ja consolidadas e nao exige preenchi
   const emojiRegex = /[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
   assert.equal(emojiRegex.test(source), false);
 });
+
+test("doação exclui trancamento e cancelamento, preservando a tentativa aprovada", () => {
+ const row=(situacao:string,turma:string)=>({codigo:"IFD0173",nome:"Física Experimental",turma,semestre:"2025.1",professores:[],situacao});
+ const history={dados_academicos:{},cursadas:[row("TRANC","08"),row("CANC","09"),row("APR","07")],cursando:[]} as unknown as HistoricoImportacaoResponse;
+ const choices=extrairTurmasCursadasDoHistorico(history);
+ assert.deepEqual(choices.map(item=>item.turma),["07"]);
+ assert.equal(validarVinculoEstudanteTurma([{...row("TRANC","08"),comprovado_pelo_historico:true}],"IFD0173","08","2025.1").valido,false);
+});

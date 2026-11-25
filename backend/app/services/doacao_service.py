@@ -426,7 +426,6 @@ class DoacaoService:
             sem_limpo = (item.semestre or "").strip()
             turma_raw = (item.turma or "").strip().upper()
             turma_norm = _normalizar_codigo_turma(item.turma) or turma_raw
-            profs_item = self._nomes_professores_normalizados(item.professores)
 
             disc = disciplinas_por_codigo.get(cod_upper)
             if disc is None:
@@ -450,16 +449,6 @@ class DoacaoService:
                     turma_match = cand
                     break
 
-            # 2. Fallback por docente no mesmo semestre caso a turma nao esteja normalizada igual
-            if turma_match is None and profs_item:
-                for cand in candidatas:
-                    cand_profs = self._nomes_professores_normalizados(
-                        [p.nome for p in (cand.professores or [])]
-                    )
-                    if cand_profs & profs_item:
-                        turma_match = cand
-                        break
-
             ja_possui_pizza = False
             ja_possui_historico = False
             ja_enviada_usuario = False
@@ -472,19 +461,6 @@ class DoacaoService:
                     elif ec.origem == "HISTORICO_SIGAA" and not ec.amostragem_suprimida_lgpd:
                         ja_possui_historico = True
                 ja_enviada_usuario = (turma_match.id, sem_limpo) in doacoes_usuario_chaves
-
-            # Mesmo se o codigo de turma divergir, bloqueia caso o mesmo docente na mesma disciplina/semestre ja tenha pizza
-            if not ja_possui_pizza and profs_item:
-                for cand in candidatas:
-                    cand_profs = self._nomes_professores_normalizados(
-                        [p.nome for p in (cand.professores or [])]
-                    )
-                    if not (cand_profs & profs_item):
-                        continue
-                    ec_cand = ec_por_chave.get((cand.id, sem_limpo))
-                    if ec_cand is not None and ec_cand.origem == "DOACAO_QUORUM":
-                        ja_possui_pizza = True
-                        break
 
             respostas.append(
                 TurmaStatusConsultaResponseItem(
