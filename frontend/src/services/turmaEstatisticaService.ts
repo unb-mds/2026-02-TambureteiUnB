@@ -55,6 +55,15 @@ export async function consultarStatusTurmasPizza(
   return mapa;
 }
 
+const SITUACOES_CONCLUIDAS_PIZZA = new Set([
+  "APR",
+  "REP",
+  "REPF",
+  "REPMF",
+  "TRANC",
+  "CANC",
+]);
+
 export function extrairTurmasCursadasDoHistorico(
   historico: HistoricoImportacaoResponse | null
 ): TurmaCursadaVerificada[] {
@@ -62,12 +71,19 @@ export function extrairTurmasCursadasDoHistorico(
     return [];
   }
 
+  // Apenas turmas já finalizadas (exclui `historico.cursando` e situações em andamento como MATR),
+  // pois turmas em curso ainda não possuem gráfico de pizza consolidado no SIGAA.
   const cursadas = historico.cursadas || [];
-  const cursando = historico.cursando || [];
-  const todas = [...cursadas, ...cursando];
 
-  return todas
-    .filter((item): item is typeof item & { turma: string } => Boolean(item.codigo && item.turma && item.turma !== "--"))
+  return cursadas
+    .filter((item): item is typeof item & { turma: string } => {
+      const situacaoNorm = (item.situacao || "").trim().toUpperCase();
+      return (
+        Boolean(item.codigo && item.turma && item.turma.trim() !== "--") &&
+        Boolean(item.semestre && /^\d{4}\.\d+$/.test(item.semestre.trim())) &&
+        SITUACOES_CONCLUIDAS_PIZZA.has(situacaoNorm)
+      );
+    })
     .map((item) => ({
       codigo: item.codigo.trim().toUpperCase(),
       nome: item.nome.trim(),

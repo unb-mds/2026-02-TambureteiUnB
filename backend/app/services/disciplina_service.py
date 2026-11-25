@@ -17,9 +17,12 @@ from app.pipeline.transformers.sigaa_transformer import slugify
 class DisciplinaService:
     @staticmethod
     def _incluir_locais_oferta(db: Session, items: List[Disciplina], semestre: Optional[str] = None) -> None:
-        locais = disciplina_repo.listar_locais_oferta(db, [item.id for item in items], semestre)
+        ids = [item.id for item in items]
+        locais = disciplina_repo.listar_locais_oferta(db, ids, semestre)
+        ids_pizza = disciplina_repo.listar_ids_com_pizza(db, ids)
         for item in items:
             item.locais_oferta = locais.get(item.id, [])
+            item.possui_dados_pizza = item.id in ids_pizza
 
     def listar_catalogo(
         self,
@@ -131,6 +134,8 @@ class DisciplinaService:
                     )
                 )
 
+        ids_pizza = disciplina_repo.listar_ids_com_pizza(db, [disciplina.id])
+
         return DisciplinaResponse(
             id=disciplina.id,
             codigo=disciplina.codigo or "",
@@ -146,6 +151,7 @@ class DisciplinaService:
             pre_requisitos_itens=pre_req_itens,
             equivalencias_itens=equiv_itens,
             cursos=cursos_info,
+            possui_dados_pizza=disciplina.id in ids_pizza,
             metrica_consolidada=disciplina.metrica_consolidada,
             metricas=disciplina.metricas or [],
         )

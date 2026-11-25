@@ -39,7 +39,17 @@ test("extrairTurmasCursadasDoHistorico extrai turmas com turma informada", () =>
         ch: 60,
       },
     ],
-    cursando: [],
+    cursando: [
+      {
+        codigo: "FGA0160",
+        nome: "Métodos Numéricos",
+        turma: "03",
+        semestre: "2026.2",
+        professores: ["Prof. Teste"],
+        situacao: "MATR",
+        ch: 60,
+      },
+    ],
   } as unknown as HistoricoImportacaoResponse;
 
   const resultado = extrairTurmasCursadasDoHistorico(fakeHistorico);
@@ -48,6 +58,55 @@ test("extrairTurmasCursadasDoHistorico extrai turmas com turma informada", () =>
   assert.equal(resultado[0].turma, "27");
   assert.equal(resultado[0].semestre, "2025.2");
   assert.equal(resultado[0].comprovado_pelo_historico, true);
+});
+
+test("extrairTurmasCursadasDoHistorico exclui disciplinas em andamento ou sem desfecho", () => {
+  const fakeHistorico = {
+    dados_academicos: {
+      matricula: "250000000",
+      curso: "Engenharia",
+      ira: 4.5,
+      periodo_inicial: "2024.1",
+      total_disciplinas: 3,
+    },
+    cursadas: [
+      {
+        codigo: "MAT0026",
+        nome: "Cálculo 2",
+        turma: "02",
+        semestre: "2026.1",
+        professores: [],
+        situacao: "MATR",
+        ch: 90,
+      },
+      {
+        codigo: "FGA0133",
+        nome: "Engenharia Econômica",
+        turma: "01",
+        semestre: "2025.2",
+        professores: [],
+        situacao: "REP",
+        ch: 60,
+      },
+    ],
+    cursando: [
+      {
+        codigo: "FGA0146",
+        nome: "Estruturas de Dados 1",
+        turma: "02",
+        semestre: "2026.2",
+        professores: [],
+        situacao: "MATR",
+        ch: 60,
+      },
+    ],
+  } as unknown as HistoricoImportacaoResponse;
+
+  const resultado = extrairTurmasCursadasDoHistorico(fakeHistorico);
+  assert.deepEqual(
+    resultado.map((item) => item.codigo),
+    ["FGA0133"]
+  );
 });
 
 test("validarVinculoEstudanteTurma exige comprovacao previa de matricula pelo historico", () => {

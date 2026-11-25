@@ -9,6 +9,10 @@ import {
   isHistoricalClass,
 } from "@/types/turma";
 import { ClassOccupancyPie } from "@/components/ClassPerformancePieForm";
+import {
+  formatExactPercent,
+  resumirTaxasTurmaDetalhadas,
+} from "@/utils/academicMetrics";
 
 export interface ClassCardProps {
   turma?: Class;
@@ -55,6 +59,51 @@ export default function ClassCard({
   const minimoLgpd = item.minimoAmostrasLgpd ?? 5;
   const progressoColetaPct =
     minimoLgpd > 0 ? Math.min(100, Math.round((amostras / minimoLgpd) * 100)) : 0;
+
+  const blocoEstatisticas = item.estatistica ? (
+    (() => {
+      const taxas = resumirTaxasTurmaDetalhadas(item.estatistica);
+      return (
+        <div className={`${historical ? "" : "mt-3.5 "}rounded-xl bg-[#F7F7FA] px-3 py-2 text-[11px]`}>
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1 font-semibold">
+            <span className="text-emerald-700">
+              Aprovação: {formatExactPercent(taxas.aprovacao)}%
+            </span>
+            <span className="text-red-600">
+              Reprov. nota: {formatExactPercent(taxas.reprovacaoNota)}%
+            </span>
+            <span className="text-amber-700">
+              Reprov. falta: {formatExactPercent(taxas.reprovacaoFalta)}%
+            </span>
+            <span className="text-gray-600">
+              Tranc.: {formatExactPercent(taxas.trancamento)}%
+            </span>
+          </div>
+          {amostras > 0 && (
+            <p className="mt-1.5 text-[10px] text-gray-500">
+              Baseado em {amostras}{" "}
+              {amostras === 1 ? "histórico" : "históricos"}
+            </p>
+          )}
+        </div>
+      );
+    })()
+  ) : amostras > 0 ? (
+    <div className={`${historical ? "" : "mt-3.5 "}rounded-xl border border-dashed border-[#D8D1FA] bg-[#F8F7FF] px-3 py-2 text-[11px] font-medium text-[#5B4BDB]`}>
+      <p>
+        Coleta comunidade: {amostras}/{minimoLgpd} históricos (RN07)
+      </p>
+      <div
+        className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E8E6F8]"
+        aria-hidden="true"
+      >
+        <div
+          className="h-full rounded-full bg-[#5B4BDB] transition-all"
+          style={{ width: `${progressoColetaPct}%` }}
+        />
+      </div>
+    </div>
+  ) : null;
 
   return (
     <article
@@ -169,49 +218,7 @@ export default function ClassCard({
           </dl>
         )}
 
-        {!historical && (
-          <>
-            {item.estatistica ? (
-              <div className="mt-3.5 rounded-xl bg-[#F7F7FA] px-3 py-2 text-[11px]">
-                <div className="grid grid-cols-2 gap-x-2 gap-y-1 font-semibold">
-                  <span className="text-emerald-700">
-                    Aprovação: {Math.round(item.estatistica.taxa_aprovacao)}%
-                  </span>
-                  <span className="text-red-600">
-                    Reprov. nota: {Math.round(item.estatistica.taxa_reprovacao_nota)}%
-                  </span>
-                  <span className="text-amber-700">
-                    Reprov. falta: {Math.round(item.estatistica.taxa_reprovacao_falta)}%
-                  </span>
-                  <span className="text-gray-600">
-                    Tranc.: {Math.round(item.estatistica.taxa_trancamento)}%
-                  </span>
-                </div>
-                {amostras > 0 && (
-                  <p className="mt-1.5 text-[10px] text-gray-500">
-                    Baseado em {amostras}{" "}
-                    {amostras === 1 ? "histórico" : "históricos"}
-                  </p>
-                )}
-              </div>
-            ) : amostras > 0 ? (
-              <div className="mt-3.5 rounded-xl border border-dashed border-[#D8D1FA] bg-[#F8F7FF] px-3 py-2 text-[11px] font-medium text-[#5B4BDB]">
-                <p>
-                  Coleta comunidade: {amostras}/{minimoLgpd} históricos (RN07)
-                </p>
-                <div
-                  className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E8E6F8]"
-                  aria-hidden="true"
-                >
-                  <div
-                    className="h-full rounded-full bg-[#5B4BDB] transition-all"
-                    style={{ width: `${progressoColetaPct}%` }}
-                  />
-                </div>
-              </div>
-            ) : null}
-          </>
-        )}
+        {!historical && blocoEstatisticas}
       </div>
 
       {showOccupancy && (
@@ -227,45 +234,7 @@ export default function ClassCard({
 
       {historical && (
         <footer className="mt-3 border-t border-gray-100 pt-3">
-          {item.estatistica ? (
-            <div className="rounded-xl bg-[#F7F7FA] px-3 py-2 text-[11px]">
-              <div className="grid grid-cols-2 gap-x-2 gap-y-1 font-semibold">
-                <span className="text-emerald-700">
-                  Aprovação: {Math.round(item.estatistica.taxa_aprovacao)}%
-                </span>
-                <span className="text-red-600">
-                  Reprov. nota: {Math.round(item.estatistica.taxa_reprovacao_nota)}%
-                </span>
-                <span className="text-amber-700">
-                  Reprov. falta: {Math.round(item.estatistica.taxa_reprovacao_falta)}%
-                </span>
-                <span className="text-gray-600">
-                  Tranc.: {Math.round(item.estatistica.taxa_trancamento)}%
-                </span>
-              </div>
-              {amostras > 0 && (
-                <p className="mt-1.5 text-[10px] text-gray-500">
-                  Baseado em {amostras}{" "}
-                  {amostras === 1 ? "histórico" : "históricos"}
-                </p>
-              )}
-            </div>
-          ) : amostras > 0 ? (
-            <div className="rounded-xl border border-dashed border-[#D8D1FA] bg-[#F8F7FF] px-3 py-2 text-[11px] font-medium text-[#5B4BDB]">
-              <p>
-                Coleta comunidade: {amostras}/{minimoLgpd} históricos (RN07)
-              </p>
-              <div
-                className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E8E6F8]"
-                aria-hidden="true"
-              >
-                <div
-                  className="h-full rounded-full bg-[#5B4BDB] transition-all"
-                  style={{ width: `${progressoColetaPct}%` }}
-                />
-              </div>
-            </div>
-          ) : (
+          {blocoEstatisticas ?? (
             <p className="text-[11px] text-gray-500">
               Sem estatísticas comunitárias registradas
             </p>
