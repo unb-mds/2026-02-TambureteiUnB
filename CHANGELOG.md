@@ -12,11 +12,11 @@ Detalhes completos em [docs/releases/Release-2.md](docs/releases/Release-2.md).
 - Implantação oficial em produção no domínio **[tambureteiunb.com.br](https://tambureteiunb.com.br/)** e `https://api.tambureteiunb.com.br` com Docker Compose, Caddy e Cloudflare.
 - Hub pedagógico completo por disciplina com gráficos de rosca e histogramas semestrais em barras empilhadas com proteção LGPD ($N \ge 5$).
 - Planejador semanal de horários (`/minha-grade`) com resolução de choques, gerador de combinações e exportação em PDF.
-- Ecossistema de doação colaborativa de turmas (via texto ou upload de imagem do gráfico de pizza do SIGAA) com triagem e esteira de moderação.
+- Ecossistema de doação colaborativa de turmas (via texto ou upload de imagem do gráfico de pizza do SIGAA) com curadoria humana, fila de consenso, filtro estrito de turmas concluídas e esteira de moderação.
+- Separação entre turmas do período atual e turmas históricas com cards compactos, taxas estratificadas (`Aprovação`, `Reprov. nota`, `Reprov. falta`, `Tranc.`) preservando casas decimais com soma exata de 100%, e ordenação do catálogo priorizando disciplinas com pizzas e históricos.
 - Seção Minha Graduação e importação segura do Histórico Escolar do SIGAA no perfil do estudante com cálculo de integralização.
-- Links oficiais homologados para a grade curricular do SIGAA em 161 cursos da UnB e pré-requisitos como links navegáveis.
-- Acessibilidade aprimorada (WCAG 2.1 AA) com bloco de métricas consolidadas da UnB, link de salto para teclado e busca semântica.
-- Documentação técnica de fechamento em `docs/produto/relatorio_final.md`, estratégia de deploy em `docs/engenharia/deploy.md` e novo README em conformidade com projetos de software livre.
+- Links oficiais homologados para a grade curricular do SIGAA em 161 cursos da UnB, pré-requisitos como links navegáveis e link oficial do repositório GitHub no rodapé.
+- Backup automatizado não destrutivo (`scripts/backup_prod.sh`), volume persistente `pizzas_data`, documentação técnica de fechamento em `docs/produto/relatorio_final.md`, estratégia de deploy em `docs/engenharia/deploy.md` e novo README em conformidade com projetos de software livre.
 
 ---
 

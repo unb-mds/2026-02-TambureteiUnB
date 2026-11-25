@@ -16,12 +16,13 @@ Esta release representa o marco consolidado de entrega da **Release 2 (R2)** do 
   - Montagem de horários sem conflitos combinatórios com identificação de docentes e turmas.
   - Geração de documento de planejamento formatado em PDF para a matrícula.
 * **Ecossistema de Doação Colaborativa (Crowdsourcing Seguro):**
-  - Doação de estatísticas de turmas via texto (soma 100%) ou envio de print do gráfico de pizza do SIGAA.
-  - Esteira administrativa de moderação com isolamento de imagens em volume seguro (`pizzas_data`).
+  - Doação de estatísticas de turmas via texto (soma 100%) ou envio de print do gráfico de pizza do SIGAA para turmas já concluídas.
+  - Esteira administrativa de moderação humana com consenso por quórum visual e isolamento de imagens em volume persistente (`pizzas_data`).
 * **Seção Minha Graduação e Histórico Escolar (`/perfil`):**
   - Leitura e mapeamento de grade em 10 semestres a partir do Histórico Escolar do SIGAA, calculando integralização e equivalências curriculares.
-* **Acessibilidade e Usabilidade (WCAG 2.1 AA):**
-  - Bloco de métricas consolidadas da UnB, links de salto para teclado (`Skip to Content`), busca semântica com leitor de tela e navegação acessível.
+* **Catálogo e Turmas Aprimorados:**
+  - Ordenação padrão de `/disciplinas` priorizando disciplinas com dados de pizza, depois históricos e por fim sem dados.
+  - Separação entre abas de período atual e turmas anteriores com cards compactos, taxas estratificadas com preservação de decimais (soma exata de 100%) e link do repositório GitHub no rodapé.
 
 ---
 
@@ -54,6 +55,9 @@ Esta release representa o marco consolidado de entrega da **Release 2 (R2)** do 
 
 ## 4. Histórico de Pull Requests Integradas na Release 2
 
+* **#308:** feat(frontend): separa turmas historicas com cards compactos e estratifica reprovacoes — @lucasssmira
+* **#304:** fix(infra): torna remocao de check constraints idempotente na migracao 021 e init.sql — @thamiresellensa
+* **#303:** feat(frontend): adiciona link e icone do GitHub no rodape da aplicacao — @thamiresellensa
 * **#289:** docs: reestrutura README no padrao essencial de software livre — @thamiresellensa
 * **#295:** docs: consolida documentacao de producao e governanca (deploy, relatorio final, security) — @bcaueLPS
 * **#294:** feat(frontend): exibir pre-requisitos de disciplinas como links navegaveis — @LuisGuilherme67
@@ -61,7 +65,6 @@ Esta release representa o marco consolidado de entrega da **Release 2 (R2)** do 
 * **#292:** feat(frontend): tornar todos os cards de cursos e disciplinas clicaveis — @LuisGuilherme67
 * **#291:** feat(perfil): orientacao do historico escolar e envio de estatisticas de turmas — @LuisGuilherme67
 * **#287:** feat(frontend): banner de esclarecimento sobre coleta de dados de turmas — @bcaueLPS
-* **#278:** feat(landing): implementa metricas consolidadas da unb e navegacao acessivel — @mariav-07
 * **#257:** feat(perfil): novo design da aba Minha Graduacao e grade curricular — @thamiresellensa
 * **#251:** feat(auth): recuperacao e alteracao de senha por email e perfil — @thamiresellensa
 * **#240 / #231:** feat(grade): planejador semanal, rascunhos locais e exportacao em PDF — @diangellis
