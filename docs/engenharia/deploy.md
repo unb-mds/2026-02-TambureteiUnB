@@ -35,7 +35,7 @@ flowchart LR
 | :--- | :--- | :--- | :--- |
 | **Borda e Proxy Reverso** | Cloudflare + Caddy | `443` (HTTPS público) | Terminação TLS, roteamento dos subdomínios `tambureteiunb.com.br` / `api.tambureteiunb.com.br` e injeção de cabeçalhos HTTP de segurança. |
 | **`frontend` (Next.js 16)** | [`frontend/Dockerfile`](https://github.com/unb-mds/2026-02-TambureteiUnB/blob/develop/frontend/Dockerfile) (*multi-stage* `node:20-alpine`) | `127.0.0.1:3000` (apenas loopback) | Compilado com `NEXT_PUBLIC_API_URL=https://api.tambureteiunb.com.br`; usa `BACKEND_INTERNAL_URL=http://backend:8000` para chamadas internas SSR na rede Docker. |
-| **`backend` (FastAPI)** | [`backend/Dockerfile`](https://github.com/unb-mds/2026-02-TambureteiUnB/blob/develop/backend/Dockerfile) (`python:3.12-slim`) | `127.0.0.1:8000` (apenas loopback) | Executa `uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1` e monta o volume persistente `materiais_data` em `/app/storage/materiais`. |
+| **`backend` (FastAPI)** | [`backend/Dockerfile`](https://github.com/unb-mds/2026-02-TambureteiUnB/blob/develop/backend/Dockerfile) (`python:3.12-slim`) | `127.0.0.1:8000` (apenas loopback) | Executa `uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1` e monta os volumes persistentes `materiais_data` (`/app/storage/materiais`) e `pizzas_data` (`/app/storage/pizzas`). |
 | **`db` (PostgreSQL 17)** | `postgres:17` | Rede interna Docker (`5432`, sem exposição externa) | Inicializa via `init.sql`, valida saúde com `pg_isready` (`interval: 10s`, `retries: 5`) e persiste dados no volume `pgdata`. |
 
 ---

@@ -29,6 +29,7 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       HISTORICO_DEDUP_SECRET: ${HISTORICO_DEDUP_SECRET:-}
       MATERIALS_DIR: /app/storage/materiais
+      PIZZAS_DIR: /app/storage/pizzas
       MATERIAL_MAX_BYTES: ${MATERIAL_MAX_BYTES:-5242880}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -49,6 +50,7 @@ services:
     volumes:
       - ./backend:/app
       - materiais_data:/app/storage/materiais
+      - pizzas_data:/app/storage/pizzas
     depends_on:
       - db
 
@@ -63,3 +65,4 @@ services:
 volumes:
   pgdata:
   materiais_data:
+  pizzas_data:

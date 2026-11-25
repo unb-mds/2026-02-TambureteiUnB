@@ -127,7 +127,7 @@ O Tamburetei estrutura dados históricos obtidos via **Lei de Acesso à Informa�
 
 ### Banco de Dados & Armazenamento
 * **PostgreSQL 17** (instância primária de persistência relacional)
-* **Volumes Docker** dedicados para isolamento de arquivos enviados pela comunidade (`materiais_data`) e dados do banco (`pgdata`)
+* **Volumes Docker** dedicados para isolamento de arquivos enviados pela comunidade (`materiais_data` e `pizzas_data`) e dados do banco (`pgdata`)
 
 ### Infraestrutura, Testes & DevOps
 * **Docker & Docker Compose** (orquestração de múltiplos contêineres)
