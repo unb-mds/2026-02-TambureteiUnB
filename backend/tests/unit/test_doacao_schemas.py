@@ -102,7 +102,7 @@ class TestDoacaoCreateSchema:
             )
         assert "A soma das taxas deve ser exatamente 100%" in str(exc.value)
 
-    def test_aceita_arredondamento_sigaa_99_9_e_ajusta_para_cem(self):
+    def test_aceita_soma_sigaa_99_9_sem_alterar_parcelas(self):
         doacao = DoacaoCreate(
             semestre_referencia="2026.1",
             taxa_aprovacao=73.3,
@@ -116,5 +116,11 @@ class TestDoacaoCreateSchema:
             + doacao.taxa_reprovacao_falta
             + doacao.taxa_trancamento
         )
-        assert soma == Decimal("100.00")
-        assert doacao.taxa_aprovacao == Decimal("73.40")
+        assert soma == Decimal("99.90")
+        assert doacao.taxa_aprovacao == Decimal("73.30")
+
+
+@pytest.mark.parametrize("values", [("80.95","14.28","0","4.76"),("91.8","4.6","0","3.5"),("73.3","17.3","5.3","4")])
+def test_percentuais_originais_sao_preservados(values):
+    result=DoacaoCreate(semestre_referencia="2025.2",taxa_aprovacao=values[0],taxa_reprovacao_nota=values[1],taxa_reprovacao_falta=values[2],taxa_trancamento=values[3])
+    assert (result.taxa_aprovacao,result.taxa_reprovacao_nota,result.taxa_reprovacao_falta,result.taxa_trancamento)==tuple(Decimal(v) for v in values)

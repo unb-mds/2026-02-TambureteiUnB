@@ -433,4 +433,20 @@ class TestModeracaoPizzas:
             + body["taxa_reprovacao_nota"]
             + body["taxa_reprovacao_falta"]
             + body["taxa_trancamento"]
-        ) == 100.0
+        ) == pytest.approx(99.9)
+
+@pytest.mark.parametrize("apr,rep,tranc", [("91.8","4.6","3.5"),("80.95","14.28","4.76")])
+def test_pizza_preserva_decimais_no_envio_fila_e_aprovacao(client,db,turma,student_headers,admin_headers,apr,rep,tranc):
+    from decimal import Decimal
+    values={"taxa_aprovacao":apr,"taxa_reprovacao_nota":rep,"taxa_reprovacao_falta":"0","taxa_trancamento":tranc}
+    response=client.post(f"/turmas/{turma.id}/doacoes/upload",headers=student_headers,data={"semestre_referencia":turma.semestre,**values})
+    assert response.status_code == 201,response.text
+    for key,value in values.items(): assert Decimal(str(response.json()[key]))==Decimal(value)
+    queue=client.get("/moderacao/pizzas",headers=admin_headers).json()
+    item=next(item for group in queue["grupos_semestre"] for item in group["itens"] if item["id"]==response.json()["id"])
+    for key,value in values.items(): assert Decimal(str(item[key]))==Decimal(value)
+    decision=client.patch(f"/moderacao/pizzas/{item['id']}/decisao",headers=admin_headers,json={"status":"CONSOLIDADA"})
+    assert decision.status_code == 200,decision.text
+    db.expire_all()
+    official=db.query(EstatisticaConsolidada).filter_by(turma_id=turma.id,semestre_referencia=turma.semestre).one()
+    for key,value in values.items(): assert getattr(official,key)==Decimal(value)
