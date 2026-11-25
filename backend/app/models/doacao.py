@@ -70,7 +70,7 @@ class DoacaoEstatistica(Base):
             ") OR ("
             "taxa_aprovacao IS NOT NULL AND taxa_reprovacao_nota IS NOT NULL AND "
             "taxa_reprovacao_falta IS NOT NULL AND taxa_trancamento IS NOT NULL AND "
-            "(taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00"
+            "(taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) BETWEEN 99.80 AND 100.20"
             ")",
             name="chk_soma_taxas_cem",
         ),
