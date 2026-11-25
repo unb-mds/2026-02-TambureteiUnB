@@ -12,6 +12,7 @@ import Pagination from "@/components/Pagination";
 import { authService } from "@/services/authService";
 import OpenDataExportBar from "@/components/OpenDataExportBar";
 import CatalogYearFilter from "@/components/CatalogYearFilter";
+import InstitutionalMetrics from "@/components/InstitutionalMetrics";
 import { getCourses } from "@/services/courseService";
 import { exportCoursesOpenData } from "@/services/openDataService";
 import {
@@ -75,6 +76,12 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#F7F7FA] flex flex-col font-sans">
+      {/* Link de Salto de Navegacao para Teclado (WCAG 2.4.1) */}
+      <a
+        href="#catalogo"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[#5B4BDB] focus:text-white focus:font-semibold focus:rounded-xl focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#5B4BDB]"
+      >Pular para o conteúdo principal</a>
+
       {/* Barra de Navegação */}
       <Navbar />
 
@@ -97,99 +104,120 @@ export default function HomePage() {
               <span className="text-[#5B4BDB]">UnB</span>
             </h1>
 
-            <p className="mt-4 text-base sm:text-lg text-gray-600 leading-relaxed">
+            <p className="mt-4 text-base sm:text-lg text-gray-700 leading-relaxed font-normal">
               Consulte ementas, taxas históricas de aprovação e reprovação, dicas de estudo
               e resumos compartilhados pelos próprios estudantes dos 4 campi.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <a href="#catalogo">
+              <a href="#catalogo" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B4BDB] focus-visible:ring-offset-2 rounded-xl">
                 <Button variant="primary" size="lg" className="shadow-md">
                   Explorar Cursos
                 </Button>
               </a>
-              <Link href="/disciplinas">
+              <Link href="/disciplinas" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B4BDB] focus-visible:ring-offset-2 rounded-xl">
                 <Button variant="outline" size="lg" className="border-[#5B4BDB] text-[#5B4BDB] hover:bg-[#5B4BDB]/5">
                   Explorar Disciplinas
                 </Button>
               </Link>
               {!isLoggedIn && (
-                <Link href="/login">
-                  <Button variant="ghost" size="lg">
+                <Link href="/login" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B4BDB] focus-visible:ring-offset-2 rounded-xl">
+                  <Button variant="ghost" size="lg" className="text-gray-700 hover:text-[#5B4BDB]">
                     Entrar na Comunidade
                   </Button>
                 </Link>
               )}
             </div>
           </div>
+
+          <div
+            className="absolute -right-12 -bottom-12 w-96 h-96 bg-[#5B4BDB]/5 rounded-full blur-3xl pointer-events-none"
+            aria-hidden="true"
+          />
         </section>
 
-        {/* Seção Catálogo com Busca em Tempo Real e Filtros de Campus */}
-        <section id="catalogo" className="scroll-mt-20">
-          <div className="mb-6">
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#5B4BDB] uppercase tracking-wider mb-1">
-              <span>Matrizes Curriculares</span>
-              <span>•</span>
-              <span>FCTE, Darcy Ribeiro, FCE e FUP</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#202124]">
-              Catálogo de Cursos
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Pesquise pelo nome do curso e filtre por campus para encontrar as disciplinas e dados acadêmicos.
-            </p>
-          </div>
+        {/* Metricas Consolidadas da UnB (Panorama Institucional) */}
+        <InstitutionalMetrics />
 
-          {/* Barra de Pesquisa e Filtros */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8E6F8] shadow-xs mb-8 flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center">
-            {/* Campo de Busca em Tempo Real */}
-            <div className="relative flex-1 max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
+        {/* Seção Catálogo de Cursos */}
+        <section
+          id="catalogo"
+          aria-labelledby="catalogo-heading"
+          className="bg-white rounded-3xl border border-[#E8E6F8] p-6 sm:p-8 shadow-xs flex flex-col gap-6"
+        >
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#F7F7FA] pb-6">
+            <div>
+              <span className="text-xs font-bold text-[#5B4BDB] uppercase tracking-wider">
+                Catálogo Geral
+              </span>
+              <h2
+                id="catalogo-heading"
+                className="text-2xl sm:text-3xl font-bold text-[#202124] tracking-tight mt-1"
+              >
+                Cursos de Graduação
+              </h2>
+              <p className="text-sm text-gray-700 mt-1">
+                Selecione seu curso para ver o fluxo curricular e os índices de cada matéria
+              </p>
+            </div>
+
+            {/* Barra de Busca com Semantica e Acessibilidade (WCAG 4.1.3 / Form Semantics) */}
+            <form
+              role="search"
+              aria-label="Buscar curso de graduação"
+              onSubmit={(e) => e.preventDefault()}
+              className="relative w-full md:w-80"
+            >
+              <label htmlFor="campo-busca-cursos" className="sr-only">
+                Buscar curso por nome ou departamento
+              </label>
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-600" aria-hidden="true">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
               <input
+                id="campo-busca-cursos"
                 type="search"
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Buscar curso por nome ou departamento..."
-                aria-label="Buscar curso por nome ou departamento"
-                className="w-full pl-10 pr-4 py-2.5 bg-[#F7F7FA] border border-[#E8E6F8] rounded-xl text-sm text-[#202124] placeholder-gray-400 focus:bg-white focus:border-[#5B4BDB] focus:ring-4 focus:ring-[#5B4BDB]/15 transition-all outline-none"
+                placeholder="Buscar curso (ex: Software)..."
+                className="w-full pl-10 pr-9 py-2.5 bg-[#F7F7FA] border border-[#E8E6F8] rounded-xl text-sm text-[#202124] placeholder-gray-600 focus:outline-none focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/20 focus-visible:ring-2 focus-visible:ring-[#5B4BDB] transition-all"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => handleSearchChange("")}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                  aria-label="Limpar busca"
+                  aria-label="Limpar termo de busca"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B4BDB] rounded-lg"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               )}
-            </div>
+            </form>
+          </div>
 
-            {/* Filtro por Campus */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+          {/* Filtros de Campus da UnB com Navegacao Acessivel */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div
+              role="group"
+              aria-label="Filtrar cursos por campus da UnB"
+              className="flex items-center gap-1.5 overflow-x-auto pb-2 sm:pb-0 scrollbar-none"
+            >
               {CAMPUS_LIST.map((campus) => {
                 const active = selectedCampus === campus;
                 return (
                   <button
                     key={campus}
                     type="button"
-                    aria-pressed={active}
                     onClick={() => handleCampusChange(campus)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                    aria-pressed={active}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B4BDB] focus-visible:ring-offset-2 ${
                       active
                         ? "bg-[#5B4BDB] text-white shadow-xs"
-                        : "bg-[#F7F7FA] text-gray-600 border border-[#E8E6F8] hover:border-[#5B4BDB]/40 hover:text-[#5B4BDB]"
+                        : "bg-[#F7F7FA] text-gray-700 hover:bg-[#EDE9FD] hover:text-[#5B4BDB]"
                     }`}
                   >
                     {campus}
@@ -197,11 +225,14 @@ export default function HomePage() {
                 );
               })}
             </div>
-          </div>
 
-          {/* Contador de Resultados */}
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-xs text-gray-500 font-medium">
+            {/* Regiao viva para leitor de tela nos resultados da busca (WCAG 4.1.3) */}
+            <p
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className="text-xs text-gray-700 shrink-0"
+            >
               Exibindo <span className="font-bold text-[#202124]">{filteredCourses.length}</span> cursos{" "}
               {selectedCampus !== "Todos" && (
                 <>
@@ -218,7 +249,7 @@ export default function HomePage() {
                   handleCampusChange("Todos");
                   handleYearChange("all");
                 }}
-                className="text-xs text-[#5B4BDB] hover:text-[#4F3EC9] font-semibold hover:underline"
+                className="text-xs text-[#5B4BDB] hover:text-[#4F3EC9] font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B4BDB] rounded-md px-1"
               >
                 Redefinir filtros
               </button>
@@ -295,7 +326,7 @@ export default function HomePage() {
             /* Estado Vazio */
             <div className="bg-white rounded-3xl border border-[#E8E6F8] p-12 text-center max-w-md mx-auto">
               <div className="h-12 w-12 rounded-2xl bg-[#5B4BDB]/10 text-[#5B4BDB] flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -307,7 +338,7 @@ export default function HomePage() {
               <h3 className="text-base font-bold text-[#202124]">
                 Nenhum curso encontrado
               </h3>
-              <p className="text-xs text-gray-500 mt-1 mb-6">
+              <p className="text-xs text-gray-700 mt-1 mb-6">
                 Não encontramos cursos para os critérios pesquisados. Tente ajustar o nome ou selecionar outro campus.
               </p>
               <Button
