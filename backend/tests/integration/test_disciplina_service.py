@@ -258,3 +258,60 @@ class TestCatalogoCadeiras:
         assert len(item["metricas"]) == 1
         assert item["metricas"][0]["ano"] == 2023
         assert item["metricas"][0]["trancamentos"] == 3
+
+    def test_listar_cadeiras_ordena_pizza_depois_historico_depois_sem_dados(self, client, db):
+        from app.models.estatistica_consolidada import EstatisticaConsolidada
+        from app.models.metrica import MetricaConsolidada
+        from app.models.turma import Turma
+
+        d_sem_dados = _criar_disciplina(db, "ORD001", "alfa-sem-dados", "Alfa Sem Dados", "ORDTEST")
+        d_historico = _criar_disciplina(db, "ORD002", "beta-historico", "Beta Histórico", "ORDTEST")
+        d_pizza = _criar_disciplina(db, "ORD003", "zebra-pizza", "Zebra Pizza", "ORDTEST")
+
+        db.add(
+            MetricaConsolidada(
+                disciplina_id=d_historico.id,
+                matriculados=2,
+                aprovados=0,
+                reprovados_nota=0,
+                reprovados_falta=0,
+                trancamentos=0,
+                taxa_aprovacao_acumulada=None,
+                total_turmas_suprimidas=1,
+            )
+        )
+        turma_pizza = Turma(
+            disciplina_id=d_pizza.id,
+            codigo_turma="01",
+            semestre="2025.1",
+            matriculados=50,
+        )
+        db.add(turma_pizza)
+        db.flush()
+        db.add(
+            EstatisticaConsolidada(
+                turma_id=turma_pizza.id,
+                disciplina_id=d_pizza.id,
+                semestre_referencia="2025.1",
+                taxa_aprovacao=80,
+                taxa_reprovacao_nota=10,
+                taxa_reprovacao_falta=5,
+                taxa_trancamento=5,
+                total_amostras=5,
+                origem="DOACAO_QUORUM",
+                amostragem_suprimida_lgpd=False,
+            )
+        )
+        db.commit()
+
+        resp = client.get("/cadeiras?departamento=ORDTEST")
+        assert resp.status_code == 200
+        itens = resp.json()
+        assert [i["codigo"] for i in itens] == ["ORD003", "ORD002", "ORD001"]
+        assert itens[0]["possui_dados_pizza"] is True
+        assert itens[1]["possui_dados_pizza"] is False
+        assert itens[2]["possui_dados_pizza"] is False
+
+        resp_cat = client.get("/catalogo/cadeiras?departamento=ORDTEST")
+        assert resp_cat.status_code == 200
+        assert [i["codigo"] for i in resp_cat.json()["items"]] == ["ORD003", "ORD002", "ORD001"]

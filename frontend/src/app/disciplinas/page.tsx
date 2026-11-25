@@ -52,7 +52,7 @@ function DisciplinasContent() {
   );
   const [area, setArea] = useState("Todas");
   const [selectedYear, setSelectedYear] = useState<CatalogYearSelection>("all");
-  const [sort, setSort] = useState<DisciplineSortOption>("name_asc");
+  const [sort, setSort] = useState<DisciplineSortOption>("data_priority");
   const [onlyWithClasses, setOnlyWithClasses] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -151,7 +151,7 @@ function DisciplinasContent() {
     setDepartment("Todos os Departamentos");
     setArea("Todas");
     setSelectedYear("all");
-    setSort("name_asc");
+    setSort("data_priority");
     setOnlyWithClasses(true);
     setCurrentPage(1);
   };
