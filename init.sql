@@ -165,24 +165,15 @@ CREATE TABLE IF NOT EXISTS doacoes_estatisticas (
     turma_id INT NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
     usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
     semestre_referencia VARCHAR(10) NOT NULL, -- Ex: '2026.1'
-    taxa_aprovacao NUMERIC(5, 2) CONSTRAINT chk_taxa_aprovacao CHECK (taxa_aprovacao IS NULL OR (taxa_aprovacao >= 0 AND taxa_aprovacao <= 100)),
-    taxa_reprovacao_nota NUMERIC(5, 2) CONSTRAINT chk_taxa_reprov_nota CHECK (taxa_reprovacao_nota IS NULL OR (taxa_reprovacao_nota >= 0 AND taxa_reprovacao_nota <= 100)),
-    taxa_reprovacao_falta NUMERIC(5, 2) CONSTRAINT chk_taxa_reprov_falta CHECK (taxa_reprovacao_falta IS NULL OR (taxa_reprovacao_falta >= 0 AND taxa_reprovacao_falta <= 100)),
-    taxa_trancamento NUMERIC(5, 2) CONSTRAINT chk_taxa_trancamento CHECK (taxa_trancamento IS NULL OR (taxa_trancamento >= 0 AND taxa_trancamento <= 100)),
+    taxa_aprovacao NUMERIC(5, 2) NOT NULL CONSTRAINT chk_taxa_aprovacao CHECK (taxa_aprovacao >= 0 AND taxa_aprovacao <= 100),
+    taxa_reprovacao_nota NUMERIC(5, 2) NOT NULL CONSTRAINT chk_taxa_reprov_nota CHECK (taxa_reprovacao_nota >= 0 AND taxa_reprovacao_nota <= 100),
+    taxa_reprovacao_falta NUMERIC(5, 2) NOT NULL CONSTRAINT chk_taxa_reprov_falta CHECK (taxa_reprovacao_falta >= 0 AND taxa_reprovacao_falta <= 100),
+    taxa_trancamento NUMERIC(5, 2) NOT NULL CONSTRAINT chk_taxa_trancamento CHECK (taxa_trancamento >= 0 AND taxa_trancamento <= 100),
     status VARCHAR(20) NOT NULL DEFAULT 'PENDENTE' CHECK (status IN ('PENDENTE', 'CONSOLIDADA', 'DESCARTADA')),
-    tipo_envio VARCHAR(10) NOT NULL DEFAULT 'TEXTO' CONSTRAINT chk_tipo_envio_doacao CHECK (tipo_envio IN ('TEXTO', 'IMAGEM')),
-    imagem_chave VARCHAR(255),
-    imagem_nome_original VARCHAR(255),
-    imagem_tamanho_bytes INTEGER,
-    imagem_mime_type VARCHAR(100),
-    moderado_por_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-    moderado_em TIMESTAMPTZ,
-    justificativa_moderacao TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_usuario_turma_semestre_doacao UNIQUE (usuario_id, turma_id, semestre_referencia),
     CONSTRAINT chk_soma_taxas_cem CHECK (
-        (tipo_envio = 'IMAGEM' AND imagem_chave IS NOT NULL AND taxa_aprovacao IS NULL AND taxa_reprovacao_nota IS NULL AND taxa_reprovacao_falta IS NULL AND taxa_trancamento IS NULL) OR
-        (taxa_aprovacao IS NOT NULL AND taxa_reprovacao_nota IS NOT NULL AND taxa_reprovacao_falta IS NOT NULL AND taxa_trancamento IS NOT NULL AND (taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00)
+        (taxa_aprovacao + taxa_reprovacao_nota + taxa_reprovacao_falta + taxa_trancamento) = 100.00
     )
 );
 
