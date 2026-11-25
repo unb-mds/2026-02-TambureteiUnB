@@ -29,6 +29,9 @@ export interface ClassFiltersProps {
   onSearchChange?: (value: string) => void;
   onlyWithData?: boolean;
   onOnlyWithDataChange?: (only: boolean) => void;
+  periodosDisponiveis?: string[];
+  periodoSelecionado?: string;
+  aoAlterarPeriodo?: (periodo: string) => void;
 }
 
 export default function ClassFilters({
@@ -43,12 +46,16 @@ export default function ClassFilters({
   onSearchChange,
   onlyWithData = false,
   onOnlyWithDataChange,
+  periodosDisponiveis = [],
+  periodoSelecionado = "Todos",
+  aoAlterarPeriodo,
 }: ClassFiltersProps) {
   const hasActiveFilter =
     selectedShift !== "Todos" ||
     sortBy !== "code_asc" ||
     searchQuery.trim().length > 0 ||
-    onlyWithData;
+    onlyWithData ||
+    periodoSelecionado !== "Todos";
 
   return (
     <div
@@ -56,31 +63,74 @@ export default function ClassFilters({
       role="region"
       aria-label="Filtros e ordenação de turmas"
     >
-      {/* Linha superior: Busca por professor/turma */}
-      {onSearchChange && (
-        <div className="relative w-full max-w-lg">
-          <svg
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Buscar por professor, turma ou semestre..."
-            aria-label="Buscar turma por professor, código ou semestre"
-            className="w-full rounded-xl border border-[#DDD9F1] bg-white py-2 pl-9 pr-3 text-xs font-medium text-[#202124] placeholder-gray-400 outline-none transition-colors focus:border-[#5B4BDB]"
-          />
+      {/* Linha superior: Busca por professor/turma e Filtro por Período */}
+      {(onSearchChange || (aoAlterarPeriodo && periodosDisponiveis.length > 0)) && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {onSearchChange && (
+            <div className="relative w-full max-w-lg">
+              <svg
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Buscar por professor, turma ou semestre..."
+                aria-label="Buscar turma por professor, código ou semestre"
+                className="w-full rounded-xl border border-[#DDD9F1] bg-white py-2 pl-9 pr-3 text-xs font-medium text-[#202124] placeholder-gray-400 outline-none transition-colors focus:border-[#5B4BDB]"
+              />
+            </div>
+          )}
+
+          {aoAlterarPeriodo && periodosDisponiveis.length > 0 && (
+            <label className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">
+                Período:
+              </span>
+              <div className="relative w-44 sm:w-48">
+                <select
+                  value={periodoSelecionado}
+                  onChange={(event) => aoAlterarPeriodo(event.target.value)}
+                  aria-label="Filtrar turmas por período"
+                  className="w-full appearance-none rounded-xl border border-[#DDD9F1] bg-white px-3.5 py-2 pr-8 text-xs font-semibold text-[#202124] outline-none transition-colors focus:border-[#5B4BDB] cursor-pointer"
+                >
+                  <option value="Todos">Todos os períodos</option>
+                  {periodosDisponiveis.map((periodo) => (
+                    <option key={periodo} value={periodo}>
+                      {periodo}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 6l4 4 4-4"
+                    stroke="#6B7280"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </label>
+          )}
         </div>
       )}
 

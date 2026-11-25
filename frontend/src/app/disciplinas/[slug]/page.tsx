@@ -5,6 +5,7 @@ import { normalizeSearchTerm } from "@/utils/search";
 import ComentariosFrontend from "@/components/ComentariosFrontend";
 import DificuldadesPanel from "@/components/DificuldadesPanel";
 import MateriaisApoio from "@/components/MateriaisApoio";
+import PreRequisitosSection from "@/components/PreRequisitosSection";
 
 import React, {
   useState,
@@ -103,6 +104,9 @@ function DisciplineDetailContent() {
   const [selectedShift, setSelectedShift] = useState<ClassShiftFilter>(() =>
     parseInitialShift(searchParams.get("turno"))
   );
+  const [periodoSelecionado, setPeriodoSelecionado] = useState<string>(
+    () => searchParams.get("semestre") || "Todos"
+  );
   const [sortBy, setSortBy] = useState<ClassSortOption>(() =>
     parseInitialSort(searchParams.get("ordem"))
   );
@@ -127,7 +131,11 @@ function DisciplineDetailContent() {
   }, [authenticated]);
 
   const syncUrlParams = useCallback(
-    (nextShift: ClassShiftFilter, nextSort: ClassSortOption) => {
+    (
+      nextShift: ClassShiftFilter,
+      nextSort: ClassSortOption,
+      proximoPeriodo: string
+    ) => {
       const current = new URLSearchParams(searchParams.toString());
       if (nextShift === "Todos") {
         current.delete("turno");
@@ -141,6 +149,12 @@ function DisciplineDetailContent() {
         current.set("ordem", nextSort);
       }
 
+      if (proximoPeriodo === "Todos") {
+        current.delete("semestre");
+      } else {
+        current.set("semestre", proximoPeriodo);
+      }
+
       const queryString = current.toString();
       const targetUrl = queryString ? `${pathname}?${queryString}` : pathname;
       router.replace(targetUrl, { scroll: false });
@@ -152,18 +166,27 @@ function DisciplineDetailContent() {
     (shift: ClassShiftFilter) => {
       setSelectedShift(shift);
       setClassPage(1);
-      syncUrlParams(shift, sortBy);
+      syncUrlParams(shift, sortBy, periodoSelecionado);
     },
-    [sortBy, syncUrlParams]
+    [sortBy, periodoSelecionado, syncUrlParams]
+  );
+
+  const aoAlterarPeriodo = useCallback(
+    (periodo: string) => {
+      setPeriodoSelecionado(periodo);
+      setClassPage(1);
+      syncUrlParams(selectedShift, sortBy, periodo);
+    },
+    [selectedShift, sortBy, syncUrlParams]
   );
 
   const handleSortChange = useCallback(
     (sort: ClassSortOption) => {
       setSortBy(sort);
       setClassPage(1);
-      syncUrlParams(selectedShift, sort);
+      syncUrlParams(selectedShift, sort, periodoSelecionado);
     },
-    [selectedShift, syncUrlParams]
+    [selectedShift, periodoSelecionado, syncUrlParams]
   );
 
   const [classSearchQuery, setClassSearchQuery] = useState("");
@@ -171,11 +194,12 @@ function DisciplineDetailContent() {
 
   const handleResetClassFilters = useCallback(() => {
     setSelectedShift("Todos");
+    setPeriodoSelecionado("Todos");
     setSortBy("code_asc");
     setClassSearchQuery("");
     setOnlyClassesWithData(false);
     setClassPage(1);
-    syncUrlParams("Todos", "code_asc");
+    syncUrlParams("Todos", "code_asc", "Todos");
   }, [syncUrlParams]);
 
   const handleRetryDiscipline = useCallback(() => {
@@ -297,10 +321,31 @@ function DisciplineDetailContent() {
     };
   }, [discipline, slug, simulateClassesError, classesRetryCount]);
 
-  // Filtragem por turno, busca por professor/turma/semestre, dados e ordenação reativa
+  const periodosDisponiveis = useMemo(() => {
+    const unicos = new Set<string>();
+    for (const item of classes) {
+      const sem = (item.semestre || "").trim();
+      if (sem) unicos.add(sem);
+    }
+    return Array.from(unicos).sort((a, b) =>
+      b.localeCompare(a, "pt-BR", { numeric: true })
+    );
+  }, [classes]);
+
+  const periodoAtivo =
+    periodoSelecionado === "Todos" ||
+    periodosDisponiveis.includes(periodoSelecionado)
+      ? periodoSelecionado
+      : "Todos";
+
+  // Filtragem por período, turno, busca por professor/turma/semestre, dados e ordenação reativa
   const filteredAndSortedClasses = useMemo(() => {
     const qNorm = normalizeSearchTerm(classSearchQuery);
     const filtered = classes.filter((item) => {
+      if (periodoAtivo !== "Todos") {
+        if ((item.semestre || "").trim() !== periodoAtivo) return false;
+      }
+
       if (selectedShift !== "Todos") {
         const normalized = normalizeClassShift(item.turno, item.horarios);
         if (normalized !== selectedShift) return false;
@@ -332,12 +377,25 @@ function DisciplineDetailContent() {
       if (sortBy === "occupancy_asc" || sortBy === "occupancy_desc") {
         return compareClassOccupancy(a, b, sortBy);
       }
+      const semCompare = (b.semestre || "").localeCompare(
+        a.semestre || "",
+        "pt-BR",
+        { numeric: true }
+      );
+      if (semCompare !== 0) return semCompare;
       return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
         numeric: true,
         sensitivity: "base",
       });
     });
-  }, [classes, selectedShift, sortBy, classSearchQuery, onlyClassesWithData]);
+  }, [
+    classes,
+    periodoAtivo,
+    selectedShift,
+    sortBy,
+    classSearchQuery,
+    onlyClassesWithData,
+  ]);
 
   const paginatedClasses = paginateClasses(filteredAndSortedClasses, classPage);
 
@@ -726,44 +784,28 @@ function DisciplineDetailContent() {
                 </p>
 
                     
-                {(discipline.preRequisitos || discipline.equivalencias) && (
-                  <div className="mt-6 pt-5 border-t border-gray-100 flex flex-col gap-3">
-                    {discipline.preRequisitos &&
-                      discipline.preRequisitos.length > 0 && (
-                        <div>
-                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
-                            Pré-requisitos:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {discipline.preRequisitos.map((req) => (
-                              <span
-                                key={req}
-                                className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
-                              >
-                                {req}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    {discipline.equivalencias &&
-                      discipline.equivalencias.length > 0 && (
-                        <div>
-                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
-                            Equivalências:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {discipline.equivalencias.map((eq) => (
-                              <span
-                                key={eq}
-                                className="rounded-md bg-purple-50 px-2 py-0.5 text-xs text-purple-700"
-                              >
-                                {eq}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                {/* Seção dedicada e navegável de Pré-requisitos (Issue #286) */}
+                <PreRequisitosSection
+                  preRequisitosItens={discipline.preRequisitosItens}
+                  preRequisitosStrings={discipline.preRequisitos}
+                  coRequisitos={discipline.coRequisitos}
+                />
+
+                {discipline.equivalencias && discipline.equivalencias.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                      Equivalências:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {discipline.equivalencias.map((eq) => (
+                        <span
+                          key={eq}
+                          className="rounded-md bg-purple-50 px-2 py-0.5 text-xs text-purple-700"
+                        >
+                          {eq}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -960,6 +1002,9 @@ function DisciplineDetailContent() {
                     setOnlyClassesWithData(only);
                     setClassPage(1);
                   }}
+                  periodosDisponiveis={periodosDisponiveis}
+                  periodoSelecionado={periodoAtivo}
+                  aoAlterarPeriodo={aoAlterarPeriodo}
                 />
 
                 {filteredAndSortedClasses.length > 0 ? (

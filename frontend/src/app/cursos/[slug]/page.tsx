@@ -16,6 +16,7 @@ import ApprovalBadge from "@/components/ApprovalBadge";
 import useDisciplineApprovalMetrics from "@/hooks/useDisciplineApprovalMetrics";
 import { normalizeSearchTerm } from "@/utils/search";
 import { calculateCourseSemesters, generateSemesterFilters } from "@/utils/courseCatalog";
+import { getOfficialCurriculumUrl } from "@/utils/courseCurriculum";
 
 const ITEMS_PER_PAGE = 24;
 
@@ -348,21 +349,41 @@ export default function CourseDisciplinesPage() {
                 </div>
               </div>
 
-              <Link
-                href="/cursos"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#5B4BDB] bg-white px-5 py-2.5 text-sm font-semibold text-[#5B4BDB] transition-colors hover:bg-[#5B4BDB]/5 self-start md:self-auto"
-              >
-                <svg width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
-                  <path
-                    d="M3 5.5h11M5.5 3L3 5.5 5.5 8M14 11.5H3M11.5 9L14 11.5 11.5 14"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Trocar de curso
-              </Link>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 self-start md:self-auto">
+                <a
+                  href={getOfficialCurriculumUrl(course)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#5B4BDB] text-white px-4 py-2.5 text-sm font-semibold shadow-xs hover:bg-[#4a3cb8] transition-colors"
+                  aria-label={`Abrir Grade Curricular Oficial da UnB do curso ${course.nome} em nova aba`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                  <span>Grade Curricular Oficial da UnB</span>
+                </a>
+
+                <Link
+                  href="/cursos"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#5B4BDB] bg-white px-5 py-2.5 text-sm font-semibold text-[#5B4BDB] transition-colors hover:bg-[#5B4BDB]/5"
+                >
+                  <svg width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+                    <path
+                      d="M3 5.5h11M5.5 3L3 5.5 5.5 8M14 11.5H3M11.5 9L14 11.5 11.5 14"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Trocar de curso
+                </Link>
+              </div>
             </div>
 
             <PasAdmissionCard course={course} expanded />
@@ -660,9 +681,18 @@ export default function CourseDisciplinesPage() {
                 {paginatedDisciplines.map((discipline) => (
                   <article
                     key={discipline.code}
-                    className="group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#EDE9FD] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all"
+                    className="relative group flex flex-col justify-between rounded-2xl bg-white p-5 sm:p-6 border border-[#EDE9FD] shadow-xs hover:shadow-md hover:border-[#5B4BDB]/40 hover:-translate-y-0.5 transition-all cursor-pointer focus-within:ring-2 focus-within:ring-[#5B4BDB] focus-within:ring-offset-2"
                   >
-                    <div>
+                    {/* Link overlay cobrindo todo o retangulo da disciplina */}
+                    <Link
+                      href={`/disciplinas/${discipline.slug}`}
+                      className="absolute inset-0 z-30 rounded-2xl focus:outline-hidden"
+                      aria-label={`Ver disciplina ${discipline.name}`}
+                    >
+                      <span className="sr-only">Ver disciplina {discipline.name}</span>
+                    </Link>
+
+                    <div className="pointer-events-none">
                       {/* Código e Taxa de Aprovação */}
                       <div className="mb-4 flex items-start justify-between gap-2">
                         <span className="rounded-lg bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold tracking-wide text-[#5B4BDB]">
@@ -707,14 +737,11 @@ export default function CourseDisciplinesPage() {
                     </div>
 
                     {/* Ação: Ver Disciplina */}
-                    <div className="mt-5 border-t border-[#EDE9FD] pt-4">
-                      <Link
-                        href={`/disciplinas/${discipline.slug}`}
-                        className="flex w-full items-center justify-between text-xs sm:text-sm font-bold text-[#5B4BDB] group-hover:translate-x-0.5 transition-all"
-                      >
+                    <div className="mt-5 border-t border-[#EDE9FD] pt-4 pointer-events-none">
+                      <div className="flex w-full items-center justify-between text-xs sm:text-sm font-bold text-[#5B4BDB] group-hover:translate-x-0.5 transition-all">
                         <span>Ver disciplina</span>
                         <span aria-hidden="true">→</span>
-                      </Link>
+                      </div>
                     </div>
                   </article>
                 ))}

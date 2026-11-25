@@ -32,6 +32,7 @@ export interface Course {
   total_creditos?: number | null;
   area_geral?: string;
   area_especifica?: string;
+  link_grade_oficial?: string | null;
   metricas_2024?: CourseMetrics | null;
   metricas_recentes?: CourseMetrics | null;
   metricas_historicas?: CourseMetrics[];
@@ -56,6 +57,7 @@ export interface CourseDetail extends Course {
   total_creditos?: number | null;
   area_geral?: string;
   area_especifica?: string;
+  link_grade_oficial?: string | null;
   metricas_2024?: CourseMetrics | null;
   metricas_recentes?: CourseMetrics | null;
   metricas_historicas?: CourseMetrics[];
