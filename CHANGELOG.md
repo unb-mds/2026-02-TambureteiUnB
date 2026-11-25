@@ -4,15 +4,19 @@ Todas as mudanças notáveis documentadas por release do projeto **Tamburetei Un
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o versionamento adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
-## [Não Lançado] — Fechamento R2 e Deploy em Produção
+## [Release-2] - 2026-11-24
+
+Detalhes completos em [docs/releases/Release-2.md](docs/releases/Release-2.md).
 
 ### Adicionado
-- Implantação em produção em **[tambureteiunb.com.br](https://tambureteiunb.com.br/)** e `https://api.tambureteiunb.com.br` com `docker-compose.prod.yml`, proxy reverso `Caddy`, borda `Cloudflare` e *hardening* HTTP (`docs/engenharia/deploy.md`).
-- Documentação consolidada de fechamento em `docs/produto/relatorio_final.md` e relatório de qualidade com medições reais em `docs/qualidade/relatorio_qualidade.md`.
-- Templates de Issue (`.github/ISSUE_TEMPLATE/bug_report.md` e `user_story.md`) e política de segurança (`SECURITY.md`).
-
-### Quebras de Compatibilidade
-- Nenhuma quebra de compatibilidade nos contratos públicos da API REST até a `v0.11.0`. Em produção (`ENVIRONMENT=production`), a documentação interativa (`/docs`, `/redoc` e `/openapi.json`) é desativada intencionalmente e exige `SECRET_KEY` com ao menos 32 caracteres.
+- Implantação oficial em produção no domínio **[tambureteiunb.com.br](https://tambureteiunb.com.br/)** e `https://api.tambureteiunb.com.br` com Docker Compose, Caddy e Cloudflare.
+- Hub pedagógico completo por disciplina com gráficos de rosca e histogramas semestrais em barras empilhadas com proteção LGPD ($N \ge 5$).
+- Planejador semanal de horários (`/minha-grade`) com resolução de choques, gerador de combinações e exportação em PDF.
+- Ecossistema de doação colaborativa de turmas (via texto ou upload de imagem do gráfico de pizza do SIGAA) com triagem e esteira de moderação.
+- Seção Minha Graduação e importação segura do Histórico Escolar do SIGAA no perfil do estudante com cálculo de integralização.
+- Links oficiais homologados para a grade curricular do SIGAA em 161 cursos da UnB e pré-requisitos como links navegáveis.
+- Acessibilidade aprimorada (WCAG 2.1 AA) com bloco de métricas consolidadas da UnB, link de salto para teclado e busca semântica.
+- Documentação técnica de fechamento em `docs/produto/relatorio_final.md`, estratégia de deploy em `docs/engenharia/deploy.md` e novo README em conformidade com projetos de software livre.
 
 ---
 
