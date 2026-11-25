@@ -22,3 +22,13 @@ export interface TurmaCursadaVerificada {
   situacao: string;
   comprovado_pelo_historico: boolean;
 }
+
+export interface TurmaEstatisticaStatusItem {
+  codigo: string;
+  turma: string;
+  semestre: string;
+  turma_id: number | null;
+  ja_possui_pizza: boolean;
+  ja_possui_historico: boolean;
+  ja_enviada_usuario: boolean;
+}

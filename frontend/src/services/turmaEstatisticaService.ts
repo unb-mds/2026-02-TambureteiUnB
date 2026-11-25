@@ -1,7 +1,59 @@
 import { HistoricoImportacaoResponse } from "@/types/historico";
-import { TurmaCursadaVerificada } from "@/types/turmaEstatisticaSubmissao";
+import {
+  TurmaCursadaVerificada,
+  TurmaEstatisticaStatusItem,
+} from "@/types/turmaEstatisticaSubmissao";
+import { request } from "@/services/httpClient";
 
 export const STORAGE_TURMA_ESTATISTICAS_KEY = "tamburetei_turma_estatisticas_submissoes";
+
+export function normalizarCodigoTurma(turmaBruta: string | null | undefined): string {
+  const limpo = (turmaBruta ?? "").trim().toUpperCase();
+  if (!limpo || limpo === "-" || limpo === "--" || limpo === "---") {
+    return "";
+  }
+  if (/^\d+$/.test(limpo)) {
+    return limpo.padStart(2, "0").slice(0, 10);
+  }
+  return limpo.slice(0, 10);
+}
+
+export function buildTurmaStatusKey(
+  codigo: string,
+  turma: string,
+  semestre: string
+): string {
+  return `${codigo.trim().toUpperCase()}::${normalizarCodigoTurma(turma) || turma.trim().toUpperCase()}::${semestre.trim()}`;
+}
+
+export async function consultarStatusTurmasPizza(
+  turmas: TurmaCursadaVerificada[]
+): Promise<Record<string, TurmaEstatisticaStatusItem>> {
+  if (!turmas || turmas.length === 0) {
+    return {};
+  }
+
+  const resp = await request<{ itens: TurmaEstatisticaStatusItem[] }>(
+    "/perfil/turmas-estatisticas/status",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        itens: turmas.map((t) => ({
+          codigo: t.codigo,
+          turma: t.turma,
+          semestre: t.semestre,
+          professores: t.professores ?? [],
+        })),
+      }),
+    }
+  );
+
+  const mapa: Record<string, TurmaEstatisticaStatusItem> = {};
+  for (const item of resp?.itens ?? []) {
+    mapa[buildTurmaStatusKey(item.codigo, item.turma, item.semestre)] = item;
+  }
+  return mapa;
+}
 
 export function extrairTurmasCursadasDoHistorico(
   historico: HistoricoImportacaoResponse | null

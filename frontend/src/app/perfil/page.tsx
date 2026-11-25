@@ -268,7 +268,7 @@ function ProfilePageContent() {
                   }
                   setIsTurmaModalOpen(true);
                 }}
-                className="rounded-xl bg-[#EDE9FD] border border-[#5B4BDB]/30 px-3.5 py-2.5 text-sm font-semibold text-[#5B4BDB] transition-colors hover:bg-[#E0DAFC]"
+                className="rounded-xl bg-[var(--primary-soft)] border border-[var(--border-subtle)] px-3.5 py-2.5 text-sm font-semibold text-[var(--primary-text)] transition-colors hover:opacity-90"
               >
                 Enviar Gráfico de Pizza da Turma
               </button>

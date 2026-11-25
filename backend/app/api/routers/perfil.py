@@ -2,10 +2,15 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.api.schemas.historico import HistoricoImportacaoResponse
+from app.api.schemas.historico import (
+    HistoricoImportacaoResponse,
+    TurmasStatusConsultaRequest,
+    TurmasStatusConsultaResponse,
+)
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.usuario import Usuario
+from app.services.doacao_service import doacao_service
 from app.services.historico_importacao_service import historico_importacao_service
 from app.services.historico_parser_service import HistoricoParserError
 
@@ -48,3 +53,19 @@ async def importar_historico_sigaa(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from exc
+
+
+@router.post("/turmas-estatisticas/status", response_model=TurmasStatusConsultaResponse)
+def consultar_status_turmas_estatisticas(
+    payload: TurmasStatusConsultaRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    """
+    Informa quais turmas cursadas no histórico do estudante já possuem estatística
+    consolidada via gráfico de pizza (DOACAO_QUORUM) ou histórico, além de resolver o turma_id.
+    """
+    itens = doacao_service.consultar_status_turmas_usuario(
+        db, current_user.id, payload.itens
+    )
+    return TurmasStatusConsultaResponse(itens=itens)

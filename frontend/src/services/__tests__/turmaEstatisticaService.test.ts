@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import {
+  buildTurmaStatusKey,
   extrairTurmasCursadasDoHistorico,
+  normalizarCodigoTurma,
   validarVinculoEstudanteTurma,
 } from "../turmaEstatisticaService";
 import { HistoricoImportacaoResponse } from "@/types/historico";
@@ -73,4 +77,33 @@ test("validarVinculoEstudanteTurma exige comprovacao previa de matricula pelo hi
   const semHistorico = validarVinculoEstudanteTurma([], "MAT0025", "T27", "2025.2");
   assert.equal(semHistorico.valido, false);
   assert.match(semHistorico.motivo!, /Nenhum histórico oficial do SIGAA foi importado/);
+});
+
+test("normalizarCodigoTurma e buildTurmaStatusKey alinham turmas numericas com o backend", () => {
+  assert.equal(normalizarCodigoTurma("1"), "01");
+  assert.equal(normalizarCodigoTurma("11"), "11");
+  assert.equal(normalizarCodigoTurma("a"), "A");
+  assert.equal(normalizarCodigoTurma("--"), "");
+
+  assert.equal(
+    buildTurmaStatusKey("cic0004", "1", "2024.2"),
+    buildTurmaStatusKey("CIC0004", "01", "2024.2")
+  );
+});
+
+test("TurmaEstatisticaModal bloqueia opcoes ja consolidadas e nao exige preenchimento manual de docente/turma", () => {
+  const modalPath = path.resolve(
+    process.cwd(),
+    "src/components/TurmaEstatisticaModal.tsx"
+  );
+  const source = fs.readFileSync(modalPath, "utf-8");
+
+  assert.doesNotMatch(source, /input-prof|input-turma-num/);
+  assert.match(source, /disabled=\{indisponivel\}/);
+  assert.match(source, /Indisponível \(já possui dados da pizza\)/);
+  assert.match(source, /Print do Gráfico do SIGAA \(Opcional\)/);
+  assert.match(source, /\/doacoes\/upload/);
+
+  const emojiRegex = /[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+  assert.equal(emojiRegex.test(source), false);
 });
