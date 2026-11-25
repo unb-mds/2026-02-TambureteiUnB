@@ -13,6 +13,8 @@ test("Footer exibe links de Entrar e Cadastrar para visitante nao autenticado", 
   assert.match(markup, /href="\/"/);
   assert.match(markup, /href="\/cursos"/);
   assert.match(markup, /href="\/disciplinas"/);
+  assert.match(markup, /href="https:\/\/github\.com\/unb-mds\/2026-02-TambureteiUnB"/);
+  assert.match(markup, /GitHub/);
   assert.match(markup, /href="\/login"[^>]*>Entrar</);
   assert.match(markup, /href="\/cadastro"[^>]*>Cadastrar</);
 });
