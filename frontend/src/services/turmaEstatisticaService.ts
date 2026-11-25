@@ -60,8 +60,6 @@ const SITUACOES_CONCLUIDAS_PIZZA = new Set([
   "REP",
   "REPF",
   "REPMF",
-  "TRANC",
-  "CANC",
 ]);
 
 export function extrairTurmasCursadasDoHistorico(
@@ -114,6 +112,10 @@ export function validarVinculoEstudanteTurma(
       t.turma.toUpperCase() === codigoTurma.trim().toUpperCase() &&
       t.semestre === semestre.trim()
   );
+
+  if (encontrada && (!encontrada.comprovado_pelo_historico || !SITUACOES_CONCLUIDAS_PIZZA.has(encontrada.situacao.trim().toUpperCase()))) {
+    return {valido:false, motivo:"Envie estatísticas apenas de turmas concluídas; trancamentos e cancelamentos não são elegíveis."};
+  }
 
   if (!encontrada) {
     return {

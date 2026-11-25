@@ -482,6 +482,21 @@ class HistoricoImportacaoService:
         disciplinas_afetadas: Dict[int, Set[Tuple[int, int]]] = {}
 
         for item in elegiveis:
+            # Registrar o vínculo de cada turma independe da deduplicação da amostra.
+            disciplina = disciplinas_por_codigo.get(item.codigo.upper())
+            if not disciplina:
+                if item.codigo not in nao_encontradas:
+                    nao_encontradas.append(item.codigo)
+                continue
+
+            cod_turma = _normalizar_codigo_turma(item.turma)
+            turma_id: Optional[int] = None
+            if cod_turma is not None:
+                turma = self._resolver_ou_criar_turma(
+                    db, disciplina, cod_turma, item.semestre, item.professores
+                )
+                turma_id = turma.id
+
             dedup_hash = _gerar_dedup_hash(extraido.matricula, item.codigo, item.semestre)
             if dedup_hash in hashes_na_sessao:
                 duplicadas += 1
@@ -496,24 +511,6 @@ class HistoricoImportacaoService:
                 hashes_na_sessao.add(dedup_hash)
                 duplicadas += 1
                 continue
-
-            disciplina = (
-                db.query(Disciplina)
-                .filter(func.upper(Disciplina.codigo) == item.codigo.upper())
-                .first()
-            )
-            if not disciplina:
-                if item.codigo not in nao_encontradas:
-                    nao_encontradas.append(item.codigo)
-                continue
-
-            cod_turma = _normalizar_codigo_turma(item.turma)
-            turma_id: Optional[int] = None
-            if cod_turma is not None:
-                turma = self._resolver_ou_criar_turma(
-                    db, disciplina, cod_turma, item.semestre, item.professores
-                )
-                turma_id = turma.id
 
             mencao = item.mencao if item.mencao in MENCOES_VALIDAS else None
             amostra = AmostraHistorico(
