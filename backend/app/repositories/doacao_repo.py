@@ -26,9 +26,18 @@ class DoacaoRepository(BaseRepository[DoacaoEstatistica]):
                 DoacaoEstatistica.usuario_id == usuario_id,
                 DoacaoEstatistica.turma_id == turma_id,
                 DoacaoEstatistica.semestre_referencia == semestre_referencia,
+                DoacaoEstatistica.status != "DESCARTADA",
             )
             .first()
         )
+
+    def tem_recusa(self, db: Session, usuario_id: UUID, turma_id: int, semestre: str) -> bool:
+        return db.query(DoacaoEstatistica.id).filter(
+            DoacaoEstatistica.usuario_id == usuario_id,
+            DoacaoEstatistica.turma_id == turma_id,
+            DoacaoEstatistica.semestre_referencia == semestre,
+            DoacaoEstatistica.status == "DESCARTADA",
+        ).first() is not None
 
     def get_by_turma(self, db: Session, turma_id: int) -> List[DoacaoEstatistica]:
         return (

@@ -450,3 +450,29 @@ def test_pizza_preserva_decimais_no_envio_fila_e_aprovacao(client,db,turma,stude
     db.expire_all()
     official=db.query(EstatisticaConsolidada).filter_by(turma_id=turma.id,semestre_referencia=turma.semestre).one()
     for key,value in values.items(): assert getattr(official,key)==Decimal(value)
+
+
+def test_reenvio_apos_recusa_preserva_auditoria(client, db, turma, student_headers, admin_headers):
+    from app.models.doacao import DoacaoEstatistica
+    payload = dict(semestre_referencia=turma.semestre, taxa_aprovacao='84.7', taxa_reprovacao_nota='12.5', taxa_reprovacao_falta='0', taxa_trancamento='2.8')
+    url = f"/turmas/{turma.id}/doacoes/upload"
+    first = client.post(url, headers=student_headers, data=payload)
+    assert first.status_code == 201
+    first_id = first.json()['id']
+    assert client.post(url, headers=student_headers, data=payload).status_code == 409
+    refused = client.patch(f"/moderacao/pizzas/{first_id}/decisao", headers=admin_headers, json={'status':'DESCARTADA', 'justificativa':'Valores incorretos.'})
+    assert refused.status_code == 200
+    consultation = client.post('/perfil/turmas-estatisticas/status', headers=student_headers, json={'itens':[{'codigo':turma.disciplina.codigo, 'turma':turma.codigo_turma, 'semestre':turma.semestre}]})
+    assert consultation.status_code == 200
+    assert consultation.json()['itens'][0]['ja_enviada_usuario'] is False
+    second = client.post(url, headers=student_headers, data=payload)
+    assert second.status_code == 201
+    assert second.json()['id'] != first_id
+    db.expire_all()
+    original = db.get(DoacaoEstatistica, first_id)
+    assert original.status == 'DESCARTADA'
+    assert original.justificativa_moderacao == 'Valores incorretos.'
+    assert original.moderado_em is not None
+    approved = client.patch(f"/moderacao/pizzas/{second.json()['id']}/decisao", headers=admin_headers, json={'status':'CONSOLIDADA'})
+    assert approved.status_code == 200
+    assert client.post(url, headers=student_headers, data=payload).status_code == 409
