@@ -13,7 +13,7 @@ Plataforma aberta e colaborativa de inteligência acadêmica para análise de in
 ## 1. Status do Projeto e Badges
 
 [![CI](https://github.com/unb-mds/2026-02-TambureteiUnB/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/unb-mds/2026-02-TambureteiUnB/actions/workflows/ci.yml)
-[![Deploy](https://img.shields.io/badge/Deploy-tambureteiunb.com.br-2ECC71?style=flat&logo=vercel&logoColor=white)](https://tambureteiunb.com.br/disciplinas)
+[![Deploy](https://img.shields.io/badge/Deploy-tambureteiunb.com.br-2ECC71?style=flat&logo=cloudflare&logoColor=white)](https://tambureteiunb.com.br/)
 [![Docs](https://img.shields.io/badge/Docs-Portal_MkDocs-6C5CE7?style=flat&logo=materialformkdocs&logoColor=white)](https://unb-mds.github.io/2026-02-TambureteiUnB/)
 [![Licença MIT](https://img.shields.io/badge/Licença-MIT-9385F7?style=flat)](LICENSE)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Python_3.12-009688?style=flat&logo=fastapi&logoColor=white)
@@ -21,7 +21,7 @@ Plataforma aberta e colaborativa de inteligência acadêmica para análise de in
 ![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
 
-[Aplicação em Produção](https://tambureteiunb.com.br/disciplinas) · [Documentação Oficial](https://unb-mds.github.io/2026-02-TambureteiUnB/) · [Pré-requisitos e Instalação](#4-pré-requisitos-e-instalação) · [Como Usar](#5-como-usar) · [Como Contribuir](CONTRIBUTING.md) · [Licença](#7-licença)
+[Aplicação em Produção](https://tambureteiunb.com.br/) · [Documentação Oficial](https://unb-mds.github.io/2026-02-TambureteiUnB/) · [Pré-requisitos e Instalação](#4-pré-requisitos-e-instalação) · [Como Usar](#5-como-usar) · [Arquitetura](#6-arquitetura-em-camadas) · [Equipe](#7-equipe) · [Como Contribuir](CONTRIBUTING.md) · [Licença](#9-licença)
 
 ---
 
@@ -30,6 +30,8 @@ Plataforma aberta e colaborativa de inteligência acadêmica para análise de in
 O **Tamburetei UnB** é um projeto de análise de dados acadêmicos concebido para transformar registros dispersos da universidade em informações públicas, transparentes e reprodutíveis. 
 
 Historicamente, estudantes da UnB enfrentavam dificuldades para planejar suas matrículas semestrais, desconhecendo taxas reais de aprovação por turma, históricos de retenção e ementas práticas das disciplinas. O Tamburetei consolida dados obtidos por meio da **Lei de Acesso à Informação (LAI)**, do **SIGAA** e do **DPO/UnB**, integrando indicadores objetivos a uma experiência comunitária colaborativa.
+
+O projeto concluiu os entregáveis da **Release 1 (R1)** (Pipeline de ETL e anonimização LGPD, modelagem relacional PostgreSQL 17, autenticação JWT e catálogo curricular) e consolidou na **Release 2 (R2)** o portal web em Next.js, doações colaborativas por quórum, upload e curadoria de materiais, Central de Denúncias (RN04), triagem híbrida por IA local (Ollama) e dashboard institucional.
 
 O projeto é inspirado no **Tamburetei**, concebido originalmente pela OpenDevUFCG, adaptando o conceito para o ecossistema e as normas acadêmicas da Universidade de Brasília.
 
@@ -40,18 +42,23 @@ O projeto é inspirado no **Tamburetei**, concebido originalmente pela OpenDevUF
 * **Hub Colaborativo de Materiais:** Compartilhamento e curadoria de materiais de apoio (PDF, PNG, JPG) com triagem por IA local e aprovação humana.
 * **Comentários sob Pseudônimo:** Discussões e relatos de turmas sob pseudônimo seguro (*Privacy by Design*) e Central de Denúncias (`RN04`).
 
+### Público-Alvo
+* **Visitantes e calouros:** consultam livremente indicadores históricos, notas de corte do PAS, grades curriculares, ementas, materiais públicos e comentários sem necessidade de cadastro.
+* **Estudantes da UnB (autenticados):** registram situação nas disciplinas ("Já cursei"), contribuem com estatísticas de turmas, enviam materiais e comentários sob pseudônimo, importam o histórico do SIGAA e montam sua grade semanal.
+* **Moderadores e curadores:** revisam materiais, comentários e denúncias (`RN04`) na fila administrativa, com apoio da triagem híbrida por IA local.
+
 ---
 
 ## 3. Demonstração
 
 <p align="center">
-  <img src="docs/assets/showcase.png" alt="Demonstração da Interface do Tamburetei UnB" width="100%" />
+  <img src="docs/assets/showcase.png" alt="Demonstração da Interface do Tamburetei UnB: Materiais de Apoio e Comunidade, Minha Grade e Estatísticas Históricas" width="100%" />
   <br />
   <em>Interface do Tamburetei UnB: catálogo de disciplinas, planejamento semanal de grade e painel de desempenho histórico.</em>
 </p>
 
 ### Links Úteis de Navegação
-* **Ambiente em Produção:** [tambureteiunb.com.br](https://tambureteiunb.com.br/disciplinas)
+* **Ambiente em Produção:** [tambureteiunb.com.br](https://tambureteiunb.com.br/)
 * **Portal de Documentação (MkDocs):** [unb-mds.github.io/2026-02-TambureteiUnB](https://unb-mds.github.io/2026-02-TambureteiUnB/)
 * **Protótipo Interativo no Figma:** [Template MDS — Grupo 9](https://www.figma.com/board/coZ3FgGpd5amxJxaanwaTr/Template-MDS---Grupo-9?node-id=2128-1592)
 
@@ -62,7 +69,7 @@ O projeto é inspirado no **Tamburetei**, concebido originalmente pela OpenDevUF
 ### Pré-requisitos do Sistema
 * **Docker & Docker Compose** (versão 24.0+ recomendada)
 * **Git** (para versionamento e clonagem)
-* *(Opcional para execução nativa)*: **Python 3.12+** e **Node.js 22+**
+* *(Opcional para execução nativa)*: **Python 3.12+** e **Node.js 20+ / 22+ LTS** com npm
 
 ### Passo a Passo de Execução Rápida (Quickstart com Docker)
 
@@ -79,13 +86,13 @@ O projeto é inspirado no **Tamburetei**, concebido originalmente pela OpenDevUF
 
 3. **Subir a Stack Completa via Docker Compose:**
    ```bash
-   docker compose up --build
+   docker compose up -d --build
    ```
 
 4. **Acessar os Serviços Locais:**
    * **Frontend (Next.js):** [http://localhost:3000](http://localhost:3000)
    * **Backend API (Swagger Docs):** [http://localhost:8000/docs](http://localhost:8000/docs)
-   * **Gerenciador de Banco (Adminer):** [http://localhost:8080](http://localhost:8080)
+   * **Gerenciador de Banco (Adminer):** [http://localhost:8085](http://localhost:8085)
 
 ---
 
@@ -104,7 +111,13 @@ docker compose -f docker-compose.prod.yml up -d --build
 # Executar a suíte completa de testes no Docker
 docker compose exec backend pytest -v
 
-# Executar testes unitários e de integração com cobertura de código
+# Executar testes unitários
+docker compose exec backend pytest tests/unit -v
+
+# Executar testes de integração
+docker compose exec backend pytest tests/integration -v
+
+# Executar testes com relatório de cobertura de código
 docker compose exec backend pytest --cov=app --cov-report=term-missing --cov-fail-under=70
 
 # Executar testes de mutação com Mutmut
@@ -125,7 +138,7 @@ npx tsc --noEmit
 npm run lint
 
 # Gerar build de produção
-npx next build --webpack
+npm run build
 ```
 
 #### Migrações de Banco de Dados com Alembic
@@ -137,15 +150,57 @@ docker compose exec backend alembic upgrade head
 docker compose exec backend alembic revision --autogenerate -m "nome_da_migracao"
 ```
 
-#### Servidor Local de Documentação (MkDocs)
+---
+
+## 6. Arquitetura em Camadas
+
+O sistema adota os princípios de **Clean Architecture**, garantindo desacoplamento entre regras de domínio, orquestração e interfaces externas:
+
+<p align="center">
+  <img src="docs/assets/arquitetura-readme.png" alt="Arquitetura em Camadas do Tamburetei UnB: Frontend Next.js 16, Backend FastAPI, Pipeline ETL, PostgreSQL 17 e Ollama Local" width="100%" />
+</p>
+
+### Documentação Detalhada em `docs/`
+* **[Documento de Visão](docs/index.md):** Contexto do problema, objetivos, valor entregue, fluxo de navegação e escopo.
+* **[Guia de Contribuição](CONTRIBUTING.md), [Como Contribuir](docs/comecando/como_contribuir.md) & [Código de Conduta](CODE_OF_CONDUCT.md):** Fluxo de branches, TDD, Conventional Commits, portas de qualidade do CI e diretrizes da comunidade.
+* **[Gestão Ágil, Sprints e Rastreabilidade](docs/produto/gestao_agil.md) & [Histórico de Versões](CHANGELOG.md):** Story Map no Figma, atas de reunião, milestones e evolução consolidada por release.
+* **[Requisitos do Sistema](docs/produto/requisitos.md) & [Regras de Negócio](docs/produto/regras_negocio.md):** Requisitos funcionais, não funcionais e políticas de governança e anonimização.
+* **[Arquitetura do Sistema & ADRs](docs/engenharia/arquitetura.md):** Visão arquitetural C4, Clean Architecture, diagramas de sequência de ponta a ponta e registros de decisões arquiteturais (ADRs 01 a 08).
+* **[Dicionário de Dados Relacional](docs/engenharia/banco_de_dados.md):** Mapa de relacionamentos e detalhamento dos esquemas do PostgreSQL 17 (17 tabelas + 1 Materialized View).
+* **[Dashboard Institucional](docs/engenharia/dashboard_institucional.md) & [Autenticação e Comunidade](docs/engenharia/autenticacao_comunidade.md):** Contratos e regras de domínio do painel institucional (Épico 6), segurança JWT/RBAC e relatos sob pseudônimo.
+* **[Pipeline de Dados & ETL](docs/engenharia/pipeline_etl.md) e [Como Popular o Banco](docs/comecando/popular_banco_de_dados.md):** Passo a passo para ingestão, anonimização e carga de dados de turmas, docentes e históricos.
+* **[Deploy e Infraestrutura](docs/engenharia/deploy.md):** Provisionamento de produção via Docker Compose, Caddy e Cloudflare.
+* **[Guia de Desenvolvimento e Smoke Test](docs/comecando/desenvolvimento.md):** Configuração de ambiente, comandos de execução, linter, testes e roteiro de validação de fumaça (*smoke test*).
+* **[Uso de IA & Governança de Agentes](docs/ai/ai_usage.md):** Diretrizes do `AGENTS.md`, skills do projeto e fluxo de trabalho assistido por IA.
+
+Para rodar o portal MkDocs localmente:
 ```bash
 pip install mkdocs mkdocs-material pymdown-extensions
 mkdocs serve -a localhost:8001
 ```
 
+### Fontes DPO/Anuário
+* [Anuário Estatístico UnB 2025 (DPO)](https://repositoriodpo.unb.br/anuarios/anuario-estatistico-2025/) — caso deseje buscar por outro ano, basta alterar o ano na URL.
+
 ---
 
-## 6. Como Contribuir
+## 7. Equipe
+
+Projeto desenvolvido colaborativamente para a disciplina de **Métodos de Desenvolvimento de Software (MDS)** da **Universidade de Brasília — Faculdade de Ciências e Tecnologias em Engenharia (FCTE / Gama)**.
+
+| Nome                                 | GitHub                                                                                 |
+| ------------------------------------ | -------------------------------------------------------------------------------------- |
+| Bruno Cauê Souza Lopes Oliveira      | [@bcaueLPS](https://github.com/bcaueLPS)                                               |
+| Gabriel Di Angellis Basilio Ferreira | [@diangellis](https://github.com/diangellis)                                           |
+| Luis Guilherme de Almeida Costa      | [@Luis-Guilherme-de-Almeida-Costa](https://github.com/LuisGuilherme67) |
+| Lucas Miranda Souza                  | [@lucasssmira](https://github.com/lucasssmira)                                         |
+| Luiza Carneiro Carvalho              | [@LuizaCarvalho691](https://github.com/LuizaCarvalho691)                               |
+| Maria Vitória Queiroz Lima           | [@mariav-07](https://github.com/mariav-07)                                             |
+| Thamires Ellen Souza Araujo          | [@thamiresellensa](https://github.com/thamiresellensa)                                 |
+
+---
+
+## 8. Como Contribuir
 
 Contribuições da comunidade e de novos desenvolvedores são muito bem-vindas. Para manter a estabilidade arquitetural e a conformidade técnica do projeto:
 
@@ -153,13 +208,8 @@ Contribuições da comunidade e de novos desenvolvedores são muito bem-vindas. 
 2. Respeite as diretrizes do **[Código de Conduta (CODE_OF_CONDUCT.md)](CODE_OF_CONDUCT.md)**.
 3. Siga o padrão **Conventional Commits** e a política estrita de **ausência de emojis** em mensagens de commit, PRs e documentações (`AGENTS.md`).
 
-### Governança do Projeto
-* **Scrum Master:** Thamires Ellen Souza Araujo — [@thamiresellensa](https://github.com/thamiresellensa)
-* **Product Owner:** Lucas Miranda Souza — [@lucasssmira](https://github.com/lucasssmira)
-* **Contato Institucional:** FCTE / Universidade de Brasília (MDS 2026/2 — Grupo 9).
-
 ---
 
-## 7. Licença
+## 9. Licença
 
 Este projeto é distribuído sob os termos da **[Licença MIT](LICENSE)**. Qualquer pessoa tem permissão para usar, modificar, copiar e redistribuir o software livremente, preservando os devidos créditos aos autores originais.
