@@ -58,9 +58,19 @@ As configurações de produção aplicam proteção em múltiplas camadas ([`doc
 Na inicialização do contêiner `backend`, o script [`backend/entrypoint.sh`](https://github.com/unb-mds/2026-02-TambureteiUnB/blob/develop/backend/entrypoint.sh) aguarda o serviço `db` responder e executa automaticamente **`alembic upgrade head`** antes de subir o servidor FastAPI (ADR 02 — *Database-as-Code*).
 
 ```bash
-# Subida / reconstrução do ambiente de produção
+# Subida / reconstrução do ambiente de produção (sem -v, preservando pgdata, materiais_data e pizzas_data)
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
+
+### Backups Não Destrutivos (Banco e Volumes de Storage)
+O script [`scripts/backup_prod.sh`](https://github.com/unb-mds/2026-02-TambureteiUnB/blob/develop/scripts/backup_prod.sh) gera snapshots somente leitura do PostgreSQL (`pg_dump --format=custom`) e dos diretórios persistentes `/app/storage` (`pizzas_data` e `materiais_data`) em `~/tamburetei-backups/<TIMESTAMP>/` (fora do diretório Git para não interferir no contexto de build), com verificação `sha256sum`, trava via `flock` e retenção automática de 14 dias:
+
+```bash
+# Execução manual antes de atualizações críticas
+/opt/tamburetei/scripts/backup_prod.sh
+```
+
+Em produção, o script também é agendado diariamente via `cron` (`0 3 * * *`, 03:00 UTC), garantindo recuperação de dados mesmo diante de erros humanos ou falhas de atualização sem interromper nem recriar nenhum contêiner.
 
 ### Publicação Automática da Documentação (GitHub Pages)
 O portal MkDocs é publicado de forma independente pelo workflow [`.github/workflows/deploy-docs.yml`](https://github.com/unb-mds/2026-02-TambureteiUnB/blob/develop/.github/workflows/deploy-docs.yml) sempre que alterações em `docs/**` ou `mkdocs.yml` são integradas à branch **`main`**:
