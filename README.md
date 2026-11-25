@@ -209,6 +209,8 @@ O sistema adota os princípios de **Clean Architecture**, estabelecendo um isola
 
 ### Passo a Passo de Execução com Docker (Recomendado)
 
+O arquivo `docker-compose.yml` orquestra os serviços essenciais de infraestrutura: o banco de dados (`db` - PostgreSQL 17), a API do backend (`backend` - FastAPI) e a interface administrativa do banco (`adminer`). O cliente web (`frontend`) é executado em ambiente Node.js dedicado.
+
 1. **Clonar o Repositório:**
    ```bash
    git clone https://github.com/unb-mds/2026-02-TambureteiUnB.git
@@ -220,7 +222,7 @@ O sistema adota os princípios de **Clean Architecture**, estabelecendo um isola
    cp .env.example .env
    ```
 
-3. **Subir os Serviços com Docker Compose:**
+3. **Subir os Serviços com Docker Compose (Banco, Backend e Adminer):**
    ```bash
    docker compose up -d --build
    ```
@@ -230,8 +232,15 @@ O sistema adota os princípios de **Clean Architecture**, estabelecendo um isola
    docker compose exec backend alembic upgrade head
    ```
 
-5. **Acessar as Aplicações:**
-   * **Frontend:** [http://localhost:3000](http://localhost:3000)
+5. **Iniciar a Aplicação Frontend (Next.js):**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+6. **Acessar as Aplicações e Serviços:**
+   * **Frontend (Aplicação Web):** [http://localhost:3000](http://localhost:3000)
    * **Documentação Interativa da API (Swagger):** [http://localhost:8000/docs](http://localhost:8000/docs)
    * **Gerenciador de Banco de Dados (Adminer):** [http://localhost:8085](http://localhost:8085)
 
