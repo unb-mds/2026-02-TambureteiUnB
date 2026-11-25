@@ -4,7 +4,7 @@ import re
 from typing import Dict, List, Optional, Set, Tuple
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.api.schemas.historico import (
     HistoricoComponenteItem,
@@ -33,12 +33,49 @@ MAPA_DESFECHO = {
 }
 
 MENCOES_VALIDAS = {"SS", "MS", "MM", "MI", "II", "SR"}
-RE_TITULO_DOCENTE = re.compile(r"^(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+", re.IGNORECASE)
+RE_TITULO_DOCENTE = re.compile(
+    r"^(?:(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+)+",
+    re.IGNORECASE,
+)
+RE_TITULO_DOCENTE_MEIO = re.compile(
+    r"\b(?:Dr\.?|Dra\.?|MSc\.?|Prof\.?|Esp\.?|Me\.?|Ms\.?)\s+",
+    re.IGNORECASE,
+)
 
 
-def _limpar_nome_professor(nome_bruto: str) -> str:
-    nome = RE_TITULO_DOCENTE.sub("", (nome_bruto or "").strip())
-    return " ".join(nome.split()).strip()[:150]
+def _remover_prefixo_disciplina(texto: str, nome_disciplina: Optional[str]) -> str:
+    """Remove o nome da disciplina caso tenha vindo colado no início do nome do docente."""
+    if not texto or not nome_disciplina:
+        return texto
+    tokens_disc = _normalizar_para_busca(nome_disciplina).split()
+    tokens_orig = texto.split()
+    if not tokens_disc or len(tokens_orig) <= len(tokens_disc):
+        return texto
+    tokens_norm = [_normalizar_para_busca(t) for t in tokens_orig]
+    if tokens_norm[: len(tokens_disc)] == tokens_disc:
+        return " ".join(tokens_orig[len(tokens_disc) :]).strip(" ,;-:")
+    return texto
+
+
+def _limpar_nome_professor(
+    nome_bruto: str, nome_disciplina: Optional[str] = None
+) -> str:
+    nome = " ".join((nome_bruto or "").split()).strip(" ,;-:")
+    if not nome:
+        return ""
+
+    nome = _remover_prefixo_disciplina(nome, nome_disciplina)
+
+    # Caso ainda haja prefixo residual seguido de título acadêmico (ex: "OBJETOS Dr. FULANO")
+    match_meio = RE_TITULO_DOCENTE_MEIO.search(nome)
+    if match_meio and match_meio.start() > 0:
+        nome = nome[match_meio.start() :].strip()
+
+    nome = RE_TITULO_DOCENTE.sub("", nome).strip(" ,;-:")
+    nome = " ".join(nome.split()).strip()[:150]
+    if nome.isupper():
+        nome = nome.title()
+    return nome
 
 
 def _sanear_nome_disciplina_por_catalogo(
@@ -142,9 +179,10 @@ class HistoricoImportacaoService:
             db.flush()
 
         for nome_raw in nomes_professores:
-            nome_limpo = _limpar_nome_professor(nome_raw)
+            nome_limpo = _limpar_nome_professor(nome_raw, disciplina.nome)
             if not nome_limpo:
                 continue
+            chave_limpa = _normalizar_para_busca(nome_limpo)
             prof = (
                 db.query(Professor)
                 .filter(func.lower(Professor.nome) == nome_limpo.lower())
@@ -152,11 +190,25 @@ class HistoricoImportacaoService:
             )
             if prof is None:
                 prof = Professor(
-                    nome=nome_limpo.title() if nome_limpo.isupper() else nome_limpo,
+                    nome=nome_limpo,
                     departamento=disciplina.departamento,
                 )
                 db.add(prof)
                 db.flush()
+
+            # Remove eventuais vínculos antigos poluídos correspondentes ao mesmo docente
+            for prof_existente in list(turma.professores):
+                if prof_existente.id == prof.id:
+                    continue
+                existente_limpo = _limpar_nome_professor(
+                    prof_existente.nome, disciplina.nome
+                )
+                if (
+                    existente_limpo != prof_existente.nome
+                    and _normalizar_para_busca(existente_limpo) == chave_limpa
+                ):
+                    turma.professores.remove(prof_existente)
+
             if prof not in turma.professores:
                 turma.professores.append(prof)
 
@@ -227,10 +279,50 @@ class HistoricoImportacaoService:
         db.flush()
         return not suprimida
 
+    @staticmethod
+    def _contagens_da_pizza(ec: EstatisticaConsolidada, base_matriculados: int) -> Tuple[int, int, int, int, int]:
+        """Converte percentuais oficiais de uma pizza em contagens inteiras somando exatamente base_matriculados."""
+        total = max(1, base_matriculados)
+        brutos = [
+            float(ec.taxa_aprovacao),
+            float(ec.taxa_reprovacao_nota),
+            float(ec.taxa_reprovacao_falta),
+            float(ec.taxa_trancamento),
+        ]
+        contagens = [int(round((b * total) / 100.0)) for b in brutos]
+        diferenca = total - sum(contagens)
+        if diferenca != 0:
+            idx_maior = max(range(4), key=lambda i: brutos[i])
+            contagens[idx_maior] = max(0, contagens[idx_maior] + diferenca)
+        return sum(contagens), contagens[0], contagens[1], contagens[2], contagens[3]
+
     def _recalcular_metricas_disciplina(
         self, db: Session, disciplina_id: int, periodos_afetados: Set[Tuple[int, int]]
     ) -> None:
-        """Recalcula `metricas_academicas` (por ano/semestre) e `metricas_consolidadas`."""
+        """
+        Recalcula `metricas_academicas` (por ano/semestre) e `metricas_consolidadas`.
+        Quando uma turma/semestre possui estatística aprovada por gráfico de pizza
+        (`DOACAO_QUORUM`), ela substitui integralmente as amostras de histórico dessa turma.
+        """
+        pizzas = (
+            db.query(EstatisticaConsolidada)
+            .options(selectinload(EstatisticaConsolidada.turma))
+            .filter(
+                EstatisticaConsolidada.disciplina_id == disciplina_id,
+                EstatisticaConsolidada.origem == "DOACAO_QUORUM",
+                EstatisticaConsolidada.amostragem_suprimida_lgpd.is_(False),
+            )
+            .all()
+        )
+        chaves_pizza: Set[Tuple[int, str]] = {
+            (p.turma_id, p.semestre_referencia) for p in pizzas
+        }
+        pizzas_por_periodo: Dict[Tuple[int, int], List[EstatisticaConsolidada]] = {}
+        for p in pizzas:
+            chave = _parse_ano_semestre(p.semestre_referencia)
+            if chave is not None:
+                pizzas_por_periodo.setdefault(chave, []).append(p)
+
         amostras_disc = (
             db.query(AmostraHistorico)
             .filter(AmostraHistorico.disciplina_id == disciplina_id)
@@ -238,26 +330,46 @@ class HistoricoImportacaoService:
         )
         por_periodo: Dict[Tuple[int, int], List[AmostraHistorico]] = {}
         for a in amostras_disc:
+            if a.turma_id is not None and (a.turma_id, a.semestre) in chaves_pizza:
+                continue
             chave = _parse_ano_semestre(a.semestre)
             if chave is not None:
                 por_periodo.setdefault(chave, []).append(a)
 
         for ano, sem_num in periodos_afetados:
             grupo = por_periodo.get((ano, sem_num), [])
-            if not grupo:
+            pizzas_grupo = pizzas_por_periodo.get((ano, sem_num), [])
+            if not grupo and not pizzas_grupo:
                 continue
 
-            total = len(grupo)
             apr = sum(1 for a in grupo if a.desfecho == "APR")
             rep_nota = sum(1 for a in grupo if a.desfecho == "REP_NOTA")
             rep_falta = sum(1 for a in grupo if a.desfecho == "REP_FALTA")
             tranc = sum(1 for a in grupo if a.desfecho == "TRANC")
-            suprimida = total < settings.HISTORICO_MIN_AMOSTRAS
-            taxa = (
-                (Decimal(apr * 100) / Decimal(total)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                if not suprimida and total > 0
-                else None
-            )
+            total = len(grupo)
+
+            for p in pizzas_grupo:
+                base_turma = (
+                    p.turma.matriculados
+                    if (p.turma is not None and p.turma.matriculados and p.turma.matriculados > 0)
+                    else 100
+                )
+                t_p, a_p, rn_p, rf_p, tr_p = self._contagens_da_pizza(p, base_turma)
+                total += t_p
+                apr += a_p
+                rep_nota += rn_p
+                rep_falta += rf_p
+                tranc += tr_p
+
+            suprimida = (not pizzas_grupo) and (total < settings.HISTORICO_MIN_AMOSTRAS)
+            if pizzas_grupo and not grupo and len(pizzas_grupo) == 1:
+                taxa = Decimal(str(pizzas_grupo[0].taxa_aprovacao)).quantize(Decimal("0.01"))
+            else:
+                taxa = (
+                    (Decimal(apr * 100) / Decimal(total)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    if not suprimida and total > 0
+                    else None
+                )
 
             ma = (
                 db.query(MetricaAcademica)
@@ -301,13 +413,16 @@ class HistoricoImportacaoService:
         rep_f_total = sum(m.reprovados_falta for m in todas_metricas)
         tranc_total = sum(m.trancamentos for m in todas_metricas)
         suprimidas = sum(1 for m in todas_metricas if m.amostragem_suprimida_lgpd)
-        taxa_acumulada = (
-            (Decimal(apr_total * 100) / Decimal(mat_total)).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP
+        if len(todas_metricas) == 1 and not todas_metricas[0].amostragem_suprimida_lgpd and todas_metricas[0].taxa_aprovacao is not None:
+            taxa_acumulada = todas_metricas[0].taxa_aprovacao
+        else:
+            taxa_acumulada = (
+                (Decimal(apr_total * 100) / Decimal(mat_total)).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
+                if mat_total >= settings.HISTORICO_MIN_AMOSTRAS
+                else None
             )
-            if mat_total >= settings.HISTORICO_MIN_AMOSTRAS
-            else None
-        )
 
         mc = (
             db.query(MetricaConsolidada)
@@ -354,7 +469,9 @@ class HistoricoImportacaoService:
                 item.nome = _sanear_nome_disciplina_por_catalogo(item.nome, disc_cat.nome)
 
         elegiveis: List[HistoricoComponenteItem] = [
-            c for c in extraido.cursadas if c.situacao in MAPA_DESFECHO
+            c
+            for c in extraido.cursadas
+            if c.situacao in MAPA_DESFECHO and _parse_ano_semestre(c.semestre) is not None
         ]
 
         novas = 0

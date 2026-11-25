@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 
     MATERIALS_DIR: Path = Path("storage/materiais")
+    PIZZAS_DIR: Path = Path("storage/pizzas")
     MATERIAL_MAX_BYTES: int = Field(default=5 * 1024 * 1024, gt=0)
 
     # Banco de Dados
@@ -82,6 +83,9 @@ class Settings(BaseSettings):
 
     # Quórum mínimo de doações idênticas para consolidar uma turma (US 3.2.1)
     QUORUM_MINIMO_DOACOES: int = 3
+
+    # Mínimo de outros formulários manuais iguais (sem imagem) para selo verde na moderação
+    MIN_OUTROS_FORMULARIOS_IGUAIS_PIZZA: int = 5
 
     # Moderação Autônoma Híbrida via LLM Local (Ollama - ADR 08)
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")

@@ -77,7 +77,9 @@ def test_convergencia_preserva_registros_existentes(engine, revisao):
 def test_historico_linear_sem_heads_concorrentes():
     script = ScriptDirectory.from_config(Config("alembic.ini"))
 
-    assert script.get_heads() == ["019_add_historico_amostras"]
+    assert script.get_heads() == ["021_add_pizza_moderacao_imagem"]
+    assert script.get_revision("021_add_pizza_moderacao_imagem").down_revision == "020_limpar_professores_poluidos"
+    assert script.get_revision("020_limpar_professores_poluidos").down_revision == "019_add_historico_amostras"
     assert script.get_revision("019_add_historico_amostras").down_revision == "018_add_curso_matriz"
     assert script.get_revision("018_add_curso_matriz").down_revision == "017_widen_metricas_cursos_taxas"
     assert script.get_revision("017_widen_metricas_cursos_taxas").down_revision == "016_widen_turma_horario_to_text"

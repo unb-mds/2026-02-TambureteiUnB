@@ -1,13 +1,16 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Button from "@/components/Button";
 import ModerationCard from "@/components/ModerationCard";
 import CommentModerationCard from "@/components/CommentModerationCard";
 import DenunciaModerationCard from "@/components/DenunciaModerationCard";
+import PizzaModerationCard from "@/components/PizzaModerationCard";
 import ModerationActionModal from "@/components/ModerationActionModal";
+import MaterialPreviewModal from "@/components/MaterialPreviewModal";
 import { subscribeAuthChange } from "@/services/authService";
 import { ApiError } from "@/services/httpClient";
 import {
@@ -16,9 +19,11 @@ import {
   decidirComentarioCuradoria,
   decidirCuradoria,
   decidirDenuncia,
+  decidirPizzaModeracao,
   listarComentariosPendentes,
   listarDenunciasPendentes,
   listarPendentes,
+  listarPizzasModeracao,
   verificarModerador,
 } from "@/services/moderacaoService";
 import type {
@@ -26,35 +31,55 @@ import type {
   ComentarioPendente,
   DecisaoComentarioCuradoria,
   DecisaoCuradoria,
+  DecisaoPizzaPayload,
   DenunciaItemFila,
   FilaComentariosCuradoria,
   FilaCuradoria,
   FilaDenuncias,
+  FilaPizzasModeracao,
   FiltroCategoriaDenuncia,
   FiltroTipoDenuncia,
   MaterialPendente,
 } from "@/types/moderacao";
 
 type Acesso = "loading" | "allowed" | "anonymous" | "denied" | "error";
-type AbaPainel = "materiais" | "comentarios" | "denuncias";
+type AbaPainel = "materiais" | "comentarios" | "denuncias" | "pizzas";
 
 export default function ModeracaoPage() {
+  const router = useRouter();
   const [acesso, setAcesso] = useState<Acesso>("loading");
   const [aba, setAba] = useState<AbaPainel>("materiais");
   const [fila, setFila] = useState<FilaCuradoria | null>(null);
   const [filaComentarios, setFilaComentarios] = useState<FilaComentariosCuradoria | null>(null);
   const [filaDenuncias, setFilaDenuncias] = useState<FilaDenuncias | null>(null);
+  const [filaPizzas, setFilaPizzas] = useState<FilaPizzasModeracao | null>(null);
   const [pagina, setPagina] = useState(1);
   const [paginaComentarios, setPaginaComentarios] = useState(1);
   const [paginaDenuncias, setPaginaDenuncias] = useState(1);
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipoDenuncia>("TODOS");
   const [filtroCategoria, setFiltroCategoria] = useState<FiltroCategoriaDenuncia>("TODAS");
+
   const [denunciaSelecionada, setDenunciaSelecionada] = useState<DenunciaItemFila | null>(null);
   const [acaoSelecionada, setAcaoSelecionada] = useState<AcaoDenuncia | null>(null);
+
+  const [previewMaterial, setPreviewMaterial] = useState<MaterialPendente | null>(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const [busy, setBusy] = useState(false);
+  const [semestresRecolhidos, setSemestresRecolhidos] = useState<Record<string, boolean>>({});
   const sequencia = useRef(0);
+  const previewSequence = useRef(0);
+
+  function alternarSemestre(semestre: string) {
+    setSemestresRecolhidos((prev) => ({
+      ...prev,
+      [semestre]: !prev[semestre],
+    }));
+  }
 
   const tratarErro = useCallback((error: unknown) => {
     const status = error instanceof ApiError ? error.status : 0;
@@ -62,6 +87,7 @@ export default function ModeracaoPage() {
       setFila(null);
       setFilaComentarios(null);
       setFilaDenuncias(null);
+      setFilaPizzas(null);
       setAcesso(status === 401 ? "anonymous" : "denied");
     }
     setErro(error instanceof Error ? error.message : "Não foi possível concluir a operação.");
@@ -71,10 +97,11 @@ export default function ModeracaoPage() {
     const atual = ++sequencia.current;
     try {
       await verificarModerador();
-      const [resMateriais, resComentarios, resDenuncias] = await Promise.all([
+      const [resMateriais, resComentarios, resDenuncias, resPizzas] = await Promise.all([
         listarPendentes(pagina),
         listarComentariosPendentes(paginaComentarios),
         listarDenunciasPendentes(paginaDenuncias, filtroTipo, filtroCategoria),
+        listarPizzasModeracao(),
       ]);
       if (atual !== sequencia.current) return;
       if (!resMateriais.items.length && pagina > 1) {
@@ -92,6 +119,7 @@ export default function ModeracaoPage() {
       setFila(resMateriais);
       setFilaComentarios(resComentarios);
       setFilaDenuncias(resDenuncias);
+      setFilaPizzas(resPizzas);
       setAcesso("allowed");
       setErro("");
     } catch (error) {
@@ -99,6 +127,7 @@ export default function ModeracaoPage() {
       setFila(null);
       setFilaComentarios(null);
       setFilaDenuncias(null);
+      setFilaPizzas(null);
       setAcesso("error");
       tratarErro(error);
     }
@@ -109,21 +138,36 @@ export default function ModeracaoPage() {
   }, []);
 
   useEffect(() => {
-    const sessaoAlterada = () => {
+    const timer = window.setTimeout(() => void carregar(), 0);
+    const unsubscribe = subscribeAuthChange(() => {
       setFila(null);
       setFilaComentarios(null);
       setFilaDenuncias(null);
+      setFilaPizzas(null);
       setAcesso("loading");
       void carregar();
-    };
-    const unsubscribeAuthChanges = subscribeAuthChange(sessaoAlterada);
-    const timer = window.setTimeout(() => void carregar(), 0);
+    });
     return () => {
       window.clearTimeout(timer);
       invalidarConsultas();
-      unsubscribeAuthChanges();
+      unsubscribe();
     };
   }, [carregar, invalidarConsultas]);
+
+  useEffect(() => {
+    if (acesso === "anonymous") {
+      const timer = setTimeout(() => {
+        router.push("/login?redirect=/moderacao");
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+    if (acesso === "denied") {
+      const timer = setTimeout(() => {
+        router.push("/");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [acesso, router]);
 
   async function decidir(material: MaterialPendente, status: DecisaoCuradoria, motivo?: string) {
     setBusy(true);
@@ -137,7 +181,9 @@ export default function ModeracaoPage() {
       if (error instanceof ApiError && error.status === 409) {
         await carregar();
         setAviso("Outro moderador já avaliou este material. A fila foi atualizada.");
-      } else tratarErro(error);
+      } else {
+        tratarErro(error);
+      }
     } finally {
       setBusy(false);
     }
@@ -185,15 +231,49 @@ export default function ModeracaoPage() {
     }
   }
 
+  async function abrirPreview(material: MaterialPendente) {
+    const reqSeq = ++previewSequence.current;
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
+    setPreviewMaterial(material);
+    setPreviewLoading(true);
+    setPreviewError("");
+    try {
+      const arquivo = await baixarParaAnalise(material.id);
+      if (reqSeq !== previewSequence.current) {
+        return;
+      }
+      const url = URL.createObjectURL(arquivo);
+      setPreviewBlobUrl(url);
+    } catch (error) {
+      if (reqSeq !== previewSequence.current) {
+        return;
+      }
+      setPreviewError(error instanceof Error ? error.message : "Falha ao carregar arquivo.");
+    } finally {
+      if (reqSeq === previewSequence.current) {
+        setPreviewLoading(false);
+      }
+    }
+  }
+
+  function fecharPreview() {
+    previewSequence.current++;
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
+    setPreviewMaterial(null);
+  }
+
   function solicitarAcaoDenuncia(denuncia: DenunciaItemFila, acao: AcaoDenuncia) {
-    setErro("");
-    setAviso("");
     setDenunciaSelecionada(denuncia);
     setAcaoSelecionada(acao);
   }
 
   function fecharModalDenuncia() {
-    if (busy) return;
     setDenunciaSelecionada(null);
     setAcaoSelecionada(null);
   }
@@ -201,27 +281,51 @@ export default function ModeracaoPage() {
   async function confirmarDecisaoDenuncia(
     denuncia: DenunciaItemFila,
     acao: AcaoDenuncia,
-    justificativa?: string,
+    justificativa?: string
   ) {
     setBusy(true);
     setErro("");
     setAviso("");
     try {
       const resultado = await decidirDenuncia(denuncia.id, acao, justificativa);
-      setDenunciaSelecionada(null);
+            setDenunciaSelecionada(null);
       setAcaoSelecionada(null);
       setAviso(
         acao === "EXCLUIR_CONTEUDO"
           ? `Conteúdo denunciado ocultado com sucesso (${resultado.denuncias_atualizadas} sinalização(ões) encerrada(s)).`
           : `Denúncia descartada como improcedente (${resultado.denuncias_atualizadas} sinalização(ões) encerrada(s)). Conteúdo restituído.`,
       );
+
       await carregar();
     } catch (error) {
-      setDenunciaSelecionada(null);
-      setAcaoSelecionada(null);
       if (error instanceof ApiError && error.status === 409) {
+        fecharModalDenuncia();
         await carregar();
         setAviso("Outro moderador já avaliou esta denúncia. A fila foi atualizada.");
+      } else {
+        tratarErro(error);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function decidirPizza(id: number, payload: DecisaoPizzaPayload) {
+    setBusy(true);
+    setErro("");
+    setAviso("");
+    try {
+      const resultado = await decidirPizzaModeracao(id, payload);
+      setAviso(
+        resultado.status === "CONSOLIDADA"
+          ? `Estatísticas da turma consolidadas e publicadas (${resultado.doacoes_atualizadas} submissão(ões) confirmada(s)).`
+          : `Submissão descartada (${resultado.doacoes_atualizadas} registro(s) encerrado(s)).`,
+      );
+      await carregar();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        await carregar();
+        setAviso(error.message || "A fila foi atualizada.");
       } else {
         tratarErro(error);
       }
@@ -241,23 +345,28 @@ export default function ModeracaoPage() {
         </p>
 
         {acesso === "loading" && (
-          <p role="status" className="mt-8">
+          <p role="status" className="mt-8 text-gray-600">
             Verificando acesso e carregando a fila...
           </p>
         )}
         {acesso === "anonymous" && (
-          <p className="mt-8">
-            Faça{" "}
-            <Link className="text-[#5B4BDB] underline" href="/login">
-              login
-            </Link>{" "}
-            com uma conta de moderador ou administrador.
-          </p>
+          <div role="status" className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+            <h2 className="text-lg font-bold">Autenticação necessária</h2>
+            <p className="mt-1 text-sm">
+              Você não está logado. Redirecionando para a página de login em instantes... ou clique em{" "}
+              <Link className="font-semibold text-[#5B4BDB] underline" href="/login?redirect=/moderacao">
+                fazer login agora
+              </Link>.
+            </p>
+          </div>
         )}
         {acesso === "denied" && (
-          <p role="alert" className="mt-8">
-            Acesso restrito a moderadores e administradores.
-          </p>
+          <div role="alert" className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6 text-red-900">
+            <h2 className="text-lg font-bold">Acesso Restrito</h2>
+            <p className="mt-1 text-sm">
+              Esta área é exclusiva para moderadores e administradores. Redirecionando para a página inicial...
+            </p>
+          </div>
         )}
 
         {erro && (
@@ -265,7 +374,7 @@ export default function ModeracaoPage() {
             {erro}
           </p>
         )}
-        <p role="status" aria-live="polite" className="mt-4 text-sm text-[#5B4BDB]">
+        <p role="status" aria-live="polite" className="mt-4 text-sm font-semibold text-[#5B4BDB]">
           {aviso}
         </p>
 
@@ -340,6 +449,29 @@ export default function ModeracaoPage() {
                   </span>
                 )}
               </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={aba === "pizzas"}
+                onClick={() => setAba("pizzas")}
+                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+                  aba === "pizzas"
+                    ? "bg-[#5B4BDB] text-white shadow-xs"
+                    : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                Gráficos de Pizza
+                {filaPizzas && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs ${
+                      aba === "pizzas" ? "bg-white/20 text-white" : "bg-[#EDE9FD] text-[#5B4BDB]"
+                    }`}
+                  >
+                    {filaPizzas.total_itens}
+                  </span>
+                )}
+              </button>
             </div>
 
             <Button variant="outline" disabled={busy} onClick={() => void carregar()}>
@@ -365,15 +497,17 @@ export default function ModeracaoPage() {
                   disabled={busy}
                   onDecision={decidir}
                   onDownload={baixar}
+                  onPreview={abrirPreview}
                 />
               ))}
             </div>
+
             {fila.total > 0 && (
               <nav aria-label="Paginação da fila de materiais" className="mt-6 flex items-center justify-between gap-3">
                 <Button variant="outline" disabled={busy || pagina === 1} onClick={() => setPagina(pagina - 1)}>
                   Anterior
                 </Button>
-                <span>
+                <span className="text-sm font-medium">
                   Página {pagina} de {Math.max(1, Math.ceil(fila.total / fila.tamanho_pagina))}
                 </span>
                 <Button
@@ -434,7 +568,8 @@ export default function ModeracaoPage() {
 
         {acesso === "allowed" && aba === "denuncias" && filaDenuncias && (
           <>
-            <div className="mt-5 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD]/60 p-4 text-sm text-[#202124]">
+        
+                    <div className="mt-5 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD]/60 p-4 text-sm text-[#202124]">
               <p className="font-semibold text-[#5B4BDB]">
                 Diretriz RN04 — Proteção a Docentes e Conduta Ética
               </p>
@@ -442,11 +577,9 @@ export default function ModeracaoPage() {
                 Relatos com ataques pessoais, juízos depreciativos contra professores ou gabaritos de atividades vigentes devem ser excluídos. Denúncias improcedentes sobre relatos estritamente pedagógicos devem ser descartadas para preservar a colaboração discente.
               </p>
             </div>
-
+            
             <div className="my-5 flex flex-wrap items-center justify-between gap-4">
-              <p className="text-sm text-gray-600">
-                {filaDenuncias.total} denúncia(s) pendente(s) de revisão
-              </p>
+              <p className="text-sm text-gray-600">{filaDenuncias.total} denúncia(s) pendente(s) de revisão</p>
 
               <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-xs font-medium text-gray-600">
@@ -493,9 +626,7 @@ export default function ModeracaoPage() {
             {!filaDenuncias.items.length && (
               <section className="rounded-2xl border border-gray-200 bg-white p-8">
                 <h2 className="text-xl font-semibold">Nenhuma denúncia pendente</h2>
-                <p className="mt-2 text-gray-600">
-                  Não há relatos ou materiais sinalizados aguardando análise para os filtros selecionados.
-                </p>
+                <p className="mt-2 text-gray-600">Não há denúncias aguardando análise para os filtros selecionados.</p>
               </section>
             )}
 
@@ -519,15 +650,13 @@ export default function ModeracaoPage() {
                 >
                   Anterior
                 </Button>
-                <span>
+                <span className="text-sm font-medium">
                   Página {paginaDenuncias} de{" "}
                   {Math.max(1, Math.ceil(filaDenuncias.total / filaDenuncias.tamanho_pagina))}
                 </span>
                 <Button
                   variant="outline"
-                  disabled={
-                    busy || paginaDenuncias * filaDenuncias.tamanho_pagina >= filaDenuncias.total
-                  }
+                  disabled={busy || paginaDenuncias * filaDenuncias.tamanho_pagina >= filaDenuncias.total}
                   onClick={() => setPaginaDenuncias(paginaDenuncias + 1)}
                 >
                   Próxima
@@ -536,6 +665,97 @@ export default function ModeracaoPage() {
             )}
           </>
         )}
+
+        {acesso === "allowed" && aba === "pizzas" && filaPizzas && (
+          <>
+            <div className="mt-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--primary-soft)] p-4 text-sm text-[var(--foreground)]">
+              <p className="font-semibold text-[var(--primary-text)]">
+                Curadoria Humana de Gráficos de Pizza (Sem LLM)
+              </p>
+              <p className="mt-1 text-xs sm:text-sm text-[var(--text-muted)]">
+                Submissões com print do SIGAA e formulários manuais agrupados por semestre podem ser aprovados ou recusados diretamente pela moderação. Envios manuais sem imagem recebem selo verde visual ao atingir pelo menos 5 outros formulários idênticos.
+              </p>
+            </div>
+
+            <p className="my-5 text-sm text-[var(--text-muted)]">
+              {filaPizzas.total_itens} item(ns) para revisão ({filaPizzas.total_envios_pendentes} envio(s) pendente(s) no total), agrupados por semestre
+            </p>
+
+            {!filaPizzas.grupos_semestre.length && (
+              <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-8">
+                <h2 className="text-xl font-semibold text-[var(--foreground)]">Nenhum gráfico de pizza pendente</h2>
+                <p className="mt-2 text-[var(--text-muted)]">
+                  Novas submissões com print ou formulários manuais enviados pelos estudantes aparecerão aqui agrupados por semestre.
+                </p>
+              </section>
+            )}
+
+            <div className="space-y-6" aria-busy={busy}>
+              {filaPizzas.grupos_semestre.map((grupo) => {
+                const recolhido = Boolean(semestresRecolhidos[grupo.semestre]);
+                return (
+                  <section
+                    key={grupo.semestre}
+                    aria-label={`Semestre ${grupo.semestre}`}
+                    className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4"
+                  >
+                    <button
+                      type="button"
+                      aria-expanded={!recolhido}
+                      onClick={() => alternarSemestre(grupo.semestre)}
+                      className="flex w-full items-center justify-between gap-3 text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <svg
+                          className={`h-4 w-4 text-[var(--text-muted)] transition-transform ${
+                            recolhido ? "-rotate-90" : "rotate-0"
+                          }`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          aria-hidden="true"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                        <h2 className="text-lg font-bold text-[var(--foreground)]">
+                          Semestre {grupo.semestre}
+                        </h2>
+                      </div>
+                      <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-semibold text-[var(--primary-text)]">
+                        {grupo.total} solicitação(ões)
+                      </span>
+                    </button>
+
+                    {!recolhido && (
+                      <div className="mt-4 space-y-4 border-t border-[var(--border-subtle)] pt-4">
+                        {grupo.itens.map((item) => (
+                          <PizzaModerationCard
+                            key={item.id}
+                            item={item}
+                            disabled={busy}
+                            onDecision={decidirPizza}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        <MaterialPreviewModal
+          isOpen={Boolean(previewMaterial)}
+          material={previewMaterial}
+          blobUrl={previewBlobUrl}
+          loading={previewLoading}
+          error={previewError}
+          onClose={fecharPreview}
+          onApprove={(m) => decidir(m, "APROVADO")}
+          onReject={(m, motivo) => decidir(m, "RECUSADO", motivo)}
+        />
 
         <ModerationActionModal
           key={`${denunciaSelecionada?.id ?? "none"}-${acaoSelecionada ?? "none"}`}

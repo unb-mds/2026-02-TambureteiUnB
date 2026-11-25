@@ -101,3 +101,20 @@ class TestDoacaoCreateSchema:
                 taxa_trancamento=5,
             )
         assert "A soma das taxas deve ser exatamente 100%" in str(exc.value)
+
+    def test_aceita_arredondamento_sigaa_99_9_e_ajusta_para_cem(self):
+        doacao = DoacaoCreate(
+            semestre_referencia="2026.1",
+            taxa_aprovacao=73.3,
+            taxa_reprovacao_nota=17.3,
+            taxa_reprovacao_falta=5.3,
+            taxa_trancamento=4,
+        )
+        soma = (
+            doacao.taxa_aprovacao
+            + doacao.taxa_reprovacao_nota
+            + doacao.taxa_reprovacao_falta
+            + doacao.taxa_trancamento
+        )
+        assert soma == Decimal("100.00")
+        assert doacao.taxa_aprovacao == Decimal("73.40")

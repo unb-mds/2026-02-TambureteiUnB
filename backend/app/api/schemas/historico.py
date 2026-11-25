@@ -69,3 +69,28 @@ class HistoricoImportacaoResponse(BaseModel):
     cursando: List[HistoricoComponenteItem] = Field(default_factory=list)
     pendentes: List[HistoricoPendenteItem] = Field(default_factory=list)
     contribuicao: HistoricoContribuicaoResumo
+
+
+class TurmaStatusConsultaItem(BaseModel):
+    codigo: str
+    turma: str
+    semestre: str
+    professores: List[str] = Field(default_factory=list)
+
+
+class TurmasStatusConsultaRequest(BaseModel):
+    itens: List[TurmaStatusConsultaItem] = Field(default_factory=list)
+
+
+class TurmaStatusConsultaResponseItem(BaseModel):
+    codigo: str
+    turma: str
+    semestre: str
+    turma_id: Optional[int] = None
+    ja_possui_pizza: bool = False
+    ja_possui_historico: bool = False
+    ja_enviada_usuario: bool = False
+
+
+class TurmasStatusConsultaResponse(BaseModel):
+    itens: List[TurmaStatusConsultaResponseItem] = Field(default_factory=list)

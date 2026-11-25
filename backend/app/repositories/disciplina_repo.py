@@ -46,6 +46,20 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
             .limit(limit)
             .all()
         )
+    def listar_locais_oferta(self, db: Session, disciplina_ids: List[int], semestre: Optional[str] = None) -> dict:
+        if not disciplina_ids:
+            return {}
+        query = db.query(Turma.disciplina_id, Turma.local).filter(
+            Turma.disciplina_id.in_(disciplina_ids), Turma.local.isnot(None),
+        )
+        if semestre:
+            query = query.filter(Turma.semestre == semestre)
+        locais = {}
+        for disciplina_id, local in query.distinct().all():
+            if local.strip():
+                locais.setdefault(disciplina_id, set()).add(local.strip())
+        return {identifier: sorted(values) for identifier, values in locais.items()}
+
     def search_paginated(
         self,
         db: Session,

@@ -220,3 +220,23 @@ test("ano dos indicadores seleciona o ciclo PAS encerrado naquele ano", () => {
  assert.equal(getPasSourceForYear(2019),undefined);
  assert.equal(getPasSourceForYear(2026),undefined);
 });
+
+test("cotas preservam modalidade, ciclo e valores do boletim sem alterar o Universal", () => {
+ const latest=findPasAdmission(software,pasSources[0]);
+ assert.equal(latest?.minimo,"61.705");
+ assert.equal(latest?.cotas.negros.minimo,"17.209");
+ assert.equal(latest?.cotas.ep_baixa_nao_ppi.minimo,"-52.564");
+ assert.equal(latest?.cotas.ep_baixa_ppi.minimo,null);
+ const previous=findPasAdmission(software,pasSources[1]);
+ assert.equal(previous?.cotas.negros.minimo,"-7.303");
+ assert.match(pasSources[0].modalidades[0].descricao,/1,0.*PPIQ/);
+ assert.match(pasSources[1].modalidades[0].descricao,/1,5.*PPI/);
+});
+test("todas as ofertas têm nove modalidades com intervalos coerentes", () => {
+ for(const source of pasSources) for(const record of source.registros) {
+  assert.equal(Object.keys(record.cotas).length,9);
+  for(const values of Object.values(record.cotas)) {
+   if(values.minimo!==null && values.maximo!==null) assert(Number(values.minimo)<=Number(values.maximo));
+  }
+ }
+});

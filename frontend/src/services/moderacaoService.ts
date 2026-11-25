@@ -5,15 +5,18 @@ import type {
   ComentarioPendente,
   DecisaoComentarioCuradoria,
   DecisaoCuradoria,
+  DecisaoPizzaPayload,
   DenunciaCreatePayload,
   DenunciaResponse,
   FilaComentariosCuradoria,
   FilaCuradoria,
   FilaDenuncias,
+  FilaPizzasModeracao,
   FiltroCategoriaDenuncia,
   FiltroTipoDenuncia,
   RegistroCuradoria,
   ResumoDecisaoDenuncia,
+  ResumoDecisaoPizza,
 } from "../types/moderacao.ts";
 import { API_BASE_URL, ApiError, getStoredToken, request } from "./httpClient.ts";
 
@@ -26,7 +29,8 @@ export const ROTULOS_CATEGORIA_DENUNCIA: Record<CategoriaDenuncia, string> = {
 };
 
 export function podeModerar(role: string): boolean {
-  return role === "MODERATOR" || role === "ADMIN";
+  const r = role.toUpperCase();
+  return r === "MODERATOR" || r === "ADMIN" || r === "MODERADOR";
 }
 
 export function validarMotivoDenuncia(motivo: string): { valido: boolean; erro?: string } {
@@ -326,4 +330,45 @@ export function iniciarPollingStatusComentario(options: {
       timer = null;
     }
   };
+}
+
+export function listarPizzasModeracao(): Promise<FilaPizzasModeracao> {
+  return request<FilaPizzasModeracao>("/moderacao/pizzas", { cache: "no-store" });
+}
+
+export async function baixarImagemPizza(id: number): Promise<Blob> {
+  const token = getStoredToken();
+  if (!token) throw new ApiError("Sua sessão expirou. Faça login novamente.", 401);
+  const response = await fetch(`${API_BASE_URL}/moderacao/pizzas/${id}/imagem`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    let mensagem = "Não foi possível carregar a imagem da submissão.";
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string") mensagem = body.detail;
+    } catch {
+      /* Mantem mensagem legivel quando resposta nao for JSON. */
+    }
+    throw new ApiError(mensagem, response.status);
+  }
+  return response.blob();
+}
+
+export function decidirPizzaModeracao(
+  id: number,
+  payload: DecisaoPizzaPayload,
+): Promise<ResumoDecisaoPizza> {
+  return request<ResumoDecisaoPizza>(`/moderacao/pizzas/${id}/decisao`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      status: payload.status,
+      taxa_aprovacao: payload.taxa_aprovacao ?? null,
+      taxa_reprovacao_nota: payload.taxa_reprovacao_nota ?? null,
+      taxa_reprovacao_falta: payload.taxa_reprovacao_falta ?? null,
+      taxa_trancamento: payload.taxa_trancamento ?? null,
+      justificativa: payload.justificativa?.trim() || null,
+    }),
+  });
 }

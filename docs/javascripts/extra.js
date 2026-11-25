@@ -12,12 +12,12 @@
     {
       label: "Arquitetura",
       path: "engenharia/arquitetura/",
-      match: ["arquitetura", "arquitetura_ui", "cores_indicadores", "pipeline_etl", "notas_corte_pas", "dashboard_institucional", "autenticacao_comunidade", "feature_5_2_materiais", "moderacao_curadoria", "ocupacao_turmas"]
+      match: ["arquitetura", "arquitetura_ui", "deploy", "cores_indicadores", "pipeline_etl", "notas_corte_pas", "dashboard_institucional", "autenticacao_comunidade", "feature_5_2_materiais", "moderacao_curadoria", "ocupacao_turmas"]
     },
     {
       label: "Requisitos",
       path: "produto/requisitos/",
-      match: ["produto/", "requisitos", "regras_negocio", "gestao_agil", "historias_usuario_"]
+      match: ["produto/", "requisitos", "regras_negocio", "gestao_agil", "relatorio_final", "historias_usuario_"]
     },
     {
       label: "Dados",
@@ -26,7 +26,7 @@
     },
     {
       label: "Releases",
-      path: "releases/v0.9.0/",
+      path: "releases/v0.11.0/",
       match: ["releases/", "qualidade/", "revisao_", "issue_", "correcao_", "diagnostico_"]
     },
     {
