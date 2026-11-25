@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_role
@@ -66,6 +66,39 @@ def doar_estatistica_turma(
     Acessível exclusivamente por estudantes autenticados.
     """
     return doacao_service.criar_doacao(db, turma_id, current_user.id, dados)
+
+
+@router.post(
+    "/{turma_id}/doacoes/upload",
+    response_model=DoacaoResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def doar_estatistica_turma_upload(
+    turma_id: int,
+    semestre_referencia: str = Form(..., description="Semestre letivo de referência"),
+    taxa_aprovacao: Optional[str] = Form(None),
+    taxa_reprovacao_nota: Optional[str] = Form(None),
+    taxa_reprovacao_falta: Optional[str] = Form(None),
+    taxa_trancamento: Optional[str] = Form(None),
+    arquivo: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role("STUDENT", "MODERATOR", "ADMIN")),
+):
+    """
+    Submete estatísticas de turma (com imagem do SIGAA e/ou percentuais manuais)
+    para aprovação na fila de moderação humana, sem LLM.
+    """
+    return doacao_service.criar_doacao_upload(
+        db=db,
+        turma_id=turma_id,
+        usuario_id=current_user.id,
+        semestre_referencia=semestre_referencia,
+        arquivo=arquivo,
+        taxa_aprovacao=taxa_aprovacao,
+        taxa_reprovacao_nota=taxa_reprovacao_nota,
+        taxa_reprovacao_falta=taxa_reprovacao_falta,
+        taxa_trancamento=taxa_trancamento,
+    )
 
 @router.get("/{turma_id}/doacoes/quorum", response_model=QuorumProgressoResponse)
 def consultar_quorum_turma(

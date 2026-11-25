@@ -43,6 +43,9 @@ class EstatisticaConsolidadaRepository(BaseRepository[EstatisticaConsolidada]):
         obj.taxa_reprovacao_nota = grupo.taxa_reprovacao_nota
         obj.taxa_reprovacao_falta = grupo.taxa_reprovacao_falta
         obj.taxa_trancamento = grupo.taxa_trancamento
+        obj.origem = "DOACAO_QUORUM"
+        obj.total_amostras = 0
+        obj.amostragem_suprimida_lgpd = False
         obj.status = "VALIDADO"
         db.flush()
         return obj

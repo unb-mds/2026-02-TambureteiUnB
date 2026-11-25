@@ -61,6 +61,10 @@ class DoacaoRepository(BaseRepository[DoacaoEstatistica]):
                 DoacaoEstatistica.turma_id == turma_id,
                 DoacaoEstatistica.semestre_referencia == semestre_referencia,
                 DoacaoEstatistica.status != "DESCARTADA",
+                DoacaoEstatistica.taxa_aprovacao.isnot(None),
+                DoacaoEstatistica.taxa_reprovacao_nota.isnot(None),
+                DoacaoEstatistica.taxa_reprovacao_falta.isnot(None),
+                DoacaoEstatistica.taxa_trancamento.isnot(None),
             )
             .group_by(
                 DoacaoEstatistica.taxa_aprovacao,

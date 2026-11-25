@@ -129,3 +129,62 @@ export interface ResumoDecisaoDenuncia {
   justificativa: string | null;
   resolved_at: string;
 }
+
+export type TipoEnvioPizza = "IMAGEM" | "TEXTO";
+export type DecisaoPizzaStatus = "CONSOLIDADA" | "DESCARTADA";
+
+export interface PizzaModeracaoItem {
+  id: number;
+  turma_id: number;
+  codigo_turma: string;
+  semestre_referencia: string;
+  disciplina_id: number;
+  disciplina_codigo: string;
+  disciplina_nome: string;
+  disciplina_slug: string;
+  professores: string[];
+  tipo_envio: TipoEnvioPizza;
+  possui_imagem: boolean;
+  taxa_aprovacao: number | null;
+  taxa_reprovacao_nota: number | null;
+  taxa_reprovacao_falta: number | null;
+  taxa_trancamento: number | null;
+  quantidade_envios: number;
+  outros_iguais: number;
+  minimo_outros_iguais: number;
+  selo_verde: boolean;
+  created_at: string;
+}
+
+export interface PizzaModeracaoSemestreGrupo {
+  semestre: string;
+  total: number;
+  itens: PizzaModeracaoItem[];
+}
+
+export interface FilaPizzasModeracao {
+  grupos_semestre: PizzaModeracaoSemestreGrupo[];
+  total_itens: number;
+  total_envios_pendentes: number;
+}
+
+export interface DecisaoPizzaPayload {
+  status: DecisaoPizzaStatus;
+  taxa_aprovacao?: number | null;
+  taxa_reprovacao_nota?: number | null;
+  taxa_reprovacao_falta?: number | null;
+  taxa_trancamento?: number | null;
+  justificativa?: string | null;
+}
+
+export interface ResumoDecisaoPizza {
+  id: number;
+  turma_id: number;
+  semestre_referencia: string;
+  status: string;
+  tipo_envio: string;
+  doacoes_atualizadas: number;
+  moderado_por_id: string;
+  moderado_em: string;
+  justificativa: string | null;
+}

@@ -16,6 +16,11 @@ from app.api.schemas.denuncia import (
     FilaDenuncias,
     ResumoDecisaoDenuncia,
 )
+from app.api.schemas.doacao import (
+    FilaPizzasModeracao,
+    PizzaModeracaoDecisaoRequest,
+    PizzaModeracaoDecisaoResponse,
+)
 from app.core.config import settings
 from app.core.database import get_db
 from app.domain.materiais import TIPOS_MIME
@@ -23,6 +28,7 @@ from app.models.usuario import Usuario
 from app.services.armazenamento_material import ArmazenamentoMaterial
 from app.services.curadoria_service import CuradoriaService
 from app.services.denuncia_service import denuncia_service
+from app.services.doacao_service import doacao_service
 
 router = APIRouter(prefix="/moderacao", tags=["Moderação"])
 Moderador = Annotated[Usuario, Depends(require_role("MODERATOR", "ADMIN"))]
@@ -103,3 +109,31 @@ def decidir_denuncia(
     moderador: Moderador,
 ) -> ResumoDecisaoDenuncia:
     return denuncia_service.decidir(db, id, dados, moderador)
+
+
+@router.get("/pizzas", response_model=FilaPizzasModeracao)
+def fila_pizzas(db: Banco, moderador: Moderador) -> FilaPizzasModeracao:
+    """Lista submissões de gráficos de pizza pendentes de aprovação humana, agrupadas por semestre."""
+    return doacao_service.listar_pizzas_moderacao(db)
+
+
+@router.get("/pizzas/{id}/imagem", response_class=FileResponse)
+def imagem_pizza(id: Identificador, db: Banco, moderador: Moderador):
+    """Serve o print anexado pelo estudante para conferência do moderador."""
+    caminho, mime = doacao_service.obter_imagem_pizza(db, id)
+    return FileResponse(
+        caminho,
+        media_type=mime,
+        headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store"},
+    )
+
+
+@router.patch("/pizzas/{id}/decisao", response_model=PizzaModeracaoDecisaoResponse)
+def decidir_pizza(
+    id: Identificador,
+    dados: PizzaModeracaoDecisaoRequest,
+    db: Banco,
+    moderador: Moderador,
+) -> PizzaModeracaoDecisaoResponse:
+    """Aprova ou descarta submissões de pizza sem intermediação de LLM."""
+    return doacao_service.decidir_pizza_moderacao(db, id, dados, moderador)
