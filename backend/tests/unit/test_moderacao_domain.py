@@ -234,6 +234,21 @@ def test_resolver_moderacao_comentario_tres_estados_e_fronteiras():
     assert inconsistente.moderado_por is None
     assert "[Inconsistencia IA" in inconsistente.motivo_moderacao
 
+    # 7. Inconsistencia (REJEITAR mas com categoria NENHUMA nao pode auto-ocultar)
+    rejeicao_sem_categoria = resolver_moderacao_comentario(
+        VereditoModIA(
+            decisao="REJEITAR",
+            confianca=0.95,
+            categoria_violacao="NENHUMA",
+            motivo="Comentario e geral e nao especifica violacao de regras academicas.",
+        ),
+        limiar_confianca=0.80,
+    )
+    assert rejeicao_sem_categoria.status_final == "PENDENTE"
+    assert rejeicao_sem_categoria.moderado_por is None
+    assert rejeicao_sem_categoria.registrar_curadoria_ia is False
+    assert "[Inconsistencia IA (NENHUMA)]" in rejeicao_sem_categoria.motivo_moderacao
+
 
 def test_resolver_moderacao_material_tres_estados_e_fronteiras():
     # 1. Fallback offline
@@ -291,6 +306,22 @@ def test_resolver_moderacao_material_tres_estados_e_fronteiras():
     assert inconsistente.status_final == "PENDENTE"
     assert inconsistente.status_moderacao_arquivo == "em_analise"
     assert inconsistente.registrar_curadoria_ia is False
+
+    # 6. Inconsistencia (REJEITAR com categoria NENHUMA nao pode recusar automaticamente)
+    rejeicao_sem_categoria = resolver_moderacao_material(
+        VereditoModIA(
+            decisao="REJEITAR",
+            confianca=0.95,
+            categoria_violacao="NENHUMA",
+            motivo="Material geral sem violacao explicita.",
+        ),
+        limiar_confianca=0.80,
+    )
+    assert rejeicao_sem_categoria.status_final == "PENDENTE"
+    assert rejeicao_sem_categoria.status_moderacao_arquivo == "em_analise"
+    assert rejeicao_sem_categoria.moderado_por is None
+    assert rejeicao_sem_categoria.registrar_curadoria_ia is False
+    assert "[Inconsistencia IA (NENHUMA)]" in rejeicao_sem_categoria.motivo_moderacao
 
 
 def test_schema_decisao_comentario_curadoria():

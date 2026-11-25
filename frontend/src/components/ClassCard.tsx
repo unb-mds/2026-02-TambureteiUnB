@@ -49,18 +49,18 @@ export default function ClassCard({
       <div>
         {/* Cabeçalho do Card: Identificador da Turma e Turno */}
         <header className="mb-3.5 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex items-center rounded-lg border border-[#D8D1FA]/70 bg-[#EDE9FD] px-3 py-1 text-xs font-bold text-[#5B4BDB]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-lg border border-[#D8D1FA]/70 bg-[#EDE9FD] px-2.5 py-1 text-xs font-bold text-[#5B4BDB]">
               {codigoFormatado}
             </span>
             {item.semestre && (
-              <span className="inline-flex items-center rounded-md bg-[#F7F7FA] px-2 py-0.5 text-[11px] font-medium text-gray-500 border border-gray-200/70">
+              <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-gray-200/70 bg-[#F7F7FA] px-2 py-0.5 text-[11px] font-medium text-gray-500">
                 {item.semestre}
               </span>
             )}
           </div>
           <span
-            className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold ${getTurnoBadgeClasses(
+            className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-md border px-2 py-0.5 text-xs font-semibold ${getTurnoBadgeClasses(
               item.turno
             )}`}
           >
@@ -139,18 +139,8 @@ export default function ClassCard({
             </dd>
           </div>
         </dl>
-      </div>
-
-      <footer className="mt-4 space-y-2.5 border-t border-gray-100 pt-3.5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-medium text-gray-700">
-            {formatClassOccupancy(item.vagasOcupadas, item.totalVagas)}
-          </p>
-          <ClassOccupancyPie classData={item} compact />
-        </div>
-
         {item.estatistica ? (
-          <div className="rounded-xl bg-[#F7F7FA] px-3 py-2 text-[11px]">
+          <div className="mt-3.5 rounded-xl bg-[#F7F7FA] px-3 py-2 text-[11px]">
             <div className="flex flex-wrap items-center justify-between gap-1 font-semibold">
               <span className="text-emerald-700">
                 Aprovação: {Math.round(item.estatistica.taxa_aprovacao)}%
@@ -175,11 +165,20 @@ export default function ClassCard({
             )}
           </div>
         ) : (item.amostrasComunidade ?? 0) > 0 ? (
-          <div className="rounded-xl border border-dashed border-[#D8D1FA] bg-[#F8F7FF] px-3 py-2 text-[11px] font-medium text-[#5B4BDB]">
+          <div className="mt-3.5 rounded-xl border border-dashed border-[#D8D1FA] bg-[#F8F7FF] px-3 py-2 text-[11px] font-medium text-[#5B4BDB]">
             Coleta comunidade: {item.amostrasComunidade}/
             {item.minimoAmostrasLgpd ?? 5} históricos (RN07)
           </div>
         ) : null}
+      </div>
+
+      <footer className="mt-4 border-t border-gray-100 pt-3.5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-medium text-gray-700">
+            {formatClassOccupancy(item.vagasOcupadas, item.totalVagas)}
+          </p>
+          <ClassOccupancyPie classData={item} compact />
+        </div>
       </footer>
     </article>
   );

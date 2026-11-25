@@ -104,6 +104,9 @@ function DisciplineDetailContent() {
   const [selectedShift, setSelectedShift] = useState<ClassShiftFilter>(() =>
     parseInitialShift(searchParams.get("turno"))
   );
+  const [periodoSelecionado, setPeriodoSelecionado] = useState<string>(
+    () => searchParams.get("semestre") || "Todos"
+  );
   const [sortBy, setSortBy] = useState<ClassSortOption>(() =>
     parseInitialSort(searchParams.get("ordem"))
   );
@@ -128,7 +131,11 @@ function DisciplineDetailContent() {
   }, [authenticated]);
 
   const syncUrlParams = useCallback(
-    (nextShift: ClassShiftFilter, nextSort: ClassSortOption) => {
+    (
+      nextShift: ClassShiftFilter,
+      nextSort: ClassSortOption,
+      proximoPeriodo: string
+    ) => {
       const current = new URLSearchParams(searchParams.toString());
       if (nextShift === "Todos") {
         current.delete("turno");
@@ -142,6 +149,12 @@ function DisciplineDetailContent() {
         current.set("ordem", nextSort);
       }
 
+      if (proximoPeriodo === "Todos") {
+        current.delete("semestre");
+      } else {
+        current.set("semestre", proximoPeriodo);
+      }
+
       const queryString = current.toString();
       const targetUrl = queryString ? `${pathname}?${queryString}` : pathname;
       router.replace(targetUrl, { scroll: false });
@@ -153,18 +166,27 @@ function DisciplineDetailContent() {
     (shift: ClassShiftFilter) => {
       setSelectedShift(shift);
       setClassPage(1);
-      syncUrlParams(shift, sortBy);
+      syncUrlParams(shift, sortBy, periodoSelecionado);
     },
-    [sortBy, syncUrlParams]
+    [sortBy, periodoSelecionado, syncUrlParams]
+  );
+
+  const aoAlterarPeriodo = useCallback(
+    (periodo: string) => {
+      setPeriodoSelecionado(periodo);
+      setClassPage(1);
+      syncUrlParams(selectedShift, sortBy, periodo);
+    },
+    [selectedShift, sortBy, syncUrlParams]
   );
 
   const handleSortChange = useCallback(
     (sort: ClassSortOption) => {
       setSortBy(sort);
       setClassPage(1);
-      syncUrlParams(selectedShift, sort);
+      syncUrlParams(selectedShift, sort, periodoSelecionado);
     },
-    [selectedShift, syncUrlParams]
+    [selectedShift, periodoSelecionado, syncUrlParams]
   );
 
   const [classSearchQuery, setClassSearchQuery] = useState("");
@@ -172,11 +194,12 @@ function DisciplineDetailContent() {
 
   const handleResetClassFilters = useCallback(() => {
     setSelectedShift("Todos");
+    setPeriodoSelecionado("Todos");
     setSortBy("code_asc");
     setClassSearchQuery("");
     setOnlyClassesWithData(false);
     setClassPage(1);
-    syncUrlParams("Todos", "code_asc");
+    syncUrlParams("Todos", "code_asc", "Todos");
   }, [syncUrlParams]);
 
   const handleRetryDiscipline = useCallback(() => {
@@ -298,10 +321,31 @@ function DisciplineDetailContent() {
     };
   }, [discipline, slug, simulateClassesError, classesRetryCount]);
 
-  // Filtragem por turno, busca por professor/turma/semestre, dados e ordenação reativa
+  const periodosDisponiveis = useMemo(() => {
+    const unicos = new Set<string>();
+    for (const item of classes) {
+      const sem = (item.semestre || "").trim();
+      if (sem) unicos.add(sem);
+    }
+    return Array.from(unicos).sort((a, b) =>
+      b.localeCompare(a, "pt-BR", { numeric: true })
+    );
+  }, [classes]);
+
+  const periodoAtivo =
+    periodoSelecionado === "Todos" ||
+    periodosDisponiveis.includes(periodoSelecionado)
+      ? periodoSelecionado
+      : "Todos";
+
+  // Filtragem por período, turno, busca por professor/turma/semestre, dados e ordenação reativa
   const filteredAndSortedClasses = useMemo(() => {
     const qNorm = normalizeSearchTerm(classSearchQuery);
     const filtered = classes.filter((item) => {
+      if (periodoAtivo !== "Todos") {
+        if ((item.semestre || "").trim() !== periodoAtivo) return false;
+      }
+
       if (selectedShift !== "Todos") {
         const normalized = normalizeClassShift(item.turno, item.horarios);
         if (normalized !== selectedShift) return false;
@@ -333,12 +377,25 @@ function DisciplineDetailContent() {
       if (sortBy === "occupancy_asc" || sortBy === "occupancy_desc") {
         return compareClassOccupancy(a, b, sortBy);
       }
+      const semCompare = (b.semestre || "").localeCompare(
+        a.semestre || "",
+        "pt-BR",
+        { numeric: true }
+      );
+      if (semCompare !== 0) return semCompare;
       return a.codigoTurma.localeCompare(b.codigoTurma, "pt-BR", {
         numeric: true,
         sensitivity: "base",
       });
     });
-  }, [classes, selectedShift, sortBy, classSearchQuery, onlyClassesWithData]);
+  }, [
+    classes,
+    periodoAtivo,
+    selectedShift,
+    sortBy,
+    classSearchQuery,
+    onlyClassesWithData,
+  ]);
 
   const paginatedClasses = paginateClasses(filteredAndSortedClasses, classPage);
 
@@ -945,6 +1002,9 @@ function DisciplineDetailContent() {
                     setOnlyClassesWithData(only);
                     setClassPage(1);
                   }}
+                  periodosDisponiveis={periodosDisponiveis}
+                  periodoSelecionado={periodoAtivo}
+                  aoAlterarPeriodo={aoAlterarPeriodo}
                 />
 
                 {filteredAndSortedClasses.length > 0 ? (
