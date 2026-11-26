@@ -70,44 +70,54 @@ export async function request<T>(
     let errorMessage = `Erro HTTP ${response.status}`;
     let errorData: unknown = null;
     try {
-      errorData = await response.json();
-      const parsedData = errorData as Record<string, unknown> | null;
-      if (typeof parsedData?.detail === "string") {
-        errorMessage = parsedData.detail;
-      } else if (Array.isArray(parsedData?.detail)) {
-        const msgs = parsedData.detail
-          .map((item: unknown) => {
-            if (typeof item === "string") return item;
-            if (item && typeof item === "object" && "msg" in item) {
-              const msgStr = String((item as { msg: unknown }).msg);
-              return msgStr.replace(/^Value error,\s*/i, "");
+      const rawText = await response.text();
+      if (rawText && rawText.trim().length > 0) {
+        try {
+          errorData = JSON.parse(rawText);
+          const parsedData = errorData as Record<string, unknown> | null;
+          if (typeof parsedData?.detail === "string") {
+            errorMessage = parsedData.detail;
+          } else if (Array.isArray(parsedData?.detail)) {
+            const msgs = parsedData.detail
+              .map((item: unknown) => {
+                if (typeof item === "string") return item;
+                if (item && typeof item === "object" && "msg" in item) {
+                  const msgStr = String((item as { msg: unknown }).msg);
+                  return msgStr.replace(/^Value error,\s*/i, "");
+                }
+                return null;
+              })
+              .filter(Boolean);
+            if (msgs.length > 0) {
+              errorMessage = msgs.join(" • ");
             }
-            return null;
-          })
-          .filter(Boolean);
-        if (msgs.length > 0) {
-          errorMessage = msgs.join(" • ");
+          } else if (typeof parsedData?.message === "string") {
+            errorMessage = parsedData.message;
+          } else if (typeof parsedData?.error === "string") {
+            errorMessage = parsedData.error;
+          }
+        } catch {
+          const trimmed = rawText.trim();
+          if (!trimmed.startsWith("<") && trimmed.length < 300) {
+            errorMessage = trimmed;
+          }
         }
-      } else if (typeof parsedData?.message === "string") {
-        errorMessage = parsedData.message;
-      } else if (typeof parsedData?.error === "string") {
-        errorMessage = parsedData.error;
       }
     } catch {
-      try {
-        const text = await response.text();
-        if (text && text.trim().length > 0 && text.length < 300) {
-          errorMessage = text.trim();
-        }
-      } catch {
-        // Falha ao ler corpo como texto
-      }
+      // Falha ao ler corpo da resposta de erro
     }
     throw new ApiError(errorMessage, response.status, errorData);
   }
 
   if (responseType === "blob") return response.blob() as Promise<T>;
-  return response.json() as Promise<T>;
+  if (response.status === 204 || response.status === 205) {
+    return undefined as T;
+  }
+  const bodyText = await response.text();
+  if (!bodyText.trim()) {
+    return undefined as T;
+  }
+  return JSON.parse(bodyText) as T;
 }
 
 export function requestBlob(endpoint: string, options: RequestInit = {}): Promise<Blob> {

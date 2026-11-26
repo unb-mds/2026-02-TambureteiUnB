@@ -5,38 +5,11 @@ import {
   type DifficultyAlert,
   adaptBackendCommentToDifficultyAlert,
   encodeTopicWithSeverity,
-  formatAlertDate,
 } from "../types/dificuldade.ts";
 import { ApiError, request } from "./httpClient.ts";
 
 export const DIFFICULTY_MIN_CHARS = 10;
 export const DIFFICULTY_MAX_CHARS = 2000;
-
-const LOCAL_ALERTS_STORAGE_KEY = "tamburetei_difficulty_alerts_local";
-
-function getLocalAlertsForDiscipline(key: string): DifficultyAlert[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(LOCAL_ALERTS_STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Record<string, DifficultyAlert[]>) : {};
-    return parsed[key] || [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalAlertForDiscipline(key: string, alert: DifficultyAlert): void {
-  if (typeof window === "undefined") return;
-  try {
-    const raw = localStorage.getItem(LOCAL_ALERTS_STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Record<string, DifficultyAlert[]>) : {};
-    const existing = parsed[key] || [];
-    parsed[key] = [alert, ...existing];
-    localStorage.setItem(LOCAL_ALERTS_STORAGE_KEY, JSON.stringify(parsed));
-  } catch {
-    // Ignora falha de armazenamento local
-  }
-}
 
 const DIFFICULTY_ERROR_MESSAGES_BY_STATUS: Record<number, string> = {
   401: "Sessão expirada ou não autenticada. Faça login para registrar alertas de dificuldade.",
@@ -47,23 +20,17 @@ const DIFFICULTY_ERROR_MESSAGES_BY_STATUS: Record<number, string> = {
 
 function mapDifficultyError(err: unknown): ApiError {
   if (err instanceof ApiError) {
-    const mappedMessage =
-      DIFFICULTY_ERROR_MESSAGES_BY_STATUS[err.status] ?? err.message;
-    return new ApiError(mappedMessage, err.status, err.data);
+    const hasSpecificServerMessage =
+      Boolean(err.message) && !/^Erro HTTP \d+$/.test(err.message.trim());
+    const resolvedMessage =
+      err.status === 422 && hasSpecificServerMessage
+        ? err.message
+        : DIFFICULTY_ERROR_MESSAGES_BY_STATUS[err.status] ?? err.message;
+    return new ApiError(resolvedMessage, err.status, err.data);
   }
   return new ApiError(
     "Falha na conexão com o servidor ao processar os alertas de dificuldade.",
     0
-  );
-}
-
-const FALLBACK_HTTP_STATUSES = new Set([0, 401, 404, 422]);
-
-function shouldUseLocalFallback(err: unknown): boolean {
-  return (
-    typeof window !== "undefined" &&
-    err instanceof ApiError &&
-    FALLBACK_HTTP_STATUSES.has(err.status)
   );
 }
 
@@ -128,7 +95,6 @@ export async function listDifficultyAlerts(
   size: number;
   pages: number;
 }> {
-  const key = String(disciplineIdOrSlug).trim().toLowerCase();
   const query = buildListQuery(params);
   const endpoint = `/cadeiras/${encodeURIComponent(
     String(disciplineIdOrSlug)
@@ -136,30 +102,25 @@ export async function listDifficultyAlerts(
 
   try {
     const response = await request<BackendComentarioPage | BackendComentarioItem[]>(
-      endpoint
+      endpoint,
+      { cache: "no-store" }
     );
 
     const adaptedItems = extractRawCommentItems(response)
       .filter(hasDifficultyTopic)
       .map(adaptBackendCommentToDifficultyAlert);
 
-    const finalItems =
-      adaptedItems.length > 0 ? adaptedItems : getLocalAlertsForDiscipline(key);
-
     if (Array.isArray(response)) {
-      return buildPaginatedResult(finalItems, 1, finalItems.length || 50);
+      return buildPaginatedResult(adaptedItems, 1, adaptedItems.length || 50);
     }
 
     return buildPaginatedResult(
-      finalItems,
+      adaptedItems,
       response.page ?? 1,
       response.size ?? 50,
       response.pages
     );
   } catch (err: unknown) {
-    if (shouldUseLocalFallback(err)) {
-      return buildPaginatedResult(getLocalAlertsForDiscipline(key));
-    }
     throw mapDifficultyError(err);
   }
 }
@@ -223,7 +184,6 @@ export async function submitDifficultyAlert(
   input: CreateDifficultyAlertInput
 ): Promise<DifficultyAlert> {
   const {
-    cleanTopic,
     cleanContent,
     validId,
     targetSlugOrCode,
@@ -257,26 +217,6 @@ export async function submitDifficultyAlert(
     });
     return adaptBackendCommentToDifficultyAlert(created);
   } catch (err: unknown) {
-    if (shouldUseLocalFallback(err)) {
-      const nowIso = new Date().toISOString();
-      const localCreated: DifficultyAlert = {
-        id: `local-${Date.now()}`,
-        disciplinaId: validId,
-        turmaId: input.turmaId ?? null,
-        authorAlias: resolvedAlias,
-        isAnonymous: Boolean(input.isAnonymous),
-        topic: cleanTopic,
-        severity: input.severity,
-        content: cleanContent,
-        createdAt: formatAlertDate(nowIso),
-        rawCreatedAt: nowIso,
-        upvotes: 0,
-        isLikedByMe: false,
-      };
-      const storageKey = String(targetSlugOrCode || validId).toLowerCase();
-      saveLocalAlertForDiscipline(storageKey, localCreated);
-      return localCreated;
-    }
     throw mapDifficultyError(err);
   }
 }
@@ -295,10 +235,58 @@ export async function toggleDifficultyVote(
   });
 }
 
+export async function updateDifficultyAlert(
+  commentId: number,
+  input: { topic: string; severity: DifficultyAlert["severity"]; content: string }
+): Promise<DifficultyAlert> {
+  const cleanTopic = input.topic.trim();
+  const cleanContent = input.content.trim();
+  if (!cleanTopic) {
+    throw new ApiError("Selecione ou informe a unidade da ementa.", 422);
+  }
+  if (cleanContent.length < DIFFICULTY_MIN_CHARS) {
+    throw new ApiError(
+      `Descreva sua dica ou dificuldade com pelo menos ${DIFFICULTY_MIN_CHARS} caracteres.`,
+      422
+    );
+  }
+  if (cleanContent.length > DIFFICULTY_MAX_CHARS) {
+    throw new ApiError(
+      `O relato excede o limite de ${DIFFICULTY_MAX_CHARS} caracteres.`,
+      422
+    );
+  }
+
+  try {
+    const updated = await request<BackendComentarioItem>(`/comentarios/${commentId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        conteudo: cleanContent,
+        topico_dificuldade: encodeTopicWithSeverity(cleanTopic, input.severity),
+      }),
+    });
+    return adaptBackendCommentToDifficultyAlert(updated);
+  } catch (err: unknown) {
+    throw mapDifficultyError(err);
+  }
+}
+
+export async function deleteDifficultyAlert(commentId: number): Promise<void> {
+  try {
+    await request<void>(`/comentarios/${commentId}`, {
+      method: "DELETE",
+    });
+  } catch (err: unknown) {
+    throw mapDifficultyError(err);
+  }
+}
+
 export const difficultyService = {
   listDifficultyAlerts,
   submitDifficultyAlert,
   toggleDifficultyVote,
+  updateDifficultyAlert,
+  deleteDifficultyAlert,
 };
 
 export default difficultyService;

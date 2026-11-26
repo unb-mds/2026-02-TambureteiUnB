@@ -52,24 +52,49 @@ export async function uploadHistoricoPdf(
   const formData = new FormData();
   formData.append("arquivo", file);
 
-  const response = await fetch(`${API_BASE_URL}/perfil/importar-historico`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/perfil/importar-historico`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+  } catch (err: unknown) {
+    throw new ApiError(
+      "Não foi possível conectar ao servidor para importar o histórico. Verifique sua conexão e tente novamente.",
+      0,
+      { error: err instanceof Error ? err.message : String(err) },
+    );
+  }
+
+  const rawText = await response.text();
+  let data: unknown = null;
+  if (rawText.trim()) {
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = null;
+    }
+  }
 
   if (!response.ok) {
-    const data = await response.json().catch(() => null);
+    const parsed = data as { detail?: unknown; message?: unknown } | null;
     const message =
-      data && typeof data.detail === "string"
-        ? data.detail
+      parsed && typeof parsed.detail === "string"
+        ? parsed.detail
+        : parsed && typeof parsed.message === "string"
+        ? parsed.message
         : "Não foi possível processar o Histórico Escolar enviado.";
     throw new ApiError(message, response.status, data);
   }
 
-  return response.json() as Promise<HistoricoImportacaoResponse>;
+  if (!data) {
+    throw new ApiError("Resposta inválida recebida ao processar o histórico.", response.status);
+  }
+
+  return data as HistoricoImportacaoResponse;
 }
 
 function getHistoricoStorage(): Storage | null {

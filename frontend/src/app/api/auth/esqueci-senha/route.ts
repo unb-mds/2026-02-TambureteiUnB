@@ -66,11 +66,24 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ email: normalizedEmail }),
     });
 
-    const data = await backendRes.json();
+    const rawText = await backendRes.text();
+    let data: { message?: string; detail?: string } = {};
+    if (rawText.trim()) {
+      try {
+        data = JSON.parse(rawText) as { message?: string; detail?: string };
+      } catch {
+        data = {};
+      }
+    }
 
     if (!backendRes.ok) {
       return NextResponse.json(
-        { message: data.message || "Erro ao processar solicitação." },
+        {
+          message:
+            (typeof data.detail === "string" && data.detail) ||
+            (typeof data.message === "string" && data.message) ||
+            "Erro ao processar solicitação.",
+        },
         { status: backendRes.status }
       );
     }

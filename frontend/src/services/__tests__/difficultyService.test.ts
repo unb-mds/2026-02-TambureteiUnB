@@ -172,7 +172,7 @@ test("submitDifficultyAlert envia novo alerta para POST /comentarios quando disc
   globalThis.fetch = originalFetch;
 });
 
-test("submitDifficultyAlert propaga erro HTTP do envio de comentário", async () => {
+test("submitDifficultyAlert propaga mensagem real de erro HTTP 422 do servidor sem salvar fallback falso", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (async () =>
     new Response(
@@ -191,7 +191,7 @@ test("submitDifficultyAlert propaga erro HTTP do envio de comentário", async ()
       severity: "ALTO",
       content: "Conteúdo de teste.",
     }),
-    /Dados inválidos no alerta de dificuldade/,
+    /Falha de validação no comentário/,
   );
 
   removeStoredToken();
