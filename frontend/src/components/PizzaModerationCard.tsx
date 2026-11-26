@@ -8,12 +8,14 @@ interface PizzaModerationCardProps {
   item: PizzaModeracaoItem;
   disabled: boolean;
   onDecision: (id: number, payload: DecisaoPizzaPayload) => Promise<void>;
+  onPreviewImage?: (item: PizzaModeracaoItem, imageUrl: string) => void;
 }
 
 export default function PizzaModerationCard({
   item,
   disabled,
   onDecision,
+  onPreviewImage,
 }: PizzaModerationCardProps) {
   const [taxaAprovacao, setTaxaAprovacao] = useState(
     item.taxa_aprovacao !== null ? String(item.taxa_aprovacao) : "",
@@ -31,7 +33,6 @@ export default function PizzaModerationCard({
   const [erroLocal, setErroLocal] = useState("");
   const [imagemUrl, setImagemUrl] = useState<string | null>(null);
   const [erroImagem, setErroImagem] = useState("");
-  const [ampliada, setAmpliada] = useState(false);
 
   useEffect(() => {
     if (!item.possui_imagem) return;
@@ -150,27 +151,32 @@ export default function PizzaModerationCard({
             <span className="text-xs font-semibold text-[var(--text-muted)]">
               Imagem do gráfico enviada pelo estudante
             </span>
-            {imagemUrl && (
+            {imagemUrl && onPreviewImage && (
               <button
                 type="button"
-                onClick={() => setAmpliada((prev) => !prev)}
+                onClick={() => onPreviewImage(item, imagemUrl)}
                 className="text-xs font-semibold text-[var(--primary-text)] hover:underline cursor-pointer"
               >
-                {ampliada ? "Reduzir imagem" : "Ampliar imagem"}
+                Pré-visualizar em tela cheia
               </button>
             )}
           </div>
           {erroImagem ? (
             <p className="text-xs text-[var(--status-danger-text)]">{erroImagem}</p>
           ) : imagemUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={imagemUrl}
-              alt={`Gráfico de pizza de ${item.disciplina_codigo} (${codigoTurmaFormatado})`}
-              className={`mx-auto rounded-lg border border-[var(--border-subtle)] bg-white object-contain ${
-                ampliada ? "max-h-[540px] w-full" : "max-h-64"
-              }`}
-            />
+            <button
+              type="button"
+              onClick={() => onPreviewImage && onPreviewImage(item, imagemUrl)}
+              aria-label={`Abrir gráfico de pizza de ${item.disciplina_codigo} (${codigoTurmaFormatado}) em tela cheia`}
+              className="group block w-full cursor-zoom-in rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imagemUrl}
+                alt={`Gráfico de pizza de ${item.disciplina_codigo} (${codigoTurmaFormatado})`}
+                className="mx-auto max-h-64 rounded-lg border border-[var(--border-subtle)] bg-white object-contain transition-opacity group-hover:opacity-90"
+              />
+            </button>
           ) : (
             <p className="text-xs text-[var(--text-muted)]">Carregando print anexado...</p>
           )}

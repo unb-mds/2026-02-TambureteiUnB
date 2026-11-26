@@ -160,6 +160,7 @@ class AlvoDenunciadoResumo(BaseModel):
     autor_alias: str
     topico_dificuldade: str | None = None
     formato: str | None = None
+    url_origem: str | None = None
     status_moderacao: str
     created_at: datetime
     disciplina: DisciplinaCuradoria

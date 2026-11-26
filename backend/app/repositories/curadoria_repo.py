@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.comentario import Comentario
 from app.models.conteudo import Conteudo
 from app.models.curadoria import Curadoria
+from app.models.denuncia import Denuncia
 from app.repositories.base import BaseRepository
 
 
@@ -11,6 +12,10 @@ class CuradoriaRepository(BaseRepository[Curadoria]):
         super().__init__(Curadoria)
 
     def listar_pendentes(self, db: Session, pagina: int, tamanho: int) -> tuple[list[Conteudo], int]:
+        conteudos_denunciados = select(Denuncia.conteudo_id).where(
+            Denuncia.status == "PENDENTE",
+            Denuncia.conteudo_id.isnot(None),
+        )
         origem_pendente = or_(
             and_(
                 Conteudo.caminho_arquivo.isnot(None),
@@ -24,6 +29,7 @@ class CuradoriaRepository(BaseRepository[Curadoria]):
         filtros = (
             origem_pendente,
             Conteudo.status_curadoria == "PENDENTE",
+            ~Conteudo.id.in_(conteudos_denunciados),
         )
         total = db.scalar(select(func.count()).select_from(Conteudo).where(*filtros)) or 0
         consulta = (select(Conteudo).options(joinedload(Conteudo.disciplina)).where(*filtros)
@@ -40,7 +46,14 @@ class CuradoriaRepository(BaseRepository[Curadoria]):
         return db.scalar(consulta)
 
     def listar_comentarios_pendentes(self, db: Session, pagina: int, tamanho: int) -> tuple[list[Comentario], int]:
-        filtros = (Comentario.status_moderacao == "PENDENTE",)
+        comentarios_denunciados = select(Denuncia.comentario_id).where(
+            Denuncia.status == "PENDENTE",
+            Denuncia.comentario_id.isnot(None),
+        )
+        filtros = (
+            Comentario.status_moderacao == "PENDENTE",
+            ~Comentario.id.in_(comentarios_denunciados),
+        )
         total = db.scalar(select(func.count()).select_from(Comentario).where(*filtros)) or 0
         consulta = (
             select(Comentario)

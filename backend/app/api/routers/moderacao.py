@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, File, Form, Path, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.api.deps import require_role
@@ -11,6 +11,7 @@ from app.api.schemas.curadoria import (
     FilaCuradoria,
     RegistroCuradoria,
 )
+from app.api.schemas.material import MaterialResponse
 from app.api.schemas.denuncia import (
     DecisaoDenuncia,
     FilaDenuncias,
@@ -67,6 +68,27 @@ def baixar(id: Identificador, db: Banco, moderador: Moderador, servico: Servico)
                         headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store"})
 
 
+@router.put("/materiais/{id}/arquivo", response_model=MaterialResponse)
+def substituir_arquivo_material(
+    id: Identificador,
+    arquivo: Annotated[UploadFile, File(description="Arquivo editado (PDF, PNG ou JPG; máximo de 5 MiB).")],
+    db: Banco,
+    moderador: Moderador,
+    servico: Servico,
+    justificativa: Annotated[str | None, Form()] = None,
+) -> MaterialResponse:
+    """Permite ao moderador substituir o arquivo de um material (ex: remover nome/matrícula de prova antiga)."""
+    return servico.substituir_arquivo(
+        db,
+        id,
+        arquivo.file,
+        arquivo.filename or "",
+        arquivo.content_type or "",
+        moderador,
+        justificativa=justificativa,
+    )
+
+
 @router.get("/comentarios", response_model=FilaComentariosCuradoria)
 def fila_comentarios(
     db: Banco,
@@ -97,8 +119,9 @@ def fila_denuncias(
     tamanho_pagina: Annotated[int, Query(ge=1, le=100)] = 20,
     tipo: Annotated[str | None, Query()] = None,
     categoria: Annotated[str | None, Query()] = None,
+    situacao: Annotated[str | None, Query()] = None,
 ) -> FilaDenuncias:
-    return denuncia_service.listar_fila(db, pagina, tamanho_pagina, tipo, categoria)
+    return denuncia_service.listar_fila(db, pagina, tamanho_pagina, tipo, categoria, situacao)
 
 
 @router.patch("/denuncias/{id}", response_model=ResumoDecisaoDenuncia)
@@ -109,6 +132,19 @@ def decidir_denuncia(
     moderador: Moderador,
 ) -> ResumoDecisaoDenuncia:
     return denuncia_service.decidir(db, id, dados, moderador)
+
+
+@router.get("/denuncias/{id}/arquivo", response_class=FileResponse)
+def baixar_arquivo_denuncia(id: Identificador, db: Banco, moderador: Moderador):
+    """Serve o arquivo de um material denunciado para inspeção da moderação."""
+    armazenamento = ArmazenamentoMaterial(settings.MATERIALS_DIR, settings.MATERIAL_MAX_BYTES)
+    conteudo, caminho = denuncia_service.obter_arquivo_denuncia(db, id, armazenamento)
+    return FileResponse(
+        caminho,
+        media_type=TIPOS_MIME[conteudo.formato],
+        filename=f"denuncia-material-{conteudo.id}.{conteudo.formato}",
+        headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store"},
+    )
 
 
 @router.get("/pizzas", response_model=FilaPizzasModeracao)

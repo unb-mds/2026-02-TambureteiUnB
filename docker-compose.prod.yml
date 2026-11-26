@@ -37,11 +37,6 @@ services:
       PIZZAS_DIR: /app/storage/pizzas
       MATERIAL_MAX_BYTES: ${MATERIAL_MAX_BYTES:-5242880}
       QUORUM_MINIMO_DOACOES: ${QUORUM_MINIMO_DOACOES:-3}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
-      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-}
-      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-90.0}
-      MODERATION_CONFIDENCE_THRESHOLD: ${MODERATION_CONFIDENCE_THRESHOLD:-0.80}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -51,8 +46,6 @@ services:
       SMTP_TLS: ${SMTP_TLS:-true}
       SMTP_SSL: ${SMTP_SSL:-false}
       FRONTEND_URL: ${FRONTEND_URL:-https://tambureteiunb.com.br}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - materiais_data:/app/storage/materiais
       - pizzas_data:/app/storage/pizzas

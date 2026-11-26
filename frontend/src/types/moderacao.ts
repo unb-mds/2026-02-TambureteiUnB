@@ -13,6 +13,7 @@ export type CategoriaDenuncia =
 export type AcaoDenuncia = "EXCLUIR_CONTEUDO" | "DESCARTAR_DENUNCIA";
 export type FiltroTipoDenuncia = "TODOS" | "COMENTARIO" | "MATERIAL";
 export type FiltroCategoriaDenuncia = "TODAS" | CategoriaDenuncia;
+export type FiltroSituacaoDenuncia = "TODOS" | "OCULTADOS" | "ABAIXO_LIMIAR";
 
 export interface MaterialPendente extends MaterialResponse {
   motivo_moderacao?: string | null;
@@ -89,6 +90,7 @@ export interface AlvoDenunciadoResumo {
   autor_alias: string;
   topico_dificuldade: string | null;
   formato: string | null;
+  url_origem?: string | null;
   status_moderacao: string;
   created_at: string;
   disciplina: { id: number; nome: string; slug: string };

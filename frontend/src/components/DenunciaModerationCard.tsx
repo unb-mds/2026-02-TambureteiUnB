@@ -1,22 +1,75 @@
 "use client";
+import { useEffect, useState } from "react";
 import Button from "./Button";
-import { ROTULOS_CATEGORIA_DENUNCIA } from "@/services/moderacaoService";
+import { ROTULOS_CATEGORIA_DENUNCIA, baixarArquivoDenuncia } from "@/services/moderacaoService";
 import type { AcaoDenuncia, DenunciaItemFila } from "@/types/moderacao";
+import { validateExternalUrl } from "@/utils/fileValidation";
 
 interface DenunciaModerationCardProps {
   denuncia: DenunciaItemFila;
   disabled: boolean;
+  fileVersion?: number;
   onRequestAction: (denuncia: DenunciaItemFila, acao: AcaoDenuncia) => void;
+  onPreviewMaterial?: (denuncia: DenunciaItemFila, preloadedUrl?: string) => Promise<void> | void;
+  onDownloadMaterial?: (denuncia: DenunciaItemFila) => Promise<void>;
+  onReplaceMaterialFile?: (denuncia: DenunciaItemFila) => void;
 }
 
 export default function DenunciaModerationCard({
   denuncia,
   disabled,
+  fileVersion = 0,
   onRequestAction,
+  onPreviewMaterial,
+  onDownloadMaterial,
+  onReplaceMaterialFile,
 }: DenunciaModerationCardProps) {
+  const [imagemUrl, setImagemUrl] = useState<string | null>(null);
+  const [erroImagem, setErroImagem] = useState("");
   const { alvo } = denuncia;
   const retidoAutomaticamente =
-    alvo.status_moderacao === "PENDENTE" || alvo.status_moderacao === "em_analise";
+    denuncia.total_denuncias >= 3 ||
+    alvo.status_moderacao === "PENDENTE" ||
+    alvo.status_moderacao === "em_analise";
+  const isMaterial = denuncia.tipo_alvo === "MATERIAL";
+  const safeExternalUrl =
+    isMaterial && alvo.url_origem && validateExternalUrl(alvo.url_origem).isValid
+      ? alvo.url_origem
+      : null;
+  const formatoNorm = (alvo.formato || "").toLowerCase();
+  const isFileMaterial = isMaterial && !safeExternalUrl && Boolean(alvo.formato);
+  const isImageMaterial = isFileMaterial && ["png", "jpg", "jpeg", "webp"].includes(formatoNorm);
+  const canPreviewFile =
+    isMaterial &&
+    !safeExternalUrl &&
+    Boolean(onPreviewMaterial) &&
+    ["pdf", "png", "jpg", "jpeg", "webp"].includes(formatoNorm);
+
+  useEffect(() => {
+    if (!isImageMaterial) return;
+    let cancelado = false;
+    let urlGerada: string | null = null;
+
+    baixarArquivoDenuncia(denuncia.id)
+      .then((blob) => {
+        if (cancelado) return;
+        urlGerada = URL.createObjectURL(blob);
+        setImagemUrl(urlGerada);
+        setErroImagem("");
+      })
+      .catch((err) => {
+        if (!cancelado) {
+          setErroImagem(err instanceof Error ? err.message : "Erro ao carregar imagem.");
+        }
+      });
+
+    return () => {
+      cancelado = true;
+      if (urlGerada) {
+        URL.revokeObjectURL(urlGerada);
+      }
+    };
+  }, [denuncia.id, isImageMaterial, fileVersion]);
 
   return (
     <article
@@ -28,7 +81,11 @@ export default function DenunciaModerationCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-[#5B4BDB]">{alvo.disciplina.nome}</span>
             <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-              {denuncia.tipo_alvo === "COMENTARIO" ? "Comentário / Relato" : "Material"}
+              {denuncia.tipo_alvo === "COMENTARIO"
+                ? "Comentário / Relato"
+                : safeExternalUrl
+                ? "Material · LINK EXTERNO"
+                : `Material · ${(alvo.formato || "ARQUIVO").toUpperCase()}`}
             </span>
             <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
               {ROTULOS_CATEGORIA_DENUNCIA[denuncia.categoria]}
@@ -75,6 +132,44 @@ export default function DenunciaModerationCard({
         </p>
       </div>
 
+      {isImageMaterial && (
+        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-gray-600">
+              Pré-visualização da imagem denunciada
+            </span>
+            {imagemUrl && onPreviewMaterial && (
+              <button
+                type="button"
+                onClick={() => void onPreviewMaterial(denuncia, imagemUrl)}
+                className="text-xs font-semibold text-[#5B4BDB] hover:underline cursor-pointer"
+              >
+                Abrir em tela cheia
+              </button>
+            )}
+          </div>
+          {erroImagem ? (
+            <p className="text-xs text-red-700">{erroImagem}</p>
+          ) : imagemUrl ? (
+            <button
+              type="button"
+              onClick={() => onPreviewMaterial && void onPreviewMaterial(denuncia, imagemUrl)}
+              aria-label={`Abrir pré-visualização em tela cheia de ${alvo.titulo || "material denunciado"}`}
+              className="group block w-full cursor-zoom-in rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imagemUrl}
+                alt={alvo.titulo || "Imagem do material denunciado"}
+                className="mx-auto max-h-64 rounded-lg border border-gray-200 bg-white object-contain transition-opacity group-hover:opacity-90"
+              />
+            </button>
+          ) : (
+            <p className="text-xs text-gray-500">Carregando imagem do material...</p>
+          )}
+        </div>
+      )}
+
       <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 text-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
           Motivo informado na denúncia
@@ -92,6 +187,43 @@ export default function DenunciaModerationCard({
           Painel de Ações: toda decisão exige confirmação explícita em modal.
         </span>
         <div className="flex flex-wrap gap-3">
+          {canPreviewFile && onPreviewMaterial && (
+            <Button
+              variant="outline"
+              disabled={disabled}
+              onClick={() => void onPreviewMaterial(denuncia, imagemUrl ?? undefined)}
+            >
+              Pré-visualizar arquivo
+            </Button>
+          )}
+          {isFileMaterial && onDownloadMaterial && (
+            <Button
+              variant="outline"
+              disabled={disabled}
+              onClick={() => void onDownloadMaterial(denuncia)}
+            >
+              Baixar arquivo
+            </Button>
+          )}
+          {isFileMaterial && onReplaceMaterialFile && (
+            <Button
+              variant="outline"
+              disabled={disabled}
+              onClick={() => onReplaceMaterialFile(denuncia)}
+            >
+              Substituir arquivo
+            </Button>
+          )}
+          {safeExternalUrl && (
+            <a
+              href={safeExternalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-[#202124] transition-colors hover:bg-gray-50"
+            >
+              Abrir link externo
+            </a>
+          )}
           <Button
             variant="outline"
             disabled={disabled}

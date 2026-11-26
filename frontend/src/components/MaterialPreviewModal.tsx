@@ -58,7 +58,7 @@ function MaterialPreviewDialog<T extends PreviewMaterialItem>({
 
   const formatoNormalizado = (material.formato || "").toLowerCase();
   const isPdf = formatoNormalizado === "pdf";
-  const isImage = ["png", "jpg", "jpeg"].includes(formatoNormalizado);
+  const isImage = ["png", "jpg", "jpeg", "webp"].includes(formatoNormalizado);
   const disciplinaNome = material.disciplina?.nome || material.disciplinaNome || "Material de Apoio";
   const formatLabel = material.formato ? material.formato.toUpperCase() : "ARQUIVO";
   const sizeLabel =
@@ -103,6 +103,11 @@ function MaterialPreviewDialog<T extends PreviewMaterialItem>({
       role="dialog"
       aria-modal="true"
       aria-labelledby="preview-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !enviando) {
+          onClose();
+        }
+      }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 sm:p-6"
     >
       <div className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-2xl bg-white shadow-2xl">
@@ -153,10 +158,11 @@ function MaterialPreviewDialog<T extends PreviewMaterialItem>({
                 />
               )}
               {isImage && (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={blobUrl}
                   alt={material.titulo}
-                  className="max-h-[500px] max-w-full rounded-xl object-contain shadow-sm"
+                  className="max-h-[72vh] max-w-full rounded-xl object-contain shadow-sm"
                 />
               )}
               {!isPdf && !isImage && (

@@ -251,3 +251,49 @@ def test_aprovacao_de_material_em_analise_libera_publicacao(client, db, pendente
     r = client.patch(f"/moderacao/conteudos/{pendente}/curadoria", headers=admin_headers, json={"status": "APROVADO"})
     assert r.status_code == 200
     assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["total"] == 1
+
+
+def test_moderador_substitui_arquivo_de_material_e_remove_anterior(client, db, disciplina, headers, moderador_headers):
+    from app.core.config import settings
+
+    envio = client.post(
+        f"/cadeiras/{disciplina.id}/materiais",
+        headers=headers,
+        data={"titulo": "Prova Antiga P1"},
+        files={"arquivo": ("prova-com-nome.pdf", PDF, "application/pdf")},
+    )
+    assert envio.status_code == 201, envio.text
+    material_id = envio.json()["id"]
+    material = db.get(Conteudo, material_id)
+    chave_antiga = material.caminho_arquivo
+    assert chave_antiga is not None and (settings.MATERIALS_DIR / chave_antiga).exists()
+
+    novo_png = b"\x89PNG\r\n\x1a\nprova-editada-sem-nome"
+    assert client.put(
+        f"/moderacao/materiais/{material_id}/arquivo",
+        headers=headers,
+        files={"arquivo": ("prova-editada.png", novo_png, "image/png")},
+    ).status_code == 403
+
+    troca = client.put(
+        f"/moderacao/materiais/{material_id}/arquivo",
+        headers=moderador_headers,
+        data={"justificativa": "Removido nome e matrícula do aluno."},
+        files={"arquivo": ("prova-editada.png", novo_png, "image/png")},
+    )
+    assert troca.status_code == 200, troca.text
+    assert troca.json()["formato"] == "png"
+    assert troca.json()["tamanho_bytes"] == len(novo_png)
+
+    db.refresh(material)
+    assert material.caminho_arquivo != chave_antiga
+    assert not (settings.MATERIALS_DIR / chave_antiga).exists()
+    assert (settings.MATERIALS_DIR / material.caminho_arquivo).read_bytes() == novo_png
+    assert client.patch(
+        f"/moderacao/conteudos/{material_id}/curadoria",
+        headers=moderador_headers,
+        json={"status": "APROVADO"},
+    ).status_code == 200
+    baixado = client.get(f"/materiais/{material_id}/download", headers=headers)
+    assert baixado.status_code == 200
+    assert baixado.content == novo_png
