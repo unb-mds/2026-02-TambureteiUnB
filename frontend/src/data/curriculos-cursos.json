@@ -3068,5 +3068,216 @@
       "is_obrigatoria": true,
       "natureza": "Obrigatoria"
     }
+  ],
+  "ciencias-economicas": [
+    {
+      "codigo": "ECO0019",
+      "nome": "INTRODUÇÃO À ECONOMIA",
+      "slug": "introducao-a-economia",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 1,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0021",
+      "nome": "HISTÓRIA ECONÔMICA GERAL",
+      "slug": "historia-economica-geral",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 1,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "MAT0025",
+      "nome": "CÁLCULO 1",
+      "slug": "calculo-1",
+      "ch": 90,
+      "creditos": 6,
+      "departamento": "Departamento de Matemática",
+      "periodo_sugerido": 1,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0126",
+      "nome": "MICROECONOMIA 1",
+      "slug": "microeconomia-1",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 2,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0099",
+      "nome": "MACROECONOMIA 1",
+      "slug": "macroeconomia-1",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 2,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "MAT0031",
+      "nome": "INTRODUCAO A ALGEBRA LINEAR",
+      "slug": "introducao-a-algebra-linear",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Matemática",
+      "periodo_sugerido": 2,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0185",
+      "nome": "MICROECONOMIA 2",
+      "slug": "microeconomia-2",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 3,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0189",
+      "nome": "MACROECONOMIA 2",
+      "slug": "macroeconomia-2",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 3,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "EST0023",
+      "nome": "PROBABILIDADE E ESTATÍSTICA",
+      "slug": "probabilidade-e-estatistica",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Estatística",
+      "periodo_sugerido": 3,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0187",
+      "nome": "ECONOMIA QUANTITATIVA 1",
+      "slug": "economia-quantitativa-1",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 3,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0050",
+      "nome": "CONTABILIDADE NACIONAL",
+      "slug": "contabilidade-nacional",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 4,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0128",
+      "nome": "INTRODUCAO A ECONOMETRIA",
+      "slug": "introducao-a-econometria",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 4,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0124",
+      "nome": "ECONOMIA POLITICA 1",
+      "slug": "economia-politica-1",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 4,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0023",
+      "nome": "FORMAÇÃO ECONÔMICA DO BRASIL",
+      "slug": "formacao-economica-do-brasil",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 5,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0054",
+      "nome": "ECONOMETRIA",
+      "slug": "econometria",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 5,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0194",
+      "nome": "ECONOMIA MONETARIA",
+      "slug": "economia-monetaria",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 5,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0025",
+      "nome": "HISTORIA DO PENSAMENTO ECONOMICO",
+      "slug": "historia-do-pensamento-economico",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 6,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0141",
+      "nome": "ECONOMIA DO SETOR PUBLICO",
+      "slug": "economia-do-setor-publico",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 6,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    },
+    {
+      "codigo": "ECO0072",
+      "nome": "ECONOMIA BRASILEIRA",
+      "slug": "economia-brasileira",
+      "ch": 60,
+      "creditos": 4,
+      "departamento": "Departamento de Economia",
+      "periodo_sugerido": 7,
+      "is_obrigatoria": true,
+      "natureza": "Obrigatoria"
+    }
   ]
 }

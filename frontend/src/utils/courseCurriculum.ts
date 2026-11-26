@@ -173,6 +173,70 @@ export const SIGAA_COURSES_CONSULTATION_URL =
   "https://sigaa.unb.br/sigaa/public/curso/lista.jsf?nivel=G";
 
 /**
+ * Normaliza o nome do curso (como extraído do SIGAA ou informado pelo usuário)
+ * para um dos slugs oficiais mapeados no sistema.
+ */
+export function resolveCourseSlug(courseName?: string | null): string {
+  if (!courseName) return "engenharia-de-software";
+  const raw = courseName.toLowerCase().trim();
+
+  // Mapeamentos diretos específicos e frequentes
+  if (raw.includes("software")) return "engenharia-de-software";
+  if (raw.includes("aeroespacial")) return "engenharia-aeroespacial";
+  if (raw.includes("automotiva")) return "engenharia-automotiva";
+  if (raw.includes("energia")) return "engenharia-de-energia";
+  if (raw.includes("eletrônica") || raw.includes("eletronica")) return "engenharia-eletronica";
+  if (raw.includes("econômica") || raw.includes("economica") || raw.includes("economia")) {
+    return "ciencias-economicas";
+  }
+  if (raw.includes("computação") || raw.includes("computacao") || raw.includes("ciência da computação")) {
+    return "ciencia-da-computacao";
+  }
+  if (raw.includes("administração") || raw.includes("administracao")) {
+    return raw.includes("noturno") ? "administracao-noturno" : "administracao-diurno";
+  }
+  if (raw.includes("direito")) {
+    return raw.includes("noturno") ? "direito-noturno" : "direito-diurno";
+  }
+  if (raw.includes("medicina") && !raw.includes("veterinária") && !raw.includes("veterinaria")) {
+    return "medicina";
+  }
+  if (raw.includes("psicologia")) return "psicologia";
+  if (raw.includes("farmácia") || raw.includes("farmacia")) return "farmacia";
+  if (raw.includes("enfermagem")) {
+    return raw.includes("noturno") ? "enfermagem-noturno" : "enfermagem-diurno";
+  }
+  if (raw.includes("nutrição") || raw.includes("nutricao")) return "nutricao";
+  if (raw.includes("fisioterapia")) return "fisioterapia";
+  if (raw.includes("odontologia")) return "odontologia";
+  if (raw.includes("arquitetura")) {
+    return raw.includes("noturno") ? "arquitetura-e-urbanismo-noturno" : "arquitetura-e-urbanismo-diurno";
+  }
+  if (raw.includes("serviço social") || raw.includes("servico social")) {
+    return raw.includes("noturno") ? "servico-social-noturno" : "servico-social-diurno";
+  }
+  if (raw.includes("engenharia")) return "engenharia";
+
+  // Busca normalizada por remoção de acentos nos slugs conhecidos
+  const normalizedTerm = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (OFFICIAL_CURRICULUM_LINKS[normalizedTerm]) {
+    return normalizedTerm;
+  }
+
+  // Tenta encontrar por prefixo ou substring dos slugs de 161 cursos
+  const found = Object.keys(OFFICIAL_CURRICULUM_LINKS).find((key) => {
+    return key === normalizedTerm || key.startsWith(normalizedTerm) || normalizedTerm.startsWith(key);
+  });
+
+  return found || normalizedTerm || "engenharia-de-software";
+}
+
+/**
  * Retorna o link oficial da grade curricular do curso na UnB.
  * Se o curso possuir `link_grade_oficial` no payload ou bater no mapa de slugs, retorna a URL específica;
  * Caso contrário, retorna o portal público oficial de graduação da UnB (SIGAA).
