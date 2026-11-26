@@ -3,7 +3,12 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import type { HistoricoImportacaoResponse } from "@/services/historicoService";
+import type { MatrizCurricularItem } from "@/types/curso";
 import curriculosCursos from "@/data/curriculos-cursos.json";
+import {
+  resolveCourseSlug,
+  getOfficialCurriculumUrl,
+} from "@/utils/courseCurriculum";
 
 interface MinhaGraduacaoSectionProps {
   importedData?: HistoricoImportacaoResponse | null;
@@ -43,29 +48,6 @@ const EQUIVALENCIAS_DISCIPLINAS: Record<string, string[]> = {
   FGA0302: ["FGA0161"],
 };
 
-interface MatrizCurricularItem {
-  codigo: string;
-  nome: string;
-  slug?: string | null;
-  ch?: number;
-  creditos?: number;
-  departamento?: string;
-  periodo_sugerido: number;
-}
-
-// Helper para normalizar o nome do curso para o slug de curriculosCursos
-function resolveCourseSlug(courseName?: string | null): string {
-  if (!courseName) return "engenharia-de-software";
-  const lower = courseName.toLowerCase();
-  if (lower.includes("software")) return "engenharia-de-software";
-  if (lower.includes("aeroespacial")) return "engenharia-aeroespacial";
-  if (lower.includes("automotiva")) return "engenharia-automotiva";
-  if (lower.includes("energia")) return "engenharia-de-energia";
-  if (lower.includes("eletrônica") || lower.includes("eletronica")) return "engenharia-eletronica";
-  if (lower.includes("engenharia")) return "engenharia";
-  return "engenharia-de-software";
-}
-
 export default function MinhaGraduacaoSection({
   importedData,
 }: MinhaGraduacaoSectionProps) {
@@ -75,6 +57,7 @@ export default function MinhaGraduacaoSection({
   // 1. Identifica o curso do estudante
   const nomeCurso = importedData?.dados_academicos.curso || "Engenharia de Software";
   const slugCurso = resolveCourseSlug(nomeCurso);
+  const linkOficialSigaa = getOfficialCurriculumUrl({ slug: slugCurso });
 
   // 2. Dados consolidados de carga horária
   const ch = useMemo(() => {
@@ -116,11 +99,13 @@ export default function MinhaGraduacaoSection({
       : 0;
 
   // 3. Monta a grade curricular oficial do curso detectado e cruza com histórico real
+  const curriculos = curriculosCursos as Record<string, MatrizCurricularItem[]>;
+  const temMatrizCadastrada = Boolean(curriculos[slugCurso]);
+
   const fullGrade = useMemo<GradeItem[]>(() => {
-    // Busca a grade obrigatória oficial do curso
-    const curriculos = curriculosCursos as Record<string, MatrizCurricularItem[]>;
+    // Busca a grade obrigatória oficial do curso cadastrada ou fallback
     const matrizCurso = curriculos[slugCurso] ||
-      curriculos["engenharia-de-software"] ||
+      (!importedData ? curriculos["engenharia-de-software"] : []) ||
       [];
 
     const concluidasMap = new Map<string, { mencao?: string | null; semestre?: string | null }>();
@@ -206,7 +191,7 @@ export default function MinhaGraduacaoSection({
         semestreConclusao,
       };
     });
-  }, [importedData, slugCurso]);
+  }, [importedData, slugCurso, curriculos]);
 
   // Agrupamento por Semestre da grade oficial do curso
   const semestresAgrupados = useMemo(() => {
@@ -379,23 +364,51 @@ export default function MinhaGraduacaoSection({
               Grade curricular · {nomeCurso}
             </h3>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-              Estrutura curricular oficial baseada no seu curso ({semestresAgrupados.length} semestres · {fullGrade.length} matérias obrigatórias).
+              {temMatrizCadastrada
+                ? `Estrutura curricular oficial baseada no seu curso (${semestresAgrupados.length} semestres · ${fullGrade.length} matérias obrigatórias).`
+                : `Estrutura curricular oficial do seu curso no SIGAA da UnB.`}
             </p>
           </div>
 
-          {/* Legenda sutil */}
-          <div className="flex flex-wrap items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80 border border-emerald-400/30" />
-              <span className="text-[var(--text-muted)] text-[11px]">Concluída</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#5B4BDB] border border-[#7C6CF0]/40" />
-              <span className="text-[var(--text-muted)] text-[11px]">Em andamento</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-neutral-400 dark:bg-neutral-600 border border-neutral-500/30" />
-              <span className="text-[var(--text-muted)] text-[11px]">Pendente</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href={linkOficialSigaa}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--primary)] hover:bg-[var(--primary-soft)] transition-colors"
+            >
+              <span>Grade oficial no SIGAA</span>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+
+            {/* Legenda sutil */}
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80 border border-emerald-400/30" />
+                <span className="text-[var(--text-muted)] text-[11px]">Concluída</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#5B4BDB] border border-[#7C6CF0]/40" />
+                <span className="text-[var(--text-muted)] text-[11px]">Em andamento</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-neutral-400 dark:bg-neutral-600 border border-neutral-500/30" />
+                <span className="text-[var(--text-muted)] text-[11px]">Pendente</span>
+              </div>
             </div>
           </div>
         </div>
@@ -426,92 +439,128 @@ export default function MinhaGraduacaoSection({
         </div>
 
         {/* Grade de Semestres (Organização Horizontal por Semestres) */}
-        <div className="mt-5 overflow-x-auto pb-3">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-3.5 min-w-full sm:min-w-max items-start">
-            {semestresAgrupados.map((sem) => {
-              const filteredDiscs = sem.disciplinas.filter(matchesFilter);
-              if (filteredDiscs.length === 0 && filter !== "todas") {
-                return null;
-              }
+        {semestresAgrupados.length > 0 ? (
+          <div className="mt-5 overflow-x-auto pb-3">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-3.5 min-w-full sm:min-w-max items-start">
+              {semestresAgrupados.map((sem) => {
+                const filteredDiscs = sem.disciplinas.filter(matchesFilter);
+                if (filteredDiscs.length === 0 && filter !== "todas") {
+                  return null;
+                }
 
-              return (
-                <div
-                  key={sem.titulo}
-                  className="w-full sm:w-[185px] shrink-0 flex flex-col gap-2 rounded-xl bg-[var(--surface-muted)] p-2.5 border border-[var(--border-subtle)]"
-                >
-                  {/* Cabeçalho do Semestre */}
-                  <div className="flex items-center justify-between px-1 pb-1 border-b border-[var(--border-subtle)]/60">
-                    <span className="text-xs font-bold text-[var(--foreground)]">
-                      {sem.titulo}
-                    </span>
-                    <span className="text-[10px] text-[var(--text-muted)] font-medium">
-                      {sem.totalConcluidas}/{sem.totalDisciplinas}
-                    </span>
-                  </div>
+                return (
+                  <div
+                    key={sem.titulo}
+                    className="w-full sm:w-[185px] shrink-0 flex flex-col gap-2 rounded-xl bg-[var(--surface-muted)] p-2.5 border border-[var(--border-subtle)]"
+                  >
+                    {/* Cabeçalho do Semestre */}
+                    <div className="flex items-center justify-between px-1 pb-1 border-b border-[var(--border-subtle)]/60">
+                      <span className="text-xs font-bold text-[var(--foreground)]">
+                        {sem.titulo}
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-medium">
+                        {sem.totalConcluidas}/{sem.totalDisciplinas}
+                      </span>
+                    </div>
 
-                  {/* Blocos Compactos das Disciplinas */}
-                  <div className="flex flex-col gap-1.5">
-                    {filteredDiscs.map((disc) => {
-                      const isConcluida = disc.status === "Concluída";
-                      const isAndamento = disc.status === "Em andamento";
+                    {/* Blocos Compactos das Disciplinas */}
+                    <div className="flex flex-col gap-1.5">
+                      {filteredDiscs.map((disc) => {
+                        const isConcluida = disc.status === "Concluída";
+                        const isAndamento = disc.status === "Em andamento";
 
-                      let cardStyle =
-                        "border-neutral-200 dark:border-neutral-800 bg-neutral-100/60 dark:bg-neutral-900/60 text-neutral-600 dark:text-neutral-400 hover:border-neutral-400";
-                      let codeColor = "text-neutral-500 dark:text-neutral-500";
-                      let titleColor = "text-neutral-800 dark:text-neutral-200";
+                        let cardStyle =
+                          "border-neutral-200 dark:border-neutral-800 bg-neutral-100/60 dark:bg-neutral-900/60 text-neutral-600 dark:text-neutral-400 hover:border-neutral-400";
+                        let codeColor = "text-neutral-500 dark:text-neutral-500";
+                        let titleColor = "text-neutral-800 dark:text-neutral-200";
 
-                      if (isConcluida) {
-                        cardStyle =
-                          "border-emerald-600/40 bg-emerald-950/25 dark:bg-emerald-950/35 text-emerald-300 hover:border-emerald-500/70";
-                        codeColor = "text-emerald-600 dark:text-emerald-500/90";
-                        titleColor = "text-emerald-950 dark:text-emerald-100";
-                      } else if (isAndamento) {
-                        cardStyle =
-                          "border-[#5B4BDB]/45 bg-[#5B4BDB]/10 dark:bg-[#5B4BDB]/15 text-[#A89BFF] hover:border-[#5B4BDB]";
-                        codeColor = "text-[#7C6CF0] dark:text-[#9B8CF6]";
-                        titleColor = "text-[#2A1E8F] dark:text-[#EAE6FF]";
-                      }
+                        if (isConcluida) {
+                          cardStyle =
+                            "border-emerald-600/40 bg-emerald-950/25 dark:bg-emerald-950/35 text-emerald-300 hover:border-emerald-500/70";
+                          codeColor = "text-emerald-600 dark:text-emerald-500/90";
+                          titleColor = "text-emerald-950 dark:text-emerald-100";
+                        } else if (isAndamento) {
+                          cardStyle =
+                            "border-[#5B4BDB]/45 bg-[#5B4BDB]/10 dark:bg-[#5B4BDB]/15 text-[#A89BFF] hover:border-[#5B4BDB]";
+                          codeColor = "text-[#7C6CF0] dark:text-[#9B8CF6]";
+                          titleColor = "text-[#2A1E8F] dark:text-[#EAE6FF]";
+                        }
 
-                      return (
-                        <div
-                          key={disc.codigo}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedDiscipline(disc)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setSelectedDiscipline(disc);
-                            }
-                          }}
-                          className={`group relative flex flex-col justify-between rounded-lg border p-2 transition-all cursor-pointer ${cardStyle}`}
-                        >
-                          <div>
-                            <span
-                              className={`text-[10px] font-semibold tracking-wider ${codeColor}`}
-                            >
-                              {disc.codigo}
-                            </span>
-                            <p
-                              className={`mt-0.5 text-[11px] font-bold leading-snug line-clamp-2 ${titleColor}`}
-                            >
-                              {disc.nome}
-                            </p>
+                        return (
+                          <div
+                            key={disc.codigo}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setSelectedDiscipline(disc)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setSelectedDiscipline(disc);
+                              }
+                            }}
+                            className={`group relative flex flex-col justify-between rounded-lg border p-2 transition-all cursor-pointer ${cardStyle}`}
+                          >
+                            <div>
+                              <span
+                                className={`text-[10px] font-semibold tracking-wider ${codeColor}`}
+                              >
+                                {disc.codigo}
+                              </span>
+                              <p
+                                className={`mt-0.5 text-[11px] font-bold leading-snug line-clamp-2 ${titleColor}`}
+                              >
+                                {disc.nome}
+                              </p>
+                            </div>
+
+                            <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-muted)] opacity-80">
+                              <span>{disc.ch ? `${disc.ch} h` : ""}</span>
+                              {disc.creditos && <span>{disc.creditos} cr</span>}
+                            </div>
                           </div>
-
-                          <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-muted)] opacity-80">
-                            <span>{disc.ch ? `${disc.ch} h` : ""}</span>
-                            {disc.creditos && <span>{disc.creditos} cr</span>}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-8 text-center">
+            <h4 className="text-base font-bold text-[var(--foreground)]">
+              Grade curricular de {nomeCurso}
+            </h4>
+            <p className="mt-2 max-w-md mx-auto text-xs sm:text-sm text-[var(--text-muted)]">
+              A matriz curricular interativa deste curso está disponível para consulta pública diretamente no portal oficial do SIGAA da UnB.
+            </p>
+            <div className="mt-5">
+              <a
+                href={linkOficialSigaa}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:opacity-90 transition-opacity"
+              >
+                <span>Acessar grade oficial no SIGAA</span>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* 4. Popover / Modal de Detalhes da Disciplina */}
