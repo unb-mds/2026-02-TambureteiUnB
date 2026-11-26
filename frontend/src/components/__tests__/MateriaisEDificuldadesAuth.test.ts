@@ -18,12 +18,23 @@ test("MateriaisApoio bloqueia compartilhamento e exibe aviso de login sem alert(
   assert.match(markup, /Apenas estudantes autenticados podem compartilhar materiais/);
   assert.match(markup, /href="\/login"/);
   assert.match(markup, /Faça login para compartilhar/);
+  assert.ok(
+    markup.indexOf("Provas Anteriores") < markup.indexOf("Resumos &amp; Dicas"),
+    "Provas Anteriores deve aparecer primeiro nos filtros de Materiais de Apoio",
+  );
 
   const sourcePath = path.resolve(process.cwd(), "components/MateriaisApoio.tsx");
   const source = fs.readFileSync(sourcePath, "utf-8");
   assert.doesNotMatch(source, /\balert\s*\(/);
+  assert.match(source, /useState<"provas" \| "resumos" \| "links">\("provas"\)/);
+  assert.match(source, /tabCounts\.provas/);
   assert.match(source, /toggleMaterialVote/);
   assert.match(source, /Faça login para curtir materiais/);
+  assert.match(source, /criarDenuncia/);
+  assert.match(source, /Faça login para denunciar materiais/);
+  assert.match(source, /Denunciar material à moderação/);
+  assert.match(source, /EditMaterialModal/);
+  assert.match(source, /deleteMaterial/);
 });
 
 test("DificuldadesPanel bloqueia abertura do formulario e exibe aviso de login quando visitante nao esta logado", () => {
@@ -44,4 +55,8 @@ test("DificuldadesPanel bloqueia abertura do formulario e exibe aviso de login q
   const sourcePath = path.resolve(process.cwd(), "src/components/DificuldadesPanel.tsx");
   const source = fs.readFileSync(sourcePath, "utf-8");
   assert.doesNotMatch(source, /\balert\s*\(/);
+  assert.match(source, /criarDenuncia/);
+  assert.match(source, /updateDifficultyAlert/);
+  assert.match(source, /deleteDifficultyAlert/);
+  assert.match(source, /\(editado\)/);
 });

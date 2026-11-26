@@ -1,5 +1,7 @@
+from uuid import UUID
+
 from sqlalchemy import and_, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.conteudo import Conteudo
 from app.repositories.base import BaseRepository
@@ -57,6 +59,25 @@ class MaterialRepository(BaseRepository[Conteudo]):
             .limit(tamanho_pagina)
         )
         return list(db.scalars(consulta)), total
+
+    def listar_do_usuario(self, db: Session, usuario_id: UUID) -> list[Conteudo]:
+        consulta = (
+            select(Conteudo)
+            .options(joinedload(Conteudo.disciplina))
+            .where(
+                Conteudo.usuario_id == usuario_id,
+                or_(Conteudo.caminho_arquivo.isnot(None), Conteudo.url_origem.isnot(None)),
+                or_(Conteudo.status_moderacao.is_(None), Conteudo.status_moderacao != "excluido"),
+                or_(
+                    Conteudo.motivo_moderacao.is_(None),
+                    Conteudo.motivo_moderacao.notin_(
+                        ["__REMOVIDO_PELO_AUTOR__", "__REMOVIDO_PELA_MODERACAO__"]
+                    ),
+                ),
+            )
+            .order_by(Conteudo.created_at.desc(), Conteudo.id.desc())
+        )
+        return list(db.scalars(consulta))
 
 
 material_repo = MaterialRepository()

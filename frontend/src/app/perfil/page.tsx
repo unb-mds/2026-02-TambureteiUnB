@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import AcademicProfileDashboard from "@/components/AcademicProfileDashboard";
 import HistoricoTipoAviso from "@/components/HistoricoTipoAviso";
+import MinhasContribuicoesSection from "@/components/MinhasContribuicoesSection";
 import TurmaEstatisticaModal from "@/components/TurmaEstatisticaModal";
 import { extrairTurmasCursadasDoHistorico } from "@/services/turmaEstatisticaService";
 import {
@@ -426,6 +427,8 @@ function ProfilePageContent() {
           importedData={importedHistorico}
           initialSection={initialSection}
         />
+
+        <MinhasContribuicoesSection />
 
         {/* Modal de envio de graficos e estatisticas da turma (Issue #284) */}
         <TurmaEstatisticaModal

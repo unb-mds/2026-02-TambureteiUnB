@@ -316,8 +316,8 @@ export default function MaterialModal({
       setUploadStatus("success");
       setSuccessMessage(
         `${selectedFiles.length} ${
-          selectedFiles.length === 1 ? "material compartilhado" : "materiais compartilhados"
-        } com sucesso! O conteúdo foi enviado para triagem automática e ficará disponível na disciplina assim que aprovado.`
+          selectedFiles.length === 1 ? "material enviado" : "materiais enviados"
+        } com sucesso para a moderação! O conteúdo ficará disponível na disciplina assim que aprovado pela equipe.`
       );
 
       if (onUploadSuccess) {
@@ -370,7 +370,7 @@ export default function MaterialModal({
 
       setUploadStatus("success");
       setSuccessMessage(
-        "Link externo enviado com sucesso para moderacao! Ele ficara disponivel na disciplina assim que aprovado pela equipe."
+        "Link externo enviado com sucesso para a moderação! Ele ficará disponível na disciplina assim que aprovado pela equipe."
       );
       if (onUploadSuccess) {
         onUploadSuccess([String(created.id)]);

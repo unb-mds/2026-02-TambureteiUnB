@@ -13,17 +13,24 @@ import {
 import {
   DIFFICULTY_MAX_CHARS,
   DIFFICULTY_MIN_CHARS,
+  deleteDifficultyAlert,
   listDifficultyAlerts,
   submitDifficultyAlert,
   toggleDifficultyVote,
+  updateDifficultyAlert,
 } from "../services/difficultyService";
 import { getStoredToken } from "../services/httpClient";
 import { getStoredUser, isAuthenticated, subscribeAuthChange } from "../services/authService";
 import {
+  ROTULOS_CATEGORIA_DENUNCIA,
+  criarDenuncia,
   getTriageBannerClasses,
   iniciarPollingStatusComentario,
+  podeModerar,
+  validarMotivoDenuncia,
   type AvisoTriagemComentario,
 } from "../services/moderacaoService";
+import type { CategoriaDenuncia } from "../types/moderacao";
 
 export interface DificuldadesPanelProps {
   disciplineId?: number;
@@ -322,14 +329,22 @@ interface DifficultyAlertsListProps {
   isLoading: boolean;
   alerts: DifficultyAlert[];
   authenticated: boolean;
+  isModerator: boolean;
   onToggleLike: (alertId: string) => void;
+  onOpenReport: (alert: DifficultyAlert) => void;
+  onOpenEdit: (alert: DifficultyAlert) => void;
+  onRequestDelete: (alert: DifficultyAlert) => void;
 }
 
 function DifficultyAlertsList({
   isLoading,
   alerts,
   authenticated,
+  isModerator,
   onToggleLike,
+  onOpenReport,
+  onOpenEdit,
+  onRequestDelete,
 }: DifficultyAlertsListProps) {
   if (isLoading) {
     return (
@@ -357,6 +372,8 @@ function DifficultyAlertsList({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {alerts.map((alert) => {
         const cfg = DIFFICULTY_LEVEL_CONFIG[alert.severity];
+        const canEdit = authenticated && Boolean(alert.isMine);
+        const canDelete = authenticated && (Boolean(alert.isMine) || isModerator);
         return (
           <article
             key={alert.id}
@@ -379,32 +396,71 @@ function DifficultyAlertsList({
                 </span>
               </div>
 
-              <p className="text-sm text-[#3C4043] leading-relaxed mb-4">
+              <p className="text-sm text-[#3C4043] leading-relaxed mb-4 whitespace-pre-line break-words">
                 {alert.content}
               </p>
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-[#F4F3FA] text-xs text-[#5F6368]">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#F4F3FA] text-xs text-[#5F6368]">
               <span>
                 Por <strong className="text-[#1E1B3A]">{alert.authorAlias}</strong> •{" "}
                 {alert.createdAt}
+                {alert.edited && (
+                  <span className="ml-1.5 text-[11px] italic text-gray-400">(editado)</span>
+                )}
               </span>
 
-              <button
-                type="button"
-                disabled={!authenticated}
-                title={!authenticated ? "Faça login para concordar" : undefined}
-                onClick={() => onToggleLike(alert.id)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
-                  !authenticated
-                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70"
-                    : alert.isLikedByMe
-                    ? "bg-[#5B4BDB] text-white border-[#5B4BDB] cursor-pointer"
-                    : "bg-[#F4F3FA] text-[#5B4BDB] border-[#E0DDF2] hover:bg-[#EDE9FD] cursor-pointer"
-                }`}
-              >
-                <span>Concordo ({alert.upvotes})</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={!authenticated}
+                  title={!authenticated ? "Faça login para concordar" : undefined}
+                  onClick={() => onToggleLike(alert.id)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                    !authenticated
+                      ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70"
+                      : alert.isLikedByMe
+                      ? "bg-[#5B4BDB] text-white border-[#5B4BDB] cursor-pointer"
+                      : "bg-[#F4F3FA] text-[#5B4BDB] border-[#E0DDF2] hover:bg-[#EDE9FD] cursor-pointer"
+                  }`}
+                >
+                  <span>Concordo ({alert.upvotes})</span>
+                </button>
+
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenEdit(alert)}
+                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-600 hover:border-[#5B4BDB] hover:text-[#5B4BDB] cursor-pointer transition-colors"
+                  >
+                    Editar
+                  </button>
+                )}
+
+                {canDelete && (
+                  <button
+                    type="button"
+                    onClick={() => onRequestDelete(alert)}
+                    className="rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 cursor-pointer transition-colors"
+                  >
+                    Apagar
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={!authenticated}
+                  title={!authenticated ? "Faça login para denunciar dificuldades" : undefined}
+                  onClick={() => onOpenReport(alert)}
+                  className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    authenticated
+                      ? "border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                      : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-70"
+                  }`}
+                >
+                  Denunciar
+                </button>
+              </div>
             </div>
           </article>
         );
@@ -426,6 +482,14 @@ export default function DificuldadesPanel({
     isAuthenticated,
     () => false
   );
+  const isModerator = useSyncExternalStore(
+    subscribeAuthChange,
+    () => {
+      const user = getStoredUser();
+      return Boolean(user && podeModerar(user.role));
+    },
+    () => false
+  );
   const storedUser = authenticated ? getStoredUser() : null;
   const authorDisplayName = storedUser?.nome?.trim() || "Estudante UnB";
 
@@ -442,6 +506,23 @@ export default function DificuldadesPanel({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [triageNotice, setTriageNotice] = useState<AvisoTriagemComentario | null>(null);
+
+  const [reportingAlert, setReportingAlert] = useState<DifficultyAlert | null>(null);
+  const [reportCategory, setReportCategory] = useState<CategoriaDenuncia>("OFENSA_DOCENTE");
+  const [reportReason, setReportReason] = useState("");
+  const [reportError, setReportError] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+
+  const [editingAlert, setEditingAlert] = useState<DifficultyAlert | null>(null);
+  const [editUnit, setEditUnit] = useState("");
+  const [editCustomTopic, setEditCustomTopic] = useState("");
+  const [editSeverity, setEditSeverity] = useState<DifficultyLevel>("ALTO");
+  const [editContent, setEditContent] = useState("");
+  const [editError, setEditError] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const [deletingAlert, setDeletingAlert] = useState<DifficultyAlert | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   const pollCancelRef = useRef<(() => void) | null>(null);
   const isMountedRef = useRef(true);
@@ -764,9 +845,349 @@ export default function DificuldadesPanel({
           isLoading={isLoading}
           alerts={filteredAlerts}
           authenticated={authenticated}
+          isModerator={isModerator}
           onToggleLike={handleToggleLike}
+          onOpenReport={(alert) => {
+            if (!authenticated || !isAuthenticated()) return;
+            setReportingAlert(alert);
+            setReportCategory("OFENSA_DOCENTE");
+            setReportReason("");
+            setReportError("");
+          }}
+          onOpenEdit={(alert) => {
+            setEditingAlert(alert);
+            const inUnits = syllabusUnits.includes(alert.topic);
+            setEditUnit(inUnits ? alert.topic : "__OUTRO__");
+            setEditCustomTopic(inUnits ? "" : alert.topic);
+            setEditSeverity(alert.severity);
+            setEditContent(alert.content);
+            setEditError("");
+          }}
+          onRequestDelete={(alert) => {
+            setDeletingAlert(alert);
+          }}
         />
       </div>
+
+      {reportingAlert && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-denuncia-dificuldade-titulo"
+        >
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const validacao = validarMotivoDenuncia(reportReason);
+              if (!validacao.valido) {
+                setReportError(validacao.erro || "Informe o motivo da denúncia.");
+                return;
+              }
+              const numericId = Number(reportingAlert.id);
+              if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+                setReportError("Este relato não pode ser denunciado.");
+                return;
+              }
+              setReportSubmitting(true);
+              setReportError("");
+              try {
+                const res = await criarDenuncia({
+                  comentario_id: numericId,
+                  categoria: reportCategory,
+                  motivo: reportReason.trim(),
+                });
+                setReportingAlert(null);
+                setReportReason("");
+                setTriageNotice({
+                  kind: "approved",
+                  text: res.ocultado_automaticamente
+                    ? "Denúncia registrada. O relato atingiu 3 denúncias e foi ocultado preventivamente para análise da moderação."
+                    : "Denúncia registrada e encaminhada para análise da moderação.",
+                });
+                if (res.ocultado_automaticamente) {
+                  await loadAlerts();
+                }
+              } catch (err) {
+                setReportError(
+                  err instanceof Error ? err.message : "Não foi possível enviar a denúncia."
+                );
+              } finally {
+                setReportSubmitting(false);
+              }
+            }}
+            className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl"
+          >
+            <h3 id="modal-denuncia-dificuldade-titulo" className="text-lg font-bold text-[#202124]">
+              Denunciar relato de dificuldade
+            </h3>
+            <p className="mt-1 text-xs text-gray-600">
+              Sinalize ofensas a docentes (RN04), exposição de dados pessoais (RN01) ou conteúdo impróprio.
+            </p>
+            <p className="mt-2 rounded-lg bg-[#F7F7FA] px-3 py-2 text-xs text-[#202124] line-clamp-3">
+              <strong>{reportingAlert.topic}:</strong> {reportingAlert.content}
+            </p>
+
+            <label className="mt-4 block text-xs font-semibold text-gray-700">
+              Categoria da denúncia
+              <select
+                value={reportCategory}
+                onChange={(e) => setReportCategory(e.target.value as CategoriaDenuncia)}
+                className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-[#202124]"
+              >
+                {Object.entries(ROTULOS_CATEGORIA_DENUNCIA).map(([chave, rotulo]) => (
+                  <option key={chave} value={chave}>
+                    {rotulo}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="mt-3 block text-xs font-semibold text-gray-700">
+              Motivo da denúncia (mínimo 5 caracteres)
+              <textarea
+                rows={3}
+                maxLength={1000}
+                value={reportReason}
+                onChange={(e) => {
+                  setReportReason(e.target.value);
+                  setReportError("");
+                }}
+                placeholder="Descreva o problema encontrado neste relato..."
+                className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white p-2.5 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]"
+              />
+            </label>
+
+            {reportError && (
+              <p role="alert" className="mt-2 text-xs font-medium text-red-700">
+                {reportError}
+              </p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={reportSubmitting}
+                onClick={() => setReportingAlert(null)}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={reportSubmitting}
+                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+              >
+                {reportSubmitting ? "Enviando..." : "Enviar denúncia"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {editingAlert && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-editar-dificuldade-titulo"
+        >
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const resolvedTopic =
+                editUnit === "__OUTRO__" ? editCustomTopic.trim() : editUnit.trim();
+              if (!resolvedTopic) {
+                setEditError("Selecione ou informe a unidade da ementa.");
+                return;
+              }
+              const numericId = Number(editingAlert.id);
+              if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+                setEditError("Este relato não pode ser editado.");
+                return;
+              }
+              setEditSubmitting(true);
+              setEditError("");
+              try {
+                const updated = await updateDifficultyAlert(numericId, {
+                  topic: resolvedTopic,
+                  severity: editSeverity,
+                  content: editContent,
+                });
+                setAlerts((prev) =>
+                  prev.map((item) => (item.id === editingAlert.id ? updated : item))
+                );
+                setEditingAlert(null);
+                setTriageNotice({
+                  kind: "approved",
+                  text: "Relato de dificuldade atualizado com sucesso.",
+                });
+              } catch (err) {
+                setEditError(
+                  err instanceof Error ? err.message : "Não foi possível salvar a edição."
+                );
+              } finally {
+                setEditSubmitting(false);
+              }
+            }}
+            className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-xl"
+          >
+            <h3 id="modal-editar-dificuldade-titulo" className="text-lg font-bold text-[#202124]">
+              Editar relato de dificuldade
+            </h3>
+
+            <label className="mt-4 block text-xs font-semibold text-gray-700">
+              Unidade da ementa
+              <select
+                value={editUnit}
+                onChange={(e) => setEditUnit(e.target.value)}
+                className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-[#202124]"
+              >
+                {syllabusUnits.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
+                <option value="__OUTRO__">Outro tópico específico</option>
+              </select>
+            </label>
+
+            {editUnit === "__OUTRO__" && (
+              <label className="mt-3 block text-xs font-semibold text-gray-700">
+                Nome do tópico
+                <input
+                  type="text"
+                  maxLength={120}
+                  value={editCustomTopic}
+                  onChange={(e) => setEditCustomTopic(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-[#202124]"
+                />
+              </label>
+            )}
+
+            <div className="mt-3">
+              <span className="block text-xs font-semibold text-gray-700">Nível de dificuldade</span>
+              <div className="mt-1.5 grid grid-cols-3 gap-2">
+                {(["CRITICO", "ALTO", "MODERADO"] as DifficultyLevel[]).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setEditSeverity(level)}
+                    className={`rounded-xl border px-3 py-2 text-xs font-semibold cursor-pointer transition-colors ${
+                      editSeverity === level
+                        ? "border-[#5B4BDB] bg-[#EDE9FD] text-[#5B4BDB]"
+                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {DIFFICULTY_LEVEL_CONFIG[level].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <label className="mt-3 block text-xs font-semibold text-gray-700">
+              Relato / dica de estudo
+              <textarea
+                rows={4}
+                maxLength={DIFFICULTY_MAX_CHARS}
+                value={editContent}
+                onChange={(e) => {
+                  setEditContent(e.target.value);
+                  setEditError("");
+                }}
+                className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white p-2.5 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]"
+              />
+            </label>
+
+            {editError && (
+              <p role="alert" className="mt-2 text-xs font-medium text-red-700">
+                {editError}
+              </p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={editSubmitting}
+                onClick={() => setEditingAlert(null)}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={editSubmitting}
+                className="rounded-xl bg-[#5B4BDB] px-4 py-2 text-xs font-semibold text-white hover:bg-[#4938C4] disabled:opacity-50 cursor-pointer"
+              >
+                {editSubmitting ? "Salvando..." : "Salvar alterações"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {deletingAlert && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-apagar-dificuldade-titulo"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+            <h3 id="modal-apagar-dificuldade-titulo" className="text-lg font-bold text-[#202124]">
+              Apagar relato de dificuldade
+            </h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Tem certeza de que deseja apagar este relato permanentemente? Esta ação não pode ser desfeita.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleteSubmitting}
+                onClick={() => setDeletingAlert(null)}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={deleteSubmitting}
+                onClick={async () => {
+                  const numericId = Number(deletingAlert.id);
+                  if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+                    setDeletingAlert(null);
+                    return;
+                  }
+                  setDeleteSubmitting(true);
+                  try {
+                    await deleteDifficultyAlert(numericId);
+                    setAlerts((prev) => prev.filter((item) => item.id !== deletingAlert.id));
+                    setDeletingAlert(null);
+                    setTriageNotice({
+                      kind: "approved",
+                      text: "Relato de dificuldade apagado com sucesso.",
+                    });
+                  } catch (err) {
+                    setTriageNotice({
+                      kind: "error",
+                      text:
+                        err instanceof Error
+                          ? err.message
+                          : "Não foi possível apagar o relato.",
+                    });
+                    setDeletingAlert(null);
+                  } finally {
+                    setDeleteSubmitting(false);
+                  }
+                }}
+                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+              >
+                {deleteSubmitting ? "Apagando..." : "Apagar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

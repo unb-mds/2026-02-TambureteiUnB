@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Path, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Path, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -13,7 +13,9 @@ from app.api.schemas.material import (
     MaterialPage,
     MaterialResponse,
     MaterialStatusResponse,
+    MaterialUpdate,
     MaterialVotoResponse,
+    MeuMaterialResponse,
     TituloMaterial,
 )
 from app.core.config import settings
@@ -22,7 +24,6 @@ from app.domain.materiais import TIPOS_MIME
 from app.models.usuario import Usuario
 from app.services.armazenamento_material import ArmazenamentoMaterial
 from app.services.material_service import MaterialService
-from app.services.moderacao_ia_service import processar_moderacao_material_bg
 
 router = APIRouter(tags=["Materiais"])
 
@@ -39,14 +40,11 @@ def enviar_material(
     usuario: Annotated[Usuario, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
     service: Annotated[MaterialService, Depends(get_material_service)],
-    background_tasks: BackgroundTasks,
     tipo: Annotated[str, Form(description="Tipo de material (ARQUIVO, RESUMO, PROVA_ANTIGA, DICA)")] = "ARQUIVO",
 ) -> MaterialResponse:
-    resposta = service.enviar(
+    return service.enviar(
         db, usuario.id, id, titulo, arquivo.file, arquivo.filename or "", arquivo.content_type or "", tipo=tipo
     )
-    background_tasks.add_task(processar_moderacao_material_bg, resposta.id)
-    return resposta
 
 
 @router.post("/cadeiras/{id}/links", response_model=MaterialResponse, status_code=201)
@@ -85,6 +83,39 @@ def listar_materiais(
         tipos=tipos,
         current_user_id=current_user.id if current_user else None,
     )
+
+
+@router.get("/materiais/meus", response_model=list[MeuMaterialResponse])
+def listar_meus_materiais(
+    db: Annotated[Session, Depends(get_db)],
+    service: Annotated[MaterialService, Depends(get_material_service)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+) -> list[MeuMaterialResponse]:
+    """Lista os materiais enviados pelo usuário autenticado (pendentes, aprovados e recusados)."""
+    return service.listar_meus(db, current_user)
+
+
+@router.patch("/materiais/{id}", response_model=MaterialResponse)
+def editar_material(
+    id: Annotated[int, Path(gt=0)],
+    dados: MaterialUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    service: Annotated[MaterialService, Depends(get_material_service)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+) -> MaterialResponse:
+    """Permite ao autor editar título, categoria ou URL (em links) do próprio material."""
+    return service.editar(db, id, dados, current_user)
+
+
+@router.delete("/materiais/{id}", status_code=204)
+def excluir_material(
+    id: Annotated[int, Path(gt=0)],
+    db: Annotated[Session, Depends(get_db)],
+    service: Annotated[MaterialService, Depends(get_material_service)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+) -> None:
+    """Permite ao autor ou à moderação excluir um material."""
+    service.excluir(db, id, current_user)
 
 
 @router.post("/materiais/{id}/voto", response_model=MaterialVotoResponse)

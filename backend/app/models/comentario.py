@@ -19,6 +19,7 @@ class Comentario(Base):
     confianca_ia = Column(Float, nullable=True)
     moderado_por = Column(String(20), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=True)
 
     disciplina = relationship("Disciplina", back_populates="comentarios")
     turma = relationship("Turma", back_populates="comentarios")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -18,7 +18,6 @@ from app.core.database import get_db
 from app.models.usuario import Usuario
 from app.services.comentario_service import comentario_service
 from app.services.denuncia_service import denuncia_service
-from app.services.moderacao_ia_service import processar_moderacao_comentario_bg
 
 router = APIRouter(prefix="/comentarios", tags=["Comentários"])
 
@@ -30,19 +29,16 @@ router = APIRouter(prefix="/comentarios", tags=["Comentários"])
 )
 def criar_comentario(
     dados: ComentarioCreate,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    """Cria um comentário em uma disciplina ou turma com triagem assíncrona.
+    """Cria um comentário em uma disciplina ou turma com publicação imediata.
 
     Acessível somente por usuários autenticados.
-    O comentário é criado inicialmente com status_moderacao = 'PENDENTE'
-    e submetido à triagem autônoma em segundo plano (RN06 / RF16).
+    Passa por validação determinística de dados pessoais (RN01/LGPD) e fica
+    sujeito às denúncias da comunidade (ocultação automática a partir de 3 denúncias).
     """
-    comentario = comentario_service.criar_comentario(db, dados, current_user)
-    background_tasks.add_task(processar_moderacao_comentario_bg, comentario.id)
-    return comentario
+    return comentario_service.criar_comentario(db, dados, current_user)
 
 
 @router.get(
@@ -65,18 +61,14 @@ def consultar_status_comentario(
 def editar_comentario(
     comentario_id: int,
     dados: ComentarioUpdate,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    """Edita o conteúdo de um comentário existente e aciona nova triagem.
+    """Edita o conteúdo de um comentário existente com validação LGPD (RN01).
 
-    Somente o autor do comentário pode editá-lo. O comentário retorna para
-    status_moderacao = 'PENDENTE' para revalidação automática (RN06).
+    Somente o autor do comentário pode editá-lo.
     """
-    comentario = comentario_service.editar_comentario(db, comentario_id, dados, current_user)
-    background_tasks.add_task(processar_moderacao_comentario_bg, comentario.id)
-    return comentario
+    return comentario_service.editar_comentario(db, comentario_id, dados, current_user)
 
 
 @router.delete(

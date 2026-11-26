@@ -3,7 +3,9 @@ import type {
   MaterialResponse,
   MaterialStatusResponse,
   MaterialType,
+  MaterialUpdatePayload,
   MaterialVoteResponse,
+  MeuMaterialResponse,
   UploadProgressInfo,
 } from "../types/material.ts";
 import { ApiError, request, requestBlob } from "./httpClient.ts";
@@ -230,14 +232,45 @@ export async function consultarStatusMaterial(id: number): Promise<MaterialStatu
   return request<MaterialStatusResponse>(`/materiais/${id}/status`, { cache: "no-store" });
 }
 
+export async function listMyMaterials(): Promise<MeuMaterialResponse[]> {
+  return request<MeuMaterialResponse[]>("/materiais/meus", { cache: "no-store" });
+}
+
+export async function updateMaterial(
+  id: number | string,
+  payload: MaterialUpdatePayload,
+): Promise<MaterialResponse> {
+  const numericId = Number(id);
+  if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+    throw new ApiError("Material inválido.", 422);
+  }
+  return request<MaterialResponse>(`/materiais/${numericId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteMaterial(id: number | string): Promise<void> {
+  const numericId = Number(id);
+  if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+    throw new ApiError("Material inválido.", 422);
+  }
+  await request<void>(`/materiais/${numericId}`, {
+    method: "DELETE",
+  });
+}
+
 export const materialService = {
   consultarStatusMaterial,
   createExternalLink,
+  deleteMaterial,
   downloadMaterial,
+  listMyMaterials,
   uploadMaterial,
   uploadMaterialsBatch,
   listMaterials,
   toggleMaterialVote,
+  updateMaterial,
 };
 
 export default materialService;

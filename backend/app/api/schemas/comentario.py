@@ -51,9 +51,14 @@ class ComentarioCadeiraCreate(BaseModel):
 
 
 class ComentarioUpdate(BaseModel):
-    """Schema de entrada para edição de comentário."""
+    """Schema de entrada para edição de comentário ou relato de dificuldade."""
 
     conteudo: str = Field(..., description="Novo texto do comentário")
+    topico_dificuldade: Optional[str] = Field(
+        None,
+        max_length=150,
+        description="Tópico e severidade atualizados para alertas de dificuldade",
+    )
 
     @field_validator("conteudo")
     @classmethod
@@ -64,6 +69,14 @@ class ComentarioUpdate(BaseModel):
         if len(v) > COMENTARIO_MAX_LENGTH:
             raise PydanticCustomError("conteudo_longo", "O comentário excedeu o limite.")
         return v
+
+    @field_validator("topico_dificuldade")
+    @classmethod
+    def validar_topico_dificuldade(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        limpo = v.strip()
+        return limpo if limpo else None
 
 
 class ComentarioResponse(BaseModel):
@@ -78,6 +91,9 @@ class ComentarioResponse(BaseModel):
     parent_id: Optional[int] = None
     status_moderacao: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    editado: bool = False
+    is_mine: bool = False
     upvotes: int = 0
     liked_by_me: bool = False
 

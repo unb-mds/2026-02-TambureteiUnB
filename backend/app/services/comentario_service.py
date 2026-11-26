@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import math
 from typing import Optional
 from uuid import UUID
@@ -11,6 +12,7 @@ from app.api.schemas.comentario import (
     ComentarioResponse,
     ComentarioUpdate,
 )
+from app.domain.moderacao import detectar_dados_pessoais_rn01
 from app.models.comentario import Comentario
 from app.models.usuario import Usuario
 from app.repositories.comentario_repo import comentario_repo
@@ -82,6 +84,13 @@ class ComentarioService:
                     detail="O comentário pai não pertence à disciplina selecionada.",
                 )
 
+        veredito_rn01 = detectar_dados_pessoais_rn01(dados.conteudo)
+        if veredito_rn01 is not None:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Não é permitido publicar dados pessoais sensíveis (CPF, e-mail ou matrícula UnB) nos comentários.",
+            )
+
         novo_comentario = Comentario(
             usuario_id=current_user.id,
             disciplina_id=dados.disciplina_id,
@@ -90,9 +99,12 @@ class ComentarioService:
             conteudo=dados.conteudo,
             autor_alias=self._resolver_autor_alias(dados.autor_alias, current_user),
             topico_dificuldade=dados.topico_dificuldade,
-            status_moderacao="PENDENTE",
+            status_moderacao="PUBLICADO",
         )
-        return comentario_repo.create(db, novo_comentario)
+        criado = comentario_repo.create(db, novo_comentario)
+        return ComentarioResponse.model_validate(criado).model_copy(
+            update={"is_mine": True, "editado": False}
+        )
 
     def criar_comentario_por_cadeira(
         self,
@@ -124,6 +136,7 @@ class ComentarioService:
         size: int,
         topico: Optional[str] = None,
         apenas_dificuldades: bool = False,
+        excluir_dificuldades: bool = False,
         current_user_id: Optional[UUID] = None,
     ) -> dict:
 
@@ -141,6 +154,7 @@ class ComentarioService:
             size,
             topico=topico,
             apenas_dificuldades=apenas_dificuldades,
+            excluir_dificuldades=excluir_dificuldades,
         )
 
         comentario_ids = [item.id for item in items]
@@ -155,6 +169,8 @@ class ComentarioService:
                 update={
                     "upvotes": votos_por_id.get(item.id, 0),
                     "liked_by_me": item.id in votados_usuario,
+                    "is_mine": current_user_id is not None and item.usuario_id == current_user_id,
+                    "editado": item.updated_at is not None,
                 }
             )
             for item in items
@@ -207,12 +223,32 @@ class ComentarioService:
                 detail="Você só pode editar seus próprios comentários.",
             )
 
+        veredito_rn01 = detectar_dados_pessoais_rn01(dados.conteudo)
+        if veredito_rn01 is not None:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Não é permitido publicar dados pessoais sensíveis (CPF, e-mail ou matrícula UnB) nos comentários.",
+            )
+
         comentario.conteudo = dados.conteudo
-        comentario.status_moderacao = "PENDENTE"
+        if "topico_dificuldade" in dados.model_fields_set and dados.topico_dificuldade is not None:
+            comentario.topico_dificuldade = dados.topico_dificuldade
+        comentario.updated_at = datetime.now(timezone.utc)
+        comentario.status_moderacao = "PUBLICADO"
         comentario.motivo_moderacao = None
         comentario.confianca_ia = None
         comentario.moderado_por = None
-        return comentario_repo.update(db, comentario)
+        atualizado = comentario_repo.update(db, comentario)
+        votos = comentario_repo.contar_votos_comentarios(db, [atualizado.id])
+        votados = comentario_repo.listar_votos_usuario(db, [atualizado.id], current_user.id)
+        return ComentarioResponse.model_validate(atualizado).model_copy(
+            update={
+                "upvotes": votos.get(atualizado.id, 0),
+                "liked_by_me": atualizado.id in votados,
+                "is_mine": True,
+                "editado": True,
+            }
+        )
 
     def excluir_comentario(self, db: Session, comentario_id: int, current_user: Usuario) -> None:
 
@@ -220,7 +256,9 @@ class ComentarioService:
         if not comentario:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Comentário não encontrado.")
 
-        if comentario.usuario_id != current_user.id:
+        eh_autor = comentario.usuario_id == current_user.id
+        eh_moderador = (current_user.role or "").upper() in {"MODERATOR", "ADMIN"}
+        if not (eh_autor or eh_moderador):
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
                 detail="Você só pode excluir seus próprios comentários.",

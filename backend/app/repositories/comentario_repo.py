@@ -27,6 +27,7 @@ class ComentarioRepository(BaseRepository[Comentario]):
         size: int,
         topico: Optional[str] = None,
         apenas_dificuldades: bool = False,
+        excluir_dificuldades: bool = False,
     ) -> Tuple[List[Comentario], int]:
         ParentComentario = aliased(Comentario)
         query = (
@@ -49,6 +50,13 @@ class ComentarioRepository(BaseRepository[Comentario]):
             query = query.filter(
                 Comentario.topico_dificuldade.isnot(None),
                 Comentario.topico_dificuldade != "",
+            )
+        elif excluir_dificuldades:
+            query = query.filter(
+                or_(
+                    Comentario.topico_dificuldade.is_(None),
+                    Comentario.topico_dificuldade == "",
+                )
             )
 
         if topico:

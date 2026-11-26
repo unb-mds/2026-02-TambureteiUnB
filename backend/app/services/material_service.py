@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import logging
 from pathlib import Path
 from typing import BinaryIO
@@ -5,18 +6,23 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from pydantic_core import PydanticCustomError
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.schemas.material import (
     MaterialPage,
     MaterialResponse,
+    MaterialUpdate,
     MaterialVotoResponse,
+    MeuMaterialResponse,
     validar_titulo,
     validar_url_externa,
 )
 from app.domain.materiais import ArquivoMuitoGrande, ArquivoVazio, FormatoNaoSuportado
 from app.models.conteudo import Conteudo
+from app.models.curadoria import Curadoria
+from app.models.denuncia import Denuncia
 from app.models.disciplina import Disciplina
 from app.models.usuario import Usuario
 from app.repositories.disciplina_repo import disciplina_repo
@@ -140,6 +146,7 @@ class MaterialService:
                 update={
                     "upvotes": votos_por_id.get(item.id, 0),
                     "liked_by_me": item.id in votados_usuario,
+                    "is_mine": current_user_id is not None and item.usuario_id == current_user_id,
                 }
             )
             for item in materiais
@@ -238,3 +245,154 @@ class MaterialService:
             )
 
         return material
+
+    def listar_meus(self, db: Session, current_user: Usuario) -> list[MeuMaterialResponse]:
+        """Lista os materiais (pendentes, aprovados e recusados) enviados pelo usuário autenticado."""
+        materiais = material_repo.listar_do_usuario(db, current_user.id)
+        material_ids = [item.id for item in materiais]
+        votos_por_id = contar_votos_por_target(db, "CONTEUDO", material_ids)
+        votados = listar_votos_usuario_por_target(db, "CONTEUDO", material_ids, current_user.id)
+        resposta: list[MeuMaterialResponse] = []
+        for item in materiais:
+            base = MaterialResponse.model_validate(item).model_dump()
+            base["upvotes"] = votos_por_id.get(item.id, 0)
+            base["liked_by_me"] = item.id in votados
+            base["is_mine"] = True
+            resposta.append(
+                MeuMaterialResponse(
+                    **base,
+                    disciplina_nome=item.disciplina.nome if item.disciplina else "Disciplina",
+                    disciplina_slug=item.disciplina.slug if item.disciplina else "",
+                    motivo_moderacao=item.motivo_moderacao,
+                )
+            )
+        return resposta
+
+    def editar(
+        self,
+        db: Session,
+        material_id: int,
+        dados: MaterialUpdate,
+        current_user: Usuario,
+    ) -> MaterialResponse:
+        """Permite ao autor editar título, categoria ou URL (em links) do próprio material."""
+        material = material_repo.get_by_id(db, material_id)
+        if (
+            material is None
+            or material.status_moderacao == "excluido"
+            or material.motivo_moderacao in {"__REMOVIDO_PELO_AUTOR__", "__REMOVIDO_PELA_MODERACAO__"}
+        ):
+            raise HTTPException(404, "Material não encontrado.")
+
+        if material.usuario_id != current_user.id:
+            raise HTTPException(403, "Você só pode editar seus próprios materiais.")
+
+        campos = dados.model_fields_set
+        if not campos:
+            raise HTTPException(422, "Informe ao menos um campo para editar.")
+
+        eh_link = material.caminho_arquivo is None and material.url_origem is not None
+        if not eh_link and "url_origem" in campos and dados.url_origem is not None:
+            raise HTTPException(422, "Não é possível definir URL externa em um material de arquivo.")
+
+        if "tipo" in campos and dados.tipo is not None:
+            permitidos = self.TIPOS_LINK if eh_link else self.TIPOS_ARQUIVO
+            if dados.tipo not in permitidos:
+                raise HTTPException(422, f"Tipo inválido. Tipos permitidos: {sorted(permitidos)}")
+            material.tipo = dados.tipo
+
+        if "titulo" in campos and dados.titulo is not None:
+            material.titulo = dados.titulo
+
+        url_alterada = False
+        if eh_link and "url_origem" in campos and dados.url_origem is not None:
+            if dados.url_origem != material.url_origem:
+                material.url_origem = dados.url_origem
+                url_alterada = True
+
+        try:
+            # Alterar URL de link já aprovado exige nova revisão humana na fila de curadoria.
+            if url_alterada and material.status_curadoria == "APROVADO":
+                curadoria_anterior = db.scalar(
+                    select(Curadoria).where(Curadoria.conteudo_id == material.id)
+                )
+                if curadoria_anterior is not None:
+                    db.delete(curadoria_anterior)
+                material.status_curadoria = "PENDENTE"
+                material.motivo_moderacao = None
+                material.moderado_por = None
+            db.flush()
+            votos = contar_votos_por_target(db, "CONTEUDO", [material.id])
+            votados = listar_votos_usuario_por_target(db, "CONTEUDO", [material.id], current_user.id)
+            resposta = MaterialResponse.model_validate(material).model_copy(
+                update={
+                    "upvotes": votos.get(material.id, 0),
+                    "liked_by_me": material.id in votados,
+                    "is_mine": True,
+                }
+            )
+            db.commit()
+            return resposta
+        except SQLAlchemyError as exc:
+            db.rollback()
+            logger.exception("Falha ao editar material.")
+            raise HTTPException(503, "Não foi possível editar o material. Tente novamente.") from exc
+
+    def excluir(self, db: Session, material_id: int, current_user: Usuario) -> None:
+        """Permite ao autor ou a moderadores/admins remover um material e limpar seu arquivo físico."""
+        material = material_repo.get_by_id(db, material_id)
+        if (
+            material is None
+            or material.status_moderacao == "excluido"
+            or material.motivo_moderacao in {"__REMOVIDO_PELO_AUTOR__", "__REMOVIDO_PELA_MODERACAO__"}
+        ):
+            raise HTTPException(404, "Material não encontrado.")
+
+        eh_autor = material.usuario_id == current_user.id
+        eh_moderador = (current_user.role or "").upper() in {"MODERATOR", "ADMIN"}
+        if not (eh_autor or eh_moderador):
+            raise HTTPException(403, "Você só pode excluir seus próprios materiais.")
+
+        chave_arquivo = material.caminho_arquivo
+        eh_link = chave_arquivo is None and material.url_origem is not None
+        possui_curadoria = (
+            db.scalar(select(Curadoria.id).where(Curadoria.conteudo_id == material.id))
+            is not None
+        )
+
+        try:
+            denuncias_pendentes = list(
+                db.scalars(
+                    select(Denuncia).where(
+                        Denuncia.conteudo_id == material.id,
+                        Denuncia.status == "PENDENTE",
+                    )
+                )
+            )
+            agora = datetime.now(timezone.utc)
+            for den in denuncias_pendentes:
+                den.status = "PROCEDENTE"
+                den.resolved_at = agora
+                den.justificativa = (
+                    "Material removido pelo autor." if eh_autor else "Material removido pela moderação."
+                )
+
+            if not possui_curadoria:
+                db.delete(material)
+            else:
+                material.status_curadoria = "RECUSADO"
+                material.status_moderacao = None if eh_link else "excluido"
+                material.motivo_moderacao = (
+                    "__REMOVIDO_PELO_AUTOR__" if eh_autor else "__REMOVIDO_PELA_MODERACAO__"
+                )
+            db.commit()
+        except SQLAlchemyError as exc:
+            db.rollback()
+            logger.exception("Falha ao excluir material.")
+            raise HTTPException(503, "Não foi possível excluir o material. Tente novamente.") from exc
+
+        if chave_arquivo:
+            try:
+                self.armazenamento.remover(chave_arquivo)
+            except OSError:
+                logger.warning("Arquivo físico do material %s não pôde ser removido após exclusão.", material_id)
