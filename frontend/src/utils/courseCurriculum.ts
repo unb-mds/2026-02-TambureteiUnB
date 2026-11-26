@@ -189,6 +189,9 @@ export function resolveCourseSlug(courseName?: string | null): string {
   if (raw.includes("econômica") || raw.includes("economica") || raw.includes("economia")) {
     return "ciencias-economicas";
   }
+  if (raw.includes("contábeis") || raw.includes("contabeis") || raw.includes("contabilidade")) {
+    return raw.includes("noturno") ? "ciencias-contabeis-noturno" : "ciencias-contabeis-diurno";
+  }
   if (raw.includes("computação") || raw.includes("computacao") || raw.includes("ciência da computação")) {
     return "ciencia-da-computacao";
   }

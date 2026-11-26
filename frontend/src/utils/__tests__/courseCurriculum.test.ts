@@ -62,6 +62,14 @@ test("resolveCourseSlug mapeia nomes de cursos reais para slugs oficiais", async
 
   assert.equal(resolveCourseSlug("Ciências Econômicas"), "ciencias-economicas");
   assert.equal(resolveCourseSlug("Economia"), "ciencias-economicas");
+  assert.equal(
+    resolveCourseSlug("CIÊNCIAS CONTÁBEIS/CCA - BACHARELADO - DIURNO"),
+    "ciencias-contabeis-diurno"
+  );
+  assert.equal(
+    resolveCourseSlug("CIÊNCIAS CONTÁBEIS/CCA - BACHARELADO - NOTURNO"),
+    "ciencias-contabeis-noturno"
+  );
   assert.equal(resolveCourseSlug("Ciência da Computação"), "ciencia-da-computacao");
   assert.equal(resolveCourseSlug("Administração (Diurno)"), "administracao-diurno");
   assert.equal(resolveCourseSlug("Administração Noturno"), "administracao-noturno");
