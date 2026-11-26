@@ -1,6 +1,7 @@
 import type {
   MaterialPageResponse,
   MaterialResponse,
+  MaterialStatusResponse,
   MaterialType,
   MaterialVoteResponse,
   UploadProgressInfo,
@@ -224,7 +225,13 @@ export async function createExternalLink({
   });
 }
 
+export async function consultarStatusMaterial(id: number): Promise<MaterialStatusResponse> {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ApiError("Material inválido.", 422);
+  return request<MaterialStatusResponse>(`/materiais/${id}/status`, { cache: "no-store" });
+}
+
 export const materialService = {
+  consultarStatusMaterial,
   createExternalLink,
   downloadMaterial,
   uploadMaterial,

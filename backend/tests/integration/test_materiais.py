@@ -382,3 +382,35 @@ def test_submissao_link_externo_por_categoria_vai_para_curadoria_e_aceita_voto(
 def test_rejeita_link_externo_invalido(client, disciplina, headers, payload):
     resposta = client.post(f"/cadeiras/{disciplina.id}/links", headers=headers, json=payload)
     assert resposta.status_code == 422
+
+
+def test_consultar_status_material_exibe_recusa_ao_autor_e_bloqueia_terceiros(
+    client, db, disciplina, usuario, headers, admin_headers, student_headers
+):
+    criado = upload(client, disciplina.id, headers, titulo="Resumo para status")
+    assert criado.status_code == 201
+    material_id = criado.json()["id"]
+
+    material = db.get(Conteudo, material_id)
+    material.status_curadoria = "RECUSADO"
+    material.status_moderacao = "bloqueado"
+    material.moderado_por = "IA"
+    material.motivo_moderacao = "[LGPD_DADOS_PESSOAIS] Possivel matricula encontrada."
+    material.confianca_ia = 1.0
+    db.commit()
+
+    resp_autor = client.get(f"/materiais/{material_id}/status", headers=headers)
+    assert resp_autor.status_code == 200
+    assert resp_autor.json() == {
+        "id": material_id,
+        "status_curadoria": "RECUSADO",
+        "status_moderacao": "bloqueado",
+        "motivo_moderacao": "[LGPD_DADOS_PESSOAIS] Possivel matricula encontrada.",
+        "moderado_por": "IA",
+        "confianca_ia": 1.0,
+    }
+
+    assert client.get(f"/materiais/{material_id}/status", headers=student_headers).status_code == 403
+    assert client.get(f"/materiais/{material_id}/status", headers=admin_headers).status_code == 200
+    assert client.get(f"/materiais/{material_id}/status").status_code == 401
+    assert client.get("/materiais/999999/status", headers=headers).status_code == 404

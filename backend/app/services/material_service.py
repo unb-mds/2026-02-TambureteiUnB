@@ -217,3 +217,24 @@ class MaterialService:
         except (OSError, ValueError) as exc:
             raise HTTPException(404, "Arquivo do material não encontrado.") from exc
         return material, caminho
+
+    def consultar_status_moderacao(
+        self,
+        db: Session,
+        material_id: int,
+        current_user: Usuario,
+    ) -> Conteudo:
+        """Retorna o status da triagem ou curadoria ao próprio autor ou moderadores."""
+        material = material_repo.get_by_id(db, material_id)
+        if material is None or material.status_moderacao == "excluido":
+            raise HTTPException(404, "Material não encontrado.")
+
+        eh_autor = material.usuario_id == current_user.id
+        eh_moderador = (current_user.role or "").upper() in {"ADMIN", "MODERATOR"}
+        if not (eh_autor or eh_moderador):
+            raise HTTPException(
+                403,
+                "Você só pode consultar o status dos seus próprios materiais.",
+            )
+
+        return material

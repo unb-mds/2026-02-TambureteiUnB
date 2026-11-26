@@ -12,6 +12,7 @@ from app.api.schemas.material import (
     MaterialLinkCreate,
     MaterialPage,
     MaterialResponse,
+    MaterialStatusResponse,
     MaterialVotoResponse,
     TituloMaterial,
 )
@@ -95,6 +96,17 @@ def alternar_voto_material(
 ) -> MaterialVotoResponse:
     """Alterna a curtida (voto útil) de um usuário autenticado em um material de apoio."""
     return service.alternar_voto(db, id, current_user)
+
+
+@router.get("/materiais/{id}/status", response_model=MaterialStatusResponse)
+def consultar_status_material(
+    id: Annotated[int, Path(gt=0)],
+    db: Annotated[Session, Depends(get_db)],
+    service: Annotated[MaterialService, Depends(get_material_service)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+) -> MaterialStatusResponse:
+    """Consulta o status da triagem ou curadoria de um material do próprio autor."""
+    return service.consultar_status_moderacao(db, id, current_user)
 
 
 @router.get("/materiais/{id}/download", response_class=FileResponse)

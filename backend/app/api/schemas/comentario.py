@@ -12,6 +12,7 @@ class ComentarioCreate(BaseModel):
 
     disciplina_id: int = Field(..., description="ID da disciplina")
     turma_id: Optional[int] = Field(None, description="ID da turma")
+    parent_id: Optional[int] = Field(None, gt=0, description="ID do comentário pai em respostas")
     autor_alias: Optional[str] = Field("Estudante Anônimo", description="Apelido do autor")
     topico_dificuldade: Optional[str] = Field(None, description="Tópico de dificuldade")
     conteudo: str = Field(..., description="Texto do comentário")
@@ -38,6 +39,7 @@ class ComentarioCadeiraCreate(BaseModel):
     """Schema de entrada para criação de comentário ou alerta de dificuldade via rota da cadeira."""
 
     turma_id: Optional[int] = Field(None, description="ID da turma")
+    parent_id: Optional[int] = Field(None, gt=0, description="ID do comentário pai em respostas")
     autor_alias: Optional[str] = Field("Estudante Anônimo", description="Apelido do autor")
     topico_dificuldade: Optional[str] = Field(None, max_length=150, description="Tópico de dificuldade da ementa")
     conteudo: str = Field(..., description="Texto do relato ou alerta de dificuldade")

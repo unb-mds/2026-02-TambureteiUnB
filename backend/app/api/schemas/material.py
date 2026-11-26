@@ -36,6 +36,19 @@ class MaterialPage(BaseModel):
     tamanho_pagina: int
 
 
+class MaterialStatusResponse(BaseModel):
+    """Status atual da triagem e curadoria de um material para acompanhamento do autor."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    status_curadoria: Literal["PENDENTE", "APROVADO", "RECUSADO"]
+    status_moderacao: str | None = None
+    motivo_moderacao: str | None = None
+    moderado_por: str | None = None
+    confianca_ia: float | None = None
+
+
 def validar_titulo(valor: str) -> str:
     valor = valor.strip()
     if not 1 <= len(valor) <= 200:

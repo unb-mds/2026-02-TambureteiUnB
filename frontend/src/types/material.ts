@@ -67,3 +67,12 @@ export interface UploadProgressInfo {
 }
 
 export type UploadStatus = "idle" | "uploading" | "success" | "error";
+
+export interface MaterialStatusResponse {
+  id: number;
+  status_curadoria: "PENDENTE" | "APROVADO" | "RECUSADO";
+  status_moderacao: string | null;
+  motivo_moderacao?: string | null;
+  moderado_por?: string | null;
+  confianca_ia?: number | null;
+}

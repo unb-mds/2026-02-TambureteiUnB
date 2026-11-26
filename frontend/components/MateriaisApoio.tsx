@@ -7,7 +7,8 @@ import Pagination from "@/components/Pagination";
 import MaterialPreviewModal from "@/components/MaterialPreviewModal";
 import { ApiError } from "@/services/httpClient";
 import type { MaterialType } from "@/types/material";
-import { listMaterials, downloadMaterial, toggleMaterialVote } from "@/services/materialService";
+import { consultarStatusMaterial, listMaterials, downloadMaterial, toggleMaterialVote } from "@/services/materialService";
+import { getTriageBannerClasses, type TipoAvisoTriagem } from "@/services/moderacaoService";
 import { formatFileSize, validateExternalUrl } from "@/utils/fileValidation";
 
 export interface MaterialItem {
@@ -71,13 +72,21 @@ export default function MateriaisApoio({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"resumos" | "links" | "provas">("resumos");
   const [searchQuery, setSearchQuery] = useState("");
-  const [triageState, setTriageState] = useState<{ trigger: number; message: string } | null>(null);
+  const [triageState, setTriageState] = useState<{
+    trigger: number;
+    kind: TipoAvisoTriagem;
+    message: string;
+  } | null>(null);
 
   const displayedTriageNotice =
     triageState && triageState.trigger === refreshTrigger
-      ? triageState.message
+      ? { kind: triageState.kind, message: triageState.message }
       : refreshTrigger > 0
-      ? "[TRIAGEM EM ANDAMENTO] Seu material foi enviado para verificacao automatica. A lista sera atualizada assim que for aprovado."
+      ? {
+          kind: "pending" as const,
+          message:
+            "[TRIAGEM EM ANDAMENTO] Seu material foi enviado para verificacao automatica. A lista sera atualizada assim que for aprovado.",
+        }
       : null;
 
   const [page, setPage] = useState(1);
@@ -185,13 +194,94 @@ export default function MateriaisApoio({
 
     const currentTrigger = refreshTrigger;
     const targetIds = pendingMaterialIds.filter(Boolean);
+    const numericIds = targetIds
+      .map((rawId) => Number(rawId))
+      .filter((num) => Number.isSafeInteger(num) && num > 0);
     let cancelled = false;
     let attempts = 0;
-    const maxAttempts = 15;
+    const maxAttempts = 20;
 
     const pollForPublication = async () => {
       if (!isMountedRef.current || cancelled) return;
       attempts += 1;
+
+      if (numericIds.length > 0) {
+        const statuses = await Promise.all(
+          numericIds.map((id) => consultarStatusMaterial(id).catch(() => null))
+        );
+        if (!isMountedRef.current || cancelled) return;
+
+        const validStatuses = statuses.filter(
+          (item): item is NonNullable<typeof item> => item !== null
+        );
+
+        const rejected = validStatuses.find((item) => item.status_curadoria === "RECUSADO");
+        if (rejected) {
+          const reason = rejected.motivo_moderacao?.trim();
+          setTriageState({
+            trigger: currentTrigger,
+            kind: "rejected",
+            message: reason
+              ? `[RECUSADO] Seu material foi recusado pela moderacao e nao sera publicado. Motivo: ${reason}`
+              : "[RECUSADO] Seu material foi recusado pela moderacao e nao sera publicado.",
+          });
+          pollTimerRef.current = null;
+          return;
+        }
+
+        if (
+          validStatuses.length === numericIds.length &&
+          validStatuses.every((item) => item.status_curadoria === "APROVADO")
+        ) {
+          const response = await listMaterials(disciplineIdOrSlug, {
+            pagina: 1,
+            tamanho_pagina: 100,
+          }).catch(() => null);
+          if (!isMountedRef.current || cancelled) return;
+          const published = (response?.items ?? []).find((item) =>
+            targetIds.includes(String(item.id))
+          );
+          setPage(1);
+          setSearchQuery("");
+          setRetryCount((value) => value + 1);
+          if (published?.tipo === "PROVA_ANTIGA") {
+            setActiveTab("provas");
+          } else if (published?.tipo === "ARQUIVO" || published?.tipo === "LINK_UTIL") {
+            setActiveTab("links");
+          } else if (published) {
+            setActiveTab("resumos");
+          }
+          setTriageState({
+            trigger: currentTrigger,
+            kind: "approved",
+            message:
+              "[PUBLICADO] Seu material foi aprovado e ja esta disponivel abaixo.",
+          });
+          pollTimerRef.current = null;
+          return;
+        }
+
+        const inHumanQueue = validStatuses.find(
+          (item) =>
+            item.status_curadoria === "PENDENTE" &&
+            (item.status_moderacao === "em_analise" ||
+              item.status_moderacao === null ||
+              Boolean(item.motivo_moderacao?.trim()))
+        );
+        if (inHumanQueue && validStatuses.every((item) => item.status_curadoria === "PENDENTE")) {
+          const detail = inHumanQueue.motivo_moderacao?.trim();
+          setTriageState({
+            trigger: currentTrigger,
+            kind: "review",
+            message: detail
+              ? `[AGUARDANDO REVISAO] Seu material foi encaminhado para curadoria humana. Detalhe: ${detail}`
+              : "[AGUARDANDO REVISAO] Seu material foi encaminhado para curadoria humana e ficara disponivel apos aprovacao da equipe.",
+          });
+          pollTimerRef.current = null;
+          return;
+        }
+      }
+
       const response = await listMaterials(disciplineIdOrSlug, { pagina: 1, tamanho_pagina: 100 }).catch(() => null);
       const items = response?.items ?? [];
       if (!isMountedRef.current || cancelled) return;
@@ -214,6 +304,7 @@ export default function MateriaisApoio({
         }
         setTriageState({
           trigger: currentTrigger,
+          kind: "approved",
           message:
             "[PUBLICADO] Seu material foi aprovado pela moderacao automatica e ja esta disponivel abaixo.",
         });
@@ -224,10 +315,11 @@ export default function MateriaisApoio({
       if (attempts < maxAttempts) {
         pollTimerRef.current = setTimeout(() => {
           void pollForPublication();
-        }, 3000);
+        }, 1500);
       } else {
         setTriageState({
           trigger: currentTrigger,
+          kind: "review",
           message:
             "[AGUARDANDO REVISAO] Seu material segue em analise ou foi encaminhado para curadoria humana.",
         });
@@ -237,7 +329,7 @@ export default function MateriaisApoio({
 
     pollTimerRef.current = setTimeout(() => {
       void pollForPublication();
-    }, 3000);
+    }, 1500);
 
     return () => {
       cancelled = true;
@@ -435,10 +527,12 @@ export default function MateriaisApoio({
 
       {displayedTriageNotice && (
         <div
-          role="status"
-          className="mb-6 rounded-2xl border border-[#DDD9F1] bg-[#FAF9FD] px-4 py-3 text-xs sm:text-sm text-[#3F3A60]"
+          role={displayedTriageNotice.kind === "rejected" ? "alert" : "status"}
+          className={`mb-6 rounded-2xl border px-4 py-3 text-xs sm:text-sm font-medium ${getTriageBannerClasses(
+            displayedTriageNotice.kind
+          )}`}
         >
-          {displayedTriageNotice}
+          {displayedTriageNotice.message}
         </div>
       )}
 

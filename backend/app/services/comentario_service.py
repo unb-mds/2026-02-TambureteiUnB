@@ -69,10 +69,24 @@ class ComentarioService:
 
         self._validar_turma_da_disciplina(db, dados.turma_id, dados.disciplina_id)
 
+        if dados.parent_id is not None:
+            comentario_pai = comentario_repo.get_by_id(db, dados.parent_id)
+            if not comentario_pai:
+                raise HTTPException(
+                    status.HTTP_404_NOT_FOUND,
+                    detail="Comentário pai não encontrado.",
+                )
+            if comentario_pai.disciplina_id != dados.disciplina_id:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="O comentário pai não pertence à disciplina selecionada.",
+                )
+
         novo_comentario = Comentario(
             usuario_id=current_user.id,
             disciplina_id=dados.disciplina_id,
             turma_id=dados.turma_id,
+            parent_id=dados.parent_id,
             conteudo=dados.conteudo,
             autor_alias=self._resolver_autor_alias(dados.autor_alias, current_user),
             topico_dificuldade=dados.topico_dificuldade,
@@ -94,6 +108,7 @@ class ComentarioService:
         payload = ComentarioCreate(
             disciplina_id=disciplina.id,
             turma_id=dados.turma_id,
+            parent_id=dados.parent_id,
             autor_alias=self._resolver_autor_alias(dados.autor_alias, current_user),
             topico_dificuldade=dados.topico_dificuldade,
             conteudo=dados.conteudo,

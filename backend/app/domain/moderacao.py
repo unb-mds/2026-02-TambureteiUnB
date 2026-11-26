@@ -31,6 +31,7 @@ PROMPT_SISTEMA_MODERACAO = (  # pragma: no mutate
     "Avalie se o comentario ou material de apoio enviado por estudantes respeita as regras de governanca (RN01, RN04, RN05 e RN06): "  # pragma: no mutate
     "1. LGPD_DADOS_PESSOAIS: proibido conter dados pessoais preenchidos de estudantes reais (nomes completos de alunos, "  # pragma: no mutate
     "numeros de matricula preenchidos, CPF, e-mails pessoais, telefones ou cabecalhos de provas identificados com dados de alunos). "  # pragma: no mutate
+    "Atencao: o campo 'Apelido do autor' e apenas o nome publico da conta autenticada na plataforma e NUNCA viola a LGPD nem configura ofensa. "  # pragma: no mutate
     "Atencao: nome de professor no cabecalho oficial da prova/lista e campos em branco para preenchimento (ex.: 'Nome:', 'Nomes:', 'Matricula:') NAO violam LGPD. "  # pragma: no mutate
     "2. GABARITO_VIGENTE: proibido publicar resolucoes ou gabaritos de avaliacoes ainda vigentes. "  # pragma: no mutate
     "Atencao (RN05): enunciados de provas antigas, listas de exercicios sem gabarito, resumos conceituais e dicas de estudo sao PERMITIDOS. "  # pragma: no mutate
@@ -40,7 +41,7 @@ PROMPT_SISTEMA_MODERACAO = (  # pragma: no mutate
     "REGRA PADRAO: apenas escolha 'REJEITAR' se houver violacao explicita de uma das 5 regras acima. "  # pragma: no mutate
     "Se for um comentario respeitoso (elogio, relato de experiencia, dica de estudo, opiniao breve sobre a dificuldade da materia ou critica construtiva sem xingamentos nem dados pessoais) "  # pragma: no mutate
     "ou um material academico legitimo (enunciado de prova antiga, lista de exercicios, resumo autoral ou dica da disciplina sem dados pessoais de alunos nem gabarito vigente), "  # pragma: no mutate
-    "escolha 'APROVAR' com categoria_violacao 'NENHUMA'. "  # pragma: no mutate
+    "escolha 'APROVAR' com categoria_violacao 'NENHUMA'. Na duvida entre aprovar e rejeitar, escolha 'REVISAO_HUMANA'. "  # pragma: no mutate
     "Responda estritamente em JSON valido conforme o schema solicitado, preenchendo todos os campos: "  # pragma: no mutate
     "decisao ('APROVAR', 'REJEITAR' ou 'REVISAO_HUMANA'), "  # pragma: no mutate
     "confianca (numero decimal entre 0.0 e 1.0, por exemplo 0.95; nunca use escala de 0 a 100), "  # pragma: no mutate
@@ -145,7 +146,12 @@ def construir_prompt_comentario(
         raise ValueError("O conteudo do comentario nao pode ser vazio para triagem.")  # pragma: no mutate
     topico_str = (topico or "Geral").strip() or "Geral"  # pragma: no mutate
     alias_str = (autor_alias or "Estudante Anonimo").strip() or "Estudante Anonimo"  # pragma: no mutate
-    mensagem_usuario = f"Tipo de submissao: COMENTARIO ACADEMICO\nApelido do autor: {alias_str}\nTopico de dificuldade: {topico_str}\nTexto do comentario:\n{texto}"  # pragma: no mutate
+    mensagem_usuario = (  # pragma: no mutate
+        f"Tipo de submissao: COMENTARIO ACADEMICO\n"
+        f"Apelido do autor (nome publico permitido da conta do remetente; NAO avalie como violacao LGPD): {alias_str}\n"
+        f"Topico de dificuldade: {topico_str}\n"
+        f"Texto do comentario (avalie exclusivamente este texto quanto as 5 regras):\n{texto}"
+    )
     return [{"role": "system", "content": PROMPT_SISTEMA_MODERACAO}, {"role": "user", "content": mensagem_usuario}]  # pragma: no mutate
 
 

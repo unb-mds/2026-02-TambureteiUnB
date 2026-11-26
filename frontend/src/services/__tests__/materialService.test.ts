@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  consultarStatusMaterial,
   createExternalLink,
   listMaterials,
   toggleMaterialVote,
@@ -224,4 +225,61 @@ test("createExternalLink envia POST /cadeiras/{id}/links com payload normalizado
 
   removeStoredToken();
   globalThis.fetch = originalFetch;
+});
+
+test("consultarStatusMaterial consulta GET /materiais/{id}/status com Bearer", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = (globalThis as { window?: unknown }).window;
+  const originalStorage = (globalThis as { localStorage?: unknown }).localStorage;
+  const store = new Map<string, string>();
+  Object.defineProperty(globalThis, "window", { value: {}, configurable: true });
+  Object.defineProperty(globalThis, "localStorage", {
+    value: {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, val: string) => store.set(key, val),
+      removeItem: (key: string) => store.delete(key),
+    },
+    configurable: true,
+  });
+  let capturedUrl = "";
+  let capturedAuth = "";
+
+  try {
+    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      capturedUrl = String(input);
+      capturedAuth = new Headers(init?.headers).get("Authorization") || "";
+      return new Response(
+        JSON.stringify({
+          id: 77,
+          status_curadoria: "RECUSADO",
+          status_moderacao: "bloqueado",
+          motivo_moderacao: "[LGPD_DADOS_PESSOAIS] Possivel exposicao de matricula.",
+          moderado_por: "IA",
+          confianca_ia: 1.0,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }) as typeof fetch;
+
+    setStoredToken("token-status-mat");
+    const status = await consultarStatusMaterial(77);
+
+    assert.match(capturedUrl, /\/materiais\/77\/status$/);
+    assert.equal(capturedAuth, "Bearer token-status-mat");
+    assert.equal(status.status_curadoria, "RECUSADO");
+    assert.match(status.motivo_moderacao || "", /LGPD_DADOS_PESSOAIS/);
+  } finally {
+    removeStoredToken();
+    globalThis.fetch = originalFetch;
+    if (originalWindow === undefined) {
+      delete (globalThis as { window?: unknown }).window;
+    } else {
+      Object.defineProperty(globalThis, "window", { value: originalWindow, configurable: true });
+    }
+    if (originalStorage === undefined) {
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    } else {
+      Object.defineProperty(globalThis, "localStorage", { value: originalStorage, configurable: true });
+    }
+  }
 });

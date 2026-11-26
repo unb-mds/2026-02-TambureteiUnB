@@ -283,3 +283,45 @@ def test_consultar_status_comentario_exibe_recusa_ao_autor_e_bloqueia_terceiros(
     assert resp_inexistente.status_code == 404
 
 
+def test_criar_resposta_preserva_parent_id_e_valida_disciplina(
+    client: TestClient, db: Session, student_headers, disciplina, comentario_do_aluno
+):
+    from app.models.disciplina import Disciplina
+
+    resp_ok = client.post(
+        "/comentarios",
+        json={
+            "disciplina_id": disciplina.id,
+            "parent_id": comentario_do_aluno.id,
+            "conteudo": "Concordo com a dica sobre as listas!",
+        },
+        headers=student_headers,
+    )
+    assert resp_ok.status_code == 201, resp_ok.text
+    assert resp_ok.json()["parent_id"] == comentario_do_aluno.id
+
+    resp_inexistente = client.post(
+        "/comentarios",
+        json={
+            "disciplina_id": disciplina.id,
+            "parent_id": 999999,
+            "conteudo": "Resposta para comentario inexistente.",
+        },
+        headers=student_headers,
+    )
+    assert resp_inexistente.status_code == 404
+
+    outra = Disciplina(slug="outra-disciplina-parent", nome="Outra Disciplina", codigo="OUT999", departamento="FCTE")
+    db.add(outra)
+    db.commit()
+    db.refresh(outra)
+    resp_outra = client.post(
+        "/comentarios",
+        json={
+            "disciplina_id": outra.id,
+            "parent_id": comentario_do_aluno.id,
+            "conteudo": "Resposta cruzando disciplinas.",
+        },
+        headers=student_headers,
+    )
+    assert resp_outra.status_code == 422

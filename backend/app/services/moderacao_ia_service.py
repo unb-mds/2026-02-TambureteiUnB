@@ -106,7 +106,7 @@ def aplicar_triagem_comentario(db: Session, comentario_id: int) -> bool:
     topico = comentario.topico_dificuldade
     autor_alias = comentario.autor_alias
 
-    veredito = detectar_dados_pessoais_rn01(f"{autor_alias or ''}\n{conteudo_texto}")
+    veredito = detectar_dados_pessoais_rn01(f"{topico or ''}\n{conteudo_texto}")
     if veredito is None:
         mensagens = construir_prompt_comentario(
             conteudo_texto,
