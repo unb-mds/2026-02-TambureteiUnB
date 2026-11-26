@@ -56,3 +56,22 @@ test("getOfficialCurriculumUrl retorna fallback oficial do SIGAA quando slug nao
   const emptyFallback = getOfficialCurriculumUrl();
   assert.equal(emptyFallback, SIGAA_COURSES_CONSULTATION_URL);
 });
+
+test("resolveCourseSlug mapeia nomes de cursos reais para slugs oficiais", async () => {
+  const { resolveCourseSlug } = await import("../courseCurriculum.ts");
+
+  assert.equal(resolveCourseSlug("Ciências Econômicas"), "ciencias-economicas");
+  assert.equal(resolveCourseSlug("Economia"), "ciencias-economicas");
+  assert.equal(resolveCourseSlug("Ciência da Computação"), "ciencia-da-computacao");
+  assert.equal(resolveCourseSlug("Administração (Diurno)"), "administracao-diurno");
+  assert.equal(resolveCourseSlug("Administração Noturno"), "administracao-noturno");
+  assert.equal(resolveCourseSlug("Direito"), "direito-diurno");
+  assert.equal(resolveCourseSlug("Medicina"), "medicina");
+  assert.equal(resolveCourseSlug("Engenharia de Software"), "engenharia-de-software");
+  assert.equal(resolveCourseSlug("Engenharia Aeroespacial"), "engenharia-aeroespacial");
+  assert.equal(resolveCourseSlug("Engenharia Automotiva"), "engenharia-automotiva");
+  assert.equal(resolveCourseSlug("Engenharia de Energia"), "engenharia-de-energia");
+  assert.equal(resolveCourseSlug("Engenharia Eletrônica"), "engenharia-eletronica");
+  assert.equal(resolveCourseSlug(""), "engenharia-de-software");
+  assert.equal(resolveCourseSlug(null), "engenharia-de-software");
+});
