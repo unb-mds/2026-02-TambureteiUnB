@@ -389,7 +389,7 @@ export default function RegisterPage() {
 
             {/* Selo LGPD / Privacy By Design */}
             <div className="rounded-xl bg-[#F7F7FA] p-3 text-[11px] text-gray-500 border border-[#E8E6F8] leading-relaxed">
-              <span className="font-semibold text-[#202124]">Privacidade Garantida (RF01):</span> Não
+              <span className="font-semibold text-[#202124]">Privacidade Garantida:</span> Não
               solicitamos nem armazenamos matrícula, CPF ou histórico individual.
               Seus comentários na comunidade utilizam apelido anônimo.
             </div>

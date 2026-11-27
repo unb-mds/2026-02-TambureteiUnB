@@ -28,7 +28,7 @@ export const UTF8_BOM = "\uFEFF";
 export const MIN_PUBLIC_SAMPLE_SIZE = 5;
 
 export const LGPD_COMPLIANCE_STATEMENT =
-  "Dados agregados publicos em conformidade com a LGPD (RN01/RN07). Sem identificacao nominal ou matricula discente; turmas com menos de 5 estudantes sao consolidadas no acumulado.";
+  "Dados agregados publicos em conformidade com a LGPD. Sem identificacao nominal ou matricula discente; turmas com menos de 5 estudantes sao consolidadas no acumulado.";
 
 export const COURSE_OPEN_DATA_COLUMNS: OpenDataColumnDefinition<CourseOpenDataRow>[] = [
   { key: "id", header: "id" },
@@ -160,7 +160,7 @@ export function serializeToJson<T>(
   const envelope: OpenDataEnvelope<T> = {
     plataforma: "Tamburetei UnB",
     instituicao: "Universidade de Brasilia (UnB)",
-    requisito: "RF06/RF13 - Exportacao de Dados Abertos",
+    requisito: "Exportacao de Dados Abertos",
     conformidade_lgpd: LGPD_COMPLIANCE_STATEMENT,
     escopo: scope,
     identificador_contexto: options?.contextIdentifier ?? null,

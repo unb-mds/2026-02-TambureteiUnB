@@ -900,7 +900,7 @@ export default function MateriaisApoio({
               Denunciar material à moderação
             </h3>
             <p className="mt-1 text-xs text-gray-600">
-              Sinalize arquivos ou links que contenham gabaritos vigentes (RN05), dados pessoais (RN01) ou conteúdo impróprio.
+              Sinalize arquivos ou links que contenham gabaritos de avaliações vigentes, dados pessoais ou conteúdo impróprio.
             </p>
             <p className="mt-2 rounded-lg bg-[#F7F7FA] px-3 py-2 text-xs font-semibold text-[#202124]">
               {reportingMaterial.titulo} ({reportingMaterial.formato})

@@ -23,9 +23,9 @@ import type {
 import { API_BASE_URL, ApiError, getStoredToken, request } from "./httpClient.ts";
 
 export const ROTULOS_CATEGORIA_DENUNCIA: Record<CategoriaDenuncia, string> = {
-  OFENSA_DOCENTE: "Ataque ou ofensa a docente (RN04)",
+  OFENSA_DOCENTE: "Ataque ou ofensa a docente",
   CONTEUDO_IMPROPRIO: "Conteúdo ofensivo ou impróprio",
-  GABARITO_ATIVO: "Gabarito de avaliação vigente (RN05)",
+  GABARITO_ATIVO: "Gabarito de avaliação vigente",
   SPAM: "Spam ou divulgação indevida",
   OUTRO: "Outra violação das diretrizes",
 };

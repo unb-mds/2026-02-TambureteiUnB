@@ -92,7 +92,7 @@ export default function DenunciaModerationCard({
             </span>
             {denuncia.prioridade_rn04 && (
               <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-800">
-                Prioridade RN04 — Proteção a Docentes
+                Prioridade — Proteção a Docentes
               </span>
             )}
           </div>
@@ -177,7 +177,7 @@ export default function DenunciaModerationCard({
         <p className="mt-1 break-words text-sm text-amber-950">{denuncia.motivo}</p>
         {denuncia.sinalizacoes_rn04.length > 0 && (
           <p className="mt-2 text-xs text-red-800">
-            <strong>Alerta de triagem ética (RN04):</strong> Verifique se o relato contém juízo depreciativo ou ataque pessoal contra docente.
+            <strong>Alerta de triagem ética:</strong> Verifique se o relato contém juízo depreciativo ou ataque pessoal contra docente.
           </p>
         )}
       </div>

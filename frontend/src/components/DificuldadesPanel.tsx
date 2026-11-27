@@ -922,7 +922,7 @@ export default function DificuldadesPanel({
               Denunciar relato de dificuldade
             </h3>
             <p className="mt-1 text-xs text-gray-600">
-              Sinalize ofensas a docentes (RN04), exposição de dados pessoais (RN01) ou conteúdo impróprio.
+              Sinalize ofensas a docentes, exposição de dados pessoais ou conteúdo impróprio.
             </p>
             <p className="mt-2 rounded-lg bg-[#F7F7FA] px-3 py-2 text-xs text-[#202124] line-clamp-3">
               <strong>{reportingAlert.topic}:</strong> {reportingAlert.content}

@@ -498,7 +498,7 @@ export default function ModeracaoPage() {
         <p className="text-sm font-semibold text-[#5B4BDB]">Área da equipe</p>
         <h1 className="mt-2 text-3xl font-bold">Painel de Moderação Híbrida e Curadoria</h1>
         <p className="mt-3 text-gray-600">
-          Revise os materiais e comentários escalonados pela triagem automática local (Ollama) ou que aguardam inspeção humana (RN06), e avalie conteúdos sinalizados na Central de Denúncias (RN04).
+          Revise os materiais e gráficos de pizza que aguardam inspeção humana e avalie conteúdos sinalizados na Central de Denúncias.
         </p>
 
         {acesso === "loading" && (
@@ -733,7 +733,7 @@ export default function ModeracaoPage() {
         
                     <div className="mt-5 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD]/60 p-4 text-sm text-[#202124]">
               <p className="font-semibold text-[#5B4BDB]">
-                Diretriz RN04 — Proteção a Docentes e Conduta Ética
+                Proteção a Docentes e Conduta Ética
               </p>
               <p className="mt-1 text-xs sm:text-sm text-gray-700">
                 Relatos com ataques pessoais, juízos depreciativos contra professores ou gabaritos de atividades vigentes devem ser excluídos. Denúncias improcedentes sobre relatos estritamente pedagógicos devem ser descartadas para preservar a colaboração discente.

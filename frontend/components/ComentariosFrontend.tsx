@@ -558,7 +558,7 @@ export default function ComentariosFrontend({
         }
       }
       setReportingComment(null);
-      setReportFeedback("Denúncia registrada e encaminhada para revisão da equipe de moderação (RN04).");
+      setReportFeedback("Denúncia registrada e encaminhada para revisão da equipe de moderação.");
     } catch (error) {
       setReportError(
         error instanceof Error ? error.message : "Não foi possível enviar a denúncia no momento."
@@ -688,7 +688,7 @@ export default function ComentariosFrontend({
         />
 
         <p id="conduta-etica-rn04" className="mt-2 text-[11px] text-gray-500">
-          Conduta ética (RN04): concentre seu relato na ementa, metodologia e dificuldades técnicas da matéria. Ataques pessoais a docentes são vedados.
+          Conduta ética: concentre seu relato na ementa, metodologia e dificuldades técnicas da matéria. Ataques pessoais a docentes são vedados.
         </p>
 
         {triageNotice && (
@@ -1106,7 +1106,7 @@ export default function ComentariosFrontend({
               Denunciar relato à moderação
             </h3>
             <p className="mt-1 text-xs text-gray-600">
-              Sinalize conteúdos que violem a proteção a docentes (RN04) ou as diretrizes da comunidade.
+              Sinalize conteúdos que violem a proteção a docentes ou as diretrizes da comunidade.
             </p>
 
             <label className="mt-4 block text-xs font-semibold text-gray-700">

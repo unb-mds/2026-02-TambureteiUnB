@@ -1177,7 +1177,7 @@ function DisciplineDetailContent() {
                 className="mb-5 flex items-start gap-2.5 rounded-2xl border border-[#D8D1FA] bg-[#EDE9FD] px-4 py-3 text-xs sm:text-sm text-[#5B4BDB]"
               >
                 <span>
-                  <strong>Dados individuais suprimidos pela LGPD (RN07):</strong>{" "}
+                  <strong>Dados individuais suprimidos pela LGPD:</strong>{" "}
                   o período selecionado possui {periodSummary.matriculados}{" "}
                   {periodSummary.matriculados === 1 ? "matrícula" : "matrículas"}{" "}
                   (mínimo de 5 para exibição individual). Selecione{" "}

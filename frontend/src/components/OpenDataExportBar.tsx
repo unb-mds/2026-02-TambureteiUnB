@@ -16,7 +16,7 @@ export interface OpenDataExportBarProps {
 
 export default function OpenDataExportBar({
   title,
-  description = "Conjunto de dados publicos agregados da UnB (RF06/RF13) em conformidade com a LGPD.",
+  description = "Conjunto de dados públicos agregados da UnB em conformidade com a LGPD.",
   emptyMessage = "Nenhum registro publico real disponivel para exportacao no momento.",
   recordCount,
   recordLabel = "registros",

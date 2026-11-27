@@ -66,7 +66,7 @@ test("card exibe progresso de coleta da comunidade abaixo do limiar LGPD e taxas
     estatistica: null,
   });
   const htmlColeta = renderToStaticMarkup(<ClassCard classData={turmaColeta} />);
-  assert.ok(htmlColeta.includes("Coleta comunidade: 2/5 históricos (RN07)"));
+  assert.ok(htmlColeta.includes("Coleta comunidade: 2/5 históricos"));
   assert.ok(htmlColeta.includes("Histórico"));
   assert.ok(!htmlColeta.includes("Horário a definir"));
 

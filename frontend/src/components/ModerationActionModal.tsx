@@ -126,8 +126,8 @@ export default function ModerationActionModal({
             }}
             placeholder={
               isExclusao
-                ? "Ex.: Relato contém ataque pessoal contra docente, violando a RN04."
-                : "Ex.: Relato aborda apenas metodologia e bibliografia da disciplina, sem violar a RN04."
+                ? "Ex.: Relato contém ataque pessoal contra docente, violando as diretrizes da comunidade."
+                : "Ex.: Relato aborda apenas metodologia e bibliografia da disciplina, de acordo com as diretrizes."
             }
             className="mt-1.5 w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]"
           />
