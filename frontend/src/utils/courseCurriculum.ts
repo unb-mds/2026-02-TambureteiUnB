@@ -172,71 +172,101 @@ export const OFFICIAL_CURRICULUM_LINKS: Record<string, string> = {
 export const SIGAA_COURSES_CONSULTATION_URL =
   "https://sigaa.unb.br/sigaa/public/curso/lista.jsf?nivel=G";
 
+function slugifyCourseFragment(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 /**
  * Normaliza o nome do curso (como extraído do SIGAA ou informado pelo usuário)
  * para um dos slugs oficiais mapeados no sistema.
  */
 export function resolveCourseSlug(courseName?: string | null): string {
   if (!courseName) return "engenharia-de-software";
-  const raw = courseName.toLowerCase().trim();
 
-  // Mapeamentos diretos específicos e frequentes
-  if (raw.includes("software")) return "engenharia-de-software";
-  if (raw.includes("aeroespacial")) return "engenharia-aeroespacial";
-  if (raw.includes("automotiva")) return "engenharia-automotiva";
-  if (raw.includes("energia")) return "engenharia-de-energia";
-  if (raw.includes("eletrônica") || raw.includes("eletronica")) return "engenharia-eletronica";
-  if (raw.includes("econômica") || raw.includes("economica") || raw.includes("economia")) {
-    return "ciencias-economicas";
-  }
-  if (raw.includes("contábeis") || raw.includes("contabeis") || raw.includes("contabilidade")) {
-    return raw.includes("noturno") ? "ciencias-contabeis-noturno" : "ciencias-contabeis-diurno";
-  }
-  if (raw.includes("computação") || raw.includes("computacao") || raw.includes("ciência da computação")) {
-    return "ciencia-da-computacao";
-  }
-  if (raw.includes("administração") || raw.includes("administracao")) {
-    return raw.includes("noturno") ? "administracao-noturno" : "administracao-diurno";
-  }
-  if (raw.includes("direito")) {
-    return raw.includes("noturno") ? "direito-noturno" : "direito-diurno";
-  }
-  if (raw.includes("medicina") && !raw.includes("veterinária") && !raw.includes("veterinaria")) {
-    return "medicina";
-  }
-  if (raw.includes("psicologia")) return "psicologia";
-  if (raw.includes("farmácia") || raw.includes("farmacia")) return "farmacia";
-  if (raw.includes("enfermagem")) {
-    return raw.includes("noturno") ? "enfermagem-noturno" : "enfermagem-diurno";
-  }
-  if (raw.includes("nutrição") || raw.includes("nutricao")) return "nutricao";
-  if (raw.includes("fisioterapia")) return "fisioterapia";
-  if (raw.includes("odontologia")) return "odontologia";
-  if (raw.includes("arquitetura")) {
-    return raw.includes("noturno") ? "arquitetura-e-urbanismo-noturno" : "arquitetura-e-urbanismo-diurno";
-  }
-  if (raw.includes("serviço social") || raw.includes("servico social")) {
-    return raw.includes("noturno") ? "servico-social-noturno" : "servico-social-diurno";
-  }
-  if (raw.includes("engenharia")) return "engenharia";
-
-  // Busca normalizada por remoção de acentos nos slugs conhecidos
-  const normalizedTerm = raw
+  const ascii = courseName
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .toLowerCase()
+    .trim();
 
-  if (OFFICIAL_CURRICULUM_LINKS[normalizedTerm]) {
-    return normalizedTerm;
+  if (!ascii) return "engenharia-de-software";
+
+  const isNoturno = /\bnoturno\b/.test(ascii);
+  const isLicenciatura = /\blicenciatura\b/.test(ascii);
+  const isBacharelado = /\bbacharelado\b/.test(ascii);
+  const shiftSuffix = isNoturno ? "noturno" : "diurno";
+
+  // Remove sufixos institucionais do SIGAA (ex.: "/CCA - BACHARELADO - DIURNO", "(Noturno)")
+  const beforeSlash = ascii.split("/")[0].trim();
+  const cleanedBase = beforeSlash
+    .replace(/\((?:diurno|noturno|bacharelado|licenciatura|integral|vespertino|matutino)\)/g, " ")
+    .replace(/\s*-\s*(?:bacharelado|licenciatura|diurno|noturno|integral|vespertino|matutino)\b/g, " ")
+    .replace(/\b(?:bacharelado|licenciatura|diurno|noturno)\b$/g, " ")
+    .trim();
+
+  const normalizedFull = slugifyCourseFragment(ascii);
+  const baseSlug = slugifyCourseFragment(cleanedBase);
+
+  // 1. Tentativa direta nos 161 cursos oficiais (evita colisoes entre Engenharias e Computacao)
+  const candidates = [
+    normalizedFull,
+    isNoturno && baseSlug ? `${baseSlug}-noturno` : "",
+    isLicenciatura && baseSlug ? `${baseSlug}-licenciatura-${shiftSuffix}` : "",
+    isLicenciatura && baseSlug ? `${baseSlug}-licenciatura-diurno` : "",
+    isBacharelado && baseSlug ? `${baseSlug}-bacharelado-${shiftSuffix}` : "",
+    isBacharelado && baseSlug ? `${baseSlug}-bacharelado-diurno` : "",
+    baseSlug,
+    baseSlug ? `${baseSlug}-${shiftSuffix}` : "",
+    baseSlug ? `${baseSlug}-diurno` : "",
+    baseSlug ? `${baseSlug}-noturno` : "",
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (OFFICIAL_CURRICULUM_LINKS[candidate]) {
+      return candidate;
+    }
   }
 
-  // Tenta encontrar por prefixo ou substring dos slugs de 161 cursos
-  const found = Object.keys(OFFICIAL_CURRICULUM_LINKS).find((key) => {
-    return key === normalizedTerm || key.startsWith(normalizedTerm) || normalizedTerm.startsWith(key);
-  });
+  // 2. Aliases frequentes para nomes abreviados ou sem prefixo
+  if (ascii.includes("software")) return "engenharia-de-software";
+  if (ascii.includes("aeroespacial")) return "engenharia-aeroespacial";
+  if (ascii.includes("automotiva")) return "engenharia-automotiva";
+  if (ascii.includes("energia")) return "engenharia-de-energia";
+  if (ascii.includes("eletronica")) return "engenharia-eletronica";
+  if (ascii.includes("economica") || ascii === "economia") {
+    return "ciencias-economicas";
+  }
+  if (ascii.includes("contabeis") || ascii.includes("contabilidade")) {
+    return isNoturno ? "ciencias-contabeis-noturno" : "ciencias-contabeis-diurno";
+  }
+  if (ascii.includes("arquitetura")) {
+    return isNoturno ? "arquitetura-e-urbanismo-noturno" : "arquitetura-e-urbanismo-diurno";
+  }
+  if (ascii.includes("servico social")) {
+    return isNoturno ? "servico-social-noturno" : "servico-social-diurno";
+  }
+  if (ascii.includes("ciencia da computacao")) {
+    return "ciencia-da-computacao";
+  }
 
-  return found || normalizedTerm || "engenharia-de-software";
+  // 3. Correspondencia por prefixo nos 161 slugs oficiais (respeitando turno quando possivel)
+  const officialKeys = Object.keys(OFFICIAL_CURRICULUM_LINKS);
+  if (baseSlug) {
+    const prefixMatches = officialKeys.filter(
+      (key) => key.startsWith(`${baseSlug}-`) || baseSlug.startsWith(`${key}-`)
+    );
+    if (prefixMatches.length > 0) {
+      const shiftMatch = prefixMatches.find((key) => key.endsWith(`-${shiftSuffix}`));
+      return shiftMatch || prefixMatches[0];
+    }
+  }
+
+  return baseSlug || normalizedFull || "engenharia-de-software";
 }
 
 /**

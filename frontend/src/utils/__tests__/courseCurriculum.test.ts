@@ -80,6 +80,19 @@ test("resolveCourseSlug mapeia nomes de cursos reais para slugs oficiais", async
   assert.equal(resolveCourseSlug("Engenharia Automotiva"), "engenharia-automotiva");
   assert.equal(resolveCourseSlug("Engenharia de Energia"), "engenharia-de-energia");
   assert.equal(resolveCourseSlug("Engenharia Eletrônica"), "engenharia-eletronica");
+  assert.equal(resolveCourseSlug("Engenharia Civil"), "engenharia-civil");
+  assert.equal(
+    resolveCourseSlug("ENGENHARIA CIVIL/ENC - BACHARELADO - DIURNO"),
+    "engenharia-civil"
+  );
+  assert.equal(resolveCourseSlug("Engenharia de Computação"), "engenharia-de-computacao");
+  assert.equal(resolveCourseSlug("COMPUTAÇÃO - LICENCIATURA - NOTURNO"), "computacao");
+  assert.equal(resolveCourseSlug("Psicologia"), "psicologia-diurno");
+  assert.equal(resolveCourseSlug("Farmácia"), "farmacia-diurno");
+  assert.equal(resolveCourseSlug("Farmácia Noturno"), "farmacia-noturno");
+  assert.equal(resolveCourseSlug("FILOSOFIA/FIL - LICENCIATURA - NOTURNO"), "filosofia-noturno");
+  assert.equal(resolveCourseSlug("Medicina Veterinária"), "medicina-veterinaria");
+  assert.equal(resolveCourseSlug("Engenharia"), "engenharia");
   assert.equal(resolveCourseSlug(""), "engenharia-de-software");
   assert.equal(resolveCourseSlug(null), "engenharia-de-software");
 });

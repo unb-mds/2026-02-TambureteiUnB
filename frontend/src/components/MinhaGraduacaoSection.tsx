@@ -396,47 +396,51 @@ export default function MinhaGraduacaoSection({
             </a>
 
             {/* Legenda sutil */}
-            <div className="flex flex-wrap items-center gap-4 text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80 border border-emerald-400/30" />
-                <span className="text-[var(--text-muted)] text-[11px]">Concluída</span>
+            {temMatrizCadastrada && (
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80 border border-emerald-400/30" />
+                  <span className="text-[var(--text-muted)] text-[11px]">Concluída</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#5B4BDB] border border-[#7C6CF0]/40" />
+                  <span className="text-[var(--text-muted)] text-[11px]">Em andamento</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-neutral-400 dark:bg-neutral-600 border border-neutral-500/30" />
+                  <span className="text-[var(--text-muted)] text-[11px]">Pendente</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#5B4BDB] border border-[#7C6CF0]/40" />
-                <span className="text-[var(--text-muted)] text-[11px]">Em andamento</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-neutral-400 dark:bg-neutral-600 border border-neutral-500/30" />
-                <span className="text-[var(--text-muted)] text-[11px]">Pendente</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
         {/* Filtros discretos */}
-        <div className="mt-3 flex flex-wrap gap-1.5 border-b border-[var(--border-subtle)] pb-3 text-xs">
-          {(
-            [
-              { id: "todas", label: "Todas" },
-              { id: "concluidas", label: "Concluídas" },
-              { id: "andamento", label: "Em andamento" },
-              { id: "pendentes", label: "Pendentes" },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilter(tab.id)}
-              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                filter === tab.id
-                  ? "bg-[var(--primary)] text-white"
-                  : "bg-[var(--surface-soft)] text-[var(--text-muted)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {temMatrizCadastrada && (
+          <div className="mt-3 flex flex-wrap gap-1.5 border-b border-[var(--border-subtle)] pb-3 text-xs">
+            {(
+              [
+                { id: "todas", label: "Todas" },
+                { id: "concluidas", label: "Concluídas" },
+                { id: "andamento", label: "Em andamento" },
+                { id: "pendentes", label: "Pendentes" },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilter(tab.id)}
+                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                  filter === tab.id
+                    ? "bg-[var(--primary)] text-white"
+                    : "bg-[var(--surface-soft)] text-[var(--text-muted)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Grade de Semestres (Organização Horizontal por Semestres) */}
         {semestresAgrupados.length > 0 ? (
