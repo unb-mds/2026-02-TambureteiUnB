@@ -241,3 +241,46 @@ test("requestPasswordReset, resetPassword e changePassword executam chamadas cor
   assert.match(calls[2].body || "", /SenhaNova456!/);
 });
 
+test("updateUserName envia PATCH /auth/me e atualiza o usuario salvo no localStorage", async (t) => {
+  storageData.clear();
+  storageData.set("tamburetei_auth_token", "jwt-token-valido");
+  let authEvents = 0;
+  const unsubscribe = subscribeAuthChange(() => {
+    authEvents += 1;
+  });
+  t.after(() => {
+    unsubscribe();
+  });
+
+  const calls: { url: string; method?: string; body?: string }[] = [];
+  t.mock.method(globalThis, "fetch", async (url: string, init?: RequestInit) => {
+    calls.push({
+      url,
+      method: init?.method,
+      body: typeof init?.body === "string" ? init.body : undefined,
+    });
+    return new Response(
+      JSON.stringify({
+        id: 7,
+        nome: "Ana Carolina",
+        email: "ana@unb.br",
+        role: "STUDENT",
+        is_active: true,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  });
+
+  const { updateUserName, getStoredUser } = await import("../authService.ts");
+
+  const updated = await updateUserName("  Ana Carolina  ");
+  assert.equal(updated.nome, "Ana Carolina");
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url.endsWith("/auth/me"), true);
+  assert.equal(calls[0].method, "PATCH");
+  assert.equal(calls[0].body, JSON.stringify({ nome: "Ana Carolina" }));
+  assert.equal(getStoredUser()?.nome, "Ana Carolina");
+  assert.equal(authEvents, 1);
+});
+
+

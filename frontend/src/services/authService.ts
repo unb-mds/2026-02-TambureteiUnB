@@ -179,6 +179,21 @@ export async function changePassword(data: ChangePasswordInput): Promise<Message
 }
 
 /**
+ * Atualiza o nome do usuário autenticado, persiste no cache local e notifica a interface.
+ */
+export async function updateUserName(nome: string): Promise<UserResponse> {
+  const updated = await request<UserResponse>("/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify({ nome: nome.trim() }),
+  });
+  setStoredUser(updated);
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+  }
+  return updated;
+}
+
+/**
  * Remove a sessão e o token JWT ativo, notificando a interface.
  * O histórico do usuário continua salvo sob sua chave dedicada para restauração ao relogar.
  */
@@ -241,6 +256,7 @@ export const authService = {
   requestPasswordReset,
   resetPassword,
   changePassword,
+  updateUserName,
   AUTH_CHANGE_EVENT,
 };
 

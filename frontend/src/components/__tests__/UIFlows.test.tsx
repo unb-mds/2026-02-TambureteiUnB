@@ -11,6 +11,7 @@ import MaterialPreviewModal from "../MaterialPreviewModal.tsx";
 import MinhasContribuicoesSection from "../MinhasContribuicoesSection.tsx";
 import ModerationCard from "../ModerationCard.tsx";
 import ReplaceMaterialFileModal from "../ReplaceMaterialFileModal.tsx";
+import SecurityTabContent from "../SecurityTabContent.tsx";
 
 test("ClassFilters apresenta filtros, ordenação e resumo vazado para UI", () => {
   const markup = renderToStaticMarkup(
@@ -286,4 +287,14 @@ test("MinhasContribuicoesSection renderiza titulo e filtros de status no perfil"
   assert.match(markup, /Pendentes/);
   assert.match(markup, /Aprovados/);
   assert.match(markup, /Recusados/);
+});
+
+test("SecurityTabContent renderiza formularios de alteracao de nome e senha", () => {
+  const markup = renderToStaticMarkup(<SecurityTabContent />);
+
+  assert.match(markup, /Nome de Exibição/);
+  assert.match(markup, /Nome completo/);
+  assert.match(markup, /Salvar novo nome/);
+  assert.match(markup, /Alteração e Segurança de Senha/);
+  assert.match(markup, /Salvar nova senha/);
 });

@@ -123,6 +123,11 @@ function ProfilePageContent() {
     }
   }, [authenticated, router]);
 
+  const storedUserName = useSyncExternalStore(
+    subscribeAuthChange,
+    () => getStoredUser()?.nome ?? null,
+    () => null
+  );
   const storedUser = getStoredUser();
   const currentUserId = storedUser?.id ?? null;
 
@@ -181,7 +186,7 @@ function ProfilePageContent() {
   const dadosReais = importedHistorico?.dados_academicos;
   const isRealProfile = Boolean(dadosReais);
   const displayName = isRealProfile
-    ? storedUser?.nome || "Estudante UnB"
+    ? storedUserName || "Estudante UnB"
     : profileDemo.name;
   const displayInitials = displayName
     .split(/\s+/)

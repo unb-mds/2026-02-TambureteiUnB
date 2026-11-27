@@ -11,6 +11,7 @@ from app.api.schemas.usuario import (
     EsqueciSenhaInput,
     RedefinirSenhaInput,
     AlterarSenhaInput,
+    AtualizarNomeInput,
     MensagemAuthResponse,
 )
 from app.core.database import get_db
@@ -44,6 +45,18 @@ def get_current_user_profile(
     Retorna os dados cadastrais do usuário autenticado atual.
     """
     return current_user
+
+
+@router.patch("/me", response_model=UsuarioResponse)
+def update_current_user_name(
+    dados: AtualizarNomeInput,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Atualiza o nome do usuário autenticado atual.
+    """
+    return auth_service.atualizar_nome(db, current_user, dados)
 
 
 @router.delete("/me", response_model=UsuarioDesativado)

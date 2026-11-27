@@ -99,6 +99,21 @@ class UsuarioResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AtualizarNomeInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nome: str = Field(
+        ...,
+        description="Novo nome do estudante",
+        examples=["Aluno da Silva"],
+    )
+
+    @field_validator("nome")
+    @classmethod
+    def validar_nome(cls, v: str) -> str:
+        return UsuarioCreate.validar_nome(v)
+
+
 
 class Token(BaseModel):
     access_token: str

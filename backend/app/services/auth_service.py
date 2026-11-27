@@ -8,6 +8,7 @@ from app.api.schemas.usuario import (
     EsqueciSenhaInput,
     RedefinirSenhaInput,
     AlterarSenhaInput,
+    AtualizarNomeInput,
 )
 from app.core.security import (
     get_password_hash,
@@ -76,6 +77,15 @@ class AuthService:
             "access_token": access_token,
             "token_type": "bearer"  # nosec B105
         }
+
+    def atualizar_nome(self, db: Session, current_user: Usuario, dados: AtualizarNomeInput) -> Usuario:
+        """
+        Permite ao usuário autenticado alterar seu próprio nome de exibição.
+        """
+        current_user.nome = dados.nome
+        db.commit()
+        db.refresh(current_user)
+        return current_user
 
     def desativar_conta(self, db: Session, current_user: Usuario) -> dict:
         """
