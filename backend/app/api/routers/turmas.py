@@ -6,6 +6,7 @@ from app.api.deps import require_role
 from app.api.schemas.doacao import DoacaoCreate, DoacaoResponse
 from app.api.schemas.turma import TurmaCreate, TurmaResponse
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
 from app.models.usuario import Usuario
 from app.services.doacao_service import doacao_service
 from app.services.turma_service import turma_service
@@ -14,7 +15,12 @@ from app.api.schemas.quorum import QuorumProgressoResponse
 router = APIRouter(prefix="/turmas", tags=["Turmas"])
 
 
-@router.post("", response_model=TurmaResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=TurmaResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("turmas:admin_write", limit=30, window_seconds=60, by_user=True))],
+)
 def criar_turma(
     dados: TurmaCreate,
     db: Session = Depends(get_db),
@@ -26,9 +32,9 @@ def criar_turma(
 @router.get("", response_model=List[TurmaResponse])
 def listar_turmas_da_disciplina(
     disciplina_id: Optional[int] = Query(None, description="ID da disciplina"),
-    disciplina_slug: Optional[str] = Query(None, description="Slug da disciplina"),
-    slug: Optional[str] = Query(None, description="Slug da disciplina (alias)"),
-    semestre: Optional[str] = Query(None, description="Ex.: 2026.1"),
+    disciplina_slug: Optional[str] = Query(None, max_length=200, description="Slug da disciplina"),
+    slug: Optional[str] = Query(None, max_length=200, description="Slug da disciplina (alias)"),
+    semestre: Optional[str] = Query(None, max_length=20, description="Ex.: 2026.1"),
     db: Session = Depends(get_db),
 ):
     target_slug = disciplina_slug or slug
@@ -54,6 +60,18 @@ def obter_turma(turma_id: int, db: Session = Depends(get_db)):
     "/{turma_id}/doacoes",
     response_model=DoacaoResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "turmas:doacao",
+                limit=15,
+                window_seconds=5 * 60,
+                by_user=True,
+                ip_ceiling=45,
+                message="Limite de envio de estatísticas atingido. Aguarde alguns minutos.",
+            )
+        )
+    ],
 )
 def doar_estatistica_turma(
     turma_id: int,
@@ -72,6 +90,18 @@ def doar_estatistica_turma(
     "/{turma_id}/doacoes/upload",
     response_model=DoacaoResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "turmas:doacao_upload",
+                limit=10,
+                window_seconds=15 * 60,
+                by_user=True,
+                ip_ceiling=30,
+                message="Limite de envio de imagens de estatísticas atingido. Aguarde alguns minutos.",
+            )
+        )
+    ],
 )
 def doar_estatistica_turma_upload(
     turma_id: int,

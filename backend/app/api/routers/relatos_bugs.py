@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, require_role
 from app.api.schemas.relato_bug import DecisaoRelatoBug, FilaRelatosBugs, RelatoBugCreate, RelatoBugResponse
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
 from app.models.usuario import Usuario
 from app.services.relato_bug_service import relato_bug_service
 
@@ -13,7 +14,23 @@ Autenticado = Annotated[Usuario, Depends(get_current_user)]
 Moderador = Annotated[Usuario, Depends(require_role("MODERATOR", "ADMIN"))]
 
 
-@router.post("/relatos-bugs", response_model=RelatoBugResponse, status_code=201)
+@router.post(
+    "/relatos-bugs",
+    response_model=RelatoBugResponse,
+    status_code=201,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "relatos_bugs:create",
+                limit=5,
+                window_seconds=15 * 60,
+                by_user=True,
+                ip_ceiling=15,
+                message="Muitos relatos enviados em sequência. Aguarde alguns minutos antes de enviar outro relato.",
+            )
+        )
+    ],
+)
 def criar(dados: RelatoBugCreate, db: Banco, usuario: Autenticado):
     return relato_bug_service.criar(db, dados, usuario)
 

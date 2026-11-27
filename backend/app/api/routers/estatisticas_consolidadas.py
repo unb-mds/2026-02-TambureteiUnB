@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import require_role
 from app.api.schemas.estatistica_consolidada import EstatisticaConsolidadaResponse
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
 from app.services.doacao_service import doacao_service
 
 router = APIRouter(prefix="/estatisticas-consolidadas", tags=["Estatísticas Consolidadas"])
@@ -23,7 +24,11 @@ def listar_estatisticas_consolidadas(
     return doacao_service.listar_consolidadas(db, turma_id, disciplina_id, semestre, page, size)
 
 
-@router.post("/turmas/{turma_id}/recalcular", response_model=EstatisticaConsolidadaResponse)
+@router.post(
+    "/turmas/{turma_id}/recalcular",
+    response_model=EstatisticaConsolidadaResponse,
+    dependencies=[Depends(rate_limit("estatisticas:recalcular", limit=15, window_seconds=60, by_user=True))],
+)
 def recalcular_estatistica_turma(
     turma_id: int,
     semestre: Optional[str] = Query(None, description="Padrão: semestre da turma"),

@@ -11,7 +11,7 @@ router = APIRouter(prefix="/professores", tags=["Professores"])
 
 @router.get("", response_model=ProfessorListaPaginada)
 def listar_professores(
-    nome: Optional[str] = Query(None, description="Busca parcial por nome"),
+    nome: Optional[str] = Query(None, max_length=200, description="Busca parcial por nome"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),

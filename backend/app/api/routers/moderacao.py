@@ -24,6 +24,7 @@ from app.api.schemas.doacao import (
 )
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
 from app.domain.materiais import TIPOS_MIME
 from app.models.usuario import Usuario
 from app.services.armazenamento_material import ArmazenamentoMaterial
@@ -68,7 +69,11 @@ def baixar(id: Identificador, db: Banco, moderador: Moderador, servico: Servico)
                         headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store"})
 
 
-@router.put("/materiais/{id}/arquivo", response_model=MaterialResponse)
+@router.put(
+    "/materiais/{id}/arquivo",
+    response_model=MaterialResponse,
+    dependencies=[Depends(rate_limit("moderacao:replace_file", limit=20, window_seconds=15 * 60, by_user=True))],
+)
 def substituir_arquivo_material(
     id: Identificador,
     arquivo: Annotated[UploadFile, File(description="Arquivo editado (PDF, PNG ou JPG; máximo de 5 MiB).")],

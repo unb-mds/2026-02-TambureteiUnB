@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.main import app
 from app.core.config import Settings, settings
 from app.core.database import get_db
+from app.core.rate_limit import rate_limiter
 from app.core.security import create_access_token, get_password_hash
 from app.models.usuario import Usuario
 from app.models.professor import Professor
@@ -69,6 +70,8 @@ def client(db, tmp_path, monkeypatch):
 
     monkeypatch.setattr(settings, "MATERIALS_DIR", tmp_path / "uploads")
     monkeypatch.setattr(settings, "OLLAMA_BASE_URL", "")
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", False)
+    rate_limiter.reset()
     previous = app.dependency_overrides.copy()
     app.dependency_overrides[get_db] = override_get_db
     try:

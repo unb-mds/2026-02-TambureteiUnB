@@ -15,9 +15,9 @@ router = APIRouter(prefix="/catalogo/cadeiras", tags=["Catálogo"])
 
 @router.get("", response_model=DisciplinaListaPaginada)
 def listar_catalogo_cadeiras(
-    nome: Optional[str] = Query(None, description="Busca parcial por nome"),
-    codigo: Optional[str] = Query(None, description="Busca parcial por código"),
-    departamento: Optional[str] = Query(None, description="Busca parcial por departamento"),
+    nome: Optional[str] = Query(None, max_length=200, description="Busca parcial por nome"),
+    codigo: Optional[str] = Query(None, max_length=50, description="Busca parcial por código"),
+    departamento: Optional[str] = Query(None, max_length=200, description="Busca parcial por departamento"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),

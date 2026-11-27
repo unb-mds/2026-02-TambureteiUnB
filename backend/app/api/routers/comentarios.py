@@ -15,6 +15,7 @@ from app.api.schemas.denuncia import (
     DenunciaResponse,
 )
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
 from app.models.usuario import Usuario
 from app.services.comentario_service import comentario_service
 from app.services.denuncia_service import denuncia_service
@@ -26,6 +27,18 @@ router = APIRouter(prefix="/comentarios", tags=["Comentários"])
     "",
     response_model=ComentarioResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "comentarios:create",
+                limit=15,
+                window_seconds=60,
+                by_user=True,
+                ip_ceiling=60,
+                message="Você enviou muitos comentários em pouco tempo. Aguarde alguns segundos antes de publicar novamente.",
+            )
+        )
+    ],
 )
 def criar_comentario(
     dados: ComentarioCreate,
@@ -57,6 +70,7 @@ def consultar_status_comentario(
 @router.patch(
     "/{comentario_id}",
     response_model=ComentarioResponse,
+    dependencies=[Depends(rate_limit("comentarios:write", limit=15, window_seconds=60, by_user=True))],
 )
 def editar_comentario(
     comentario_id: int,
@@ -74,6 +88,7 @@ def editar_comentario(
 @router.delete(
     "/{comentario_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(rate_limit("comentarios:write", limit=15, window_seconds=60, by_user=True))],
 )
 def excluir_comentario(
     comentario_id: int,
@@ -90,6 +105,7 @@ def excluir_comentario(
 @router.post(
     "/{comentario_id}/voto",
     response_model=ComentarioVotoResponse,
+    dependencies=[Depends(rate_limit("comentarios:voto", limit=30, window_seconds=60, by_user=True))],
 )
 def alternar_voto_comentario(
     comentario_id: int,
@@ -104,6 +120,18 @@ def alternar_voto_comentario(
     "/{comentario_id}/denuncias",
     response_model=DenunciaResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "comunidade:denuncia",
+                limit=10,
+                window_seconds=15 * 60,
+                by_user=True,
+                ip_ceiling=30,
+                message="Limite de denúncias atingido. Aguarde alguns minutos antes de enviar outra denúncia.",
+            )
+        )
+    ],
 )
 def denunciar_comentario(
     comentario_id: int,
