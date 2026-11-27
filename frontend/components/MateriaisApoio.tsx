@@ -2,12 +2,23 @@
 
 import React, { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { isAuthenticated, subscribeAuthChange } from "@/services/authService";
+import { getStoredUser, isAuthenticated, subscribeAuthChange } from "@/services/authService";
 import Pagination from "@/components/Pagination";
 import MaterialPreviewModal from "@/components/MaterialPreviewModal";
+import EditMaterialModal from "@/components/EditMaterialModal";
+import ReplaceMaterialFileModal from "@/components/ReplaceMaterialFileModal";
 import { ApiError } from "@/services/httpClient";
 import type { MaterialType } from "@/types/material";
-import { listMaterials, downloadMaterial, toggleMaterialVote } from "@/services/materialService";
+import { deleteMaterial, listMaterials, downloadMaterial, toggleMaterialVote } from "@/services/materialService";
+import {
+  ROTULOS_CATEGORIA_DENUNCIA,
+  criarDenuncia,
+  getTriageBannerClasses,
+  podeModerar,
+  validarMotivoDenuncia,
+  type TipoAvisoTriagem,
+} from "@/services/moderacaoService";
+import type { CategoriaDenuncia } from "@/types/moderacao";
 import { formatFileSize, validateExternalUrl } from "@/utils/fileValidation";
 
 export interface MaterialItem {
@@ -21,6 +32,7 @@ export interface MaterialItem {
   url?: string;
   upvotes: number;
   isLikedByMe: boolean;
+  isMine?: boolean;
   authorAlias: string;
   professor?: string;
 }
@@ -37,6 +49,7 @@ interface BackendMaterialItem {
   arquivo_url?: string;
   upvotes?: number;
   liked_by_me?: boolean;
+  is_mine?: boolean;
   usuario?: { nome?: string };
   authorAlias?: string;
   professor?: string;
@@ -59,7 +72,6 @@ export default function MateriaisApoio({
   disciplineName,
   disciplineIdOrSlug,
   refreshTrigger = 0,
-  pendingMaterialIds = [],
   onOpenUploadModal,
 }: MateriaisApoioProps) {
   const authenticated = useSyncExternalStore(
@@ -67,17 +79,31 @@ export default function MateriaisApoio({
     isAuthenticated,
     () => false
   );
+  const isModerator = useSyncExternalStore(
+    subscribeAuthChange,
+    () => {
+      const user = getStoredUser();
+      return Boolean(user && podeModerar(user.role));
+    },
+    () => false
+  );
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"resumos" | "links" | "provas">("resumos");
+  const [activeTab, setActiveTab] = useState<"provas" | "resumos" | "links">("provas");
+  const [tabCounts, setTabCounts] = useState<Record<"provas" | "resumos" | "links", number | null>>({
+    provas: null,
+    resumos: null,
+    links: null,
+  });
   const [searchQuery, setSearchQuery] = useState("");
-  const [triageState, setTriageState] = useState<{ trigger: number; message: string } | null>(null);
 
   const displayedTriageNotice =
-    triageState && triageState.trigger === refreshTrigger
-      ? triageState.message
-      : refreshTrigger > 0
-      ? "[TRIAGEM EM ANDAMENTO] Seu material foi enviado para verificacao automatica. A lista sera atualizada assim que for aprovado."
+    refreshTrigger > 0
+      ? {
+          kind: "review" as TipoAvisoTriagem,
+          message:
+            "[AGUARDANDO MODERAÇÃO] Seu material foi enviado para a curadoria humana e ficará disponível na disciplina assim que aprovado pela equipe.",
+        }
       : null;
 
   const [page, setPage] = useState(1);
@@ -90,11 +116,19 @@ export default function MateriaisApoio({
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState("");
+  const [replacingMaterial, setReplacingMaterial] = useState<MaterialItem | null>(null);
+  const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
+  const [deletingMaterial, setDeletingMaterial] = useState<MaterialItem | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [reportingMaterial, setReportingMaterial] = useState<MaterialItem | null>(null);
+  const [reportCategory, setReportCategory] = useState<CategoriaDenuncia>("GABARITO_ATIVO");
+  const [reportReason, setReportReason] = useState("");
+  const [reportError, setReportError] = useState("");
+  const [reportFeedback, setReportFeedback] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const previewBlobUrlRef = useRef<string | null>(null);
   const previewSequence = useRef(0);
   const requestSequence = useRef(0);
-
-  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
   const fetchMaterials = useCallback(async (): Promise<MaterialItem[]> => {
@@ -125,6 +159,7 @@ export default function MateriaisApoio({
           : "Recente",
         upvotes: item.upvotes || 0,
         isLikedByMe: Boolean(item.liked_by_me),
+        isMine: Boolean(item.is_mine),
         authorAlias: item.usuario?.nome || item.authorAlias || "Estudante",
         professor: item.professor || undefined,
       }));
@@ -133,6 +168,7 @@ export default function MateriaisApoio({
         setListError(null);
         setTotal(response.total);
         setMaterials(mappedItems);
+        setTabCounts((prev) => ({ ...prev, [activeTab]: response.total }));
       }
       return mappedItems;
     } catch (error) {
@@ -166,87 +202,36 @@ export default function MateriaisApoio({
         URL.revokeObjectURL(previewBlobUrlRef.current);
         previewBlobUrlRef.current = null;
       }
-      if (pollTimerRef.current) {
-        clearTimeout(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
     };
   }, [fetchMaterials, retryCount, authenticated]);
 
   useEffect(() => {
-    if (refreshTrigger <= 0 || !disciplineIdOrSlug) {
-      return;
-    }
-
-    if (pollTimerRef.current) {
-      clearTimeout(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-
-    const currentTrigger = refreshTrigger;
-    const targetIds = pendingMaterialIds.filter(Boolean);
+    if (!disciplineIdOrSlug) return;
     let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = 15;
+    const trimmed = searchQuery.trim();
 
-    const pollForPublication = async () => {
-      if (!isMountedRef.current || cancelled) return;
-      attempts += 1;
-      const response = await listMaterials(disciplineIdOrSlug, { pagina: 1, tamanho_pagina: 100 }).catch(() => null);
-      const items = response?.items ?? [];
-      if (!isMountedRef.current || cancelled) return;
-
-      const published =
-        targetIds.length > 0
-          ? items.find((item) => targetIds.includes(String(item.id)))
-          : undefined;
-
-      if (published) {
-        setPage(1);
-        setSearchQuery("");
-        setRetryCount(value => value + 1);
-        if (published.tipo === "PROVA_ANTIGA") {
-          setActiveTab("provas");
-        } else if (published.tipo === "ARQUIVO" || published.tipo === "LINK_UTIL") {
-          setActiveTab("links");
-        } else {
-          setActiveTab("resumos");
+    Promise.all([
+      listMaterials(disciplineIdOrSlug, { titulo: trimmed, tipos: CATEGORY_TYPES.provas, pagina: 1, tamanho_pagina: 1 }),
+      listMaterials(disciplineIdOrSlug, { titulo: trimmed, tipos: CATEGORY_TYPES.resumos, pagina: 1, tamanho_pagina: 1 }),
+      listMaterials(disciplineIdOrSlug, { titulo: trimmed, tipos: CATEGORY_TYPES.links, pagina: 1, tamanho_pagina: 1 }),
+    ])
+      .then(([provasRes, resumosRes, linksRes]) => {
+        if (!cancelled && isMountedRef.current) {
+          setTabCounts({
+            provas: provasRes.total,
+            resumos: resumosRes.total,
+            links: linksRes.total,
+          });
         }
-        setTriageState({
-          trigger: currentTrigger,
-          message:
-            "[PUBLICADO] Seu material foi aprovado pela moderacao automatica e ja esta disponivel abaixo.",
-        });
-        pollTimerRef.current = null;
-        return;
-      }
-
-      if (attempts < maxAttempts) {
-        pollTimerRef.current = setTimeout(() => {
-          void pollForPublication();
-        }, 3000);
-      } else {
-        setTriageState({
-          trigger: currentTrigger,
-          message:
-            "[AGUARDANDO REVISAO] Seu material segue em analise ou foi encaminhado para curadoria humana.",
-        });
-        pollTimerRef.current = null;
-      }
-    };
-
-    pollTimerRef.current = setTimeout(() => {
-      void pollForPublication();
-    }, 3000);
+      })
+      .catch(() => {
+        // Falha silenciosa nas contagens das abas; a lista principal exibe erro se necessário.
+      });
 
     return () => {
       cancelled = true;
-      if (pollTimerRef.current) {
-        clearTimeout(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
     };
-  }, [refreshTrigger, pendingMaterialIds, disciplineIdOrSlug, fetchMaterials]);
+  }, [disciplineIdOrSlug, searchQuery, retryCount, authenticated]);
 
   const handleShareClick = () => {
     if (!authenticated || !isAuthenticated()) {
@@ -355,6 +340,60 @@ export default function MateriaisApoio({
     setPreviewLoading(false);
   };
 
+  const handleOpenReportModal = (material: MaterialItem) => {
+    if (!authenticated || !isAuthenticated()) {
+      return;
+    }
+    setReportingMaterial(material);
+    setReportCategory("GABARITO_ATIVO");
+    setReportReason("");
+    setReportError("");
+    setReportFeedback("");
+  };
+
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportingMaterial) return;
+    if (!authenticated || !isAuthenticated()) {
+      setReportError("Faça login com sua conta de estudante para enviar denúncias.");
+      return;
+    }
+
+    const validacao = validarMotivoDenuncia(reportReason);
+    if (!validacao.valido) {
+      setReportError(validacao.erro || "Informe um motivo válido.");
+      return;
+    }
+
+    const numericId = Number(reportingMaterial.id);
+    if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+      setReportError("Material inválido para denúncia.");
+      return;
+    }
+
+    setReportSubmitting(true);
+    setReportError("");
+    try {
+      const res = await criarDenuncia({
+        conteudo_id: numericId,
+        categoria: reportCategory,
+        motivo: reportReason,
+      });
+      if (res.ocultado_automaticamente) {
+        setMaterials((prev) => prev.filter((item) => item.id !== reportingMaterial.id));
+        setTotal((prev) => Math.max(0, prev - 1));
+      }
+      setReportingMaterial(null);
+      setReportFeedback("Denúncia registrada e encaminhada para revisão da equipe de moderação.");
+    } catch (error) {
+      setReportError(
+        error instanceof Error ? error.message : "Não foi possível enviar a denúncia no momento."
+      );
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
   const handleDownload = async (material: MaterialItem) => {
     setDownloadError(null);
     setDownloadingId(material.id);
@@ -435,10 +474,12 @@ export default function MateriaisApoio({
 
       {displayedTriageNotice && (
         <div
-          role="status"
-          className="mb-6 rounded-2xl border border-[#DDD9F1] bg-[#FAF9FD] px-4 py-3 text-xs sm:text-sm text-[#3F3A60]"
+          role={displayedTriageNotice.kind === "rejected" ? "alert" : "status"}
+          className={`mb-6 rounded-2xl border px-4 py-3 text-xs sm:text-sm font-medium ${getTriageBannerClasses(
+            displayedTriageNotice.kind
+          )}`}
         >
-          {displayedTriageNotice}
+          {displayedTriageNotice.message}
         </div>
       )}
 
@@ -446,36 +487,69 @@ export default function MateriaisApoio({
         <div className="flex flex-wrap items-center gap-1.5 rounded-2xl bg-[#F4F3FA] p-1.5 border border-[#ECEAF5]">
           <button
             type="button"
-            onClick={() => { setActiveTab("resumos"); setPage(1); }}
-            className={`rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === "resumos"
-                ? "bg-white text-[#5B4BDB] shadow-xs"
-                : "text-gray-500 hover:text-gray-800"
-            }`}
-          >
-            Resumos & Dicas
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActiveTab("links"); setPage(1); }}
-            className={`rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === "links"
-                ? "bg-white text-[#5B4BDB] shadow-xs"
-                : "text-gray-500 hover:text-gray-800"
-            }`}
-          >
-            Links & Arquivos
-          </button>
-          <button
-            type="button"
             onClick={() => { setActiveTab("provas"); setPage(1); }}
-            className={`rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === "provas"
                 ? "bg-white text-[#5B4BDB] shadow-xs"
                 : "text-gray-500 hover:text-gray-800"
             }`}
           >
             Provas Anteriores
+            {tabCounts.provas !== null && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  activeTab === "provas"
+                    ? "bg-[var(--primary-soft)] text-[var(--primary-text)]"
+                    : "border border-[var(--status-neutral-border)] bg-[var(--status-neutral-bg)] text-[var(--status-neutral-text)]"
+                }`}
+              >
+                {tabCounts.provas}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab("resumos"); setPage(1); }}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === "resumos"
+                ? "bg-white text-[#5B4BDB] shadow-xs"
+                : "text-gray-500 hover:text-gray-800"
+            }`}
+          >
+            Resumos & Dicas
+            {tabCounts.resumos !== null && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  activeTab === "resumos"
+                    ? "bg-[var(--primary-soft)] text-[var(--primary-text)]"
+                    : "border border-[var(--status-neutral-border)] bg-[var(--status-neutral-bg)] text-[var(--status-neutral-text)]"
+                }`}
+              >
+                {tabCounts.resumos}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab("links"); setPage(1); }}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === "links"
+                ? "bg-white text-[#5B4BDB] shadow-xs"
+                : "text-gray-500 hover:text-gray-800"
+            }`}
+          >
+            Links & Arquivos
+            {tabCounts.links !== null && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  activeTab === "links"
+                    ? "bg-[var(--primary-soft)] text-[var(--primary-text)]"
+                    : "border border-[var(--status-neutral-border)] bg-[var(--status-neutral-bg)] text-[var(--status-neutral-text)]"
+                }`}
+              >
+                {tabCounts.links}
+              </span>
+            )}
           </button>
         </div>
 
@@ -504,6 +578,14 @@ export default function MateriaisApoio({
       </div>
 
       {downloadError && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{downloadError}</p>}
+      {reportFeedback && (
+        <div
+          role="status"
+          className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs sm:text-sm font-medium text-emerald-800"
+        >
+          {reportFeedback}
+        </div>
+      )}
       {loading ? (
         <div className="py-12 text-center text-sm text-gray-400">
           Carregando materiais de apoio...
@@ -612,34 +694,80 @@ export default function MateriaisApoio({
                           <line x1="10" y1="14" x2="21" y2="3" />
                         </svg>
                       </button>
+                      {isModerator && (
+                        <button
+                          type="button"
+                          onClick={() => setReplacingMaterial(material)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-900 hover:bg-amber-100 cursor-pointer transition-colors"
+                        >
+                          Substituir arquivo
+                        </button>
+                      )}
                     </div>
                   )}
 
-                  <button
-                    type="button"
-                    disabled={!authenticated}
-                    title={!authenticated ? "Faça login para curtir materiais" : undefined}
-                    onClick={() => void handleToggleUpvote(material.id)}
-                    aria-label={`Curtir material ${material.titulo}`}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                      !authenticated
-                        ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60"
-                        : material.isLikedByMe
-                        ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5] active:scale-95 cursor-pointer"
-                        : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100 active:scale-95 cursor-pointer"
-                    }`}
-                  >
-                    {material.isLikedByMe ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                      </svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                      </svg>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={!authenticated}
+                      title={!authenticated ? "Faça login para curtir materiais" : undefined}
+                      onClick={() => void handleToggleUpvote(material.id)}
+                      aria-label={`Curtir material ${material.titulo}`}
+                      className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                        !authenticated
+                          ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60"
+                          : material.isLikedByMe
+                          ? "bg-[#FFF0F2] text-[#EF4444] border border-[#FCA5A5] active:scale-95 cursor-pointer"
+                          : "bg-[#F7F7FA] text-gray-500 border border-gray-200 hover:bg-gray-100 active:scale-95 cursor-pointer"
+                      }`}
+                    >
+                      {material.isLikedByMe ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                        </svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                        </svg>
+                      )}
+                      <span>{material.upvotes}</span>
+                    </button>
+
+                    {authenticated && material.isMine && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingMaterial(material)}
+                        className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-[#5B4BDB] hover:text-[#5B4BDB] cursor-pointer transition-all"
+                      >
+                        Editar
+                      </button>
                     )}
-                    <span>{material.upvotes}</span>
-                  </button>
+
+                    {authenticated && (material.isMine || isModerator) && (
+                      <button
+                        type="button"
+                        onClick={() => setDeletingMaterial(material)}
+                        className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 cursor-pointer transition-all"
+                      >
+                        Apagar
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={!authenticated}
+                      title={!authenticated ? "Faça login para denunciar materiais" : undefined}
+                      onClick={() => handleOpenReportModal(material)}
+                      aria-label={`Denunciar material ${material.titulo}`}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
+                        authenticated
+                          ? "border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                          : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+                      }`}
+                    >
+                      Denunciar
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -659,6 +787,181 @@ export default function MateriaisApoio({
         onClose={handleClosePreview}
         onDownload={(item) => void handleDownload(item)}
       />
+
+      <ReplaceMaterialFileModal
+        isOpen={Boolean(replacingMaterial)}
+        material={
+          replacingMaterial
+            ? {
+                id: replacingMaterial.id,
+                titulo: replacingMaterial.titulo,
+                disciplinaNome: disciplineName,
+                formato: replacingMaterial.formato,
+              }
+            : null
+        }
+        onClose={() => setReplacingMaterial(null)}
+        onDownloadCurrent={
+          replacingMaterial ? () => handleDownload(replacingMaterial) : undefined
+        }
+        onReplaced={async () => {
+          setReportFeedback("Arquivo substituído com sucesso. O arquivo anterior foi removido do servidor.");
+          await fetchMaterials();
+        }}
+      />
+
+      <EditMaterialModal
+        isOpen={Boolean(editingMaterial)}
+        material={
+          editingMaterial
+            ? {
+                id: editingMaterial.id,
+                titulo: editingMaterial.titulo,
+                tipo: editingMaterial.tipo,
+                url_origem: editingMaterial.url_origem,
+                status_curadoria: "APROVADO",
+              }
+            : null
+        }
+        onClose={() => setEditingMaterial(null)}
+        onSaved={async (updated) => {
+          setReportFeedback(
+            updated.status_curadoria === "PENDENTE"
+              ? "Material atualizado. Como a URL foi alterada, ele voltou para a fila de moderação."
+              : "Material atualizado com sucesso."
+          );
+          setRetryCount((v) => v + 1);
+        }}
+      />
+
+      {deletingMaterial && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-apagar-material-titulo"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+            <h3 id="modal-apagar-material-titulo" className="text-lg font-bold text-[#202124]">
+              Apagar material de apoio
+            </h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Tem certeza de que deseja apagar <strong className="text-[#202124]">{deletingMaterial.titulo}</strong>? Esta ação remove o material permanentemente.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleteSubmitting}
+                onClick={() => setDeletingMaterial(null)}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={deleteSubmitting}
+                onClick={async () => {
+                  setDeleteSubmitting(true);
+                  try {
+                    await deleteMaterial(deletingMaterial.id);
+                    setDeletingMaterial(null);
+                    setReportFeedback("Material apagado com sucesso.");
+                    setRetryCount((v) => v + 1);
+                  } catch (err) {
+                    setDeletingMaterial(null);
+                    setDownloadError(
+                      err instanceof Error ? err.message : "Não foi possível apagar o material."
+                    );
+                  } finally {
+                    setDeleteSubmitting(false);
+                  }
+                }}
+                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+              >
+                {deleteSubmitting ? "Apagando..." : "Apagar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reportingMaterial && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-denuncia-material-titulo"
+        >
+          <form
+            onSubmit={handleSubmitReport}
+            className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl"
+          >
+            <h3 id="modal-denuncia-material-titulo" className="text-lg font-bold text-[#202124]">
+              Denunciar material à moderação
+            </h3>
+            <p className="mt-1 text-xs text-gray-600">
+              Sinalize arquivos ou links que contenham gabaritos de avaliações vigentes, dados pessoais ou conteúdo impróprio.
+            </p>
+            <p className="mt-2 rounded-lg bg-[#F7F7FA] px-3 py-2 text-xs font-semibold text-[#202124]">
+              {reportingMaterial.titulo} ({reportingMaterial.formato})
+            </p>
+
+            <label className="mt-4 block text-xs font-semibold text-gray-700">
+              Categoria da denúncia
+              <select
+                value={reportCategory}
+                onChange={(e) => setReportCategory(e.target.value as CategoriaDenuncia)}
+                className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-[#202124]"
+              >
+                {Object.entries(ROTULOS_CATEGORIA_DENUNCIA).map(([chave, rotulo]) => (
+                  <option key={chave} value={chave}>
+                    {rotulo}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="mt-4 block text-xs font-semibold text-gray-700">
+              Motivo detalhado
+              <textarea
+                rows={3}
+                maxLength={1000}
+                value={reportReason}
+                onChange={(e) => {
+                  setReportReason(e.target.value);
+                  setReportError("");
+                }}
+                placeholder="Descreva objetivamente por que este material viola as regras (mínimo 5 caracteres)."
+                className="mt-1.5 w-full rounded-xl border border-gray-300 p-3 text-sm text-[#202124]"
+              />
+            </label>
+
+            {reportError && (
+              <p role="alert" className="mt-2 text-xs font-medium text-red-700">
+                {reportError}
+              </p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={reportSubmitting}
+                onClick={() => setReportingMaterial(null)}
+                className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={reportSubmitting}
+                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+              >
+                {reportSubmitting ? "Enviando..." : "Enviar denúncia"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </section>
   );
 }

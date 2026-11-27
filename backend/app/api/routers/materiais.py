@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Path, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Path, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -12,16 +12,19 @@ from app.api.schemas.material import (
     MaterialLinkCreate,
     MaterialPage,
     MaterialResponse,
+    MaterialStatusResponse,
+    MaterialUpdate,
     MaterialVotoResponse,
+    MeuMaterialResponse,
     TituloMaterial,
 )
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
 from app.domain.materiais import TIPOS_MIME
 from app.models.usuario import Usuario
 from app.services.armazenamento_material import ArmazenamentoMaterial
 from app.services.material_service import MaterialService
-from app.services.moderacao_ia_service import processar_moderacao_material_bg
 
 router = APIRouter(tags=["Materiais"])
 
@@ -30,7 +33,23 @@ def get_material_service() -> MaterialService:
     return MaterialService(ArmazenamentoMaterial(settings.MATERIALS_DIR, settings.MATERIAL_MAX_BYTES))
 
 
-@router.post("/cadeiras/{id}/materiais", response_model=MaterialResponse, status_code=201)
+@router.post(
+    "/cadeiras/{id}/materiais",
+    response_model=MaterialResponse,
+    status_code=201,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "materiais:upload",
+                limit=10,
+                window_seconds=15 * 60,
+                by_user=True,
+                ip_ceiling=30,
+                message="Limite de envio de arquivos atingido. Aguarde alguns minutos antes de enviar outro material.",
+            )
+        )
+    ],
+)
 def enviar_material(
     id: Annotated[str, Path(description="ID ou slug da cadeira")],
     titulo: Annotated[TituloMaterial, Form()],
@@ -38,17 +57,29 @@ def enviar_material(
     usuario: Annotated[Usuario, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
     service: Annotated[MaterialService, Depends(get_material_service)],
-    background_tasks: BackgroundTasks,
     tipo: Annotated[str, Form(description="Tipo de material (ARQUIVO, RESUMO, PROVA_ANTIGA, DICA)")] = "ARQUIVO",
 ) -> MaterialResponse:
-    resposta = service.enviar(
+    return service.enviar(
         db, usuario.id, id, titulo, arquivo.file, arquivo.filename or "", arquivo.content_type or "", tipo=tipo
     )
-    background_tasks.add_task(processar_moderacao_material_bg, resposta.id)
-    return resposta
 
 
-@router.post("/cadeiras/{id}/links", response_model=MaterialResponse, status_code=201)
+@router.post(
+    "/cadeiras/{id}/links",
+    response_model=MaterialResponse,
+    status_code=201,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "materiais:link",
+                limit=15,
+                window_seconds=15 * 60,
+                by_user=True,
+                ip_ceiling=45,
+            )
+        )
+    ],
+)
 def enviar_link(
     id: Annotated[str, Path(description="ID ou slug da cadeira")],
     dados: MaterialLinkCreate,
@@ -86,7 +117,52 @@ def listar_materiais(
     )
 
 
-@router.post("/materiais/{id}/voto", response_model=MaterialVotoResponse)
+@router.get("/materiais/meus", response_model=list[MeuMaterialResponse])
+def listar_meus_materiais(
+    db: Annotated[Session, Depends(get_db)],
+    service: Annotated[MaterialService, Depends(get_material_service)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+) -> list[MeuMaterialResponse]:
+    """Lista os materiais enviados pelo usuário autenticado (pendentes, aprovados e recusados)."""
+    return service.listar_meus(db, current_user)
+
+
+@router.patch(
+    "/materiais/{id}",
+    response_model=MaterialResponse,
+    dependencies=[Depends(rate_limit("materiais:write", limit=15, window_seconds=60, by_user=True))],
+)
+def editar_material(
+    id: Annotated[int, Path(gt=0)],
+    dados: MaterialUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    service: Annotated[MaterialService, Depends(get_material_service)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+) -> MaterialResponse:
+    """Permite ao autor editar título, categoria ou URL (em links) do próprio material."""
+    return service.editar(db, id, dados, current_user)
+
+
+@router.delete(
+    "/materiais/{id}",
+    status_code=204,
+    dependencies=[Depends(rate_limit("materiais:write", limit=15, window_seconds=60, by_user=True))],
+)
+def excluir_material(
+    id: Annotated[int, Path(gt=0)],
+    db: Annotated[Session, Depends(get_db)],
+    service: Annotated[MaterialService, Depends(get_material_service)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+) -> None:
+    """Permite ao autor ou à moderação excluir um material."""
+    service.excluir(db, id, current_user)
+
+
+@router.post(
+    "/materiais/{id}/voto",
+    response_model=MaterialVotoResponse,
+    dependencies=[Depends(rate_limit("materiais:voto", limit=30, window_seconds=60, by_user=True))],
+)
 def alternar_voto_material(
     id: Annotated[int, Path(gt=0)],
     db: Annotated[Session, Depends(get_db)],
@@ -97,7 +173,31 @@ def alternar_voto_material(
     return service.alternar_voto(db, id, current_user)
 
 
-@router.get("/materiais/{id}/download", response_class=FileResponse)
+@router.get("/materiais/{id}/status", response_model=MaterialStatusResponse)
+def consultar_status_material(
+    id: Annotated[int, Path(gt=0)],
+    db: Annotated[Session, Depends(get_db)],
+    service: Annotated[MaterialService, Depends(get_material_service)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+) -> MaterialStatusResponse:
+    """Consulta o status da triagem ou curadoria de um material do próprio autor."""
+    return service.consultar_status_moderacao(db, id, current_user)
+
+
+@router.get(
+    "/materiais/{id}/download",
+    response_class=FileResponse,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "materiais:download",
+                limit=40,
+                window_seconds=60,
+                message="Limite de downloads por minuto atingido. Aguarde alguns segundos e tente novamente.",
+            )
+        )
+    ],
+)
 def baixar_material(
     id: Annotated[int, Path(gt=0)],
     db: Annotated[Session, Depends(get_db)],

@@ -4,6 +4,7 @@ from app.api.routers import auth, cursos, disciplinas, turmas, professores, cata
 
 from app.api.routers import relatos_bugs
 from app.core.config import settings
+from app.core.rate_limit import GlobalRateLimitMiddleware
 from app.api.routers import estatisticas_consolidadas
 
 is_production = (settings.ENVIRONMENT or "").strip().lower() == "production"
@@ -15,6 +16,8 @@ app = FastAPI(
     redoc_url=None if is_production else "/redoc",
     openapi_url=None if is_production else f"{settings.API_V1_STR}/openapi.json",
 )
+
+app.add_middleware(GlobalRateLimitMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

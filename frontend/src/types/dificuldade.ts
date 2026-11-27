@@ -11,6 +11,9 @@ export interface BackendComentarioItem {
   parent_id?: number | null;
   status_moderacao?: string;
   created_at: string;
+  updated_at?: string | null;
+  editado?: boolean;
+  is_mine?: boolean;
   upvotes?: number;
   liked_by_me?: boolean;
 }
@@ -37,6 +40,8 @@ export interface DifficultyAlert {
   rawCreatedAt: string;
   upvotes: number;
   isLikedByMe: boolean;
+  isMine?: boolean;
+  edited?: boolean;
 }
 
 export interface CreateDifficultyAlertInput {
@@ -269,6 +274,8 @@ export function adaptBackendCommentToDifficultyAlert(
     rawCreatedAt: raw.created_at,
     upvotes: typeof raw.upvotes === "number" ? raw.upvotes : 0,
     isLikedByMe: Boolean(raw.liked_by_me),
+    isMine: Boolean(raw.is_mine),
+    edited: Boolean(raw.editado || raw.updated_at),
   };
 }
 

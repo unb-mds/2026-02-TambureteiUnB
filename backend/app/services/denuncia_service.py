@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -20,10 +21,12 @@ from app.domain.denuncias import (
     atingiu_limiar_ocultacao,
     determinar_transicao_moderacao,
 )
+from app.models.conteudo import Conteudo
 from app.models.denuncia import Denuncia
 from app.models.usuario import Usuario
 from app.repositories.comentario_repo import comentario_repo
 from app.repositories.denuncia_repo import denuncia_repo
+from app.services.armazenamento_material import ArmazenamentoMaterial
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +81,15 @@ class DenunciaService:
                 ocultado_automaticamente = True
                 if comentario is not None and comentario.status_moderacao == "PUBLICADO":
                     comentario.status_moderacao = "PENDENTE"
-                elif conteudo is not None and conteudo.status_moderacao == "ativo":
-                    conteudo.status_moderacao = "em_analise"
+                elif conteudo is not None:
+                    if conteudo.caminho_arquivo is not None and conteudo.status_moderacao == "ativo":
+                        conteudo.status_moderacao = "em_analise"
+                    elif (
+                        conteudo.caminho_arquivo is None
+                        and conteudo.url_origem is not None
+                        and conteudo.status_curadoria == "APROVADO"
+                    ):
+                        conteudo.status_curadoria = "PENDENTE"
                 db.flush()
 
             resposta = DenunciaResponse(
@@ -120,8 +130,9 @@ class DenunciaService:
         tamanho: int,
         tipo: str | None = None,
         categoria: str | None = None,
+        situacao: str | None = None,
     ) -> FilaDenuncias:
-        registros, total = denuncia_repo.listar_pendentes(db, pagina, tamanho, tipo, categoria)
+        registros, total = denuncia_repo.listar_pendentes(db, pagina, tamanho, tipo, categoria, situacao)
         itens: list[DenunciaItemFila] = []
 
         for reg in registros:
@@ -144,16 +155,17 @@ class DenunciaService:
                 tipo_alvo = "COMENTARIO"
             elif reg.conteudo_id is not None and reg.conteudo is not None:
                 mat = reg.conteudo
-                texto_analise = f"{mat.titulo} {mat.descricao or ''}"
+                texto_analise = f"{mat.titulo} {mat.descricao or ''} {mat.url_origem or ''}"
                 prioridade, sinais = analisar_risco_rn04(texto_analise, reg.categoria)
                 alvo = AlvoDenunciadoResumo(
                     id=mat.id,
                     tipo_alvo="MATERIAL",
                     titulo=mat.titulo,
-                    conteudo=mat.descricao or mat.titulo,
+                    conteudo=mat.descricao or mat.url_origem or mat.titulo,
                     autor_alias="Autor Anônimo",
                     topico_dificuldade=mat.tipo,
                     formato=mat.formato,
+                    url_origem=mat.url_origem,
                     status_moderacao=mat.status_moderacao or mat.status_curadoria,
                     created_at=mat.created_at,
                     disciplina=DisciplinaCuradoria.model_validate(mat.disciplina),
@@ -217,11 +229,19 @@ class DenunciaService:
                 conteudo = denuncia_repo.obter_conteudo(db, alvo_id, bloquear=True)
                 if conteudo is None:
                     raise HTTPException(status.HTTP_404_NOT_FOUND, "Material denunciado não encontrado.")
+                eh_link = conteudo.caminho_arquivo is None and conteudo.url_origem is not None
                 transicao = determinar_transicao_moderacao(dados.acao, tipo_alvo)
-                conteudo.status_moderacao = transicao["status_moderacao"]
+                if eh_link:
+                    conteudo.status_moderacao = None
+                else:
+                    conteudo.status_moderacao = transicao["status_moderacao"]
                 if transicao["status_curadoria"]:
                     conteudo.status_curadoria = transicao["status_curadoria"]
-                status_moderacao_alvo = conteudo.status_moderacao
+                status_moderacao_alvo = (
+                    conteudo.status_curadoria
+                    if eh_link
+                    else (conteudo.status_moderacao or conteudo.status_curadoria)
+                )
 
             qtd, resolvido_em = denuncia_repo.resolver_pendentes_alvo(
                 db=db,
@@ -258,6 +278,27 @@ class DenunciaService:
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Não foi possível registrar a decisão. Tente novamente.",
             ) from exc
+
+    def obter_arquivo_denuncia(
+        self,
+        db: Session,
+        denuncia_id: int,
+        armazenamento: ArmazenamentoMaterial,
+    ) -> tuple[Conteudo, Path]:
+        """Recupera o arquivo físico associado a uma denúncia de material para revisão da moderação."""
+        denuncia = denuncia_repo.obter_por_id(db, denuncia_id)
+        if denuncia is None or denuncia.conteudo_id is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Denúncia de material não encontrada.")
+
+        conteudo = denuncia_repo.obter_conteudo(db, denuncia.conteudo_id)
+        if conteudo is None or conteudo.caminho_arquivo is None or conteudo.status_moderacao == "excluido":
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Arquivo do material denunciado não encontrado.")
+
+        try:
+            caminho = armazenamento.localizar(conteudo.caminho_arquivo)
+        except (OSError, ValueError) as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Arquivo do material denunciado não encontrado.") from exc
+        return conteudo, caminho
 
 
 denuncia_service = DenunciaService()

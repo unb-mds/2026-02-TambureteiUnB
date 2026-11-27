@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -9,6 +10,14 @@ from app.api.schemas.comentario import ComentarioCreate
 from app.services.comentario_service import comentario_service
 
 
+def _fake_create(_db, obj):
+    if getattr(obj, "id", None) is None:
+        obj.id = 1
+    if getattr(obj, "created_at", None) is None:
+        obj.created_at = datetime.now(timezone.utc)
+    return obj
+
+
 @pytest.mark.parametrize("operacao", ["criar", "listar"])
 @pytest.mark.parametrize("disciplina_turma,status_esperado", [(10, None), (20, 422), (None, 404)])
 def test_valida_vinculo_entre_turma_e_disciplina(operacao, disciplina_turma, status_esperado):
@@ -16,7 +25,7 @@ def test_valida_vinculo_entre_turma_e_disciplina(operacao, disciplina_turma, sta
     with (
         patch("app.services.comentario_service.disciplina_repo.get_by_id", return_value=SimpleNamespace(id=10)),
         patch("app.services.comentario_service.turma_repo.get_by_id", return_value=turma),
-        patch("app.services.comentario_service.comentario_repo.create", side_effect=lambda db, obj: obj) as criar,
+        patch("app.services.comentario_service.comentario_repo.create", side_effect=_fake_create) as criar,
         patch(
             "app.services.comentario_service.comentario_repo.listar_por_disciplina_paginado", return_value=([], 0)
         ) as listar,
@@ -47,7 +56,7 @@ def test_comentario_sem_turma_preserva_fluxo():
     with (
         patch("app.services.comentario_service.disciplina_repo.get_by_id", return_value=SimpleNamespace(id=10)),
         patch("app.services.comentario_service.turma_repo.get_by_id") as turma,
-        patch("app.services.comentario_service.comentario_repo.create", side_effect=lambda db, obj: obj),
+        patch("app.services.comentario_service.comentario_repo.create", side_effect=_fake_create),
     ):
         resultado = comentario_service.criar_comentario(
             None, ComentarioCreate(disciplina_id=10, conteudo="Relato sem turma"), SimpleNamespace(id=uuid4())

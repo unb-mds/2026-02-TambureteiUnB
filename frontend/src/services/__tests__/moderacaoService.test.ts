@@ -7,6 +7,7 @@ import {
   decidirCuradoria,
   listarComentariosPendentes,
   decidirComentarioCuradoria,
+  baixarArquivoDenuncia,
   baixarParaAnalise,
   validarMotivoDenuncia,
   criarDenuncia,
@@ -18,6 +19,7 @@ import {
   listarPizzasModeracao,
   baixarImagemPizza,
   decidirPizzaModeracao,
+  substituirArquivoMaterial,
 } from "../moderacaoService.ts";
 import { ApiError } from "../httpClient.ts";
 
@@ -217,6 +219,49 @@ test("listarDenunciasPendentes e decidirDenuncia enviam filtros e payload de aca
   });
 });
 
+test("criarDenuncia e baixarArquivoDenuncia cobrem denuncias de materiais", async (t) => {
+  dados.set("tamburetei_auth_token", "token-mat");
+  const chamadas: Array<{ url: string; options: RequestInit }> = [];
+  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
+    chamadas.push({ url, options });
+    if (url.endsWith("/arquivo")) {
+      return new Response("%PDF-1.7 material", { status: 200 });
+    }
+    return new Response(
+      JSON.stringify({
+        id: 33,
+        tipo_alvo: "MATERIAL",
+        comentario_id: null,
+        conteudo_id: 91,
+        categoria: "GABARITO_ATIVO",
+        motivo: "Prova contém gabarito vigente.",
+        status: "PENDENTE",
+        total_denuncias_alvo: 1,
+        ocultado_automaticamente: false,
+        created_at: "2026-11-26T12:00:00Z",
+      }),
+      { status: 201 }
+    );
+  });
+
+  const resposta = await criarDenuncia({
+    conteudo_id: 91,
+    categoria: "GABARITO_ATIVO",
+    motivo: "Prova contém gabarito vigente.",
+  });
+  assert.equal(resposta.tipo_alvo, "MATERIAL");
+  assert.deepEqual(JSON.parse(String(chamadas[0].options.body)), {
+    conteudo_id: 91,
+    categoria: "GABARITO_ATIVO",
+    motivo: "Prova contém gabarito vigente.",
+  });
+
+  const blob = await baixarArquivoDenuncia(33);
+  assert.equal(await blob.text(), "%PDF-1.7 material");
+  assert.match(chamadas[1].url, /\/moderacao\/denuncias\/33\/arquivo$/);
+  assert.equal(new Headers(chamadas[1].options.headers).get("Authorization"), "Bearer token-mat");
+});
+
 test("resolverAvisoTriagemComentario distingue aprovado, recusado e encaminhado para revisao", () => {
   assert.equal(
     resolverAvisoTriagemComentario({ id: 1, status_moderacao: "PENDENTE", moderado_por: null, motivo_moderacao: null }),
@@ -378,4 +423,82 @@ test("tratamento de concorrencia visual descarta resposta de download assincrono
   await Promise.all([req1, req2]);
 
   assert.equal(materialVisivelId, 102);
+});
+
+test("listarDenunciasPendentes repassa filtro situacao e substituirArquivoMaterial usa PUT multipart", async (t) => {
+  dados.set("tamburetei_auth_token", "token-mod");
+  const chamadas: Array<{ url: string; options: RequestInit }> = [];
+  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
+    chamadas.push({ url, options });
+    if (options.method === "PUT") {
+      return new Response(
+        JSON.stringify({
+          id: 55,
+          disciplina_id: 1,
+          titulo: "Prova P1",
+          tipo: "PROVA_ANTIGA",
+          formato: "pdf",
+          tamanho_bytes: 123,
+          status_curadoria: "APROVADO",
+          status_moderacao: "ativo",
+          created_at: "2026-11-26T12:00:00Z",
+        }),
+        { status: 200 },
+      );
+    }
+    return new Response(JSON.stringify({ items: [], total: 0, pagina: 1, tamanho_pagina: 20 }), { status: 200 });
+  });
+
+  await listarDenunciasPendentes(1, "COMENTARIO", "TODAS", "OCULTADOS");
+  await listarDenunciasPendentes(1, "TODOS", "TODAS", "ABAIXO_LIMIAR");
+
+  const arquivoEditado = new File([new Uint8Array([37, 80, 68, 70])], "prova-editada.pdf", {
+    type: "application/pdf",
+  });
+  const atualizado = await substituirArquivoMaterial(55, arquivoEditado, "  Removido nome do estudante. ");
+
+  assert.match(chamadas[0].url, /situacao=OCULTADOS/);
+  assert.match(chamadas[1].url, /situacao=ABAIXO_LIMIAR/);
+  assert.match(chamadas[2].url, /\/moderacao\/materiais\/55\/arquivo$/);
+  assert.equal(chamadas[2].options.method, "PUT");
+  assert.equal(new Headers(chamadas[2].options.headers).get("Authorization"), "Bearer token-mod");
+  assert.equal(atualizado.id, 55);
+
+  await assert.rejects(
+    substituirArquivoMaterial(55, arquivoEditado, "x".repeat(1001)),
+    (e: unknown) => e instanceof ApiError && e.status === 422,
+  );
+});
+
+test("request lida com respostas HTTP 204 No Content sem tentar parsear JSON vazio", async (t) => {
+  const { request } = await import("../httpClient.ts");
+  t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 204 }));
+  const result = await request<void>("/comentarios/1", { method: "DELETE" });
+  assert.equal(result, undefined);
+});
+
+test("request le corpo de erro em texto puro ou HTML sem erro de stream ja consumido", async (t) => {
+  const { request } = await import("../httpClient.ts");
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response("Serviço indisponível temporariamente.", { status: 503 }),
+  );
+  await assert.rejects(
+    request("/cadeiras"),
+    (e: unknown) =>
+      e instanceof ApiError &&
+      e.status === 503 &&
+      e.message === "Serviço indisponível temporariamente.",
+  );
+
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response("<html><body>502 Bad Gateway</body></html>", { status: 502 }),
+  );
+  await assert.rejects(
+    request("/cadeiras"),
+    (e: unknown) => e instanceof ApiError && e.status === 502 && e.message === "Erro HTTP 502",
+  );
 });

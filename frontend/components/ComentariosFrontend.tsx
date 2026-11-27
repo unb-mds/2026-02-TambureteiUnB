@@ -8,6 +8,7 @@ import {
   criarDenuncia,
   getTriageBannerClasses,
   iniciarPollingStatusComentario,
+  podeModerar,
   ROTULOS_CATEGORIA_DENUNCIA,
   validarMotivoDenuncia,
   type AvisoTriagemComentario,
@@ -22,6 +23,8 @@ export interface CommentItem {
   createdAt: string;
   upvotes: number;
   isLikedByMe: boolean;
+  isMine?: boolean;
+  edited?: boolean;
   parentId?: string | null;
   replies?: CommentItem[];
 }
@@ -33,6 +36,9 @@ interface BackendCommentItem {
   autor_alias?: string;
   conteudo: string;
   created_at?: string;
+  updated_at?: string | null;
+  editado?: boolean;
+  is_mine?: boolean;
   parent_id?: number | string | null;
   upvotes?: number;
   liked_by_me?: boolean;
@@ -59,6 +65,14 @@ export default function ComentariosFrontend({
     isAuthenticated,
     () => false
   );
+  const isModerator = useSyncExternalStore(
+    subscribeAuthChange,
+    () => {
+      const user = getStoredUser();
+      return Boolean(user && podeModerar(user.role));
+    },
+    () => false
+  );
   const storedUser = authenticated ? getStoredUser() : null;
   const displayAuthorName = storedUser?.nome?.trim() || "Estudante UnB";
 
@@ -71,6 +85,14 @@ export default function ComentariosFrontend({
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [expandedThreads, setExpandedThreads] = useState<Record<string, boolean>>({});
+
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [editCommentError, setEditCommentError] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const [deletingComment, setDeletingComment] = useState<CommentItem | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   const [reportingComment, setReportingComment] = useState<CommentItem | null>(null);
   const [reportCategory, setReportCategory] = useState<CategoriaDenuncia>("OFENSA_DOCENTE");
@@ -95,7 +117,7 @@ export default function ComentariosFrontend({
 
     try {
       const response = await request<BackendCommentResponse | BackendCommentItem[]>(
-        `/cadeiras/${identifier}/comentarios`,
+        `/cadeiras/${identifier}/comentarios?excluir_dificuldades=true&size=100`,
         { cache: "no-store" }
       );
 
@@ -116,6 +138,8 @@ export default function ComentariosFrontend({
           : "Recente",
         upvotes: item.upvotes || 0,
         isLikedByMe: Boolean(item.liked_by_me),
+        isMine: Boolean(item.is_mine),
+        edited: Boolean(item.editado || item.updated_at),
         parentId: item.parent_id ? String(item.parent_id) : null,
         replies: [],
       }));
@@ -311,10 +335,7 @@ export default function ComentariosFrontend({
     };
 
     setNewCommentText("");
-    setTriageNotice({
-      kind: "pending",
-      text: "[TRIAGEM AUTOMATICA] Seu relato foi recebido e submetido a moderacao automatica. Aguardando resultado...",
-    });
+    setTriageNotice(null);
 
     try {
       const targetId = disciplineId || 1;
@@ -333,9 +354,13 @@ export default function ComentariosFrontend({
         if (!isMountedRef.current) return;
         setTriageNotice({
           kind: "approved",
-          text: "[PUBLICADO] Seu relato foi aprovado e já está visível abaixo.",
+          text: "[PUBLICADO] Seu relato foi publicado e já está visível abaixo.",
         });
       } else if (createdId) {
+        setTriageNotice({
+          kind: "pending",
+          text: "[AGUARDANDO REVISAO] Seu relato foi enviado para análise da moderação.",
+        });
         startTriagePolling(createdId, "relato");
       }
     } catch (err) {
@@ -392,12 +417,6 @@ export default function ComentariosFrontend({
       setExpandedThreads((prev) => ({ ...prev, [parentId]: true }));
       setReplyingToId(null);
       setReplyText("");
-      const pendingNotice: AvisoTriagemComentario = {
-        kind: "pending",
-        text: "[TRIAGEM AUTOMATICA] Sua resposta foi recebida e submetida a moderacao automatica. Aguardando resultado...",
-      };
-      setTriageNotice(pendingNotice);
-      setReplyNotice({ ...pendingNotice, parentId });
 
       const createdId = created?.id != null ? String(created.id) : null;
       if (created?.status_moderacao === "PUBLICADO") {
@@ -405,11 +424,17 @@ export default function ComentariosFrontend({
         if (!isMountedRef.current) return;
         const approvedNotice: AvisoTriagemComentario = {
           kind: "approved",
-          text: "[PUBLICADO] Sua resposta foi aprovada e já está visível abaixo.",
+          text: "[PUBLICADO] Sua resposta foi publicada e já está visível abaixo.",
         };
         setTriageNotice(approvedNotice);
         setReplyNotice({ ...approvedNotice, parentId });
       } else if (createdId) {
+        const pendingNotice: AvisoTriagemComentario = {
+          kind: "pending",
+          text: "[AGUARDANDO REVISAO] Sua resposta foi enviada para análise da moderação.",
+        };
+        setTriageNotice(pendingNotice);
+        setReplyNotice({ ...pendingNotice, parentId });
         startTriagePolling(createdId, "resposta", parentId);
       }
     } catch (err) {
@@ -422,6 +447,75 @@ export default function ComentariosFrontend({
       };
       setTriageNotice(errorNotice);
       setReplyNotice({ ...errorNotice, parentId });
+    }
+  };
+
+  const handleStartEdit = (target: CommentItem) => {
+    setEditingCommentId(target.id);
+    setEditCommentText(target.content);
+    setEditCommentError("");
+  };
+
+  const handleSaveEdit = async (targetId: string) => {
+    const clean = editCommentText.trim();
+    if (clean.length < MIN_CHARS || clean.length > MAX_CHARS) {
+      setEditCommentError(`O texto deve ter entre ${MIN_CHARS} e ${MAX_CHARS} caracteres.`);
+      return;
+    }
+    const numericId = Number(targetId);
+    if (!Number.isSafeInteger(numericId) || numericId <= 0) return;
+
+    setEditSubmitting(true);
+    setEditCommentError("");
+    try {
+      await request<BackendCommentItem>(`/comentarios/${numericId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ conteudo: clean }),
+      });
+      setEditingCommentId(null);
+      setEditCommentText("");
+      await fetchComments();
+      if (isMountedRef.current) {
+        setTriageNotice({
+          kind: "approved",
+          text: "Comentário atualizado com sucesso.",
+        });
+      }
+    } catch (err) {
+      setEditCommentError(
+        err instanceof Error ? err.message : "Não foi possível salvar a edição."
+      );
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingComment) return;
+    const numericId = Number(deletingComment.id);
+    if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+      setDeletingComment(null);
+      return;
+    }
+    setDeleteSubmitting(true);
+    try {
+      await request<void>(`/comentarios/${numericId}`, { method: "DELETE" });
+      setDeletingComment(null);
+      await fetchComments();
+      if (isMountedRef.current) {
+        setTriageNotice({
+          kind: "approved",
+          text: "Comentário apagado com sucesso.",
+        });
+      }
+    } catch (err) {
+      setDeletingComment(null);
+      setTriageNotice({
+        kind: "error",
+        text: err instanceof Error ? err.message : "Não foi possível apagar o comentário.",
+      });
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -464,7 +558,7 @@ export default function ComentariosFrontend({
         }
       }
       setReportingComment(null);
-      setReportFeedback("Denúncia registrada e encaminhada para revisão da equipe de moderação (RN04).");
+      setReportFeedback("Denúncia registrada e encaminhada para revisão da equipe de moderação.");
     } catch (error) {
       setReportError(
         error instanceof Error ? error.message : "Não foi possível enviar a denúncia no momento."
@@ -594,7 +688,7 @@ export default function ComentariosFrontend({
         />
 
         <p id="conduta-etica-rn04" className="mt-2 text-[11px] text-gray-500">
-          Conduta ética (RN04): concentre seu relato na ementa, metodologia e dificuldades técnicas da matéria. Ataques pessoais a docentes são vedados.
+          Conduta ética: concentre seu relato na ementa, metodologia e dificuldades técnicas da matéria. Ataques pessoais a docentes são vedados.
         </p>
 
         {triageNotice && (
@@ -670,6 +764,11 @@ export default function ComentariosFrontend({
                       <span className="text-[11px] text-gray-400 ml-2">
                         - {comment.createdAt}
                       </span>
+                      {comment.edited && (
+                        <span className="ml-1.5 text-[11px] italic text-gray-400">
+                          (editado)
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -690,6 +789,26 @@ export default function ComentariosFrontend({
                     >
                       Responder
                     </button>
+
+                    {authenticated && comment.isMine && (
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(comment)}
+                        className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-600 hover:border-[#5B4BDB] hover:text-[#5B4BDB] cursor-pointer transition-colors"
+                      >
+                        Editar
+                      </button>
+                    )}
+
+                    {authenticated && (comment.isMine || isModerator) && (
+                      <button
+                        type="button"
+                        onClick={() => setDeletingComment(comment)}
+                        className="rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 cursor-pointer transition-colors"
+                      >
+                        Apagar
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -728,9 +847,57 @@ export default function ComentariosFrontend({
                   </div>
                 </div>
 
-                <p className="text-xs sm:text-sm text-[#545864] leading-relaxed pl-1">
-                  {comment.content}
-                </p>
+                {editingCommentId === comment.id ? (
+                  <div className="flex flex-col gap-2 pl-1">
+                    <textarea
+                      rows={3}
+                      maxLength={MAX_CHARS}
+                      aria-label="Editar comentário"
+                      value={editCommentText}
+                      disabled={editSubmitting}
+                      onChange={(e) => {
+                        setEditCommentText(e.target.value);
+                        setEditCommentError("");
+                      }}
+                      className="w-full resize-none rounded-xl bg-[#FAFAFC] border border-[#DDD9F1] p-2.5 text-xs sm:text-sm text-[#202124] outline-none focus:border-[#5B4BDB]"
+                    />
+                    {editCommentError && (
+                      <p role="alert" className="text-xs font-medium text-red-700">
+                        {editCommentError}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-gray-400">
+                        {editCommentText.length}/{MAX_CHARS}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={editSubmitting}
+                          onClick={() => {
+                            setEditingCommentId(null);
+                            setEditCommentError("");
+                          }}
+                          className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={editSubmitting}
+                          onClick={() => void handleSaveEdit(comment.id)}
+                          className="rounded-lg bg-[#5B4BDB] px-3 py-1.5 text-xs font-bold text-white hover:brightness-110 disabled:opacity-50 cursor-pointer"
+                        >
+                          {editSubmitting ? "Salvando..." : "Salvar"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs sm:text-sm text-[#545864] leading-relaxed pl-1 whitespace-pre-line break-words">
+                    {comment.content}
+                  </p>
+                )}
 
                 {replyNotice && replyNotice.parentId === comment.id && (
                   <p
@@ -802,35 +969,116 @@ export default function ComentariosFrontend({
                             key={reply.id}
                             className="rounded-xl bg-[#FAFAFC] p-3.5 border border-[#F0EFF8] flex flex-col gap-2"
                           >
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
                               <span className="text-xs font-bold text-[#202124]">
                                 {reply.authorAlias}
                                 <span className="text-[11px] text-gray-400 font-normal ml-2">
                                   - {reply.createdAt}
                                 </span>
+                                {reply.edited && (
+                                  <span className="ml-1.5 text-[11px] font-normal italic text-gray-400">
+                                    (editado)
+                                  </span>
+                                )}
                               </span>
-                              <button
-                                type="button"
-                                disabled={!authenticated}
-                                title={!authenticated ? "Faça login para curtir comentários" : undefined}
-                                onClick={() => void handleToggleUpvote(reply.id)}
-                                className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                                  !authenticated
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
-                                    : reply.isLikedByMe
-                                    ? "bg-[#FFF0F2] text-[#EF4444] cursor-pointer"
-                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200 cursor-pointer"
-                                }`}
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill={reply.isLikedByMe ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                </svg>
-                                <span>{reply.upvotes}</span>
-                              </button>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {authenticated && reply.isMine && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartEdit(reply)}
+                                    className="rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-600 hover:border-[#5B4BDB] hover:text-[#5B4BDB] cursor-pointer"
+                                  >
+                                    Editar
+                                  </button>
+                                )}
+                                {authenticated && (reply.isMine || isModerator) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeletingComment(reply)}
+                                    className="rounded-md border border-red-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-red-700 hover:bg-red-50 cursor-pointer"
+                                  >
+                                    Apagar
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  disabled={!authenticated}
+                                  title={!authenticated ? "Faça login para denunciar comentários" : undefined}
+                                  onClick={() => handleOpenReportModal(reply)}
+                                  className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
+                                    authenticated
+                                      ? "border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:text-red-700 cursor-pointer"
+                                      : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+                                  }`}
+                                >
+                                  Denunciar
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!authenticated}
+                                  title={!authenticated ? "Faça login para curtir comentários" : undefined}
+                                  onClick={() => void handleToggleUpvote(reply.id)}
+                                  className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                                    !authenticated
+                                      ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+                                      : reply.isLikedByMe
+                                      ? "bg-[#FFF0F2] text-[#EF4444] cursor-pointer"
+                                      : "bg-gray-100 text-gray-500 hover:bg-gray-200 cursor-pointer"
+                                  }`}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill={reply.isLikedByMe ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                  </svg>
+                                  <span>{reply.upvotes}</span>
+                                </button>
+                              </div>
                             </div>
-                            <p className="text-xs text-[#545864] leading-relaxed">
-                              {reply.content}
-                            </p>
+                            {editingCommentId === reply.id ? (
+                              <div className="flex flex-col gap-2">
+                                <textarea
+                                  rows={2}
+                                  maxLength={MAX_CHARS}
+                                  aria-label="Editar resposta"
+                                  value={editCommentText}
+                                  disabled={editSubmitting}
+                                  onChange={(e) => {
+                                    setEditCommentText(e.target.value);
+                                    setEditCommentError("");
+                                  }}
+                                  className="w-full resize-none rounded-xl bg-white border border-[#DDD9F1] p-2 text-xs text-[#202124] outline-none focus:border-[#5B4BDB]"
+                                />
+                                {editCommentError && (
+                                  <p role="alert" className="text-xs font-medium text-red-700">
+                                    {editCommentError}
+                                  </p>
+                                )}
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={editSubmitting}
+                                    onClick={() => {
+                                      setEditingCommentId(null);
+                                      setEditCommentError("");
+                                    }}
+                                    className="px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700 cursor-pointer"
+                                  >
+                                    Cancelar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={editSubmitting}
+                                    onClick={() => void handleSaveEdit(reply.id)}
+                                    className="rounded-lg bg-[#5B4BDB] px-3 py-1 text-xs font-bold text-white hover:brightness-110 disabled:opacity-50 cursor-pointer"
+                                  >
+                                    {editSubmitting ? "Salvando..." : "Salvar"}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-[#545864] leading-relaxed whitespace-pre-line break-words">
+                                {reply.content}
+                              </p>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -858,7 +1106,7 @@ export default function ComentariosFrontend({
               Denunciar relato à moderação
             </h3>
             <p className="mt-1 text-xs text-gray-600">
-              Sinalize conteúdos que violem a proteção a docentes (RN04) ou as diretrizes da comunidade.
+              Sinalize conteúdos que violem a proteção a docentes ou as diretrizes da comunidade.
             </p>
 
             <label className="mt-4 block text-xs font-semibold text-gray-700">
@@ -915,6 +1163,44 @@ export default function ComentariosFrontend({
               </button>
             </div>
           </form>
+        </div>
+      )}
+      {deletingComment && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-apagar-comentario-titulo"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+            <h3 id="modal-apagar-comentario-titulo" className="text-lg font-bold text-[#202124]">
+              Apagar comentário
+            </h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Tem certeza de que deseja apagar este comentário permanentemente?
+              {deletingComment.replies && deletingComment.replies.length > 0
+                ? " As respostas vinculadas a ele também serão removidas."
+                : ""}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleteSubmitting}
+                onClick={() => setDeletingComment(null)}
+                className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={deleteSubmitting}
+                onClick={() => void handleConfirmDelete()}
+                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+              >
+                {deleteSubmitting ? "Apagando..." : "Apagar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

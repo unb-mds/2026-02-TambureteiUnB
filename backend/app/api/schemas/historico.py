@@ -72,14 +72,14 @@ class HistoricoImportacaoResponse(BaseModel):
 
 
 class TurmaStatusConsultaItem(BaseModel):
-    codigo: str
-    turma: str
-    semestre: str
-    professores: List[str] = Field(default_factory=list)
+    codigo: str = Field(..., max_length=32)
+    turma: str = Field(..., max_length=32)
+    semestre: str = Field(..., max_length=16)
+    professores: List[str] = Field(default_factory=list, max_length=20)
 
 
 class TurmasStatusConsultaRequest(BaseModel):
-    itens: List[TurmaStatusConsultaItem] = Field(default_factory=list)
+    itens: List[TurmaStatusConsultaItem] = Field(default_factory=list, max_length=250)
 
 
 class TurmaStatusConsultaResponseItem(BaseModel):

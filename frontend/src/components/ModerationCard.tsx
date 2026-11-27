@@ -1,28 +1,70 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Button from "./Button";
+import { baixarParaAnalise } from "@/services/moderacaoService";
 import { formatFileSize, validateExternalUrl } from "@/utils/fileValidation";
 import type { DecisaoCuradoria, MaterialPendente } from "@/types/moderacao";
 
 interface Props {
   material: MaterialPendente;
   disabled: boolean;
+  fileVersion?: number;
   onDecision: (material: MaterialPendente, status: DecisaoCuradoria, motivo?: string) => Promise<void>;
   onDownload: (material: MaterialPendente) => Promise<void>;
-  onPreview?: (material: MaterialPendente) => Promise<void>;
+  onPreview?: (material: MaterialPendente, preloadedUrl?: string) => Promise<void> | void;
+  onReplaceFile?: (material: MaterialPendente) => void;
 }
 
-export default function ModerationCard({ material, disabled, onDecision, onDownload, onPreview }: Props) {
+export default function ModerationCard({
+  material,
+  disabled,
+  fileVersion = 0,
+  onDecision,
+  onDownload,
+  onPreview,
+  onReplaceFile,
+}: Props) {
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState("");
   const [exibirCampoMotivo, setExibirCampoMotivo] = useState(false);
+  const [imagemUrl, setImagemUrl] = useState<string | null>(null);
+  const [erroImagem, setErroImagem] = useState("");
 
   const isExternalLink = Boolean(material.url_origem);
+  const isImageMaterial =
+    !isExternalLink &&
+    ["png", "jpg", "jpeg", "webp"].includes((material.formato || "").toLowerCase());
   const safeExternalUrl =
     material.url_origem && validateExternalUrl(material.url_origem).isValid
       ? material.url_origem
       : null;
+
+  useEffect(() => {
+    if (!isImageMaterial) return;
+    let cancelado = false;
+    let urlGerada: string | null = null;
+
+    baixarParaAnalise(material.id)
+      .then((blob) => {
+        if (cancelado) return;
+        urlGerada = URL.createObjectURL(blob);
+        setImagemUrl(urlGerada);
+        setErroImagem("");
+      })
+      .catch((err) => {
+        if (!cancelado) {
+          setErroImagem(err instanceof Error ? err.message : "Erro ao carregar imagem.");
+        }
+      });
+
+    return () => {
+      cancelado = true;
+      if (urlGerada) {
+        URL.revokeObjectURL(urlGerada);
+      }
+    };
+  }, [material.id, isImageMaterial, fileVersion]);
 
   async function recusar() {
     const texto = motivo.trim();
@@ -83,17 +125,48 @@ export default function ModerationCard({ material, disabled, onDecision, onDownl
         </div>
       )}
 
-      {(material.motivo_moderacao || typeof material.confianca_ia === "number") && (
-        <div className="mt-4 rounded-xl border border-[#EDE9FD] bg-[#FAF9FD] p-3 text-sm text-gray-700">
-          <p className="font-semibold text-[#5B4BDB]">
-            [PARECER DA TRIAGEM IA LOCAL]
-            {typeof material.confianca_ia === "number" && (
-              <span className="ml-2 text-xs font-medium text-gray-600">
-                (Confiança: {(material.confianca_ia * 100).toFixed(0)}%)
-              </span>
+      {isImageMaterial && (
+        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-gray-600">
+              Pré-visualização da imagem enviada
+            </span>
+            {imagemUrl && onPreview && (
+              <button
+                type="button"
+                onClick={() => void onPreview(material, imagemUrl)}
+                className="text-xs font-semibold text-[#5B4BDB] hover:underline cursor-pointer"
+              >
+                Abrir em tela cheia
+              </button>
             )}
-          </p>
-          {material.motivo_moderacao && <p className="mt-1 text-xs leading-relaxed">{material.motivo_moderacao}</p>}
+          </div>
+          {erroImagem ? (
+            <p className="text-xs text-red-700">{erroImagem}</p>
+          ) : imagemUrl ? (
+            <button
+              type="button"
+              onClick={() => onPreview && void onPreview(material, imagemUrl)}
+              aria-label={`Abrir pré-visualização em tela cheia de ${material.titulo}`}
+              className="group block w-full cursor-zoom-in rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imagemUrl}
+                alt={material.titulo}
+                className="mx-auto max-h-64 rounded-lg border border-gray-200 bg-white object-contain transition-opacity group-hover:opacity-90"
+              />
+            </button>
+          ) : (
+            <p className="text-xs text-gray-500">Carregando imagem do material...</p>
+          )}
+        </div>
+      )}
+
+      {material.motivo_moderacao && (
+        <div className="mt-4 rounded-xl border border-[#EDE9FD] bg-[#FAF9FD] p-3 text-sm text-gray-700">
+          <p className="font-semibold text-[#5B4BDB]">[OBSERVAÇÃO DE MODERAÇÃO]</p>
+          <p className="mt-1 text-xs leading-relaxed">{material.motivo_moderacao}</p>
         </div>
       )}
 
@@ -133,13 +206,18 @@ export default function ModerationCard({ material, disabled, onDecision, onDownl
 
       <div className="mt-5 flex flex-wrap gap-3">
         {!isExternalLink && onPreview && (
-          <Button variant="outline" disabled={disabled} onClick={() => void onPreview(material)}>
+          <Button variant="outline" disabled={disabled} onClick={() => void onPreview(material, imagemUrl ?? undefined)}>
             Pré-visualizar
           </Button>
         )}
         {!isExternalLink && (
           <Button variant="outline" disabled={disabled} onClick={() => void onDownload(material)}>
             Baixar para análise
+          </Button>
+        )}
+        {!isExternalLink && onReplaceFile && (
+          <Button variant="outline" disabled={disabled} onClick={() => onReplaceFile(material)}>
+            Substituir arquivo
           </Button>
         )}
         {safeExternalUrl && (

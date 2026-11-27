@@ -21,6 +21,15 @@ class MaterialResponse(BaseModel):
     created_at: datetime
     upvotes: int = 0
     liked_by_me: bool = False
+    is_mine: bool = False
+
+
+class MeuMaterialResponse(MaterialResponse):
+    """Material submetido pelo próprio usuário para exibição em Minhas Contribuições."""
+
+    disciplina_nome: str
+    disciplina_slug: str
+    motivo_moderacao: str | None = None
 
 
 class MaterialVotoResponse(BaseModel):
@@ -34,6 +43,19 @@ class MaterialPage(BaseModel):
     total: int
     pagina: int
     tamanho_pagina: int
+
+
+class MaterialStatusResponse(BaseModel):
+    """Status atual da triagem e curadoria de um material para acompanhamento do autor."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    status_curadoria: Literal["PENDENTE", "APROVADO", "RECUSADO"]
+    status_moderacao: str | None = None
+    motivo_moderacao: str | None = None
+    moderado_por: str | None = None
+    confianca_ia: float | None = None
 
 
 def validar_titulo(valor: str) -> str:
@@ -77,6 +99,21 @@ class MaterialLinkCreate(BaseModel):
     @field_validator("tipo", mode="before")
     @classmethod
     def normalizar_tipo(cls, valor: str) -> str:
+        if isinstance(valor, str):
+            return valor.strip().upper()
+        return valor
+
+
+class MaterialUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    titulo: TituloMaterial | None = None
+    tipo: Literal["ARQUIVO", "RESUMO", "DICA", "PROVA_ANTIGA", "LINK_UTIL"] | None = None
+    url_origem: UrlExterna | None = None
+
+    @field_validator("tipo", mode="before")
+    @classmethod
+    def normalizar_tipo(cls, valor: str | None) -> str | None:
         if isinstance(valor, str):
             return valor.strip().upper()
         return valor

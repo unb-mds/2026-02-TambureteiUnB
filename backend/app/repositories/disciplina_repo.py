@@ -28,6 +28,12 @@ class DisciplinaRepository(BaseRepository[Disciplina]):
     def get_by_codigo(self, db: Session, codigo: str) -> Optional[Disciplina]:
         return db.query(Disciplina).filter(Disciplina.codigo == codigo).first()
 
+    def get_by_codigos(self, db: Session, codigos: List[str]) -> dict[str, Disciplina]:
+        if not codigos:
+            return {}
+        encontradas = db.query(Disciplina).filter(Disciplina.codigo.in_(codigos)).all()
+        return {d.codigo: d for d in encontradas if d.codigo}
+
     def get_with_details(self, db: Session, slug: str) -> Optional[Disciplina]:
         """Recupera a disciplina com seus relacionamentos de métricas, conteúdos e comentários."""
         return (

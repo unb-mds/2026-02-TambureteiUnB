@@ -84,8 +84,11 @@ class DisciplinaService:
 
         itens: List[DisciplinaResumo] = []
         codigos = list(dict.fromkeys(re.findall(r"\b[A-Z]{3,4}\d{4}\b", expressao)))
+        if not codigos:
+            return itens
+        encontradas = disciplina_repo.get_by_codigos(db, codigos)
         for cod in codigos:
-            disc_alvo = disciplina_repo.get_by_codigo(db, cod)
+            disc_alvo = encontradas.get(cod)
             if disc_alvo:
                 itens.append(
                     DisciplinaResumo(

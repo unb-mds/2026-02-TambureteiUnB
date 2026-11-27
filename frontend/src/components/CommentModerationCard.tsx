@@ -51,19 +51,10 @@ export default function CommentModerationCard({ comentario, disabled, onDecision
         {comentario.conteudo}
       </blockquote>
 
-      {(comentario.motivo_moderacao || typeof comentario.confianca_ia === "number") && (
+      {comentario.motivo_moderacao && (
         <div className="mt-4 rounded-xl border border-[#EDE9FD] bg-[#FAF9FD] p-3 text-sm text-gray-700">
-          <p className="font-semibold text-[#5B4BDB]">
-            [PARECER DA TRIAGEM IA LOCAL]
-            {typeof comentario.confianca_ia === "number" && (
-              <span className="ml-2 text-xs font-medium text-gray-600">
-                (Confiança: {(comentario.confianca_ia * 100).toFixed(0)}%)
-              </span>
-            )}
-          </p>
-          {comentario.motivo_moderacao && (
-            <p className="mt-1 text-xs leading-relaxed">{comentario.motivo_moderacao}</p>
-          )}
+          <p className="font-semibold text-[#5B4BDB]">[OBSERVAÇÃO DE MODERAÇÃO]</p>
+          <p className="mt-1 text-xs leading-relaxed">{comentario.motivo_moderacao}</p>
         </div>
       )}
 

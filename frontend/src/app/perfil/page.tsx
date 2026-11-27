@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import AcademicProfileDashboard from "@/components/AcademicProfileDashboard";
 import HistoricoTipoAviso from "@/components/HistoricoTipoAviso";
+import MinhasContribuicoesSection from "@/components/MinhasContribuicoesSection";
 import TurmaEstatisticaModal from "@/components/TurmaEstatisticaModal";
 import { extrairTurmasCursadasDoHistorico } from "@/services/turmaEstatisticaService";
 import {
@@ -122,6 +123,11 @@ function ProfilePageContent() {
     }
   }, [authenticated, router]);
 
+  const storedUserName = useSyncExternalStore(
+    subscribeAuthChange,
+    () => getStoredUser()?.nome ?? null,
+    () => null
+  );
   const storedUser = getStoredUser();
   const currentUserId = storedUser?.id ?? null;
 
@@ -180,7 +186,7 @@ function ProfilePageContent() {
   const dadosReais = importedHistorico?.dados_academicos;
   const isRealProfile = Boolean(dadosReais);
   const displayName = isRealProfile
-    ? storedUser?.nome || "Estudante UnB"
+    ? storedUserName || "Estudante UnB"
     : profileDemo.name;
   const displayInitials = displayName
     .split(/\s+/)
@@ -426,6 +432,8 @@ function ProfilePageContent() {
           importedData={importedHistorico}
           initialSection={initialSection}
         />
+
+        <MinhasContribuicoesSection />
 
         {/* Modal de envio de graficos e estatisticas da turma (Issue #284) */}
         <TurmaEstatisticaModal

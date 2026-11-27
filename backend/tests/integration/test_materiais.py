@@ -78,7 +78,7 @@ def test_upload_exige_token_valido_e_download_e_publico(client, disciplina, usua
 
 
 @pytest.mark.parametrize("role", ["STUDENT", "ADMIN", "MODERATOR"])
-def test_todos_os_perfis_autenticados_enviam_para_triagem(client, db, disciplina, usuario, headers, role):
+def test_todos_os_perfis_autenticados_enviam_para_curadoria(client, db, disciplina, usuario, headers, role):
     usuario.role = role
     db.commit()
     response = upload(client, disciplina.id, headers)
@@ -299,7 +299,7 @@ def test_voto_em_material_exige_login_e_persiste_contagem(client, disciplina, he
 
     # Sem login rejeita com 401
     assert client.post(f"/materiais/{material_id}/voto").status_code == 401
-    # Material ainda pendente não aceita voto
+    # Material pendente não aceita voto
     assert client.post(f"/materiais/{material_id}/voto", headers=headers).status_code == 404
 
     assert (
@@ -382,3 +382,115 @@ def test_submissao_link_externo_por_categoria_vai_para_curadoria_e_aceita_voto(
 def test_rejeita_link_externo_invalido(client, disciplina, headers, payload):
     resposta = client.post(f"/cadeiras/{disciplina.id}/links", headers=headers, json=payload)
     assert resposta.status_code == 422
+
+
+def test_consultar_status_material_exibe_recusa_ao_autor_e_bloqueia_terceiros(
+    client, db, disciplina, usuario, headers, admin_headers, student_headers
+):
+    criado = upload(client, disciplina.id, headers, titulo="Resumo para status")
+    assert criado.status_code == 201
+    material_id = criado.json()["id"]
+
+    material = db.get(Conteudo, material_id)
+    material.status_curadoria = "RECUSADO"
+    material.status_moderacao = "bloqueado"
+    material.moderado_por = "IA"
+    material.motivo_moderacao = "[LGPD_DADOS_PESSOAIS] Possivel matricula encontrada."
+    material.confianca_ia = 1.0
+    db.commit()
+
+    resp_autor = client.get(f"/materiais/{material_id}/status", headers=headers)
+    assert resp_autor.status_code == 200
+    assert resp_autor.json() == {
+        "id": material_id,
+        "status_curadoria": "RECUSADO",
+        "status_moderacao": "bloqueado",
+        "motivo_moderacao": "[LGPD_DADOS_PESSOAIS] Possivel matricula encontrada.",
+        "moderado_por": "IA",
+        "confianca_ia": 1.0,
+    }
+
+    assert client.get(f"/materiais/{material_id}/status", headers=student_headers).status_code == 403
+    assert client.get(f"/materiais/{material_id}/status", headers=admin_headers).status_code == 200
+    assert client.get(f"/materiais/{material_id}/status").status_code == 401
+    assert client.get("/materiais/999999/status", headers=headers).status_code == 404
+
+
+def test_meus_materiais_edicao_e_exclusao_por_autor_e_moderador(
+    client, db, disciplina, headers, student_headers, admin_headers
+):
+    # Upload de arquivo pendente -> aparece em /materiais/meus e pode ser editado e cancelado pelo autor
+    up_pendente = upload(client, disciplina.id, headers, titulo="Prova P1 Rascunho")
+    assert up_pendente.status_code == 201
+    id_pendente = up_pendente.json()["id"]
+
+    meus = client.get("/materiais/meus", headers=headers)
+    assert meus.status_code == 200, meus.text
+    assert any(
+        item["id"] == id_pendente
+        and item["status_curadoria"] == "PENDENTE"
+        and item["disciplina_slug"] == disciplina.slug
+        for item in meus.json()
+    )
+
+    # Outro estudante não pode editar nem excluir
+    assert client.patch(f"/materiais/{id_pendente}", headers=student_headers, json={"titulo": "Hack"}).status_code == 403
+    assert client.delete(f"/materiais/{id_pendente}", headers=student_headers).status_code == 403
+
+    # Autor edita título e categoria do arquivo pendente
+    ed_arq = client.patch(
+        f"/materiais/{id_pendente}",
+        headers=headers,
+        json={"titulo": "Prova P1 2025.2", "tipo": "PROVA_ANTIGA"},
+    )
+    assert ed_arq.status_code == 200, ed_arq.text
+    assert ed_arq.json()["titulo"] == "Prova P1 2025.2"
+    assert ed_arq.json()["tipo"] == "PROVA_ANTIGA"
+
+    # Aprova e verifica is_mine na listagem pública
+    assert client.patch(
+        f"/moderacao/conteudos/{id_pendente}/curadoria",
+        headers=admin_headers,
+        json={"status": "APROVADO"},
+    ).status_code == 200
+    pub_dono = client.get(f"/cadeiras/{disciplina.id}/materiais", headers=headers).json()["items"][0]
+    assert pub_dono["is_mine"] is True
+    pub_outro = client.get(f"/cadeiras/{disciplina.id}/materiais", headers=student_headers).json()["items"][0]
+    assert pub_outro["is_mine"] is False
+
+    # Link aprovado: alterar URL devolve para PENDENTE e permite nova aprovação sem conflito de Curadoria
+    criado_link = client.post(
+        f"/cadeiras/{disciplina.id}/links",
+        headers=headers,
+        json={"titulo": "Playlist Cálculo", "url_origem": "https://youtube.com/watch?v=abc123", "tipo": "RESUMO"},
+    )
+    assert criado_link.status_code == 201
+    link_id = criado_link.json()["id"]
+    assert client.patch(
+        f"/moderacao/conteudos/{link_id}/curadoria",
+        headers=admin_headers,
+        json={"status": "APROVADO"},
+    ).status_code == 200
+
+    ed_url = client.patch(
+        f"/materiais/{link_id}",
+        headers=headers,
+        json={"url_origem": "https://youtube.com/watch?v=xyz789"},
+    )
+    assert ed_url.status_code == 200, ed_url.text
+    assert ed_url.json()["status_curadoria"] == "PENDENTE"
+    assert client.patch(
+        f"/moderacao/conteudos/{link_id}/curadoria",
+        headers=admin_headers,
+        json={"status": "APROVADO"},
+    ).status_code == 200
+
+    # Autor apaga arquivo aprovado (remove arquivo físico e some das listagens)
+    chave_antiga = db.get(Conteudo, id_pendente).caminho_arquivo
+    assert client.delete(f"/materiais/{id_pendente}", headers=headers).status_code == 204
+    assert not (settings.MATERIALS_DIR / chave_antiga).exists()
+    assert all(item["id"] != id_pendente for item in client.get("/materiais/meus", headers=headers).json())
+
+    # Moderador/Admin pode apagar link de terceiro diretamente
+    assert client.delete(f"/materiais/{link_id}", headers=admin_headers).status_code == 204
+    assert client.get(f"/cadeiras/{disciplina.id}/materiais").json()["total"] == 0

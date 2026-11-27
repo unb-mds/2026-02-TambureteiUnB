@@ -12,6 +12,7 @@ class ComentarioCreate(BaseModel):
 
     disciplina_id: int = Field(..., description="ID da disciplina")
     turma_id: Optional[int] = Field(None, description="ID da turma")
+    parent_id: Optional[int] = Field(None, gt=0, description="ID do comentário pai em respostas")
     autor_alias: Optional[str] = Field("Estudante Anônimo", description="Apelido do autor")
     topico_dificuldade: Optional[str] = Field(None, description="Tópico de dificuldade")
     conteudo: str = Field(..., description="Texto do comentário")
@@ -38,6 +39,7 @@ class ComentarioCadeiraCreate(BaseModel):
     """Schema de entrada para criação de comentário ou alerta de dificuldade via rota da cadeira."""
 
     turma_id: Optional[int] = Field(None, description="ID da turma")
+    parent_id: Optional[int] = Field(None, gt=0, description="ID do comentário pai em respostas")
     autor_alias: Optional[str] = Field("Estudante Anônimo", description="Apelido do autor")
     topico_dificuldade: Optional[str] = Field(None, max_length=150, description="Tópico de dificuldade da ementa")
     conteudo: str = Field(..., description="Texto do relato ou alerta de dificuldade")
@@ -49,9 +51,14 @@ class ComentarioCadeiraCreate(BaseModel):
 
 
 class ComentarioUpdate(BaseModel):
-    """Schema de entrada para edição de comentário."""
+    """Schema de entrada para edição de comentário ou relato de dificuldade."""
 
     conteudo: str = Field(..., description="Novo texto do comentário")
+    topico_dificuldade: Optional[str] = Field(
+        None,
+        max_length=150,
+        description="Tópico e severidade atualizados para alertas de dificuldade",
+    )
 
     @field_validator("conteudo")
     @classmethod
@@ -62,6 +69,14 @@ class ComentarioUpdate(BaseModel):
         if len(v) > COMENTARIO_MAX_LENGTH:
             raise PydanticCustomError("conteudo_longo", "O comentário excedeu o limite.")
         return v
+
+    @field_validator("topico_dificuldade")
+    @classmethod
+    def validar_topico_dificuldade(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        limpo = v.strip()
+        return limpo if limpo else None
 
 
 class ComentarioResponse(BaseModel):
@@ -76,6 +91,9 @@ class ComentarioResponse(BaseModel):
     parent_id: Optional[int] = None
     status_moderacao: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    editado: bool = False
+    is_mine: bool = False
     upvotes: int = 0
     liked_by_me: bool = False
 

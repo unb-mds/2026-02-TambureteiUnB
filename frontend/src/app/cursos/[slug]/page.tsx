@@ -69,23 +69,41 @@ export default function CourseDisciplinesPage() {
 
     // Se o curso possui disciplinas cadastradas na grade:
     if (course.disciplinas && course.disciplinas.length > 0) {
-      return course.disciplinas.map((cd) => ({
-        code: cd.codigo || "",
-        name: cd.nome,
-        slug: cd.slug,
-        department: cd.departamento || "Geral",
-        departmentName: cd.departamento ? `Departamento de ${cd.departamento}` : "Departamento Acadêmico",
-        campus: course.campus || "Darcy Ribeiro",
-        campusFilter: course.campus || "Darcy Ribeiro",
-        area: "Tecnologia",
-        credits: `${cd.creditos || 4} créditos • ${cd.carga_horaria || (cd.creditos ? cd.creditos * 15 : 60)}h`,
-        hours: cd.carga_horaria || (cd.creditos ? cd.creditos * 15 : 60),
-        approval: null,
-        resources: 14,
-        popularity: 85,
-        semester: cd.periodo_sugerido ? `${cd.periodo_sugerido}º Semestre` : "Optativas",
-        type: cd.is_obrigatoria ? "Obrigatória" : "Optativa",
-      }));
+      const catalogBySlug = new Map<string, Discipline>();
+      const catalogByCode = new Map<string, Discipline>();
+      for (const item of allDisciplines) {
+        if (item.slug) catalogBySlug.set(item.slug.toLowerCase(), item);
+        if (item.code) catalogByCode.set(item.code.toUpperCase(), item);
+      }
+
+      return course.disciplinas.map((cd) => {
+        const matched =
+          (cd.slug ? catalogBySlug.get(cd.slug.toLowerCase()) : undefined) ||
+          (cd.codigo ? catalogByCode.get(cd.codigo.toUpperCase()) : undefined);
+
+        return {
+          code: cd.codigo || "",
+          name: cd.nome,
+          slug: cd.slug,
+          department: cd.departamento || "Geral",
+          departmentName: cd.departamento ? `Departamento de ${cd.departamento}` : "Departamento Acadêmico",
+          campus: course.campus || "Darcy Ribeiro",
+          campusFilter: course.campus || "Darcy Ribeiro",
+          area: "Tecnologia",
+          credits: `${cd.creditos || 4} créditos • ${cd.carga_horaria || (cd.creditos ? cd.creditos * 15 : 60)}h`,
+          hours: cd.carga_horaria || (cd.creditos ? cd.creditos * 15 : 60),
+          approval: matched?.approval ?? null,
+          failedGrade: matched?.failedGrade,
+          failedAttendance: matched?.failedAttendance,
+          withdrawn: matched?.withdrawn,
+          metrica_consolidada: matched ? (matched.metrica_consolidada ?? null) : undefined,
+          historicalPerformance: matched ? (matched.historicalPerformance ?? []) : undefined,
+          resources: 14,
+          popularity: 85,
+          semester: cd.periodo_sugerido ? `${cd.periodo_sugerido}º Semestre` : "Optativas",
+          type: cd.is_obrigatoria ? "Obrigatória" : "Optativa",
+        };
+      });
     }
 
     // Fallback associando disciplinas gerais pelo campus ou departamento do curso

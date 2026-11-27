@@ -210,3 +210,50 @@ class TestAuthIntegration:
         assert res_sucesso.status_code == 200
         assert "sucesso" in res_sucesso.json()["message"]
 
+    def test_atualizar_nome_usuario_autenticado(self, client: TestClient):
+        res_unauth = client.patch("/auth/me", json={"nome": "Sem Autenticacao"})
+        assert res_unauth.status_code == 401
+
+        client.post(
+            "/auth/register",
+            json={
+                "nome": "Usuario Nome Antigo",
+                "email": "troca.nome@provedor.com",
+                "senha": "SenhaAtual123!",
+            },
+        )
+
+        login_res = client.post(
+            "/auth/login",
+            json={"email": "troca.nome@provedor.com", "senha": "SenhaAtual123!"},
+        )
+        token = login_res.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        res_invalido_curto = client.patch(
+            "/auth/me",
+            headers=headers,
+            json={"nome": "Ab"},
+        )
+        assert res_invalido_curto.status_code == 422
+
+        res_invalido_digitos = client.patch(
+            "/auth/me",
+            headers=headers,
+            json={"nome": "Usuario 123"},
+        )
+        assert res_invalido_digitos.status_code == 422
+
+        res_sucesso = client.patch(
+            "/auth/me",
+            headers=headers,
+            json={"nome": "  Maria   Clara D'Ávila  "},
+        )
+        assert res_sucesso.status_code == 200
+        assert res_sucesso.json()["nome"] == "Maria Clara D'Ávila"
+
+        res_me = client.get("/auth/me", headers=headers)
+        assert res_me.status_code == 200
+        assert res_me.json()["nome"] == "Maria Clara D'Ávila"
+
+

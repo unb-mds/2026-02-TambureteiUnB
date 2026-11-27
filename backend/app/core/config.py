@@ -43,6 +43,14 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 dias
 
+    # Rate Limiting & Protecao contra abuso
+    RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() in ("true", "1", "yes")
+    TRUST_PROXY_HEADERS: bool = os.getenv("TRUST_PROXY_HEADERS", "true").lower() in ("true", "1", "yes")
+    RATE_LIMIT_GLOBAL_PER_MINUTE: int = Field(default=int(os.getenv("RATE_LIMIT_GLOBAL_PER_MINUTE", "360")), ge=10)
+    RATE_LIMIT_HEALTH_PER_MINUTE: int = Field(default=int(os.getenv("RATE_LIMIT_HEALTH_PER_MINUTE", "60")), ge=5)
+    RATE_LIMIT_MAX_BUCKETS: int = Field(default=int(os.getenv("RATE_LIMIT_MAX_BUCKETS", "20000")), ge=100)
+    DB_STATEMENT_TIMEOUT_MS: int = Field(default=int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "15000")), ge=1000)
+
     # CORS (aceita JSON list ou string separada por virgulas no .env; nunca usa '*')
     BACKEND_CORS_ORIGINS: List[str] | str = [
         "https://tambureteiunb.com.br",

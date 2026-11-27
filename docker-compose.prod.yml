@@ -19,12 +19,16 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --limit-concurrency 100 --timeout-keep-alive 5
     restart: unless-stopped
     ports:
       - "127.0.0.1:8000:8000"
     environment:
       ENVIRONMENT: production
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-true}
+      RATE_LIMIT_GLOBAL_PER_MINUTE: ${RATE_LIMIT_GLOBAL_PER_MINUTE:-360}
+      DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-15000}
       POSTGRES_SERVER: db
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -37,11 +41,6 @@ services:
       PIZZAS_DIR: /app/storage/pizzas
       MATERIAL_MAX_BYTES: ${MATERIAL_MAX_BYTES:-5242880}
       QUORUM_MINIMO_DOACOES: ${QUORUM_MINIMO_DOACOES:-3}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
-      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-}
-      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-90.0}
-      MODERATION_CONFIDENCE_THRESHOLD: ${MODERATION_CONFIDENCE_THRESHOLD:-0.80}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -51,8 +50,6 @@ services:
       SMTP_TLS: ${SMTP_TLS:-true}
       SMTP_SSL: ${SMTP_SSL:-false}
       FRONTEND_URL: ${FRONTEND_URL:-https://tambureteiunb.com.br}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - materiais_data:/app/storage/materiais
       - pizzas_data:/app/storage/pizzas

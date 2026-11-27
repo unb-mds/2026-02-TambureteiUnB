@@ -9,6 +9,7 @@ from app.api.schemas.historico import (
 )
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
 from app.models.usuario import Usuario
 from app.services.doacao_service import doacao_service
 from app.services.historico_importacao_service import historico_importacao_service
@@ -16,8 +17,43 @@ from app.services.historico_parser_service import HistoricoParserError
 
 router = APIRouter(prefix="/perfil", tags=["Perfil Acadêmico"])
 
+_UPLOAD_CHUNK_SIZE = 64 * 1024
 
-@router.post("/importar-historico", response_model=HistoricoImportacaoResponse)
+
+async def _ler_pdf_com_limite(arquivo: UploadFile, max_bytes: int) -> bytes:
+    """Le o arquivo em blocos de 64 KiB e interrompe imediatamente ao exceder max_bytes."""
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await arquivo.read(min(_UPLOAD_CHUNK_SIZE, max_bytes - total + 1))
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail="O arquivo excede o tamanho máximo permitido (10 MB).",
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+@router.post(
+    "/importar-historico",
+    response_model=HistoricoImportacaoResponse,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "perfil:importar_historico",
+                limit=6,
+                window_seconds=15 * 60,
+                by_user=True,
+                ip_ceiling=20,
+                message="Limite de importações de histórico atingido. Aguarde alguns minutos antes de enviar novamente.",
+            )
+        )
+    ],
+)
 async def importar_historico_sigaa(
     arquivo: UploadFile = File(..., description="PDF do Histórico Escolar oficial emitido pelo SIGAA/UnB"),
     db: Session = Depends(get_db),
@@ -39,12 +75,7 @@ async def importar_historico_sigaa(
             detail="Envie um arquivo PDF oficial emitido pelo SIGAA/UnB.",
         )
 
-    conteudo_bytes = await arquivo.read()
-    if len(conteudo_bytes) > settings.HISTORICO_MAX_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail="O arquivo excede o tamanho máximo permitido (10 MB).",
-        )
+    conteudo_bytes = await _ler_pdf_com_limite(arquivo, settings.HISTORICO_MAX_BYTES)
 
     try:
         return historico_importacao_service.processar_upload(db, conteudo_bytes)
@@ -55,7 +86,21 @@ async def importar_historico_sigaa(
         ) from exc
 
 
-@router.post("/turmas-estatisticas/status", response_model=TurmasStatusConsultaResponse)
+@router.post(
+    "/turmas-estatisticas/status",
+    response_model=TurmasStatusConsultaResponse,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "perfil:turmas_status",
+                limit=20,
+                window_seconds=60,
+                by_user=True,
+                ip_ceiling=60,
+            )
+        )
+    ],
+)
 def consultar_status_turmas_estatisticas(
     payload: TurmasStatusConsultaRequest,
     db: Session = Depends(get_db),

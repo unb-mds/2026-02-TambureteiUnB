@@ -50,8 +50,14 @@ def test_criar_comentario_disciplina_com_sucesso(client: TestClient, student_hea
     assert response.status_code == 201
     data = response.json()
     assert data["conteudo"] == "Gostei da disciplina"
-    assert data["status_moderacao"] == "PENDENTE"
+    assert data["status_moderacao"] == "PUBLICADO"
     assert data["disciplina_id"] == disciplina.id
+
+
+def test_criar_comentario_com_dado_pessoal_rn01_retorna_422(client: TestClient, student_headers, disciplina):
+    payload = {"disciplina_id": disciplina.id, "conteudo": "Meu email eh aluno.teste@unb.br"}
+    response = client.post("/comentarios", json=payload, headers=student_headers)
+    assert response.status_code == 422
 
 
 def test_criar_comentario_sem_disciplina_retorna_422(client: TestClient, student_headers, turma):
@@ -128,7 +134,7 @@ def test_editar_proprio_comentario(client: TestClient, student_headers, comentar
     response = client.patch(f"/comentarios/{comentario_do_aluno.id}", json={"conteudo": "Editado"}, headers=student_headers)
     assert response.status_code == 200
     assert response.json()["conteudo"] == "Editado"
-    assert response.json()["status_moderacao"] == "PENDENTE"
+    assert response.json()["status_moderacao"] == "PUBLICADO"
 
 
 def test_editar_comentario_de_outro_retorna_403(client: TestClient, student_headers, comentario_de_outro):
@@ -179,12 +185,7 @@ def test_criar_e_listar_alertas_dificuldade_por_slug(client: TestClient, db: Ses
     created = post_resp.json()
     assert created["topico_dificuldade"] == "[CRITICO] Integrais Múltiplas"
     assert created["disciplina_id"] == disciplina.id
-    assert created["status_moderacao"] == "PENDENTE"
-
-    comentario = db.get(Comentario, created["id"])
-    assert comentario is not None
-    comentario.status_moderacao = "PUBLICADO"
-    db.commit()
+    assert created["status_moderacao"] == "PUBLICADO"
 
     list_resp = client.get(
         f"/cadeiras/{disciplina.slug}/comentarios?apenas_dificuldades=true&topico=Integrais"
@@ -283,3 +284,127 @@ def test_consultar_status_comentario_exibe_recusa_ao_autor_e_bloqueia_terceiros(
     assert resp_inexistente.status_code == 404
 
 
+def test_criar_resposta_preserva_parent_id_e_valida_disciplina(
+    client: TestClient, db: Session, student_headers, disciplina, comentario_do_aluno
+):
+    from app.models.disciplina import Disciplina
+
+    resp_ok = client.post(
+        "/comentarios",
+        json={
+            "disciplina_id": disciplina.id,
+            "parent_id": comentario_do_aluno.id,
+            "conteudo": "Concordo com a dica sobre as listas!",
+        },
+        headers=student_headers,
+    )
+    assert resp_ok.status_code == 201, resp_ok.text
+    assert resp_ok.json()["parent_id"] == comentario_do_aluno.id
+
+    resp_inexistente = client.post(
+        "/comentarios",
+        json={
+            "disciplina_id": disciplina.id,
+            "parent_id": 999999,
+            "conteudo": "Resposta para comentario inexistente.",
+        },
+        headers=student_headers,
+    )
+    assert resp_inexistente.status_code == 404
+
+    outra = Disciplina(slug="outra-disciplina-parent", nome="Outra Disciplina", codigo="OUT999", departamento="FCTE")
+    db.add(outra)
+    db.commit()
+    db.refresh(outra)
+    resp_outra = client.post(
+        "/comentarios",
+        json={
+            "disciplina_id": outra.id,
+            "parent_id": comentario_do_aluno.id,
+            "conteudo": "Resposta cruzando disciplinas.",
+        },
+        headers=student_headers,
+    )
+    assert resp_outra.status_code == 422
+
+
+def test_is_mine_editado_topico_dificuldade_e_exclusao_por_moderador(
+    client: TestClient, db: Session, student_headers, admin_headers, disciplina
+):
+    criado = client.post(
+        f"/cadeiras/{disciplina.slug}/comentarios",
+        headers=student_headers,
+        json={
+            "autor_alias": "Estudante Anônimo",
+            "topico_dificuldade": "[ALTO] Limites",
+            "conteudo": "Limites exige muita prática de exercícios.",
+        },
+    )
+    assert criado.status_code == 201, criado.text
+    cid = criado.json()["id"]
+    assert criado.json()["is_mine"] is True
+    assert criado.json()["editado"] is False
+
+    # Dono vê is_mine=True mesmo sendo anônimo; admin e visitante veem is_mine=False
+    lista_dono = client.get(f"/cadeiras/{disciplina.id}/comentarios", headers=student_headers).json()["items"][0]
+    assert lista_dono["is_mine"] is True
+    assert lista_dono["editado"] is False
+    assert "usuario_id" not in lista_dono
+
+    lista_outro = client.get(f"/cadeiras/{disciplina.id}/comentarios", headers=admin_headers).json()["items"][0]
+    assert lista_outro["is_mine"] is False
+
+    lista_anon = client.get(f"/cadeiras/{disciplina.id}/comentarios").json()["items"][0]
+    assert lista_anon["is_mine"] is False
+
+    # Dono edita texto, tópico e severidade (3b) e recebe editado=True
+    editado = client.patch(
+        f"/comentarios/{cid}",
+        headers=student_headers,
+        json={
+            "conteudo": "Derivadas e limites exigem revisar base algébrica.",
+            "topico_dificuldade": "[CRITICO] Derivadas",
+        },
+    )
+    assert editado.status_code == 200, editado.text
+    assert editado.json()["topico_dificuldade"] == "[CRITICO] Derivadas"
+    assert editado.json()["editado"] is True
+    assert editado.json()["updated_at"] is not None
+
+    # Admin/Moderador pode apagar comentário de terceiro diretamente
+    remocao = client.delete(f"/comentarios/{cid}", headers=admin_headers)
+    assert remocao.status_code == 204
+    assert db.get(Comentario, cid) is None
+
+
+def test_excluir_dificuldades_separa_discussoes_de_relatos_na_ementa(
+    client: TestClient, student_headers, disciplina
+):
+    c_geral = client.post(
+        "/comentarios",
+        headers=student_headers,
+        json={"disciplina_id": disciplina.id, "conteudo": "Comentário geral sobre a disciplina."},
+    )
+    assert c_geral.status_code == 201
+    c_dif = client.post(
+        "/comentarios",
+        headers=student_headers,
+        json={
+            "disciplina_id": disciplina.id,
+            "topico_dificuldade": "[CRITICO] Limites",
+            "conteudo": "Relato específico de dificuldade na ementa.",
+        },
+    )
+    assert c_dif.status_code == 201
+
+    apenas_discussoes = client.get(
+        f"/cadeiras/{disciplina.id}/comentarios?excluir_dificuldades=true"
+    ).json()
+    assert apenas_discussoes["total"] == 1
+    assert apenas_discussoes["items"][0]["id"] == c_geral.json()["id"]
+
+    apenas_dificuldades = client.get(
+        f"/cadeiras/{disciplina.id}/comentarios?apenas_dificuldades=true"
+    ).json()
+    assert apenas_dificuldades["total"] == 1
+    assert apenas_dificuldades["items"][0]["id"] == c_dif.json()["id"]

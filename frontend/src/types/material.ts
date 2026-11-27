@@ -17,9 +17,22 @@ export interface MaterialResponse {
   arquivo_url?: string;
   upvotes?: number;
   liked_by_me?: boolean;
+  is_mine?: boolean;
   usuario?: { nome?: string };
   authorAlias?: string;
   professor?: string;
+}
+
+export interface MeuMaterialResponse extends MaterialResponse {
+  disciplina_nome: string;
+  disciplina_slug: string;
+  motivo_moderacao?: string | null;
+}
+
+export interface MaterialUpdatePayload {
+  titulo?: string;
+  tipo?: MaterialType;
+  url_origem?: string;
 }
 
 export interface MaterialVoteResponse {
@@ -67,3 +80,12 @@ export interface UploadProgressInfo {
 }
 
 export type UploadStatus = "idle" | "uploading" | "success" | "error";
+
+export interface MaterialStatusResponse {
+  id: number;
+  status_curadoria: "PENDENTE" | "APROVADO" | "RECUSADO";
+  status_moderacao: string | null;
+  motivo_moderacao?: string | null;
+  moderado_por?: string | null;
+  confianca_ia?: number | null;
+}

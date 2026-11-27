@@ -118,18 +118,44 @@ export async function register(data: UserRegisterInput): Promise<UserResponse> {
  */
 export async function requestPasswordReset(data: ForgotPasswordInput): Promise<MessageResponse> {
   // Chamada para a rota interna Next.js que dispara o e-mail via Nodemailer
-  const response = await fetch("/api/auth/esqueci-senha", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new ApiError(payload.message || "Erro ao solicitar recuperação de senha.", response.status);
+  let response: Response;
+  try {
+    response = await fetch("/api/auth/esqueci-senha", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  } catch (err: unknown) {
+    throw new ApiError(
+      "Não foi possível conectar ao servidor para solicitar a recuperação de senha.",
+      0,
+      { error: err instanceof Error ? err.message : String(err) },
+    );
   }
 
-  return payload;
+  const rawText = await response.text();
+  let payload: { message?: string; detail?: string } | null = null;
+  if (rawText.trim()) {
+    try {
+      payload = JSON.parse(rawText) as { message?: string; detail?: string };
+    } catch {
+      payload = null;
+    }
+  }
+
+  if (!response.ok) {
+    throw new ApiError(
+      payload?.message || payload?.detail || "Erro ao solicitar recuperação de senha.",
+      response.status,
+      payload,
+    );
+  }
+
+  return {
+    message:
+      payload?.message ||
+      "Se o e-mail informado estiver cadastrado, enviaremos as instruções de recuperação.",
+  };
 }
 
 /**
@@ -150,6 +176,21 @@ export async function changePassword(data: ChangePasswordInput): Promise<Message
     method: "POST",
     body: JSON.stringify(data),
   });
+}
+
+/**
+ * Atualiza o nome do usuário autenticado, persiste no cache local e notifica a interface.
+ */
+export async function updateUserName(nome: string): Promise<UserResponse> {
+  const updated = await request<UserResponse>("/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify({ nome: nome.trim() }),
+  });
+  setStoredUser(updated);
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+  }
+  return updated;
 }
 
 /**
@@ -215,6 +256,7 @@ export const authService = {
   requestPasswordReset,
   resetPassword,
   changePassword,
+  updateUserName,
   AUTH_CHANGE_EVENT,
 };
 

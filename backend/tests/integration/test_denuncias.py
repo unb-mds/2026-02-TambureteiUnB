@@ -331,3 +331,105 @@ def test_excluir_comentario_denunciado_oculta_subcomentarios_em_cascata(
     assert pai.id not in ids_publicos
     assert filho.id not in ids_publicos
     assert neto.id not in ids_publicos
+
+
+def test_denuncia_de_link_externo_e_preview_de_arquivo_denunciado(
+    client, db, disciplina, student_user, headers, moderador_headers, password_hash, tmp_path
+):
+    from app.core.config import settings
+
+    chave_valida = "a" * 32 + ".pdf"
+    settings.MATERIALS_DIR = tmp_path
+    (tmp_path / chave_valida).write_bytes(b"%PDF-1.7 denuncia")
+    arquivo = Conteudo(
+        disciplina_id=disciplina.id,
+        usuario_id=student_user.id,
+        titulo="Prova 2 com gabarito",
+        tipo="PROVA_ANTIGA",
+        caminho_arquivo=chave_valida,
+        formato="pdf",
+        tamanho_bytes=17,
+        status_moderacao="ativo",
+        status_curadoria="APROVADO",
+    )
+    link = Conteudo(
+        disciplina_id=disciplina.id,
+        usuario_id=student_user.id,
+        titulo="Link suspeito",
+        tipo="RESUMO",
+        url_origem="https://exemplo.unb.br/spam",
+        status_moderacao=None,
+        status_curadoria="APROVADO",
+    )
+    db.add_all([arquivo, link])
+    db.commit()
+
+    den_arquivo = client.post(
+        "/comunidade/denuncias",
+        headers=headers,
+        json={
+            "conteudo_id": arquivo.id,
+            "categoria": "GABARITO_ATIVO",
+            "motivo": "Contem gabarito da prova vigente.",
+        },
+    )
+    assert den_arquivo.status_code == 201
+    den_arquivo_id = den_arquivo.json()["id"]
+
+    assert client.get(f"/moderacao/denuncias/{den_arquivo_id}/arquivo").status_code == 401
+    assert client.get(f"/moderacao/denuncias/{den_arquivo_id}/arquivo", headers=headers).status_code == 403
+    arq_resp = client.get(f"/moderacao/denuncias/{den_arquivo_id}/arquivo", headers=moderador_headers)
+    assert arq_resp.status_code == 200
+    assert arq_resp.content == b"%PDF-1.7 denuncia"
+
+    # 3 denuncias ocultam o link externo sem violar chk_origem_conteudo
+    ultima_denuncia_link_id = None
+    for idx in range(1, 4):
+        denunciante = Usuario(
+            nome=f"Aluno Link {idx}",
+            email=f"denunciante.link{idx}@unb.br",
+            password_hash=password_hash,
+            role="STUDENT",
+        )
+        db.add(denunciante)
+        db.commit()
+        token = create_access_token({"sub": denunciante.email, "role": denunciante.role})
+        resp = client.post(
+            "/comunidade/denuncias",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "conteudo_id": link.id,
+                "categoria": "SPAM",
+                "motivo": f"Link promocional nao academico ({idx}/3).",
+            },
+        )
+        assert resp.status_code == 201, resp.text
+        ultima_denuncia_link_id = resp.json()["id"]
+        assert resp.json()["ocultado_automaticamente"] is (idx == 3)
+
+    db.refresh(link)
+    assert link.status_curadoria == "PENDENTE"
+    assert link.status_moderacao is None
+
+    fila_ocultados = client.get("/moderacao/denuncias?situacao=OCULTADOS", headers=moderador_headers).json()
+    assert any(item["alvo"]["id"] == link.id for item in fila_ocultados["items"])
+    assert all(item["alvo"]["id"] != arquivo.id for item in fila_ocultados["items"])
+
+    fila_abaixo = client.get("/moderacao/denuncias?situacao=ABAIXO_LIMIAR", headers=moderador_headers).json()
+    assert any(item["alvo"]["id"] == arquivo.id for item in fila_abaixo["items"])
+    assert all(item["alvo"]["id"] != link.id for item in fila_abaixo["items"])
+
+    fila = client.get("/moderacao/denuncias?tipo=MATERIAL", headers=moderador_headers).json()
+    item_link = next(item for item in fila["items"] if item["alvo"]["id"] == link.id)
+    assert item_link["alvo"]["url_origem"] == "https://exemplo.unb.br/spam"
+
+    excluir = client.patch(
+        f"/moderacao/denuncias/{ultima_denuncia_link_id}",
+        headers=moderador_headers,
+        json={"acao": "EXCLUIR_CONTEUDO", "justificativa": "Spam confirmado."},
+    )
+    assert excluir.status_code == 200, excluir.text
+    assert excluir.json()["status_moderacao_alvo"] == "RECUSADO"
+    db.refresh(link)
+    assert link.status_curadoria == "RECUSADO"
+    assert link.status_moderacao is None

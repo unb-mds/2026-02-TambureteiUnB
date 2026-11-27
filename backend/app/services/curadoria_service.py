@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import BinaryIO
 from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -12,6 +13,8 @@ from app.api.schemas.curadoria import (
     FilaCuradoria,
     RegistroCuradoria,
 )
+from app.api.schemas.material import MaterialResponse
+from app.domain.materiais import ArquivoMuitoGrande, ArquivoVazio, FormatoNaoSuportado
 from app.models.curadoria import Curadoria
 from app.models.conteudo import Conteudo
 from app.models.usuario import Usuario
@@ -112,6 +115,66 @@ class CuradoriaService:
         except (OSError, ValueError) as exc:
             raise HTTPException(404, "Arquivo não encontrado.") from exc
         return conteudo, caminho
+
+    def substituir_arquivo(
+        self,
+        db: Session,
+        conteudo_id: int,
+        arquivo: BinaryIO,
+        nome: str,
+        tipo_mime: str,
+        moderador: Usuario,
+        justificativa: str | None = None,
+    ) -> MaterialResponse:
+        """Substitui o arquivo físico de um material existente e remove o anterior do disco."""
+        justificativa_limpa = (justificativa or "").strip() or "Arquivo substituído pela moderação."
+        if len(justificativa_limpa) > 1000:
+            raise HTTPException(422, "A justificativa deve ter no máximo 1000 caracteres.")
+
+        conteudo = self.obter(db, conteudo_id, bloquear=True)
+        if conteudo.caminho_arquivo is None:
+            raise HTTPException(422, "Somente materiais com arquivo físico podem ter o arquivo substituído.")
+
+        try:
+            nova_chave, novo_formato, novo_tamanho = self.armazenamento.salvar(arquivo, nome, tipo_mime)
+        except FormatoNaoSuportado as exc:
+            raise HTTPException(415, str(exc)) from exc
+        except ArquivoMuitoGrande as exc:
+            raise HTTPException(413, str(exc)) from exc
+        except ArquivoVazio as exc:
+            raise HTTPException(400, str(exc)) from exc
+        except OSError as exc:
+            logger.exception("Falha ao armazenar arquivo substituto do material.")
+            raise HTTPException(503, "Armazenamento temporariamente indisponível.") from exc
+
+        chave_antiga = conteudo.caminho_arquivo
+        try:
+            conteudo.caminho_arquivo = nova_chave
+            conteudo.formato = novo_formato
+            conteudo.tamanho_bytes = novo_tamanho
+            conteudo.moderado_por = moderador.role
+            conteudo.motivo_moderacao = justificativa_limpa
+            db.flush()
+            resposta = MaterialResponse.model_validate(conteudo)
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            try:
+                self.armazenamento.remover(nova_chave)
+            except OSError:
+                logger.exception("Falha ao limpar arquivo substituto após rollback.")
+            if isinstance(exc, SQLAlchemyError):
+                logger.exception("Falha ao persistir substituição de arquivo do material.")
+                raise HTTPException(503, "Não foi possível substituir o arquivo. Tente novamente.") from exc
+            raise
+
+        if chave_antiga and chave_antiga != nova_chave:
+            try:
+                self.armazenamento.remover(chave_antiga)
+            except OSError:
+                logger.warning("Arquivo antigo do material %s não pôde ser removido do disco.", conteudo.id)
+
+        return resposta
 
     def historico(self, db: Session, conteudo_id: int) -> list[RegistroCuradoria]:
         self.obter(db, conteudo_id)

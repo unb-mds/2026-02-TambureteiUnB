@@ -64,6 +64,25 @@ export interface CourseDetail extends Course {
   disciplinas?: CourseGradeDisciplina[];
 }
 
+export interface MatrizCurricularItem {
+  codigo: string;
+  nome: string;
+  slug?: string | null;
+  ch?: number;
+  creditos?: number;
+  departamento?: string;
+  periodo_sugerido: number;
+  is_obrigatoria?: boolean;
+  natureza?: string;
+}
+
+export interface CurriculoCursoInfo {
+  cursoSlug: string;
+  nomeCurso: string;
+  temMatrizCadastrada: boolean;
+  linkGradeOficial: string;
+}
+
 export const CAMPUS_LIST: CampusFilter[] = [
   "Todos",
   "FCTE",

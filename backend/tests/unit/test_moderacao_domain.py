@@ -339,3 +339,14 @@ def test_schema_decisao_comentario_curadoria():
         DecisaoComentarioCuradoria(status="PENDENTE")
     with pytest.raises(ValidationError):
         DecisaoComentarioCuradoria(status="PUBLICADO", justificativa="x" * 1001)
+
+
+def test_prompt_orienta_nao_rejeitar_por_apelido_do_autor():
+    mensagens = construir_prompt_comentario(
+        "Achei a disciplina otima para aprender grafos.",
+        autor_alias="Maria Oliveira Santos",
+    )
+    assert "Apelido do autor" in mensagens[0]["content"]
+    assert "NUNCA viola a LGPD" in mensagens[0]["content"]
+    assert "NAO avalie como violacao LGPD" in mensagens[1]["content"]
+    assert "Maria Oliveira Santos" in mensagens[1]["content"]

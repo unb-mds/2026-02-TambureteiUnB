@@ -1,3 +1,5 @@
+import threading
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 import bcrypt
@@ -9,8 +11,20 @@ SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = getattr(settings, "ACCESS_TOKEN_EXPIRE_MINUTES", 30)
 
-# Conjunto em memória de IDs de tokens de recuperação já consumidos para impedir reutilização
-_USED_RESET_TOKENS: set[str] = set()
+# Mapa em memoria de IDs de tokens de recuperacao ja consumidos -> timestamp de expiracao (com limpeza automatica)
+_USED_RESET_TOKENS_LOCK = threading.Lock()
+_USED_RESET_TOKENS: dict[str, float] = {}
+_MAX_USED_RESET_TOKENS = 10_000
+
+
+def _prune_used_reset_tokens(now: float) -> None:
+    expired = [jti for jti, exp in _USED_RESET_TOKENS.items() if exp <= now]
+    for jti in expired:
+        _USED_RESET_TOKENS.pop(jti, None)
+    if len(_USED_RESET_TOKENS) > _MAX_USED_RESET_TOKENS:
+        overflow = len(_USED_RESET_TOKENS) - _MAX_USED_RESET_TOKENS
+        for jti in list(_USED_RESET_TOKENS.keys())[:overflow]:
+            _USED_RESET_TOKENS.pop(jti, None)
 
 
 def get_password_hash(password: str) -> str:
@@ -47,8 +61,14 @@ def verify_password_reset_token(token: str) -> str | None:
         if payload.get("type") != "password_reset":
             return None
         jti = payload.get("jti")
-        if jti and jti in _USED_RESET_TOKENS:
-            return None
+        if jti:
+            now = time.time()
+            with _USED_RESET_TOKENS_LOCK:
+                exp = _USED_RESET_TOKENS.get(jti)
+                if exp is not None:
+                    if exp > now:
+                        return None
+                    _USED_RESET_TOKENS.pop(jti, None)
         email: str = payload.get("sub")
         return email
     except JWTError:
@@ -60,7 +80,11 @@ def invalidate_password_reset_token(token: str) -> None:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         jti = payload.get("jti")
         if jti:
-            _USED_RESET_TOKENS.add(jti)
+            now = time.time()
+            exp = float(payload.get("exp") or (now + 15 * 60))
+            with _USED_RESET_TOKENS_LOCK:
+                _prune_used_reset_tokens(now)
+                _USED_RESET_TOKENS[jti] = exp
     except JWTError:
         pass
 

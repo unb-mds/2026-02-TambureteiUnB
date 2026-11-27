@@ -172,6 +172,103 @@ export const OFFICIAL_CURRICULUM_LINKS: Record<string, string> = {
 export const SIGAA_COURSES_CONSULTATION_URL =
   "https://sigaa.unb.br/sigaa/public/curso/lista.jsf?nivel=G";
 
+function slugifyCourseFragment(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Normaliza o nome do curso (como extraído do SIGAA ou informado pelo usuário)
+ * para um dos slugs oficiais mapeados no sistema.
+ */
+export function resolveCourseSlug(courseName?: string | null): string {
+  if (!courseName) return "engenharia-de-software";
+
+  const ascii = courseName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+  if (!ascii) return "engenharia-de-software";
+
+  const isNoturno = /\bnoturno\b/.test(ascii);
+  const isLicenciatura = /\blicenciatura\b/.test(ascii);
+  const isBacharelado = /\bbacharelado\b/.test(ascii);
+  const shiftSuffix = isNoturno ? "noturno" : "diurno";
+
+  // Remove sufixos institucionais do SIGAA (ex.: "/CCA - BACHARELADO - DIURNO", "(Noturno)")
+  const beforeSlash = ascii.split("/")[0].trim();
+  const cleanedBase = beforeSlash
+    .replace(/\((?:diurno|noturno|bacharelado|licenciatura|integral|vespertino|matutino)\)/g, " ")
+    .replace(/\s*-\s*(?:bacharelado|licenciatura|diurno|noturno|integral|vespertino|matutino)\b/g, " ")
+    .replace(/\b(?:bacharelado|licenciatura|diurno|noturno)\b$/g, " ")
+    .trim();
+
+  const normalizedFull = slugifyCourseFragment(ascii);
+  const baseSlug = slugifyCourseFragment(cleanedBase);
+
+  // 1. Tentativa direta nos 161 cursos oficiais (evita colisoes entre Engenharias e Computacao)
+  const candidates = [
+    normalizedFull,
+    isNoturno && baseSlug ? `${baseSlug}-noturno` : "",
+    isLicenciatura && baseSlug ? `${baseSlug}-licenciatura-${shiftSuffix}` : "",
+    isLicenciatura && baseSlug ? `${baseSlug}-licenciatura-diurno` : "",
+    isBacharelado && baseSlug ? `${baseSlug}-bacharelado-${shiftSuffix}` : "",
+    isBacharelado && baseSlug ? `${baseSlug}-bacharelado-diurno` : "",
+    baseSlug,
+    baseSlug ? `${baseSlug}-${shiftSuffix}` : "",
+    baseSlug ? `${baseSlug}-diurno` : "",
+    baseSlug ? `${baseSlug}-noturno` : "",
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (OFFICIAL_CURRICULUM_LINKS[candidate]) {
+      return candidate;
+    }
+  }
+
+  // 2. Aliases frequentes para nomes abreviados ou sem prefixo
+  if (ascii.includes("software")) return "engenharia-de-software";
+  if (ascii.includes("aeroespacial")) return "engenharia-aeroespacial";
+  if (ascii.includes("automotiva")) return "engenharia-automotiva";
+  if (ascii.includes("energia")) return "engenharia-de-energia";
+  if (ascii.includes("eletronica")) return "engenharia-eletronica";
+  if (ascii.includes("economica") || ascii === "economia") {
+    return "ciencias-economicas";
+  }
+  if (ascii.includes("contabeis") || ascii.includes("contabilidade")) {
+    return isNoturno ? "ciencias-contabeis-noturno" : "ciencias-contabeis-diurno";
+  }
+  if (ascii.includes("arquitetura")) {
+    return isNoturno ? "arquitetura-e-urbanismo-noturno" : "arquitetura-e-urbanismo-diurno";
+  }
+  if (ascii.includes("servico social")) {
+    return isNoturno ? "servico-social-noturno" : "servico-social-diurno";
+  }
+  if (ascii.includes("ciencia da computacao")) {
+    return "ciencia-da-computacao";
+  }
+
+  // 3. Correspondencia por prefixo nos 161 slugs oficiais (respeitando turno quando possivel)
+  const officialKeys = Object.keys(OFFICIAL_CURRICULUM_LINKS);
+  if (baseSlug) {
+    const prefixMatches = officialKeys.filter(
+      (key) => key.startsWith(`${baseSlug}-`) || baseSlug.startsWith(`${key}-`)
+    );
+    if (prefixMatches.length > 0) {
+      const shiftMatch = prefixMatches.find((key) => key.endsWith(`-${shiftSuffix}`));
+      return shiftMatch || prefixMatches[0];
+    }
+  }
+
+  return baseSlug || normalizedFull || "engenharia-de-software";
+}
+
 /**
  * Retorna o link oficial da grade curricular do curso na UnB.
  * Se o curso possuir `link_grade_oficial` no payload ou bater no mapa de slugs, retorna a URL específica;

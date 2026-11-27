@@ -1,4 +1,5 @@
 import type { UserResponse } from "../types/auth.ts";
+import type { MaterialResponse } from "../types/material.ts";
 import type {
   AcaoDenuncia,
   CategoriaDenuncia,
@@ -13,6 +14,7 @@ import type {
   FilaDenuncias,
   FilaPizzasModeracao,
   FiltroCategoriaDenuncia,
+  FiltroSituacaoDenuncia,
   FiltroTipoDenuncia,
   RegistroCuradoria,
   ResumoDecisaoDenuncia,
@@ -21,9 +23,9 @@ import type {
 import { API_BASE_URL, ApiError, getStoredToken, request } from "./httpClient.ts";
 
 export const ROTULOS_CATEGORIA_DENUNCIA: Record<CategoriaDenuncia, string> = {
-  OFENSA_DOCENTE: "Ataque ou ofensa a docente (RN04)",
+  OFENSA_DOCENTE: "Ataque ou ofensa a docente",
   CONTEUDO_IMPROPRIO: "Conteúdo ofensivo ou impróprio",
-  GABARITO_ATIVO: "Gabarito de avaliação vigente (RN05)",
+  GABARITO_ATIVO: "Gabarito de avaliação vigente",
   SPAM: "Spam ou divulgação indevida",
   OUTRO: "Outra violação das diretrizes",
 };
@@ -106,6 +108,60 @@ export async function baixarParaAnalise(id: number): Promise<Blob> {
   return response.blob();
 }
 
+export async function baixarArquivoDenuncia(denunciaId: number): Promise<Blob> {
+  const token = getStoredToken();
+  if (!token) throw new ApiError("Sua sessão expirou. Faça login novamente.", 401);
+  const response = await fetch(`${API_BASE_URL}/moderacao/denuncias/${denunciaId}/arquivo`, {
+    headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+  });
+  if (!response.ok) {
+    let mensagem = "Não foi possível carregar o arquivo do material denunciado.";
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string") mensagem = body.detail;
+    } catch { /* Resposta sem JSON: preservar mensagem legível. */ }
+    throw new ApiError(mensagem, response.status);
+  }
+  return response.blob();
+}
+
+export async function substituirArquivoMaterial(
+  materialId: number | string,
+  arquivo: File,
+  justificativa?: string,
+): Promise<MaterialResponse> {
+  const token = getStoredToken();
+  if (!token) throw new ApiError("Sua sessão expirou. Faça login novamente.", 401);
+
+  const formData = new FormData();
+  formData.append("arquivo", arquivo);
+  const limpa = justificativa?.trim();
+  if (limpa) {
+    if (limpa.length > 1000) {
+      throw new ApiError("A justificativa deve ter no máximo 1000 caracteres.", 422);
+    }
+    formData.append("justificativa", limpa);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/moderacao/materiais/${materialId}/arquivo`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    let mensagem = "Não foi possível substituir o arquivo do material.";
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string") mensagem = body.detail;
+    } catch { /* Resposta sem JSON: preservar mensagem legível. */ }
+    throw new ApiError(mensagem, response.status);
+  }
+
+  return response.json() as Promise<MaterialResponse>;
+}
+
 export async function criarDenuncia(payload: DenunciaCreatePayload): Promise<DenunciaResponse> {
   const alvoConteudo = payload.conteudo_id ?? payload.material_id;
   const temComentario = typeof payload.comentario_id === "number" && payload.comentario_id > 0;
@@ -140,6 +196,7 @@ export function listarDenunciasPendentes(
   pagina = 1,
   tipo: FiltroTipoDenuncia = "TODOS",
   categoria: FiltroCategoriaDenuncia = "TODAS",
+  situacao: FiltroSituacaoDenuncia = "TODOS",
 ): Promise<FilaDenuncias> {
   const params = new URLSearchParams({
     pagina: String(pagina),
@@ -150,6 +207,9 @@ export function listarDenunciasPendentes(
   }
   if (categoria && categoria !== "TODAS") {
     params.set("categoria", categoria);
+  }
+  if (situacao && situacao !== "TODOS") {
+    params.set("situacao", situacao);
   }
   return request<FilaDenuncias>(`/moderacao/denuncias?${params.toString()}`, {
     cache: "no-store",

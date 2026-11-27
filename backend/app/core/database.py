@@ -6,7 +6,9 @@ engine = create_engine(
     settings.SQLALCHEMY_DATABASE_URI,
     pool_pre_ping=True,
     pool_size=10,
-    max_overflow=20
+    max_overflow=20,
+    pool_timeout=15,
+    connect_args={"options": f"-c statement_timeout={settings.DB_STATEMENT_TIMEOUT_MS}"},
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
