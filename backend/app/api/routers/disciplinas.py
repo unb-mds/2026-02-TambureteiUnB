@@ -21,7 +21,7 @@ router = APIRouter(prefix="/cadeiras", tags=["Cadeiras (Disciplinas)"])
 @router.get(
     "",
     response_model=List[DisciplinaResumo],
-    dependencies=[Depends(rate_limit("cadeiras:list", limit=30, window_seconds=60))],
+    dependencies=[Depends(rate_limit("cadeiras:list", limit=90, window_seconds=60))],
 )
 def listar_disciplinas(
     response: Response,
@@ -52,7 +52,7 @@ def listar_disciplinas(
 @router.get(
     "/{slug}",
     response_model=DisciplinaResponse,
-    dependencies=[Depends(rate_limit("cadeiras:detail", limit=60, window_seconds=60))],
+    dependencies=[Depends(rate_limit("cadeiras:detail", limit=240, window_seconds=60))],
 )
 def obter_disciplina(slug: str, db: Session = Depends(get_db)):
     """

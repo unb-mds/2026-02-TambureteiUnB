@@ -6,7 +6,7 @@ import {
 
 const ssrLimiter = new BoundedMemoryRateLimiter(5000);
 const SSR_WINDOW_MS = 60 * 1000;
-const SSR_MAX_REQUESTS_PER_MINUTE = 90;
+const SSR_MAX_REQUESTS_PER_MINUTE = 180;
 
 export function proxy(request: NextRequest) {
   const ip = extractClientIp(request.headers);

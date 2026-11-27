@@ -16,7 +16,7 @@ from app.services.dashboard_service import dashboard_service
 router = APIRouter(
     prefix="/dashboard",
     tags=["Dashboard"],
-    dependencies=[Depends(rate_limit("dashboard:read", limit=40, window_seconds=60))],
+    dependencies=[Depends(rate_limit("dashboard:read", limit=120, window_seconds=60))],
 )
 
 

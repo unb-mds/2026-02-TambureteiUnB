@@ -13,7 +13,7 @@ router = APIRouter(prefix="/cursos", tags=["Cursos"])
 @router.get(
     "",
     response_model=list[CursoResumo],
-    dependencies=[Depends(rate_limit("cursos:list", limit=60, window_seconds=60))],
+    dependencies=[Depends(rate_limit("cursos:list", limit=180, window_seconds=60))],
 )
 def listar_cursos(
     response: Response,
@@ -29,7 +29,7 @@ def listar_cursos(
 @router.get(
     "/{curso_id}/grade",
     response_model=CursoGradeResponse,
-    dependencies=[Depends(rate_limit("cursos:detail", limit=60, window_seconds=60))],
+    dependencies=[Depends(rate_limit("cursos:detail", limit=180, window_seconds=60))],
 )
 def obter_grade_curso(curso_id: int, response: Response, db: Session = Depends(get_db)):
     """Consulta pública da matriz curricular do curso organizada por período (US 6.1.1)."""
@@ -40,7 +40,7 @@ def obter_grade_curso(curso_id: int, response: Response, db: Session = Depends(g
 @router.get(
     "/{slug}",
     response_model=CursoResponse,
-    dependencies=[Depends(rate_limit("cursos:detail", limit=60, window_seconds=60))],
+    dependencies=[Depends(rate_limit("cursos:detail", limit=180, window_seconds=60))],
 )
 def obter_curso(slug: str, response: Response, db: Session = Depends(get_db)):
     response.headers["Cache-Control"] = "public, max-age=60"
