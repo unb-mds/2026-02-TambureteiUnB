@@ -1,47 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  BoundedMemoryRateLimiter,
+  extractClientIp,
+} from "@/utils/serverRateLimit";
 
-// Rate limiting simples em memória por IP e por e-mail para prevenir abusos
-// Limite: máximo 3 solicitações a cada 15 minutos por IP / e-mail
-interface RateLimitRecord {
-  count: number;
-  resetAt: number;
-}
-
-const rateLimitStore = new Map<string, RateLimitRecord>();
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutos
-const MAX_REQUESTS_PER_WINDOW = 3;
-
-function isRateLimited(key: string): boolean {
-  const now = Date.now();
-  const record = rateLimitStore.get(key);
-
-  if (!record || now > record.resetAt) {
-    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return false;
-  }
-
-  if (record.count >= MAX_REQUESTS_PER_WINDOW) {
-    return true;
-  }
-
-  record.count += 1;
-  return false;
-}
+// Rate limiting com memoria limitada por IP e por e-mail para prevenir abusos
+// Limite: maximo 5 solicitacoes por IP e 3 por e-mail a cada 15 minutos
+const rateLimiter = new BoundedMemoryRateLimiter(5000);
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const MAX_REQUESTS_PER_IP = 5;
+const MAX_REQUESTS_PER_EMAIL = 3;
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
-    if (isRateLimited(`ip:${ip}`)) {
+    const ip = extractClientIp(req.headers);
+    const ipCheck = rateLimiter.check(`ip:${ip}`, MAX_REQUESTS_PER_IP, RATE_LIMIT_WINDOW_MS);
+    if (ipCheck.limited) {
       return NextResponse.json(
-        { message: "Muitas tentativas de recuperação. Por favor, aguarde alguns minutos antes de tentar novamente." },
-        { status: 429 }
+        {
+          message:
+            "Muitas tentativas de recuperação. Por favor, aguarde alguns minutos antes de tentar novamente.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(ipCheck.retryAfterSeconds),
+          },
+        }
       );
     }
 
     const body = await req.json();
     const { email } = body;
 
-    if (!email || typeof email !== "string") {
+    if (!email || typeof email !== "string" || email.trim().length > 254) {
       return NextResponse.json(
         { message: "E-mail inválido ou não informado." },
         { status: 400 }
@@ -49,10 +41,23 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    if (isRateLimited(`email:${normalizedEmail}`)) {
+    const emailCheck = rateLimiter.check(
+      `email:${normalizedEmail}`,
+      MAX_REQUESTS_PER_EMAIL,
+      RATE_LIMIT_WINDOW_MS
+    );
+    if (emailCheck.limited) {
       return NextResponse.json(
-        { message: "Muitas tentativas para este e-mail. Por favor, aguarde alguns minutos." },
-        { status: 429 }
+        {
+          message:
+            "Muitas tentativas para este e-mail. Por favor, aguarde alguns minutos.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(emailCheck.retryAfterSeconds),
+          },
+        }
       );
     }
 
@@ -62,8 +67,12 @@ export async function POST(req: NextRequest) {
       "http://localhost:8000";
     const backendRes = await fetch(`${apiUrl}/auth/esqueci-senha`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Real-IP": ip,
+      },
       body: JSON.stringify({ email: normalizedEmail }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     const rawText = await backendRes.text();

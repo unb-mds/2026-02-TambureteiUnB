@@ -67,7 +67,10 @@ export async function request<T>(
   }
 
   if (!response.ok) {
-    let errorMessage = `Erro HTTP ${response.status}`;
+    let errorMessage =
+      response.status === 429
+        ? "Muitas requisições em sequência. Aguarde alguns instantes e tente novamente."
+        : `Erro HTTP ${response.status}`;
     let errorData: unknown = null;
     try {
       const rawText = await response.text();
