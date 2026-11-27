@@ -8,29 +8,29 @@ Guias de arquitetura, dados, APIs REST e fluxos colaborativos da plataforma acad
 
 <div class="grid cards" markdown>
 
--   **[Setup & Execução](comecando/desenvolvimento.md)**
+-   **[Guia de Desenvolvimento](comecando/desenvolvimento.md)**
 
-    Suba os containers Docker, configure o `.env` e rode os testes.
+    Comandos rápidos: Docker Compose, variáveis de ambiente, migrações e testes.
+
+-   **[Como Popular o Banco](comecando/popular_banco_de_dados.md)**
+
+    Ingestão e carga de dados de departamentos e turmas do SIGAA.
+
+-   **[Como Contribuir](comecando/como_contribuir.md)**
+
+    Padrão de branches Gitflow, Conventional Commits e validação de CI.
 
 -   **[Arquitetura & ADRs](engenharia/arquitetura.md)**
 
-    Clean Architecture em 4 camadas e decisões técnicas (ADRs).
-
--   **[Requisitos do Sistema](produto/requisitos.md)**
-
-    Requisitos funcionais, não funcionais e escopo da plataforma.
-
--   **[Histórias de Usuário](produto/historias_usuario_backend.md)**
-
-    Backlog técnico, critérios de aceitação e entregas por camada.
+    Clean Architecture em 4 camadas e decisões técnicas de engenharia.
 
 -   **[Dicionário de Dados](engenharia/banco_de_dados.md)**
 
     Esquema PostgreSQL 17, relacionamentos e migrações Alembic.
 
--   **[AI Usage & Skills](ai/ai_usage.md)**
+-   **[Governança & AI Usage](ai/ai_usage.md)**
 
-    Governança de agentes, fluxo TDD e revisão humana.
+    Diretrizes de desenvolvimento assistido por IA e ausência de emojis.
 
 </div>
 
