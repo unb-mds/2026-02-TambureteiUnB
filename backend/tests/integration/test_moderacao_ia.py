@@ -35,6 +35,13 @@ def _mock_ollama_response(decisao: str, confianca: float, categoria: str, motivo
     return mock_resp
 
 
+def _colocar_em_pendente_triagem(db, comentario_id: int) -> None:
+    comentario = db.get(Comentario, comentario_id)
+    assert comentario is not None
+    comentario.status_moderacao = "PENDENTE"
+    db.commit()
+
+
 def test_triagem_ia_aprova_comentario_automaticamente(client, db, disciplina, student_headers, monkeypatch):
     monkeypatch.setattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
     r = client.post(
@@ -44,6 +51,7 @@ def test_triagem_ia_aprova_comentario_automaticamente(client, db, disciplina, st
     )
     assert r.status_code == 201
     comentario_id = r.json()["id"]
+    _colocar_em_pendente_triagem(db, comentario_id)
 
     with patch("app.services.moderacao_ia_service.httpx.Client") as mock_client_cls:
         mock_client_cls.return_value.__enter__.return_value.post.return_value = _mock_ollama_response(
@@ -66,6 +74,7 @@ def test_triagem_ia_oculta_comentario_ofensivo(client, db, disciplina, student_h
         headers=student_headers,
     )
     comentario_id = r.json()["id"]
+    _colocar_em_pendente_triagem(db, comentario_id)
 
     with patch("app.services.moderacao_ia_service.httpx.Client") as mock_client_cls:
         mock_client_cls.return_value.__enter__.return_value.post.return_value = _mock_ollama_response(
@@ -90,6 +99,7 @@ def test_triagem_ia_escalona_comentario_quando_ollama_offline_e_permite_curadori
         headers=student_headers,
     )
     comentario_id = r.json()["id"]
+    _colocar_em_pendente_triagem(db, comentario_id)
 
     with patch("app.services.moderacao_ia_service.httpx.Client") as mock_client_cls:
         mock_client_cls.return_value.__enter__.return_value.post.side_effect = httpx.ConnectError("Ollama offline")
@@ -232,9 +242,10 @@ def test_pdf_sem_texto_e_imagem_sem_modelo_visao_escalonam_para_humano(
 
 
 def test_deteccao_deterministica_rn01_bloqueia_sem_chamar_ollama(
-    client, db, disciplina, student_headers, monkeypatch
+    client, db, disciplina, student_user, student_headers, monkeypatch
 ):
     monkeypatch.setattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
+    # Publicacao via API bloqueia RN01 sincronamente com 422
     r = client.post(
         "/comentarios",
         json={
@@ -243,8 +254,20 @@ def test_deteccao_deterministica_rn01_bloqueia_sem_chamar_ollama(
         },
         headers=student_headers,
     )
-    assert r.status_code == 201
-    comentario_id = r.json()["id"]
+    assert r.status_code == 422
+
+    # E a triagem deterministica tambem bloqueia sem chamar Ollama caso exista registro pendente
+    comentario_pendente = Comentario(
+        usuario_id=student_user.id,
+        disciplina_id=disciplina.id,
+        conteudo="Fala comigo no aluno@aluno.unb.br, minha matricula e 22/1008543.",
+        autor_alias="Estudante Anônimo",
+        status_moderacao="PENDENTE",
+    )
+    db.add(comentario_pendente)
+    db.commit()
+    db.refresh(comentario_pendente)
+    comentario_id = comentario_pendente.id
 
     with patch("app.services.moderacao_ia_service.consultar_ollama") as mock_ollama:
         assert aplicar_triagem_comentario(db, comentario_id) is True
@@ -268,6 +291,7 @@ def test_triagem_ia_nao_sobrescreve_decisao_humana_concorrente(
     )
     assert r.status_code == 201
     comentario_id = r.json()["id"]
+    _colocar_em_pendente_triagem(db, comentario_id)
 
     from app.domain.moderacao import VereditoModIA
 
