@@ -11,6 +11,7 @@ class DecisaoCuradoria(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Literal["APROVADO", "RECUSADO"]
     justificativa: str | None = None
+    excluir_arquivo: bool = False
 
     @field_validator("status", mode="before")
     @classmethod

@@ -21,7 +21,7 @@ interface MaterialPreviewModalProps<T extends PreviewMaterialItem = PreviewMater
   error: string;
   onClose: () => void;
   onApprove?: (material: T) => Promise<void>;
-  onReject?: (material: T, motivo: string) => Promise<void>;
+  onReject?: (material: T, motivo: string, excluirArquivo?: boolean) => Promise<void>;
   onDownload?: (material: T) => void | Promise<void>;
   downloading?: boolean;
 }
@@ -38,6 +38,7 @@ function MaterialPreviewDialog<T extends PreviewMaterialItem>({
   downloading = false,
 }: Omit<MaterialPreviewModalProps<T>, "isOpen"> & { material: T }) {
   const [motivo, setMotivo] = useState("");
+  const [excluirArquivo, setExcluirArquivo] = useState(false);
   const [erroMotivo, setErroMotivo] = useState("");
   const [exibirCampoMotivo, setExibirCampoMotivo] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -80,7 +81,7 @@ function MaterialPreviewDialog<T extends PreviewMaterialItem>({
     setErroMotivo("");
     setEnviando(true);
     try {
-      await onReject(material, textoLimpo);
+      await onReject(material, textoLimpo, excluirArquivo);
       onClose();
     } finally {
       setEnviando(false);
@@ -192,6 +193,22 @@ function MaterialPreviewDialog<T extends PreviewMaterialItem>({
               placeholder="Descreva o motivo da recusa (até 1000 caracteres)..."
               className="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]"
             />
+            <label
+              htmlFor="preview-excluir-arquivo"
+              className="mt-2.5 flex items-start gap-2 text-xs text-gray-700 cursor-pointer"
+            >
+              <input
+                id="preview-excluir-arquivo"
+                type="checkbox"
+                checked={excluirArquivo}
+                disabled={enviando}
+                onChange={(e) => setExcluirArquivo(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[#5B4BDB]"
+              />
+              <span>
+                <strong>Excluir o arquivo do servidor junto</strong> (se ficar desmarcado, o estudante poderá editar e reenviar pelo perfil).
+              </span>
+            </label>
             {erroMotivo && (
               <p role="alert" className="mt-1 text-xs text-red-700">
                 {erroMotivo}

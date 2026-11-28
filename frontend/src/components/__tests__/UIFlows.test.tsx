@@ -10,6 +10,7 @@ import MaterialModal from "../MaterialModal.tsx";
 import MaterialPreviewModal from "../MaterialPreviewModal.tsx";
 import MinhasContribuicoesSection from "../MinhasContribuicoesSection.tsx";
 import ModerationCard from "../ModerationCard.tsx";
+import NotificationBell from "../NotificationBell.tsx";
 import ReplaceMaterialFileModal from "../ReplaceMaterialFileModal.tsx";
 import SecurityTabContent from "../SecurityTabContent.tsx";
 
@@ -280,6 +281,31 @@ test("EditMaterialModal renderiza campos de edicao de titulo, categoria e URL pa
   assert.match(markup, /URL externa/);
 });
 
+test("ModerationCard exibe botao de editar titulo e categoria quando onEdit e informado", () => {
+  const markup = renderToStaticMarkup(
+    <ModerationCard
+      material={{
+        id: 77,
+        disciplina_id: 1,
+        titulo: "WhatsApp Image 2026-11-26 at 11.18.51",
+        tipo: "ARQUIVO",
+        formato: "jpg",
+        tamanho_bytes: 132000,
+        status_curadoria: "PENDENTE",
+        status_moderacao: "EM_REVISAO",
+        created_at: "2026-11-26T14:18:51Z",
+        disciplina: { id: 1, nome: "Física 2 Experimental", slug: "fisica-2-experimental" },
+      }}
+      disabled={false}
+      onDecision={async () => {}}
+      onDownload={async () => {}}
+      onEdit={() => {}}
+    />,
+  );
+
+  assert.match(markup, /Editar título \/ categoria/);
+});
+
 test("MinhasContribuicoesSection renderiza titulo e filtros de status no perfil", () => {
   const markup = renderToStaticMarkup(<MinhasContribuicoesSection />);
 
@@ -297,4 +323,84 @@ test("SecurityTabContent renderiza formularios de alteracao de nome e senha", ()
   assert.match(markup, /Salvar novo nome/);
   assert.match(markup, /Alteração e Segurança de Senha/);
   assert.match(markup, /Salvar nova senha/);
+});
+
+test("NotificationBell renderiza contador de nao lidas e lista de notificacoes", () => {
+  const markup = renderToStaticMarkup(
+    <NotificationBell
+      initialOpen
+      initialUnread={2}
+      initialItems={[
+        {
+          id: 1,
+          tipo: "MATERIAL_RECUSADO",
+          titulo: "Material recusado pela moderação",
+          mensagem: 'Seu material "EDA_25_2_p1" foi recusado. Motivo: repetida',
+          link: "/perfil?filtro=RECUSADO#minhas-contribuicoes",
+          lida: false,
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 2,
+          tipo: "MATERIAL_APROVADO",
+          titulo: "Material aprovado pela moderação",
+          mensagem: 'Seu material "Resumo P1" foi aprovado.',
+          link: "/disciplinas/calculo-1",
+          lida: false,
+          created_at: new Date().toISOString(),
+        },
+      ]}
+    />,
+  );
+
+  assert.match(markup, /Notificações/);
+  assert.match(markup, /Marcar todas como lidas/);
+  assert.match(markup, /Material recusado pela moderação/);
+  assert.match(markup, /EDA_25_2_p1/);
+  assert.match(markup, /\/perfil\?filtro=RECUSADO#minhas-contribuicoes/);
+});
+
+test("EditMaterialModal em modo RECUSADO exibe motivo e opcao de reenvio", () => {
+  const markupComArquivo = renderToStaticMarkup(
+    <EditMaterialModal
+      isOpen
+      material={{
+        id: 19,
+        titulo: "EDA_25_2_p1",
+        tipo: "PROVA_ANTIGA",
+        formato: "pdf",
+        tamanho_bytes: 512000,
+        status_curadoria: "RECUSADO",
+        motivo_moderacao: "Coloque um título mais claro",
+        arquivo_disponivel: true,
+      }}
+      onClose={() => {}}
+      onSaved={() => {}}
+    />,
+  );
+
+  assert.match(markupComArquivo, /Editar e reenviar para moderação/);
+  assert.match(markupComArquivo, /Coloque um título mais claro/);
+  assert.match(markupComArquivo, /Substituir arquivo \(opcional\)/);
+  assert.match(markupComArquivo, /Salvar e reenviar para moderação/);
+
+  const markupSemArquivo = renderToStaticMarkup(
+    <EditMaterialModal
+      isOpen
+      material={{
+        id: 20,
+        titulo: "Prova com matricula",
+        tipo: "PROVA_ANTIGA",
+        formato: "pdf",
+        tamanho_bytes: 512000,
+        status_curadoria: "RECUSADO",
+        motivo_moderacao: "Dados pessoais expostos",
+        arquivo_disponivel: false,
+      }}
+      onClose={() => {}}
+      onSaved={() => {}}
+    />,
+  );
+
+  assert.match(markupSemArquivo, /Novo arquivo \(obrigatório\)/);
 });

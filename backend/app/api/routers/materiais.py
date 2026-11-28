@@ -139,8 +139,37 @@ def editar_material(
     service: Annotated[MaterialService, Depends(get_material_service)],
     current_user: Annotated[Usuario, Depends(get_current_user)],
 ) -> MaterialResponse:
-    """Permite ao autor editar título, categoria ou URL (em links) do próprio material."""
+    """Permite ao autor ou à moderação editar título, categoria ou URL (em links) do material."""
     return service.editar(db, id, dados, current_user)
+
+
+@router.post(
+    "/materiais/{id}/reenviar",
+    response_model=MaterialResponse,
+    dependencies=[Depends(rate_limit("materiais:write", limit=15, window_seconds=60, by_user=True))],
+)
+def reenviar_material(
+    id: Annotated[int, Path(gt=0)],
+    db: Annotated[Session, Depends(get_db)],
+    service: Annotated[MaterialService, Depends(get_material_service)],
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    titulo: Annotated[str | None, Form()] = None,
+    tipo: Annotated[str | None, Form()] = None,
+    url_origem: Annotated[str | None, Form()] = None,
+    arquivo: Annotated[UploadFile | None, File()] = None,
+) -> MaterialResponse:
+    """Permite ao autor editar um material recusado (e opcionalmente trocar o arquivo) e reenviá-lo para moderação."""
+    return service.reenviar(
+        db=db,
+        material_id=id,
+        current_user=current_user,
+        titulo=titulo,
+        tipo=tipo,
+        url_origem=url_origem,
+        arquivo=arquivo.file if arquivo is not None else None,
+        nome=arquivo.filename or "" if arquivo is not None else "",
+        tipo_mime=arquivo.content_type or "" if arquivo is not None else "",
+    )
 
 
 @router.delete(

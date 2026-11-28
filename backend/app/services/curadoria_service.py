@@ -21,6 +21,7 @@ from app.models.usuario import Usuario
 from app.repositories.comentario_repo import comentario_repo
 from app.repositories.curadoria_repo import curadoria_repo
 from app.services.armazenamento_material import ArmazenamentoMaterial
+from app.services.notificacao_service import notificacao_service
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +63,50 @@ class CuradoriaService:
             if dados.status == "APROVADO" and not eh_link:
                 conteudo.status_moderacao = "ativo"
             curadoria_repo.registrar(db, registro)
+
+            chave_remover: str | None = None
+            disciplina_slug = conteudo.disciplina.slug if conteudo.disciplina else None
+            if dados.status == "APROVADO":
+                notificacao_service.registrar(
+                    db,
+                    conteudo.usuario_id,
+                    tipo="MATERIAL_APROVADO",
+                    titulo="Material aprovado pela moderação",
+                    mensagem=f'Seu material "{conteudo.titulo}" foi aprovado e já está publicado.',
+                    link=f"/disciplinas/{disciplina_slug}" if disciplina_slug else "/perfil?filtro=APROVADO#minhas-contribuicoes",
+                )
+            else:
+                remover_fisico = not eh_link and bool(dados.excluir_arquivo)
+                if remover_fisico and conteudo.caminho_arquivo:
+                    chave_remover = conteudo.caminho_arquivo
+                    msg_recusa = (
+                        f'Seu material "{conteudo.titulo}" foi recusado e o arquivo foi removido do servidor. '
+                        f"Motivo: {dados.justificativa}"
+                    )
+                else:
+                    msg_recusa = (
+                        f'Seu material "{conteudo.titulo}" foi recusado. Você pode editar e reenviar pelo seu perfil. '
+                        f"Motivo: {dados.justificativa}"
+                    )
+                notificacao_service.registrar(
+                    db,
+                    conteudo.usuario_id,
+                    tipo="MATERIAL_RECUSADO",
+                    titulo="Material recusado pela moderação",
+                    mensagem=msg_recusa,
+                    link="/perfil?filtro=RECUSADO#minhas-contribuicoes",
+                )
+
             resposta = RegistroCuradoria.model_validate(registro)
             db.commit()
+            if chave_remover:
+                try:
+                    self.armazenamento.remover(chave_remover)
+                except OSError:
+                    logger.warning(
+                        "Arquivo físico do material %s não pôde ser removido após recusa.",
+                        conteudo.id,
+                    )
             return resposta
         except HTTPException:
             db.rollback()
@@ -92,6 +135,26 @@ class CuradoriaService:
                 comentario.motivo_moderacao = dados.justificativa
             if dados.status == "OCULTO":
                 comentario_repo.ocultar_descendentes(db, comentario.id, moderador.role)
+            disciplina_slug = comentario.disciplina.slug if comentario.disciplina else None
+            if dados.status == "PUBLICADO":
+                notificacao_service.registrar(
+                    db,
+                    comentario.usuario_id,
+                    tipo="COMENTARIO_APROVADO",
+                    titulo="Comentário aprovado pela moderação",
+                    mensagem="Seu comentário foi aprovado e já está visível na disciplina.",
+                    link=f"/disciplinas/{disciplina_slug}" if disciplina_slug else "/perfil",
+                )
+            else:
+                motivo_txt = f" Motivo: {dados.justificativa}" if dados.justificativa else ""
+                notificacao_service.registrar(
+                    db,
+                    comentario.usuario_id,
+                    tipo="COMENTARIO_OCULTADO",
+                    titulo="Comentário recusado pela moderação",
+                    mensagem=f"Seu comentário não foi publicado pela moderação.{motivo_txt}",
+                    link=f"/disciplinas/{disciplina_slug}" if disciplina_slug else "/perfil",
+                )
             db.flush()
             resposta = ComentarioPendente.model_validate(comentario)
             db.commit()

@@ -10,10 +10,16 @@ interface Props {
   material: MaterialPendente;
   disabled: boolean;
   fileVersion?: number;
-  onDecision: (material: MaterialPendente, status: DecisaoCuradoria, motivo?: string) => Promise<void>;
+  onDecision: (
+    material: MaterialPendente,
+    status: DecisaoCuradoria,
+    motivo?: string,
+    excluirArquivo?: boolean,
+  ) => Promise<void>;
   onDownload: (material: MaterialPendente) => Promise<void>;
   onPreview?: (material: MaterialPendente, preloadedUrl?: string) => Promise<void> | void;
   onReplaceFile?: (material: MaterialPendente) => void;
+  onEdit?: (material: MaterialPendente) => void;
 }
 
 export default function ModerationCard({
@@ -24,8 +30,10 @@ export default function ModerationCard({
   onDownload,
   onPreview,
   onReplaceFile,
+  onEdit,
 }: Props) {
   const [motivo, setMotivo] = useState("");
+  const [excluirArquivo, setExcluirArquivo] = useState(false);
   const [erro, setErro] = useState("");
   const [exibirCampoMotivo, setExibirCampoMotivo] = useState(false);
   const [imagemUrl, setImagemUrl] = useState<string | null>(null);
@@ -76,7 +84,7 @@ export default function ModerationCard({
       setErro("A justificativa deve ter no máximo 1000 caracteres.");
       return;
     }
-    await onDecision(material, "RECUSADO", texto);
+    await onDecision(material, "RECUSADO", texto, !isExternalLink && excluirArquivo);
   }
 
   return (
@@ -196,6 +204,25 @@ export default function ModerationCard({
             className="mt-2 w-full rounded-xl border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4BDB]"
             placeholder="Descreva o motivo da recusa (até 1000 caracteres)..."
           />
+          {!isExternalLink && (
+            <label
+              htmlFor={`excluir-arquivo-${material.id}`}
+              className="mt-3 flex items-start gap-2.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs text-gray-700 cursor-pointer"
+            >
+              <input
+                id={`excluir-arquivo-${material.id}`}
+                type="checkbox"
+                checked={excluirArquivo}
+                disabled={disabled}
+                onChange={(e) => setExcluirArquivo(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[#5B4BDB]"
+              />
+              <span>
+                <strong className="block text-gray-900">Excluir o arquivo do servidor junto</strong>
+                Se ficar desmarcado, o arquivo é mantido para o estudante poder editar e reenviar pelo perfil. Se marcado, o arquivo é apagado imediatamente.
+              </span>
+            </label>
+          )}
           {erro && (
             <p id={`erro-${material.id}`} role="alert" className="mt-2 text-sm text-red-700">
               {erro}
@@ -218,6 +245,11 @@ export default function ModerationCard({
         {!isExternalLink && onReplaceFile && (
           <Button variant="outline" disabled={disabled} onClick={() => onReplaceFile(material)}>
             Substituir arquivo
+          </Button>
+        )}
+        {onEdit && (
+          <Button variant="outline" disabled={disabled} onClick={() => onEdit(material)}>
+            Editar título / categoria
           </Button>
         )}
         {safeExternalUrl && (

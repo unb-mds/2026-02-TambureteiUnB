@@ -41,6 +41,7 @@ from app.models.estatistica_consolidada import EstatisticaConsolidada
 from app.models.turma import Turma
 from app.repositories.estatistica_repo import estatistica_repo
 from app.services.armazenamento_material import ArmazenamentoMaterial
+from app.services.notificacao_service import notificacao_service
 from app.services.historico_importacao_service import (
     _limpar_nome_professor,
     _normalizar_codigo_turma,
@@ -667,12 +668,41 @@ class DoacaoService:
         agora = datetime.now(timezone.utc)
         justificativa = (dados.justificativa or "").strip() or None
 
+        disciplina_nome_notif: Optional[str] = None
+        disciplina_link_notif = "/perfil"
+        if isinstance(db, Session):
+            turma_ref = (
+                db.query(Turma)
+                .options(selectinload(Turma.disciplina))
+                .filter(Turma.id == doacao.turma_id)
+                .first()
+            )
+            if turma_ref is not None and turma_ref.disciplina is not None:
+                disciplina_nome_notif = turma_ref.disciplina.nome
+                disciplina_link_notif = f"/disciplinas/{turma_ref.disciplina.slug}"
+
+        contexto_pizza = (
+            f"{disciplina_nome_notif} ({doacao.semestre_referencia})"
+            if disciplina_nome_notif
+            else f"semestre {doacao.semestre_referencia}"
+        )
+
         if dados.status == "DESCARTADA":
             for item in grupo_pendentes:
                 item.status = "DESCARTADA"
                 item.moderado_por_id = moderador.id
                 item.moderado_em = agora
                 item.justificativa_moderacao = justificativa
+                if isinstance(db, Session):
+                    motivo_txt = f" Motivo: {justificativa}" if justificativa else ""
+                    notificacao_service.registrar(
+                        db,
+                        item.usuario_id,
+                        tipo="PIZZA_RECUSADA",
+                        titulo="Gráfico de aprovação recusado",
+                        mensagem=f"Sua contribuição de taxas de {contexto_pizza} foi recusada pela moderação.{motivo_txt}",
+                        link=disciplina_link_notif,
+                    )
             db.commit()
             return PizzaModeracaoDecisaoResponse(
                 id=doacao.id,
@@ -728,6 +758,15 @@ class DoacaoService:
             item.moderado_por_id = moderador.id
             item.moderado_em = agora
             item.justificativa_moderacao = justificativa
+            if isinstance(db, Session):
+                notificacao_service.registrar(
+                    db,
+                    item.usuario_id,
+                    tipo="PIZZA_APROVADA",
+                    titulo="Gráfico de aprovação aceito",
+                    mensagem=f"Sua contribuição de taxas de {contexto_pizza} foi aprovada e já aparece na disciplina.",
+                    link=disciplina_link_notif,
+                )
 
         # Encerra submissoes concorrentes pendentes da mesma turma/semestre
         concorrentes = (
@@ -745,6 +784,15 @@ class DoacaoService:
             conc.moderado_por_id = moderador.id
             conc.moderado_em = agora
             conc.justificativa_moderacao = "Substituída por estatística oficial aprovada na moderação."
+            if isinstance(db, Session):
+                notificacao_service.registrar(
+                    db,
+                    conc.usuario_id,
+                    tipo="PIZZA_RECUSADA",
+                    titulo="Gráfico de aprovação encerrado",
+                    mensagem=f"A estatística oficial de {contexto_pizza} já foi consolidada com outro envio aprovado.",
+                    link=disciplina_link_notif,
+                )
 
         self._sincronizar_metricas_disciplina(db, doacao.turma_id, doacao.semestre_referencia)
         db.commit()

@@ -9,6 +9,7 @@ import { authService, subscribeAuthChange } from "@/services/authService";
 import { podeModerar } from "@/services/moderacaoService";
 import { UserResponse } from "@/types/auth";
 import ThemeSelector from "@/components/ThemeSelector";
+import NotificationBell from "./NotificationBell";
 import UserMenuDropdown from "./UserMenuDropdown";
 
 export interface NavbarProps {
@@ -153,6 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
         <div className="hidden md:flex items-center gap-3">
           <ThemeSelector />
           {isLoggedIn && user && podeModerar(user.role) && <Link href="/moderacao" className="text-sm font-semibold text-[#5B4BDB]">Moderação</Link>}
+          {isLoggedIn && user && <NotificationBell />}
           {isLoggedIn && user ? (
             <UserMenuDropdown user={user} onLogout={handleLogout} />
           ) : (
@@ -174,6 +176,7 @@ export const Navbar: React.FC<NavbarProps> = ({ className = "" }) => {
         {/* Botão Mobile Hamburger */}
         <div className="flex md:hidden items-center gap-2">
           <ThemeSelector />
+          {isLoggedIn && user && <NotificationBell />}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

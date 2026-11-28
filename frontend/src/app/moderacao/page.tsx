@@ -12,6 +12,7 @@ import DenunciaModerationCard from "@/components/DenunciaModerationCard";
 import PizzaModerationCard from "@/components/PizzaModerationCard";
 import ModerationActionModal from "@/components/ModerationActionModal";
 import MaterialPreviewModal, { type PreviewMaterialItem } from "@/components/MaterialPreviewModal";
+import EditMaterialModal, { type EditMaterialTarget } from "@/components/EditMaterialModal";
 import ReplaceMaterialFileModal, { type ReplaceMaterialTarget } from "@/components/ReplaceMaterialFileModal";
 import { subscribeAuthChange } from "@/services/authService";
 import { ApiError } from "@/services/httpClient";
@@ -87,6 +88,7 @@ export default function ModeracaoPage() {
   const [replaceTarget, setReplaceTarget] = useState<ReplaceMaterialTarget | null>(null);
   const [replaceDownloadAction, setReplaceDownloadAction] = useState<(() => Promise<void>) | null>(null);
   const [materialFileVersion, setMaterialFileVersion] = useState(0);
+  const [editMaterialTarget, setEditMaterialTarget] = useState<EditMaterialTarget | null>(null);
 
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
@@ -198,13 +200,24 @@ export default function ModeracaoPage() {
     }
   }, [acesso, router]);
 
-  async function decidir(material: MaterialPendente, status: DecisaoCuradoria, motivo?: string) {
+  async function decidir(
+    material: MaterialPendente,
+    status: DecisaoCuradoria,
+    motivo?: string,
+    excluirArquivo = false,
+  ) {
     setBusy(true);
     setErro("");
     setAviso("");
     try {
-      await decidirCuradoria(material.id, status, motivo);
-      setAviso(`Material ${status === "APROVADO" ? "aprovado" : "recusado"}. Decisão registrada no histórico.`);
+      await decidirCuradoria(material.id, status, motivo, excluirArquivo);
+      if (status === "APROVADO") {
+        setAviso("Material aprovado e estudante notificado. Decisão registrada no histórico.");
+      } else if (excluirArquivo) {
+        setAviso("Material recusado, arquivo removido do servidor e estudante notificado.");
+      } else {
+        setAviso("Material recusado e estudante notificado. O arquivo foi mantido para possível reenvio.");
+      }
       await carregar();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
@@ -660,6 +673,15 @@ export default function ModeracaoPage() {
                   onDownload={baixar}
                   onPreview={abrirPreview}
                   onReplaceFile={abrirSubstituirMaterialPendente}
+                  onEdit={(item) =>
+                    setEditMaterialTarget({
+                      id: item.id,
+                      titulo: item.titulo,
+                      tipo: item.tipo,
+                      url_origem: item.url_origem,
+                      status_curadoria: "PENDENTE",
+                    })
+                  }
                 />
               ))}
             </div>
@@ -1014,7 +1036,8 @@ export default function ModeracaoPage() {
           }
           onReject={
             previewMode === "curadoria" && previewCuradoriaTarget
-              ? (_m, motivo) => decidir(previewCuradoriaTarget, "RECUSADO", motivo)
+              ? (_m, motivo, excluirArquivo) =>
+                  decidir(previewCuradoriaTarget, "RECUSADO", motivo, Boolean(excluirArquivo))
               : undefined
           }
         />
@@ -1028,6 +1051,16 @@ export default function ModeracaoPage() {
           }}
           onDownloadCurrent={replaceDownloadAction ?? undefined}
           onReplaced={aoSubstituirArquivo}
+        />
+
+        <EditMaterialModal
+          isOpen={Boolean(editMaterialTarget)}
+          material={editMaterialTarget}
+          onClose={() => setEditMaterialTarget(null)}
+          onSaved={async () => {
+            setAviso("Título e categoria do material atualizados com sucesso.");
+            await carregar();
+          }}
         />
 
         <ModerationActionModal
