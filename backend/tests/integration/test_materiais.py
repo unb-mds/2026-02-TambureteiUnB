@@ -447,6 +447,16 @@ def test_meus_materiais_edicao_e_exclusao_por_autor_e_moderador(
     assert ed_arq.json()["titulo"] == "Prova P1 2025.2"
     assert ed_arq.json()["tipo"] == "PROVA_ANTIGA"
 
+    # Admin/Moderador também pode editar título e categoria de material de terceiro
+    ed_admin = client.patch(
+        f"/materiais/{id_pendente}",
+        headers=admin_headers,
+        json={"titulo": "Prova P1 2025.2 (Revisada)", "tipo": "PROVA_ANTIGA"},
+    )
+    assert ed_admin.status_code == 200, ed_admin.text
+    assert ed_admin.json()["titulo"] == "Prova P1 2025.2 (Revisada)"
+    assert ed_admin.json()["is_mine"] is False
+
     # Aprova e verifica is_mine na listagem pública
     assert client.patch(
         f"/moderacao/conteudos/{id_pendente}/curadoria",

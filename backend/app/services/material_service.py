@@ -246,6 +246,14 @@ class MaterialService:
 
         return material
 
+    def _arquivo_existe(self, chave: str | None) -> bool:
+        if not chave:
+            return False
+        try:
+            return self.armazenamento.localizar(chave).exists()
+        except (OSError, ValueError):
+            return False
+
     def listar_meus(self, db: Session, current_user: Usuario) -> list[MeuMaterialResponse]:
         """Lista os materiais (pendentes, aprovados e recusados) enviados pelo usuário autenticado."""
         materiais = material_repo.listar_do_usuario(db, current_user.id)
@@ -258,12 +266,15 @@ class MaterialService:
             base["upvotes"] = votos_por_id.get(item.id, 0)
             base["liked_by_me"] = item.id in votados
             base["is_mine"] = True
+            eh_link = item.caminho_arquivo is None and item.url_origem is not None
+            arquivo_disponivel = True if eh_link else self._arquivo_existe(item.caminho_arquivo)
             resposta.append(
                 MeuMaterialResponse(
                     **base,
                     disciplina_nome=item.disciplina.nome if item.disciplina else "Disciplina",
                     disciplina_slug=item.disciplina.slug if item.disciplina else "",
                     motivo_moderacao=item.motivo_moderacao,
+                    arquivo_disponivel=arquivo_disponivel,
                 )
             )
         return resposta
@@ -275,7 +286,7 @@ class MaterialService:
         dados: MaterialUpdate,
         current_user: Usuario,
     ) -> MaterialResponse:
-        """Permite ao autor editar título, categoria ou URL (em links) do próprio material."""
+        """Permite ao autor ou a moderadores/admins editar título, categoria ou URL (em links) do material."""
         material = material_repo.get_by_id(db, material_id)
         if (
             material is None
@@ -284,7 +295,9 @@ class MaterialService:
         ):
             raise HTTPException(404, "Material não encontrado.")
 
-        if material.usuario_id != current_user.id:
+        eh_autor = material.usuario_id == current_user.id
+        eh_moderador = (current_user.role or "").upper() in {"MODERATOR", "ADMIN"}
+        if not (eh_autor or eh_moderador):
             raise HTTPException(403, "Você só pode editar seus próprios materiais.")
 
         campos = dados.model_fields_set
@@ -311,8 +324,8 @@ class MaterialService:
                 url_alterada = True
 
         try:
-            # Alterar URL de link já aprovado exige nova revisão humana na fila de curadoria.
-            if url_alterada and material.status_curadoria == "APROVADO":
+            # Alterar URL de link já aprovado pelo autor exige nova revisão humana na fila de curadoria.
+            if url_alterada and material.status_curadoria == "APROVADO" and not eh_moderador:
                 curadoria_anterior = db.scalar(
                     select(Curadoria).where(Curadoria.conteudo_id == material.id)
                 )
@@ -328,7 +341,7 @@ class MaterialService:
                 update={
                     "upvotes": votos.get(material.id, 0),
                     "liked_by_me": material.id in votados,
-                    "is_mine": True,
+                    "is_mine": eh_autor,
                 }
             )
             db.commit()
@@ -337,6 +350,123 @@ class MaterialService:
             db.rollback()
             logger.exception("Falha ao editar material.")
             raise HTTPException(503, "Não foi possível editar o material. Tente novamente.") from exc
+
+    def reenviar(
+        self,
+        db: Session,
+        material_id: int,
+        current_user: Usuario,
+        titulo: str | None = None,
+        tipo: str | None = None,
+        url_origem: str | None = None,
+        arquivo: BinaryIO | None = None,
+        nome: str = "",
+        tipo_mime: str = "",
+    ) -> MaterialResponse:
+        """Permite ao autor editar um material recusado (opcionalmente trocando o arquivo) e reenviá-lo para moderação."""
+        material = material_repo.get_by_id(db, material_id)
+        if (
+            material is None
+            or material.status_moderacao == "excluido"
+            or material.motivo_moderacao in {"__REMOVIDO_PELO_AUTOR__", "__REMOVIDO_PELA_MODERACAO__"}
+        ):
+            raise HTTPException(404, "Material não encontrado.")
+
+        if material.usuario_id != current_user.id:
+            raise HTTPException(403, "Você só pode reenviar seus próprios materiais.")
+
+        if material.status_curadoria != "RECUSADO":
+            raise HTTPException(409, "Apenas materiais recusados podem ser reenviados para moderação.")
+
+        eh_link = material.caminho_arquivo is None and material.url_origem is not None
+        if eh_link and arquivo is not None:
+            raise HTTPException(422, "Não é possível anexar arquivo em um material do tipo link externo.")
+        if not eh_link and url_origem is not None and url_origem.strip():
+            raise HTTPException(422, "Não é possível definir URL externa em um material de arquivo.")
+
+        if titulo is not None:
+            try:
+                material.titulo = validar_titulo(titulo)
+            except PydanticCustomError as exc:
+                raise HTTPException(422, str(exc)) from exc
+
+        if tipo is not None and tipo.strip():
+            tipo_norm = tipo.strip().upper()
+            permitidos = self.TIPOS_LINK if eh_link else self.TIPOS_ARQUIVO
+            if tipo_norm not in permitidos:
+                raise HTTPException(422, f"Tipo inválido. Tipos permitidos: {sorted(permitidos)}")
+            material.tipo = tipo_norm
+
+        if eh_link and url_origem is not None:
+            try:
+                material.url_origem = validar_url_externa(url_origem)
+            except PydanticCustomError as exc:
+                raise HTTPException(422, str(exc)) from exc
+
+        chave_antiga = material.caminho_arquivo
+        nova_chave: str | None = None
+        if not eh_link:
+            if arquivo is not None:
+                try:
+                    nova_chave, novo_formato, novo_tamanho = self.armazenamento.salvar(arquivo, nome, tipo_mime)
+                except FormatoNaoSuportado as exc:
+                    raise HTTPException(415, str(exc)) from exc
+                except ArquivoMuitoGrande as exc:
+                    raise HTTPException(413, str(exc)) from exc
+                except ArquivoVazio as exc:
+                    raise HTTPException(400, str(exc)) from exc
+                except OSError as exc:
+                    logger.exception("Falha ao armazenar novo arquivo no reenvio do material.")
+                    raise HTTPException(503, "Armazenamento temporariamente indisponível.") from exc
+                material.caminho_arquivo = nova_chave
+                material.formato = novo_formato
+                material.tamanho_bytes = novo_tamanho
+            elif not self._arquivo_existe(material.caminho_arquivo):
+                raise HTTPException(
+                    422,
+                    "O arquivo original foi removido pela moderação. Selecione um novo arquivo para reenviar.",
+                )
+
+        try:
+            curadoria_anterior = db.scalar(
+                select(Curadoria).where(Curadoria.conteudo_id == material.id)
+            )
+            if curadoria_anterior is not None:
+                db.delete(curadoria_anterior)
+            material.status_curadoria = "PENDENTE"
+            material.status_moderacao = None if eh_link else "ativo"
+            material.motivo_moderacao = None
+            material.moderado_por = None
+            db.flush()
+            votos = contar_votos_por_target(db, "CONTEUDO", [material.id])
+            votados = listar_votos_usuario_por_target(db, "CONTEUDO", [material.id], current_user.id)
+            resposta = MaterialResponse.model_validate(material).model_copy(
+                update={
+                    "upvotes": votos.get(material.id, 0),
+                    "liked_by_me": material.id in votados,
+                    "is_mine": True,
+                }
+            )
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            if nova_chave:
+                try:
+                    self.armazenamento.remover(nova_chave)
+                except OSError:
+                    logger.exception("Falha ao limpar novo arquivo após rollback do reenvio.")
+            if isinstance(exc, SQLAlchemyError):
+                logger.exception("Falha ao reenviar material para moderação.")
+                raise HTTPException(503, "Não foi possível reenviar o material. Tente novamente.") from exc
+            raise
+
+        if nova_chave and chave_antiga and chave_antiga != nova_chave:
+            try:
+                self.armazenamento.remover(chave_antiga)
+            except OSError:
+                logger.warning("Arquivo antigo do material %s não pôde ser removido após reenvio.", material.id)
+
+        return resposta
 
     def excluir(self, db: Session, material_id: int, current_user: Usuario) -> None:
         """Permite ao autor ou a moderadores/admins remover um material e limpar seu arquivo físico."""

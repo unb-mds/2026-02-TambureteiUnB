@@ -2,9 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import Button from "./Button";
-import { updateMaterial } from "@/services/materialService";
+import { resubmitMaterial, updateMaterial } from "@/services/materialService";
 import type { MaterialResponse, MaterialType } from "@/types/material";
-import { validateExternalUrl, validateMaterialTitle } from "@/utils/fileValidation";
+import {
+  formatFileSize,
+  validateExternalUrl,
+  validateFileFormat,
+  validateFileSize,
+  validateMaterialTitle,
+} from "@/utils/fileValidation";
 
 export interface EditMaterialTarget {
   id: number | string;
@@ -12,6 +18,10 @@ export interface EditMaterialTarget {
   tipo: string;
   url_origem?: string | null;
   status_curadoria?: "PENDENTE" | "APROVADO" | "RECUSADO";
+  motivo_moderacao?: string | null;
+  formato?: string | null;
+  tamanho_bytes?: number | null;
+  arquivo_disponivel?: boolean;
 }
 
 interface EditMaterialModalProps {
@@ -41,6 +51,8 @@ function EditMaterialDialog({
   onSaved,
 }: Omit<EditMaterialModalProps, "isOpen"> & { material: EditMaterialTarget }) {
   const isLink = Boolean(material.url_origem);
+  const isResubmit = material.status_curadoria === "RECUSADO";
+  const fileRemovedOnReject = isResubmit && !isLink && material.arquivo_disponivel === false;
   const typeOptions = isLink ? LINK_TYPE_OPTIONS : FILE_TYPE_OPTIONS;
   const initialType = (
     typeOptions.some((opt) => opt.value === material.tipo)
@@ -51,6 +63,7 @@ function EditMaterialDialog({
   const [titulo, setTitulo] = useState(material.titulo);
   const [tipo, setTipo] = useState<MaterialType>(initialType);
   const [urlOrigem, setUrlOrigem] = useState(material.url_origem || "");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -82,20 +95,47 @@ function EditMaterialDialog({
       }
     }
 
+    if (fileRemovedOnReject && !selectedFile) {
+      setErro("O arquivo original foi removido pela moderação. Selecione um novo arquivo para reenviar.");
+      return;
+    }
+
+    if (selectedFile) {
+      const fmtVal = validateFileFormat(selectedFile);
+      if (!fmtVal.isValid) {
+        setErro(fmtVal.error || "Formato de arquivo inválido.");
+        return;
+      }
+      const sizeVal = validateFileSize(selectedFile);
+      if (!sizeVal.isValid) {
+        setErro(sizeVal.error || "Tamanho de arquivo inválido.");
+        return;
+      }
+    }
+
     setSalvando(true);
     setErro("");
     try {
-      const updated = await updateMaterial(material.id, {
-        titulo: titulo.trim(),
-        tipo,
-        ...(isLink ? { url_origem: urlOrigem.trim() } : {}),
-      });
+      const updated = isResubmit
+        ? await resubmitMaterial(material.id, {
+            titulo: titulo.trim(),
+            tipo,
+            ...(isLink ? { url_origem: urlOrigem.trim() } : {}),
+            file: selectedFile,
+          })
+        : await updateMaterial(material.id, {
+            titulo: titulo.trim(),
+            tipo,
+            ...(isLink ? { url_origem: urlOrigem.trim() } : {}),
+          });
       await onSaved(updated);
       onClose();
     } catch (error) {
       setErro(
         error instanceof Error
           ? error.message
+          : isResubmit
+          ? "Não foi possível reenviar o material para moderação."
           : "Não foi possível salvar as alterações do material.",
       );
     } finally {
@@ -122,10 +162,12 @@ function EditMaterialDialog({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id="edit-material-modal-title" className="text-lg font-bold text-[#202124]">
-              Editar material de apoio
+              {isResubmit ? "Editar e reenviar para moderação" : "Editar material de apoio"}
             </h2>
             <p className="mt-1 text-xs text-gray-600">
-              Atualize o título ou a categoria do seu envio{isLink ? " (ou a URL do link externo)" : ""}.
+              {isResubmit
+                ? "Ajuste as informações necessárias e reenvie o material para nova análise da moderação."
+                : `Atualize o título ou a categoria do material${isLink ? " (ou a URL do link externo)" : ""}.`}
             </p>
           </div>
           <button
@@ -138,6 +180,12 @@ function EditMaterialDialog({
             ✕
           </button>
         </div>
+
+        {isResubmit && material.motivo_moderacao && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs text-red-800">
+            <strong>Motivo da recusa anterior:</strong> {material.motivo_moderacao}
+          </div>
+        )}
 
         <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-gray-700">
           Título do material
@@ -194,6 +242,44 @@ function EditMaterialDialog({
           </div>
         )}
 
+        {isResubmit && !isLink && (
+          <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+            <label
+              htmlFor="resubmit-file-input"
+              className="block text-xs font-semibold uppercase tracking-wide text-gray-700"
+            >
+              {fileRemovedOnReject
+                ? "Novo arquivo (obrigatório)"
+                : "Substituir arquivo (opcional)"}
+            </label>
+            <p className="mt-1 text-xs text-gray-600">
+              {fileRemovedOnReject
+                ? "O arquivo original foi removido pela moderação. Selecione um novo PDF, PNG ou JPG (até 5 MiB)."
+                : `Arquivo atual mantido (${(material.formato || "ARQUIVO").toUpperCase()}${
+                    typeof material.tamanho_bytes === "number"
+                      ? ` • ${formatFileSize(material.tamanho_bytes)}`
+                      : ""
+                  }). Se preferir, selecione outro arquivo para substituí-lo.`}
+            </p>
+            <input
+              id="resubmit-file-input"
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+              disabled={salvando}
+              onChange={(e) => {
+                setSelectedFile(e.target.files?.[0] ?? null);
+                setErro("");
+              }}
+              className="mt-2 block w-full text-xs text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-[#5B4BDB]/10 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#5B4BDB] hover:file:bg-[#5B4BDB]/20 cursor-pointer"
+            />
+            {selectedFile && (
+              <p className="mt-1.5 text-xs font-medium text-[#5B4BDB]">
+                Selecionado: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+              </p>
+            )}
+          </div>
+        )}
+
         {erro && (
           <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
             {erro}
@@ -205,7 +291,13 @@ function EditMaterialDialog({
             Cancelar
           </Button>
           <Button type="submit" disabled={salvando}>
-            {salvando ? "Salvando..." : "Salvar alterações"}
+            {salvando
+              ? isResubmit
+                ? "Reenviando..."
+                : "Salvando..."
+              : isResubmit
+              ? "Salvar e reenviar para moderação"
+              : "Salvar alterações"}
           </Button>
         </div>
       </form>

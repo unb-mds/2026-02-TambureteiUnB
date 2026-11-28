@@ -6,7 +6,9 @@ import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import AcademicProfileDashboard from "@/components/AcademicProfileDashboard";
 import HistoricoTipoAviso from "@/components/HistoricoTipoAviso";
-import MinhasContribuicoesSection from "@/components/MinhasContribuicoesSection";
+import MinhasContribuicoesSection, {
+  type FiltroStatus as FiltroContribuicoes,
+} from "@/components/MinhasContribuicoesSection";
 import TurmaEstatisticaModal from "@/components/TurmaEstatisticaModal";
 import { extrairTurmasCursadasDoHistorico } from "@/services/turmaEstatisticaService";
 import {
@@ -93,6 +95,11 @@ function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const abaParam = searchParams.get("aba");
+  const filtroParam = (searchParams.get("filtro") || "").toUpperCase();
+  const initialContributionsFilter: FiltroContribuicoes =
+    filtroParam === "PENDENTE" || filtroParam === "APROVADO" || filtroParam === "RECUSADO"
+      ? filtroParam
+      : "TODOS";
   const initialSection =
     abaParam === "seguranca"
       ? "security"
@@ -433,7 +440,10 @@ function ProfilePageContent() {
           initialSection={initialSection}
         />
 
-        <MinhasContribuicoesSection />
+        <MinhasContribuicoesSection
+          key={initialContributionsFilter}
+          initialFilter={initialContributionsFilter}
+        />
 
         {/* Modal de envio de graficos e estatisticas da turma (Issue #284) */}
         <TurmaEstatisticaModal

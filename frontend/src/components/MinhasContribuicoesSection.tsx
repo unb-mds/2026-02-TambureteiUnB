@@ -6,7 +6,11 @@ import EditMaterialModal from "./EditMaterialModal";
 import { deleteMaterial, listMyMaterials } from "@/services/materialService";
 import type { MeuMaterialResponse } from "@/types/material";
 
-type FiltroStatus = "TODOS" | "PENDENTE" | "APROVADO" | "RECUSADO";
+export type FiltroStatus = "TODOS" | "PENDENTE" | "APROVADO" | "RECUSADO";
+
+export interface MinhasContribuicoesSectionProps {
+  initialFilter?: FiltroStatus;
+}
 
 const STATUS_BADGE: Record<
   MeuMaterialResponse["status_curadoria"],
@@ -32,12 +36,14 @@ const STATUS_BADGE: Record<
   },
 };
 
-export default function MinhasContribuicoesSection() {
+export default function MinhasContribuicoesSection({
+  initialFilter = "TODOS",
+}: MinhasContribuicoesSectionProps = {}) {
   const [materiais, setMateriais] = useState<MeuMaterialResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
-  const [filtro, setFiltro] = useState<FiltroStatus>("TODOS");
+  const [filtro, setFiltro] = useState<FiltroStatus>(initialFilter);
   const [reloadTick, setReloadTick] = useState(0);
 
   const [editing, setEditing] = useState<MeuMaterialResponse | null>(null);
@@ -84,8 +90,9 @@ export default function MinhasContribuicoesSection() {
 
   return (
     <section
+      id="minhas-contribuicoes"
       aria-labelledby="minhas-contribuicoes-titulo"
-      className="rounded-3xl border border-[#E8E6F8] bg-white p-5 shadow-xs sm:p-6 lg:p-7"
+      className="scroll-mt-24 rounded-3xl border border-[#E8E6F8] bg-white p-5 shadow-xs sm:p-6 lg:p-7"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -229,18 +236,26 @@ export default function MinhasContribuicoesSection() {
                         <strong>Motivo da recusa:</strong> {item.motivo_moderacao}
                       </p>
                     )}
+
+                    {item.status_curadoria === "RECUSADO" && !isLink && item.arquivo_disponivel === false && (
+                      <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        O arquivo original foi removido pela moderação. Para reenviar, anexe um novo arquivo.
+                      </p>
+                    )}
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-3">
-                    {item.status_curadoria !== "RECUSADO" && (
-                      <button
-                        type="button"
-                        onClick={() => setEditing(item)}
-                        className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-[#5B4BDB] hover:text-[#5B4BDB] cursor-pointer"
-                      >
-                        Editar
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setEditing(item)}
+                      className={
+                        item.status_curadoria === "RECUSADO"
+                          ? "rounded-xl border border-[#5B4BDB] bg-[#5B4BDB]/10 px-3 py-1.5 text-xs font-semibold text-[#5B4BDB] hover:bg-[#5B4BDB]/15 cursor-pointer"
+                          : "rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-[#5B4BDB] hover:text-[#5B4BDB] cursor-pointer"
+                      }
+                    >
+                      {item.status_curadoria === "RECUSADO" ? "Editar e reenviar" : "Editar"}
+                    </button>
                     <button
                       type="button"
                       onClick={() => setDeleting(item)}
@@ -266,13 +281,20 @@ export default function MinhasContribuicoesSection() {
                 tipo: editing.tipo,
                 url_origem: editing.url_origem,
                 status_curadoria: editing.status_curadoria,
+                motivo_moderacao: editing.motivo_moderacao,
+                formato: editing.formato,
+                tamanho_bytes: editing.tamanho_bytes,
+                arquivo_disponivel: editing.arquivo_disponivel,
               }
             : null
         }
         onClose={() => setEditing(null)}
         onSaved={(updated) => {
+          const foiReenvio = editing?.status_curadoria === "RECUSADO";
           setAviso(
-            updated.status_curadoria === "PENDENTE"
+            foiReenvio
+              ? "Material atualizado e reenviado para nova análise da moderação."
+              : updated.status_curadoria === "PENDENTE"
               ? "Material atualizado. Se a URL foi alterada, ele aguardará nova aprovação da moderação."
               : "Material atualizado com sucesso.",
           );

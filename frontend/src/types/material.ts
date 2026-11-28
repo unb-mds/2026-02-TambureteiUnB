@@ -27,6 +27,7 @@ export interface MeuMaterialResponse extends MaterialResponse {
   disciplina_nome: string;
   disciplina_slug: string;
   motivo_moderacao?: string | null;
+  arquivo_disponivel?: boolean;
 }
 
 export interface MaterialUpdatePayload {

@@ -63,10 +63,22 @@ export function listarPendentes(pagina = 1): Promise<FilaCuradoria> {
   return request<FilaCuradoria>(`/moderacao/materiais?pagina=${pagina}&tamanho_pagina=20`, { cache: "no-store" });
 }
 
-export function decidirCuradoria(id: number, status: DecisaoCuradoria, justificativa?: string): Promise<RegistroCuradoria> {
+export function decidirCuradoria(
+  id: number,
+  status: DecisaoCuradoria,
+  justificativa?: string,
+  excluirArquivo = false,
+): Promise<RegistroCuradoria> {
+  const payload: { status: DecisaoCuradoria; justificativa: string | null; excluir_arquivo?: boolean } = {
+    status,
+    justificativa: justificativa?.trim() || null,
+  };
+  if (excluirArquivo) {
+    payload.excluir_arquivo = true;
+  }
   return request<RegistroCuradoria>(`/moderacao/conteudos/${id}/curadoria`, {
     method: "PATCH",
-    body: JSON.stringify({ status, justificativa: justificativa?.trim() || null }),
+    body: JSON.stringify(payload),
   });
 }
 

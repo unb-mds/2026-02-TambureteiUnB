@@ -30,6 +30,7 @@ class MeuMaterialResponse(MaterialResponse):
     disciplina_nome: str
     disciplina_slug: str
     motivo_moderacao: str | None = None
+    arquivo_disponivel: bool = True
 
 
 class MaterialVotoResponse(BaseModel):

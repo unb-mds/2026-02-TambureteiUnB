@@ -250,6 +250,35 @@ export async function updateMaterial(
   });
 }
 
+export async function resubmitMaterial(
+  id: number | string,
+  payload: {
+    titulo?: string;
+    tipo?: MaterialType;
+    url_origem?: string;
+    file?: File | null;
+  },
+): Promise<MaterialResponse> {
+  const numericId = Number(id);
+  if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+    throw new ApiError("Material inválido.", 422);
+  }
+  const formData = new FormData();
+  if (payload.titulo !== undefined) formData.append("titulo", payload.titulo.trim());
+  if (payload.tipo !== undefined) formData.append("tipo", payload.tipo);
+  if (payload.url_origem !== undefined) formData.append("url_origem", payload.url_origem.trim());
+  if (payload.file) formData.append("arquivo", payload.file, payload.file.name);
+
+  try {
+    return await request<MaterialResponse>(`/materiais/${numericId}/reenviar`, {
+      method: "POST",
+      body: formData,
+    });
+  } catch (err: unknown) {
+    throw normalizeUploadError(err);
+  }
+}
+
 export async function deleteMaterial(id: number | string): Promise<void> {
   const numericId = Number(id);
   if (!Number.isSafeInteger(numericId) || numericId <= 0) {

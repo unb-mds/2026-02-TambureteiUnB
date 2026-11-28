@@ -733,7 +733,7 @@ export default function MateriaisApoio({
                       <span>{material.upvotes}</span>
                     </button>
 
-                    {authenticated && material.isMine && (
+                    {authenticated && (material.isMine || isModerator) && (
                       <button
                         type="button"
                         onClick={() => setEditingMaterial(material)}
